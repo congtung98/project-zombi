@@ -4,6 +4,8 @@ export type GameEvents = {
   'player:damaged': { amount: number; health: number; sourceId: EntityId }
   'player:died': { sourceId: EntityId }
   'zombie:stateChanged': { id: EntityId; from: ZombieAIState; to: ZombieAIState }
+  'door:toggled': { id: string; open: boolean }
+  'container:opened': { id: string; name: string; firstTime: boolean }
 }
 
 type Listener<T> = (payload: T) => void

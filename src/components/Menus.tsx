@@ -7,7 +7,7 @@ function ControlsHelp() {
       <li><kbd>Shift</kbd> chạy (tiêu thể lực)</li>
       <li><kbd>Chuột trái</kbd> đánh (Sprint 3)</li>
       <li><kbd>Space</kbd> đẩy (Sprint 3)</li>
-      <li><kbd>E</kbd> tương tác (Sprint 2)</li>
+      <li><kbd>E</kbd> tương tác cửa/tủ</li>
       <li><kbd>I</kbd> inventory (Sprint 4)</li>
       <li><kbd>Con lăn</kbd> zoom camera</li>
       <li><kbd>Esc</kbd> tạm dừng · <kbd>F3</kbd> debug</li>

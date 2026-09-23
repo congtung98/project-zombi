@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { runtime } from '../game/core/runtime'
+import { useWorldStore } from './worldStore'
 
 export type Screen = 'menu' | 'playing' | 'paused' | 'gameover'
 
@@ -24,6 +25,7 @@ export const useUiStore = create<UiState>((set, get) => ({
 
   startNewGame: () => {
     runtime.newGame()
+    useWorldStore.getState().reset()
     set({ screen: 'playing', sessionId: runtime.sessionId })
   },
 

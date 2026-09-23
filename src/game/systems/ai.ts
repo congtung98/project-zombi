@@ -12,8 +12,8 @@ export interface ZombieStepResult {
 
 export interface ZombieAIContext {
   /**
-   * Kiểm tra zombie có thể tiếp cận/nhìn thấy mục tiêu (không bị tường chắn).
-   * Sprint 1 luôn trả về true; Sprint 3 thay bằng raycast.
+   * Kiểm tra zombie có thể tiếp cận/nhìn thấy mục tiêu (không bị tường, cửa đóng chắn).
+   * Runtime cung cấp raycast physics; mặc định (test) luôn trả về true.
    */
   canReach: (zombie: ZombieState, target: Vec3) => boolean
 }
@@ -89,7 +89,8 @@ export function stepZombie(
         break
       }
       zombie.facing = Math.atan2(dx, dz)
-      if (zombie.attackCooldown <= 0) {
+      // Kiểm tra lại tường chắn đúng tại thời điểm gây sát thương, không dùng cache phát hiện.
+      if (zombie.attackCooldown <= 0 && ctx.canReach(zombie, target)) {
         zombie.attackCooldown = cfg.attackCooldown
         result.attack = true
       }

@@ -41,7 +41,15 @@ export function HUD() {
         </div>
       </div>
 
-      <div className="hud-hint">WASD di chuyển · Shift chạy · Con lăn zoom · Esc tạm dừng · F3 debug</div>
+      {hud.toast && <div className="hud-toast">{hud.toast}</div>}
+
+      {hud.interactPrompt && (
+        <div className="hud-prompt">
+          <kbd>E</kbd> {hud.interactPrompt}
+        </div>
+      )}
+
+      <div className="hud-hint">WASD di chuyển · Shift chạy · E tương tác · Con lăn zoom · Esc tạm dừng · F3 debug</div>
 
       {debug && (
         <div className="hud-debug">
@@ -49,6 +57,7 @@ export function HUD() {
           <div>
             Player: ({hud.playerX.toFixed(1)}, {hud.playerZ.toFixed(1)}) {hud.running ? 'RUN' : ''}
           </div>
+          <div>Interact: {hud.interactPrompt ?? '-'}</div>
           {hud.zombies.map((z) => (
             <div key={z.id}>
               {z.id}: {z.ai} hp={z.health} d={z.distance.toFixed(1)}

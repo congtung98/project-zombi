@@ -54,6 +54,23 @@ describe('zombie FSM', () => {
     expect(attacked).toBe(true)
   })
 
+  it('does not deal damage when a wall blocks at the moment of the attack', () => {
+    const z = zombieAt(0, 0)
+    const target = { x: 1, y: 0, z: 0 }
+    let reachable = true
+    const ctx = { canReach: () => reachable }
+    stepZombie(z, target, true, DT, cfg, ctx) // IDLE -> CHASE
+    stepZombie(z, target, true, DT, cfg, ctx) // CHASE -> ATTACK
+    expect(z.ai).toBe('ATTACK')
+    reachable = false
+    const r = stepZombie(z, target, true, DT, cfg, ctx)
+    expect(r.attack).toBe(false)
+    expect(z.attackCooldown).toBe(0)
+    // Sau lần kiểm tra phát hiện tiếp theo, zombie mất mục tiêu và rời ATTACK.
+    for (let t = 0; t < cfg.detectInterval + DT; t += DT) stepZombie(z, target, true, DT, cfg, ctx)
+    expect(z.ai).not.toBe('ATTACK')
+  })
+
   it('returns to CHASE when the target steps out of attack range', () => {
     const z = zombieAt(0, 0)
     const near = { x: 1, y: 0, z: 0 }

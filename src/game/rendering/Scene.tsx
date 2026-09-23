@@ -2,11 +2,17 @@ import { useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { runtime } from '../core/runtime'
+import { BuildingView } from './BuildingView'
 import { CameraRig } from './CameraRig'
+import { ContainerView } from './ContainerView'
+import { DoorView } from './DoorView'
 import { GameLoop } from './GameLoop'
 import { Ground } from './Ground'
 import { Lights } from './Lights'
+import { OcclusionFader } from './OcclusionFader'
+import { PhysicsBridge } from './PhysicsBridge'
 import { PlayerView } from './PlayerView'
+import { Roads } from './Roads'
 import { Walls } from './Walls'
 import { ZombieView } from './ZombieView'
 
@@ -31,20 +37,33 @@ function InputBridge() {
  */
 export function Scene({ paused, debug }: SceneProps) {
   const zombieIds = useMemo(() => Array.from(runtime.zombies.keys()), [])
+  const map = runtime.map
 
   return (
     <>
       <InputBridge />
       <Lights />
       <CameraRig />
+      <Roads />
+      {map.buildings.map((b) => (
+        <BuildingView key={b.id} building={b} />
+      ))}
       <Physics gravity={[0, -9.81, 0]} paused={paused} debug={debug} timeStep={1 / 60}>
+        <PhysicsBridge />
         <Ground />
         <Walls />
+        {map.doors.map((door) => (
+          <DoorView key={door.id} door={door} />
+        ))}
+        {map.containers.map((c) => (
+          <ContainerView key={c.id} container={c} />
+        ))}
         <PlayerView />
         {zombieIds.map((id) => (
           <ZombieView key={id} id={id} />
         ))}
       </Physics>
+      <OcclusionFader />
       <GameLoop paused={paused} />
     </>
   )

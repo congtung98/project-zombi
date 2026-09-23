@@ -216,3 +216,36 @@ kbd {
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
 }
+
+/* ---------- Tương tác ---------- */
+
+.hud-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.hud-prompt kbd {
+  margin-right: 6px;
+  font-size: 13px;
+}
+
+.hud-toast {
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+}
