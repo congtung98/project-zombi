@@ -51,6 +51,9 @@ export function HUD() {
         <span className={hud.pushCooldown > 0 ? 'cooling' : ''}>
           <kbd>Space</kbd> Đẩy
         </span>
+        <span className={hud.inventoryOpen ? 'active' : ''}>
+          <kbd>I</kbd> Túi {hud.bagUsed}/{hud.bagSize}
+        </span>
       </div>
 
       {hud.toast && <div className="hud-toast">{hud.toast}</div>}
@@ -61,7 +64,7 @@ export function HUD() {
         </div>
       )}
 
-      <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · Esc tạm dừng · F3 debug</div>
+      <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ · Esc tạm dừng · F3 debug</div>
 
       {debug && (
         <div className="hud-debug">

@@ -3,6 +3,7 @@ import { GameRuntime } from './runtime'
 import { GAME_CONFIG } from './config'
 import type { MapData } from '../world/mapData'
 import { generateBuildingWalls, generateDoorPlacements, type BuildingDef } from '../world/buildings'
+import { addItem, createInventory, totalQuantity } from '../systems/inventory'
 
 const hut: BuildingDef = {
   id: 'hut',
@@ -127,8 +128,9 @@ describe('GameRuntime interaction', () => {
     rt.tick(1 / 60)
     expect(rt.currentInteractable?.id).toBe('ct-hut')
 
-    rt.interact(rt.currentInteractable!)
-    rt.interact(rt.currentInteractable!)
+    rt.interact(rt.currentInteractable!) // mở panel
+    rt.interact(rt.currentInteractable!) // E lần nữa: đóng panel, không phải mở lại
+    rt.interact(rt.currentInteractable!) // mở lại: không còn là lần đầu
     rt.events.flush()
     expect(rt.world.containers.get('ct-hut')?.opened).toBe(true)
     expect(opens).toEqual([true, false])
@@ -283,5 +285,145 @@ describe('GameRuntime combat', () => {
     expect(zombieBody.translation().z).toBeLessThan(2)
     expect(zombie.ai).toBe('ATTACK')
     expect(damaged).toBeGreaterThan(0)
+  })
+})
+
+describe('GameRuntime inventory and loot', () => {
+  const DT = 1 / 60
+  const hutWithLoot: BuildingDef = {
+    ...hut,
+    containers: [{ ...hut.containers[0], loot: 'safehouse-cabinet' }],
+  }
+  function lootMap(): MapData {
+    return { ...makeMap([]), buildings: [hutWithLoot], containers: hutWithLoot.containers }
+  }
+  function standAtContainer(rt: GameRuntime) {
+    rt.player.position = { x: 0, y: 0.9, z: -1.5 }
+    rt.player.facing = Math.PI
+    rt.tick(DT)
+    expect(rt.currentInteractable?.id).toBe('ct-hut')
+  }
+
+  it('opening a container shows the loot generated once at newGame; reopening adds nothing', () => {
+    const rt = new GameRuntime(lootMap())
+    rt.newGame(4242)
+    const before = JSON.stringify(rt.world.containers.get('ct-hut')!.items)
+    expect(totalQuantity(rt.world.containers.get('ct-hut')!.items)).toBeGreaterThanOrEqual(3)
+
+    standAtContainer(rt)
+    rt.interact(rt.currentInteractable!)
+    expect(rt.openContainerId).toBe('ct-hut')
+    expect(rt.inventoryOpen).toBe(true)
+    expect(rt.uiOpen).toBe(true)
+
+    rt.interact(rt.currentInteractable!) // E lần nữa: đóng
+    expect(rt.openContainerId).toBeNull()
+    rt.interact(rt.currentInteractable!) // mở lại
+    expect(JSON.stringify(rt.world.containers.get('ct-hut')!.items)).toBe(before)
+  })
+
+  it('same seed reproduces the same loot; newGame with another seed differs', () => {
+    const a = new GameRuntime(lootMap())
+    a.newGame(7)
+    const b = new GameRuntime(lootMap())
+    b.newGame(7)
+    expect(a.world.containers.get('ct-hut')!.items).toEqual(b.world.containers.get('ct-hut')!.items)
+    expect(a.world.seed).toBe(7)
+  })
+
+  it('take, take all and put back keep the total item count; a full bag leaves loot in the container', () => {
+    const rt = new GameRuntime(lootMap())
+    rt.newGame(99)
+    standAtContainer(rt)
+    rt.interact(rt.currentInteractable!)
+    const container = rt.openContainer!
+    const total = totalQuantity(container.items) + totalQuantity(rt.player.inventory)
+
+    const r = rt.takeFromContainer(0)
+    expect(r.moved).toBeGreaterThan(0)
+    expect(totalQuantity(container.items) + totalQuantity(rt.player.inventory)).toBe(total)
+
+    rt.putIntoContainer(0)
+    expect(totalQuantity(rt.player.inventory)).toBe(0)
+    expect(totalQuantity(container.items)).toBe(total)
+
+    // Lấp đầy túi bằng medkit (stack 1) rồi Take All: đồ phải còn nguyên trong container.
+    for (let i = 0; i < GAME_CONFIG.inventory.slots; i++) addItem(rt.player.inventory, 'medkit', 1)
+    const all = rt.takeAll()
+    expect(all.moved).toBe(0)
+    expect(all.remainder).toBe(total)
+    expect(totalQuantity(container.items)).toBe(total)
+
+    rt.player.inventory = createInventory(GAME_CONFIG.inventory.slots)
+    const all2 = rt.takeAll()
+    expect(all2.moved).toBe(total)
+    expect(totalQuantity(container.items)).toBe(0)
+  })
+
+  it('using an item from the bag restores stats and emits item:used; no-effect use emits item:useFailed', () => {
+    const rt = new GameRuntime(lootMap())
+    const used: string[] = []
+    const failed: string[] = []
+    rt.events.on('item:used', (e) => used.push(e.itemId))
+    rt.events.on('item:useFailed', (e) => failed.push(e.reason))
+    addItem(rt.player.inventory, 'water', 1)
+    addItem(rt.player.inventory, 'bandage', 1)
+
+    rt.player.thirst = 50
+    expect(rt.consumeItem(0).ok).toBe(true)
+    expect(rt.player.thirst).toBe(90)
+    expect(rt.consumeItem(1).ok).toBe(false) // máu đầy
+    expect(rt.player.inventory.slots[1]?.quantity).toBe(1)
+    rt.events.flush()
+    expect(used).toEqual(['water'])
+    expect(failed).toEqual(['no-effect'])
+  })
+
+  it('walking away from an open container closes its panel, and death closes all UI', () => {
+    const rt = new GameRuntime(lootMap())
+    const closed: string[] = []
+    rt.events.on('container:closed', (e) => closed.push(e.id))
+    standAtContainer(rt)
+    rt.interact(rt.currentInteractable!)
+    expect(rt.openContainerId).toBe('ct-hut')
+
+    rt.player.position = { x: 0, y: 0.9, z: 2 }
+    rt.tick(DT)
+    expect(rt.openContainerId).toBeNull()
+    expect(rt.inventoryOpen).toBe(true) // túi vẫn mở, chỉ panel container đóng
+    expect(rt.uiOpen).toBe(true)
+    expect(closed).toEqual(['ct-hut'])
+
+    rt.player.alive = false
+    rt.tick(DT)
+    expect(rt.inventoryOpen).toBe(false)
+    expect(rt.uiOpen).toBe(false)
+  })
+
+  it('an open inventory blocks attack and push input', () => {
+    const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
+    rt.toggleInventory()
+    expect(rt.uiOpen).toBe(true)
+    rt.input.simulateKey('Mouse0', true)
+    rt.tick(DT)
+    expect(rt.player.attackTimer).toBeLessThan(0)
+    expect(rt.player.stamina).toBe(GAME_CONFIG.player.maxStamina)
+    rt.input.simulateKey('Mouse0', false)
+
+    rt.toggleInventory()
+    expect(rt.uiOpen).toBe(false)
+    rt.input.simulateKey('Mouse0', true)
+    rt.tick(DT)
+    expect(rt.player.attackTimer).toBeGreaterThanOrEqual(0)
+  })
+
+  it('newGame resets the bag and closes UI', () => {
+    const rt = new GameRuntime(lootMap())
+    addItem(rt.player.inventory, 'water', 2)
+    rt.toggleInventory()
+    rt.newGame(1)
+    expect(totalQuantity(rt.player.inventory)).toBe(0)
+    expect(rt.uiOpen).toBe(false)
+    expect(rt.inventoryOpen).toBe(false)
   })
 })

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { GameRuntime } from '../game/core/runtime'
+import { countUsedSlots } from '../game/systems/inventory'
 import type { EntityId, ZombieAIState } from '../types'
 
 export interface ZombieHudInfo {
@@ -32,6 +33,10 @@ interface HudSnapshot {
   /** Cooldown gậy còn lại (giây), để HUD báo sẵn sàng. */
   attackCooldown: number
   pushCooldown: number
+  /** Số ô túi đang dùng / tổng, hiện cạnh phím I. */
+  bagUsed: number
+  bagSize: number
+  inventoryOpen: boolean
 }
 
 interface HudState extends HudSnapshot {
@@ -67,6 +72,9 @@ export const useHudStore = create<HudState>((set) => ({
   kills: 0,
   attackCooldown: 0,
   pushCooldown: 0,
+  bagUsed: 0,
+  bagSize: 12,
+  inventoryOpen: false,
   toast: null,
   damageFlash: 0,
 
@@ -103,6 +111,9 @@ export const useHudStore = create<HudState>((set) => ({
       kills: p.kills,
       attackCooldown: p.attackCooldown,
       pushCooldown: p.pushCooldown,
+      bagUsed: countUsedSlots(p.inventory),
+      bagSize: p.inventory.slots.length,
+      inventoryOpen: rt.inventoryOpen,
     })
   },
 

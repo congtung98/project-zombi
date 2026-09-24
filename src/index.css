@@ -297,3 +297,141 @@ kbd {
     opacity: 0;
   }
 }
+
+/* ---------- Inventory / container ---------- */
+
+.inv-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.inv-panel {
+  width: 300px;
+  padding: 12px 14px 10px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.inv-panel-container {
+  border-color: rgba(242, 193, 78, 0.35);
+}
+
+.inv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.inv-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.inv-count {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-close {
+  padding: 0 8px;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.slot-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 64px;
+  padding: 4px 2px;
+  font-size: 11px;
+  line-height: 1.1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.slot:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.slot-filled {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.slot-filled:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.slot-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.slot-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.slot-qty {
+  position: absolute;
+  right: 4px;
+  top: 3px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-hint,
+.inv-footer {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.inv-footer button {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.inv-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.hud-actions span.active {
+  color: #f2c14e;
+}

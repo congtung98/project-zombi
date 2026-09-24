@@ -8,11 +8,14 @@ import { InputManager } from '../systems/input'
 import { computeCameraBasis, computeMoveDirection, dampAngle, regenStamina, resolvePlayerSpeed } from '../systems/movement'
 import { applyKnockback, damageZombie, stepZombie, type ZombieAIContext } from '../systems/ai'
 import { facingTowards, resolveConeHits, startAttack, startPush, tickPlayerCombat, type MeleeTarget } from '../systems/combat'
-import { damagePlayer, tickSurvival } from '../systems/survival'
-import { selectInteractable, type Interactable } from '../systems/interaction'
+import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
+import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
+import { transferAll, transferSlot, type TransferResult } from '../systems/inventory'
+import { randomSeed } from '../systems/loot'
+import { getItemDef } from '../entities/items'
 import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
 import { NavGrid } from '../world/navigation'
-import { createWorldState, type WorldState } from '../world/worldState'
+import { createWorldState, type ContainerState, type WorldState } from '../world/worldState'
 import type { EntityId, Vec3 } from '../../types'
 
 interface PendingAttack {
@@ -52,6 +55,7 @@ export class GameRuntime {
   readonly cameraBasis = computeCameraBasis(GAME_CONFIG.camera.offset)
   /** Danh sách đối tượng tương tác được, dựng một lần từ map data. */
   readonly interactables: readonly Interactable[]
+  private readonly interactableById: Map<string, Interactable>
 
   cameraZoom = GAME_CONFIG.camera.zoomDefault
   player: PlayerState
@@ -62,8 +66,12 @@ export class GameRuntime {
   interactPrompt: string | null = null
   /** Điểm con trỏ chiếu xuống mặt đất (tầng render cập nhật mỗi frame); null khi ngoài canvas. */
   cursorWorld: Vec3 | null = null
-  /** UI (inventory...) đang mở thì không kích hoạt đòn đánh ngoài ý muốn. */
+  /** UI (inventory/container) đang mở thì không kích hoạt đòn đánh ngoài ý muốn. Suy ra từ hai trường dưới. */
   uiOpen = false
+  /** Túi đồ đang mở (phím I hoặc tự mở khi mở container). */
+  inventoryOpen = false
+  /** Container đang hiện panel; null khi không có. */
+  openContainerId: string | null = null
   /** Tăng mỗi ván mới; dùng làm key để remount scene và tạo lại physics body. */
   sessionId = 0
 
@@ -77,8 +85,9 @@ export class GameRuntime {
     this.map = map
     this.nav = new NavGrid(map, GAME_CONFIG.nav)
     this.interactables = buildInteractables(map)
+    this.interactableById = new Map(this.interactables.map((i) => [i.id, i]))
     this.player = createPlayerState(map.playerSpawn)
-    this.world = createWorldState(map)
+    this.world = createWorldState(map, 0)
 
     // Zombie chỉ phát hiện và gây sát thương khi không có tường/cửa đóng giữa nó và người chơi;
     // đường đi lấy từ lưới điều hướng (đi vòng tường, qua cửa mở).
@@ -93,18 +102,21 @@ export class GameRuntime {
     this.newGame()
   }
 
-  newGame(): void {
+  /** Ván mới với seed loot; loot mọi container được sinh ngay tại đây, một lần cho cả ván. */
+  newGame(seed: number = randomSeed()): void {
     this.sessionId += 1
     this.clock.reset()
     this.events.clear()
     this.input.clear()
     this.cameraZoom = GAME_CONFIG.camera.zoomDefault
     this.player = createPlayerState(this.map.playerSpawn)
-    this.world = createWorldState(this.map)
+    this.world = createWorldState(this.map, seed)
     this.nav.resetDoors()
     this.currentInteractable = null
     this.interactPrompt = null
     this.cursorWorld = null
+    this.inventoryOpen = false
+    this.openContainerId = null
     this.uiOpen = false
     this.zombies.clear()
     this.zombieBodies.clear()
@@ -191,7 +203,17 @@ export class GameRuntime {
     if (!player.alive) {
       this.currentInteractable = null
       this.interactPrompt = null
+      this.closeAllUi()
       return
+    }
+
+    // Đi xa container đang mở thì panel tự đóng (không loot từ xa).
+    if (this.openContainerId) {
+      const item = this.interactableById.get(this.openContainerId)
+      const maxDist = item ? INTERACT_RANGE + item.radius + GAME_CONFIG.inventory.closeDistanceSlack : 0
+      if (!item || Math.hypot(item.position.x - player.position.x, item.position.z - player.position.z) > maxDist) {
+        this.closeContainer()
+      }
     }
 
     const from: Vec3 = { x: player.position.x, y: player.position.y, z: player.position.z }
@@ -209,6 +231,7 @@ export class GameRuntime {
       const door = this.world.doors.get(target.id)
       return `${door?.open ? 'Đóng' : 'Mở'} ${target.name}`
     }
+    if (this.openContainerId === target.id) return `Đóng ${target.name}`
     const container = this.world.containers.get(target.id)
     return `${container?.opened ? 'Xem' : 'Mở'} ${target.name}`
   }
@@ -226,10 +249,109 @@ export class GameRuntime {
     }
     const container = this.world.containers.get(target.id)
     if (!container) return
+    if (this.openContainerId === container.id) {
+      // Nhấn E lần nữa ở cùng container: đóng panel.
+      this.closeContainer()
+      this.interactPrompt = this.describeInteraction(target)
+      return
+    }
     const firstTime = !container.opened
     container.opened = true
+    // Loot đã sinh khi tạo ván; mở lại chỉ hiện nội dung còn lại, không gieo thêm.
+    this.openContainerId = container.id
+    this.inventoryOpen = true
+    this.syncUiOpen()
     this.events.queue('container:opened', { id: container.id, name: target.name, firstTime })
+    this.queueInventoryChanged()
     this.interactPrompt = this.describeInteraction(target)
+  }
+
+  // ----- Inventory / container: gọi từ UI (ngoài tick) hoặc test -----
+
+  /** Phím I: mở/đóng túi. Đóng túi cũng đóng panel container. */
+  toggleInventory(): void {
+    if (this.inventoryOpen) this.closeAllUi()
+    else this.setInventoryOpen(true)
+  }
+
+  setInventoryOpen(open: boolean): void {
+    if (this.inventoryOpen === open) return
+    this.inventoryOpen = open
+    if (!open) this.closeContainer()
+    this.syncUiOpen()
+    this.queueInventoryChanged()
+  }
+
+  closeContainer(): void {
+    const id = this.openContainerId
+    if (!id) return
+    this.openContainerId = null
+    this.syncUiOpen()
+    this.events.queue('container:closed', { id })
+    this.queueInventoryChanged()
+  }
+
+  closeAllUi(): void {
+    if (!this.inventoryOpen && !this.openContainerId) return
+    this.inventoryOpen = false
+    if (this.openContainerId) {
+      this.closeContainer()
+      return
+    }
+    this.syncUiOpen()
+    this.queueInventoryChanged()
+  }
+
+  /** Container đang mở panel, hoặc null. */
+  get openContainer(): ContainerState | null {
+    return this.openContainerId ? (this.world.containers.get(this.openContainerId) ?? null) : null
+  }
+
+  /** Dùng vật phẩm ở ô `slot`; chỉ trừ khi dùng thành công. */
+  consumeItem(slot: number): UseItemResult {
+    const result = consumeInventoryItem(this.player, slot)
+    if (result.ok) {
+      this.events.queue('item:used', { itemId: result.itemId, name: getItemDef(result.itemId).name, effect: result.effect })
+      this.queueInventoryChanged()
+    } else if (result.itemId) {
+      this.events.queue('item:useFailed', { itemId: result.itemId, name: getItemDef(result.itemId).name, reason: result.reason })
+    }
+    return result
+  }
+
+  /** Lấy ô `slot` của container đang mở vào túi; phần không vừa ở lại container. */
+  takeFromContainer(slot: number): TransferResult {
+    const c = this.openContainer
+    if (!c) return { moved: 0, remainder: 0 }
+    const r = transferSlot(c.items, slot, this.player.inventory)
+    if (r.moved > 0) this.queueInventoryChanged()
+    return r
+  }
+
+  /** Cất ô `slot` của túi vào container đang mở. */
+  putIntoContainer(slot: number): TransferResult {
+    const c = this.openContainer
+    if (!c) return { moved: 0, remainder: 0 }
+    const r = transferSlot(this.player.inventory, slot, c.items)
+    if (r.moved > 0) this.queueInventoryChanged()
+    return r
+  }
+
+  /** Lấy tất cả có thể; hết chỗ thì đồ còn lại vẫn ở container. */
+  takeAll(): TransferResult {
+    const c = this.openContainer
+    if (!c) return { moved: 0, remainder: 0 }
+    const r = transferAll(c.items, this.player.inventory)
+    if (r.moved > 0) this.queueInventoryChanged()
+    return r
+  }
+
+  private syncUiOpen(): void {
+    this.uiOpen = this.inventoryOpen || this.openContainerId !== null
+  }
+
+  private queueInventoryChanged(): void {
+    this.events.queue('inventory:changed', { inventoryOpen: this.inventoryOpen, containerId: this.openContainerId })
   }
 
   private stepZombies(dt: number): PendingAttack[] {

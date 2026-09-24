@@ -103,6 +103,14 @@ export const GAME_CONFIG = {
     halfAngleDeg: 75,
     stagger: 0.6,
   },
+  inventory: {
+    /** Số ô túi người chơi (kế hoạch: 12 ô). */
+    slots: 12,
+    /** Số ô mỗi container; loot sinh ra không vượt số này. */
+    containerSlots: 8,
+    /** Người chơi đi xa container quá tầm tương tác cộng dư này thì panel tự đóng. */
+    closeDistanceSlack: 0.75,
+  },
   camera: {
     /** Vị trí camera so với nhân vật; hướng nhìn isometric. */
     offset: { x: 20, y: 24, z: 20 },

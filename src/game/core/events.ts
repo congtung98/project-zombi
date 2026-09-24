@@ -1,3 +1,5 @@
+import type { ItemEffect, ItemId } from '../entities/items'
+import type { UseItemFailure } from '../systems/survival'
 import type { EntityId, ZombieAIState } from '../../types'
 
 export type GameEvents = {
@@ -11,6 +13,11 @@ export type GameEvents = {
   'player:pushed': { hitIds: EntityId[] }
   'door:toggled': { id: string; open: boolean }
   'container:opened': { id: string; name: string; firstTime: boolean }
+  'container:closed': { id: string }
+  /** Túi người chơi, panel container hoặc trạng thái mở/đóng UI đổi; UI chụp snapshot mới. */
+  'inventory:changed': { inventoryOpen: boolean; containerId: string | null }
+  'item:used': { itemId: ItemId; name: string; effect: ItemEffect }
+  'item:useFailed': { itemId: ItemId; name: string; reason: UseItemFailure }
 }
 
 type Listener<T> = (payload: T) => void

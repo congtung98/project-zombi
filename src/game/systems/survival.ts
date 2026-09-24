@@ -1,5 +1,45 @@
 import { GAME_CONFIG } from '../core/config'
+import { getItemDef, type ItemEffect, type ItemId } from '../entities/items'
 import type { PlayerState } from '../entities/player'
+import { removeFromSlot } from './inventory'
+
+export type UseItemFailure = 'dead' | 'empty' | 'no-effect'
+
+export type UseItemResult =
+  | { ok: true; itemId: ItemId; effect: ItemEffect }
+  | { ok: false; reason: UseItemFailure; itemId?: ItemId }
+
+/** Vật phẩm có tác dụng khi ít nhất một chỉ số nó hồi đang dưới mức tối đa. */
+export function canBenefit(player: PlayerState, effect: ItemEffect, limits = GAME_CONFIG.player): boolean {
+  if ((effect.health ?? 0) > 0 && player.health < limits.maxHealth) return true
+  if ((effect.hunger ?? 0) > 0 && player.hunger < limits.maxHunger) return true
+  if ((effect.thirst ?? 0) > 0 && player.thirst < limits.maxThirst) return true
+  if ((effect.stamina ?? 0) > 0 && player.stamina < limits.maxStamina) return true
+  return false
+}
+
+/** Áp hiệu ứng vật phẩm, kẹp 0..max cho mọi chỉ số. */
+export function applyItemEffect(player: PlayerState, effect: ItemEffect, limits = GAME_CONFIG.player): void {
+  if (effect.health) player.health = clampStat(player.health + effect.health, limits.maxHealth)
+  if (effect.hunger) player.hunger = clampStat(player.hunger + effect.hunger, limits.maxHunger)
+  if (effect.thirst) player.thirst = clampStat(player.thirst + effect.thirst, limits.maxThirst)
+  if (effect.stamina) player.stamina = clampStat(player.stamina + effect.stamina, limits.maxStamina)
+}
+
+/**
+ * Dùng một vật phẩm ở ô `slot` của túi người chơi. Chỉ trừ vật phẩm khi dùng
+ * thành công (kế hoạch §5.2): ô trống, đã chết hoặc không có tác dụng thì không trừ.
+ */
+export function consumeInventoryItem(player: PlayerState, slot: number, limits = GAME_CONFIG.player): UseItemResult {
+  const stack = player.inventory.slots[slot]
+  if (!stack || stack.quantity <= 0) return { ok: false, reason: 'empty' }
+  const def = getItemDef(stack.itemId)
+  if (!player.alive) return { ok: false, reason: 'dead', itemId: def.id }
+  if (!canBenefit(player, def.effect, limits)) return { ok: false, reason: 'no-effect', itemId: def.id }
+  applyItemEffect(player, def.effect, limits)
+  removeFromSlot(player.inventory, slot, 1)
+  return { ok: true, itemId: def.id, effect: def.effect }
+}
 
 export function clampStat(value: number, max: number): number {
   return Math.min(max, Math.max(0, value))

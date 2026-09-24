@@ -29,6 +29,8 @@ export interface ContainerDef {
   position: Vec3
   size: [number, number, number]
   color: string
+  /** ID bảng loot (xem `lootTables.ts`); không có thì container trống. */
+  loot?: string
 }
 
 export interface BuildingDef {

@@ -63,7 +63,7 @@ const SAFE_HOUSE: BuildingDef = {
   floorColor: '#7d6b55',
   doors: [{ id: 'door-safehouse', name: 'Cửa nhà an toàn', side: 'S', offset: 1, width: 1.4 }],
   containers: [
-    { id: 'ct-safehouse-cabinet', name: 'Tủ đồ nhà an toàn', position: { x: -17, y: 0.5, z: -17.4 }, size: [1.2, 1, 0.6], color: '#8b5e3c' },
+    { id: 'ct-safehouse-cabinet', name: 'Tủ đồ nhà an toàn', position: { x: -17, y: 0.5, z: -17.4 }, size: [1.2, 1, 0.6], color: '#8b5e3c', loot: 'safehouse-cabinet' },
   ],
 }
 
@@ -79,10 +79,10 @@ const STORE: BuildingDef = {
   floorColor: '#9aa0a6',
   doors: [{ id: 'door-store', name: 'Cửa cửa hàng', side: 'S', offset: -3, width: 1.6 }],
   containers: [
-    { id: 'ct-store-shelf-1', name: 'Kệ hàng 1', position: { x: 9, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a' },
-    { id: 'ct-store-shelf-2', name: 'Kệ hàng 2', position: { x: 13, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a' },
-    { id: 'ct-store-shelf-3', name: 'Kệ hàng 3', position: { x: 17, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a' },
-    { id: 'ct-store-fridge', name: 'Tủ lạnh', position: { x: 18.3, y: 0.9, z: -11 }, size: [0.8, 1.8, 0.8], color: '#d8dee6' },
+    { id: 'ct-store-shelf-1', name: 'Kệ hàng 1', position: { x: 9, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a', loot: 'store-shelf' },
+    { id: 'ct-store-shelf-2', name: 'Kệ hàng 2', position: { x: 13, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a', loot: 'store-shelf' },
+    { id: 'ct-store-shelf-3', name: 'Kệ hàng 3', position: { x: 17, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a', loot: 'store-shelf' },
+    { id: 'ct-store-fridge', name: 'Tủ lạnh', position: { x: 18.3, y: 0.9, z: -11 }, size: [0.8, 1.8, 0.8], color: '#d8dee6', loot: 'store-fridge' },
   ],
 }
 
@@ -98,8 +98,8 @@ const HOUSE: BuildingDef = {
   floorColor: '#8a7560',
   doors: [{ id: 'door-house', name: 'Cửa nhà dân', side: 'N', offset: -2, width: 1.4 }],
   containers: [
-    { id: 'ct-house-wardrobe', name: 'Tủ quần áo', position: { x: 16.5, y: 1, z: 14.9 }, size: [1.6, 2, 0.6], color: '#6d4c35' },
-    { id: 'ct-house-kitchen', name: 'Tủ bếp', position: { x: 9.6, y: 0.5, z: 14.9 }, size: [1.4, 1, 0.6], color: '#9c7a5a' },
+    { id: 'ct-house-wardrobe', name: 'Tủ quần áo', position: { x: 16.5, y: 1, z: 14.9 }, size: [1.6, 2, 0.6], color: '#6d4c35', loot: 'house-wardrobe' },
+    { id: 'ct-house-kitchen', name: 'Tủ bếp', position: { x: 9.6, y: 0.5, z: 14.9 }, size: [1.4, 1, 0.6], color: '#9c7a5a', loot: 'house-kitchen' },
   ],
 }
 
