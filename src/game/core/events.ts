@@ -16,6 +16,8 @@ export type GameEvents = {
   'player:attacked': { hitIds: EntityId[] }
   'player:pushed': { hitIds: EntityId[] }
   'door:toggled': { id: string; open: boolean }
+  'door:changed': { id: string; state: import('../world/doors').DoorStatus }
+  'drops:changed': Record<string, never>
   'container:opened': { id: string; name: string; firstTime: boolean }
   'container:closed': { id: string }
   /** Túi người chơi, panel container hoặc trạng thái mở/đóng UI đổi; UI chụp snapshot mới. */

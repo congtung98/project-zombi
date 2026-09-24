@@ -158,7 +158,7 @@ describe('30-minute automated survival loop', () => {
     /** Điểm đứng trước cửa đóng gần nhất, ở phía người chơi tới được (thử hai bên theo pháp tuyến cửa). */
     const nearestClosedDoorApproach = (from: Vec3): Vec3 | null => {
       const doors = map.doors
-        .filter((d) => !rt.world.doors.get(d.id)?.open)
+        .filter((d) => rt.world.doors.get(d.id)?.state === 'closed')
         .sort((a, b) => Math.hypot(a.center.x - from.x, a.center.z - from.z) - Math.hypot(b.center.x - from.x, b.center.z - from.z))
       for (const d of doors) {
         const b = map.buildings.find((x) => x.id === d.buildingId)!
@@ -235,7 +235,7 @@ describe('30-minute automated survival loop', () => {
 
       // ---- Cửa: gặp cửa đóng trước mặt thì mở
       const target = rt.currentInteractable
-      if (target?.kind === 'door' && !rt.world.doors.get(target.id)?.open && !fighting) {
+      if (target?.kind === 'door' && rt.world.doors.get(target.id)?.state === 'closed' && !fighting) {
         rt.interact(target)
       }
 

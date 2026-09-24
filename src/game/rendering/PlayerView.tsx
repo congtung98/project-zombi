@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import type { Group } from 'three'
 import { runtime } from '../core/runtime'
+import { equippedWeapon } from '../systems/equipment'
 
 const CFG = runtime.config.player
 const MELEE = runtime.config.melee
@@ -34,6 +35,7 @@ export function PlayerView() {
     if (visualRef.current) visualRef.current.rotation.y = p.facing
     const pivot = batPivotRef.current
     if (!pivot) return
+    pivot.visible = equippedWeapon(p.inventory, p.equipment) !== null
     if (p.attackTimer < 0) {
       pivot.rotation.y = BAT_REST_ANGLE
       pivot.rotation.x = 0

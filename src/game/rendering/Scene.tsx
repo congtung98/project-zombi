@@ -40,6 +40,7 @@ function InputBridge() {
  */
 export function Scene({ paused, debug }: SceneProps) {
   const zombieIds = useWorldStore((s) => s.zombieIds)
+  const drops = useWorldStore((s) => s.drops)
   const map = runtime.map
 
   return (
@@ -49,6 +50,12 @@ export function Scene({ paused, debug }: SceneProps) {
       <CameraRig />
       <CursorProbe />
       <Roads />
+      {drops.map((drop) => (
+        <mesh key={drop.id} position={[drop.position.x, 0.18, drop.position.z]}>
+          <boxGeometry args={[0.45, 0.36, 0.45]} />
+          <meshStandardMaterial color="#d5ac54" />
+        </mesh>
+      ))}
       {map.buildings.map((b) => (
         <BuildingView key={b.id} building={b} />
       ))}

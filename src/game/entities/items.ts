@@ -1,11 +1,10 @@
 /**
- * Định nghĩa vật phẩm: dữ liệu cố định, ID ổn định để lưu ở Sprint 5.
- * Theo kế hoạch MVP chỉ có nhu yếu phẩm (thức ăn, nước, y tế); không có
- * wood/scrap vì chưa có crafting nên mọi vật phẩm nhặt được đều dùng được.
+ * Definitions describe a type; inventory-owned instances hold identity and mutable state.
+ * S1 adds the legacy bat; new loot, weapon stats and wear arrive in P2-S2.
  */
-export type ItemId = 'canned_food' | 'chips' | 'water' | 'soda' | 'bandage' | 'medkit'
+export type ItemId = 'canned_food' | 'chips' | 'water' | 'soda' | 'bandage' | 'medkit' | 'baseball_bat'
 
-export type ItemKind = 'food' | 'drink' | 'medical'
+export type ItemKind = 'food' | 'drink' | 'medical' | 'weapon' | 'tool' | 'material'
 
 /** Lượng hồi khi dùng; giá trị âm là tác dụng phụ (ví dụ đồ mặn làm khát). */
 export interface ItemEffect {
@@ -15,7 +14,7 @@ export interface ItemEffect {
   stamina?: number
 }
 
-export interface ItemDef {
+export interface ItemDefinition {
   id: ItemId
   name: string
   kind: ItemKind
@@ -24,9 +23,28 @@ export interface ItemDef {
   /** Ký hiệu hiển thị trong ô inventory (không cần asset ngoài ở MVP). */
   icon: string
   description: string
+  maxCondition?: number
+  maxFuel?: number
+}
+
+export type ItemDef = ItemDefinition
+
+/** itemId references the definition; quantity is always 1 for individual equipment. */
+export type ItemInstance =
+  | { id: string; itemId: ItemId; kind: 'stack'; quantity: number }
+  | { id: string; itemId: ItemId; kind: 'weapon'; quantity: 1; condition: number }
+  | { id: string; itemId: ItemId; kind: 'tool'; quantity: 1; fuel?: number }
+
+export interface Equipment {
+  weaponInstanceId: string | null
 }
 
 export const ITEMS: Record<ItemId, ItemDef> = {
+  baseball_bat: {
+    id: 'baseball_bat', name: 'Gậy bóng chày', kind: 'weapon', stackLimit: 1,
+    maxCondition: 80, effect: {}, icon: '🏏',
+    description: 'Gậy Phase 1. Hao mòn và sát thương khi hỏng sẽ có ở Sprint P2-S2.',
+  },
   canned_food: {
     id: 'canned_food',
     name: 'Đồ hộp',

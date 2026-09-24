@@ -51,14 +51,14 @@ describe('consumeInventoryItem', () => {
     const r = consumeInventoryItem(p, 0)
     expect(r.ok).toBe(true)
     expect(p.thirst).toBe(100)
-    expect(p.inventory.slots[0]).toEqual({ itemId: 'water', quantity: 1 })
+    expect(p.inventory.slots[0]).toMatchObject({ itemId: 'water', quantity: 1 })
   })
 
   it('does not consume the item when it would have no effect', () => {
     const p = playerWith('bandage', 1)
     const r = consumeInventoryItem(p, 0)
     expect(r).toEqual({ ok: false, reason: 'no-effect', itemId: 'bandage' })
-    expect(p.inventory.slots[0]).toEqual({ itemId: 'bandage', quantity: 1 })
+    expect(p.inventory.slots[0]).toMatchObject({ itemId: 'bandage', quantity: 1 })
     p.health = 50
     expect(consumeInventoryItem(p, 0).ok).toBe(true)
     expect(p.health).toBe(75)

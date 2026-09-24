@@ -1,4 +1,4 @@
-import { getItemDef, type ItemId } from '../entities/items'
+import { getItemDef, type ItemId, type ItemInstance } from '../entities/items'
 
 /** Một ô chứa: cùng `itemId` stack tới `stackLimit` của item. */
 export interface ItemStack {
@@ -11,7 +11,9 @@ export interface ItemStack {
  * và container. Cấu trúc tuần tự hóa được (mảng object thuần) để lưu ở Sprint 5.
  */
 export interface Inventory {
-  slots: (ItemStack | null)[]
+  id: string
+  nextItemId: number
+  slots: (ItemInstance | null)[]
 }
 
 export interface AddResult {
@@ -32,8 +34,12 @@ export interface TransferResult {
   remainder: number
 }
 
-export function createInventory(size: number): Inventory {
-  return { slots: Array.from({ length: size }, () => null) }
+export function createInventory(size: number, id: string = crypto.randomUUID()): Inventory {
+  return { id, nextItemId: 1, slots: Array.from({ length: size }, () => null) }
+}
+
+function nextId(inv: Inventory): string {
+  return `${inv.id}:${inv.nextItemId++}`
 }
 
 export function countItem(inv: Inventory, itemId: ItemId): number {
@@ -65,12 +71,13 @@ export function totalQuantity(inv: Inventory): number {
  */
 export function addItem(inv: Inventory, itemId: ItemId, quantity: number): AddResult {
   if (!Number.isFinite(quantity) || quantity <= 0) return { added: 0, remainder: Math.max(0, quantity || 0) }
-  const limit = getItemDef(itemId).stackLimit
+  const def = getItemDef(itemId)
+  const limit = def.stackLimit
   let left = Math.floor(quantity)
 
   for (const s of inv.slots) {
     if (left === 0) break
-    if (!s || s.itemId !== itemId || s.quantity >= limit) continue
+    if (!s || s.kind !== 'stack' || s.itemId !== itemId || s.quantity >= limit) continue
     const take = Math.min(limit - s.quantity, left)
     s.quantity += take
     left -= take
@@ -78,7 +85,12 @@ export function addItem(inv: Inventory, itemId: ItemId, quantity: number): AddRe
   for (let i = 0; i < inv.slots.length && left > 0; i++) {
     if (inv.slots[i]) continue
     const take = Math.min(limit, left)
-    inv.slots[i] = { itemId, quantity: take }
+    const id = nextId(inv)
+    inv.slots[i] = def.kind === 'weapon'
+      ? { id, itemId, kind: 'weapon', quantity: 1, condition: def.maxCondition! }
+      : def.kind === 'tool'
+        ? { id, itemId, kind: 'tool', quantity: 1, ...(def.maxFuel === undefined ? {} : { fuel: def.maxFuel }) }
+        : { id, itemId, kind: 'stack', quantity: take }
     left -= take
   }
   return { added: Math.floor(quantity) - left, remainder: left }
@@ -87,10 +99,10 @@ export function addItem(inv: Inventory, itemId: ItemId, quantity: number): AddRe
 /** Bỏ tối đa `quantity` khỏi một ô; ô về 0 thì thành trống. Không bao giờ âm. */
 export function removeFromSlot(inv: Inventory, slot: number, quantity: number): RemoveResult {
   const s = inv.slots[slot]
-  if (!s || quantity <= 0) return { removed: 0 }
+  if (!s || !Number.isFinite(quantity) || quantity <= 0) return { removed: 0 }
   const removed = Math.min(s.quantity, Math.floor(quantity))
-  s.quantity -= removed
-  if (s.quantity <= 0) inv.slots[slot] = null
+  if (s.kind === 'stack') s.quantity -= removed
+  if (removed === 1 && s.kind !== 'stack' || s.quantity <= 0) inv.slots[slot] = null
   return { removed }
 }
 
@@ -115,11 +127,33 @@ export function removeItem(inv: Inventory, itemId: ItemId, quantity: number): Re
 export function transferSlot(from: Inventory, slot: number, to: Inventory, quantity?: number): TransferResult {
   const s = from.slots[slot]
   if (!s) return { moved: 0, remainder: 0 }
+  if (from === to || (quantity !== undefined && !Number.isFinite(quantity))) return { moved: 0, remainder: s.quantity }
   const want = quantity === undefined ? s.quantity : Math.min(s.quantity, Math.max(0, Math.floor(quantity)))
   if (want <= 0) return { moved: 0, remainder: s.quantity }
-  const { added } = addItem(to, s.itemId, want)
-  removeFromSlot(from, slot, added)
-  return { moved: added, remainder: s.quantity }
+  if (to.slots.some((item) => item?.id === s.id)) return { moved: 0, remainder: s.quantity }
+  if (s.kind !== 'stack') {
+    const empty = to.slots.indexOf(null)
+    if (empty < 0) return { moved: 0, remainder: 1 }
+    to.slots[empty] = s
+    from.slots[slot] = null
+    return { moved: 1, remainder: 0 }
+  }
+  let left = want
+  for (const dest of to.slots) {
+    if (!dest || dest.kind !== 'stack' || dest.itemId !== s.itemId) continue
+    const n = Math.min(left, getItemDef(s.itemId).stackLimit - dest.quantity)
+    dest.quantity += n
+    left -= n
+  }
+  const empty = to.slots.indexOf(null)
+  if (left > 0 && empty >= 0) {
+    // A whole stack keeps its ID; splitting allocates a new ID in the destination.
+    to.slots[empty] = { ...s, id: want === s.quantity ? s.id : nextId(to), quantity: left }
+    left = 0
+  }
+  const moved = want - left
+  removeFromSlot(from, slot, moved)
+  return { moved, remainder: from.slots[slot]?.quantity ?? 0 }
 }
 
 /** Chuyển mọi thứ có thể từ `from` sang `to`; phần không vừa ở lại nguồn. */
@@ -137,5 +171,5 @@ export function transferAll(from: Inventory, to: Inventory): TransferResult {
 
 /** Bản sao sâu (dùng cho snapshot UI, không cho view giữ tham chiếu vào simulation). */
 export function cloneInventory(inv: Inventory): Inventory {
-  return { slots: inv.slots.map((s) => (s ? { ...s } : null)) }
+  return { id: inv.id, nextItemId: inv.nextItemId, slots: inv.slots.map((s) => (s ? { ...s } : null)) }
 }

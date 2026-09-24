@@ -108,13 +108,13 @@ describe('GameRuntime interaction', () => {
 
     rt.input.simulateKey('KeyE', true)
     rt.tick(1 / 60)
-    expect(rt.world.doors.get('door-hut')?.open).toBe(true)
+    expect(rt.world.doors.get('door-hut')?.state).toBe('open')
     expect(rt.interactPrompt).toBe('Đóng Cửa')
     rt.input.simulateKey('KeyE', false)
 
     rt.input.simulateKey('KeyE', true)
     rt.tick(1 / 60)
-    expect(rt.world.doors.get('door-hut')?.open).toBe(false)
+    expect(rt.world.doors.get('door-hut')?.state).toBe('closed')
     expect(toggles).toEqual([true, false])
   })
 
@@ -344,19 +344,19 @@ describe('GameRuntime inventory and loot', () => {
     expect(totalQuantity(container.items) + totalQuantity(rt.player.inventory)).toBe(total)
 
     rt.putIntoContainer(0)
-    expect(totalQuantity(rt.player.inventory)).toBe(0)
-    expect(totalQuantity(container.items)).toBe(total)
+    expect(totalQuantity(rt.player.inventory)).toBe(1) // starting bat is now an owned item
+    expect(totalQuantity(container.items)).toBe(total - 1)
 
     // Lấp đầy túi bằng medkit (stack 1) rồi Take All: đồ phải còn nguyên trong container.
     for (let i = 0; i < GAME_CONFIG.inventory.slots; i++) addItem(rt.player.inventory, 'medkit', 1)
     const all = rt.takeAll()
     expect(all.moved).toBe(0)
-    expect(all.remainder).toBe(total)
-    expect(totalQuantity(container.items)).toBe(total)
+    expect(all.remainder).toBe(total - 1)
+    expect(totalQuantity(container.items)).toBe(total - 1)
 
     rt.player.inventory = createInventory(GAME_CONFIG.inventory.slots)
     const all2 = rt.takeAll()
-    expect(all2.moved).toBe(total)
+    expect(all2.moved).toBe(total - 1)
     expect(totalQuantity(container.items)).toBe(0)
   })
 
@@ -422,7 +422,7 @@ describe('GameRuntime inventory and loot', () => {
     addItem(rt.player.inventory, 'water', 2)
     rt.toggleInventory()
     rt.newGame(1)
-    expect(totalQuantity(rt.player.inventory)).toBe(0)
+    expect(totalQuantity(rt.player.inventory)).toBe(1)
     expect(rt.uiOpen).toBe(false)
     expect(rt.inventoryOpen).toBe(false)
   })

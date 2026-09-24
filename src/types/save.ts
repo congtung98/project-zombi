@@ -1,8 +1,10 @@
 import type { Inventory } from '../game/systems/inventory'
 import type { Vec3, ZombieAIState } from './index'
+import type { Equipment } from '../game/entities/items'
+import type { DoorState } from '../game/world/doors'
 
-/** Tăng khi đổi cấu trúc; bản lưu khác phiên bản bị từ chối rõ ràng (không nạp sai). */
-export const SAVE_SCHEMA_VERSION = 1
+/** v1 migrates to v2; unknown versions are rejected without overwriting the original. */
+export const SAVE_SCHEMA_VERSION = 2
 
 export interface SavedPlayer {
   position: Vec3
@@ -13,6 +15,7 @@ export interface SavedPlayer {
   thirst: number
   kills: number
   inventory: Inventory
+  equipment: Equipment
 }
 
 export interface SavedZombie {
@@ -28,6 +31,7 @@ export interface SavedContainer {
   id: string
   opened: boolean
   items: Inventory
+  position?: Vec3
 }
 
 /**
@@ -41,7 +45,7 @@ export interface SaveGame {
   worldSeed: number
   clock: { elapsed: number; timeOfDay: number; day: number }
   player: SavedPlayer
-  doors: { id: string; open: boolean }[]
+  doors: DoorState[]
   containers: SavedContainer[]
   /** Chỉ zombie còn sống; xác không cần khôi phục. */
   zombies: SavedZombie[]

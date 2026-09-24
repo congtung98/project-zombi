@@ -17,8 +17,8 @@ describe('addItem', () => {
     expect(addItem(inv, 'water', 3)).toEqual({ added: 3, remainder: 0 })
     expect(addItem(inv, 'water', 4)).toEqual({ added: 4, remainder: 0 })
     // water stackLimit = 5: ô 0 đầy 5, ô 1 có 2
-    expect(inv.slots[0]).toEqual({ itemId: 'water', quantity: 5 })
-    expect(inv.slots[1]).toEqual({ itemId: 'water', quantity: 2 })
+    expect(inv.slots[0]).toMatchObject({ itemId: 'water', quantity: 5 })
+    expect(inv.slots[1]).toMatchObject({ itemId: 'water', quantity: 2 })
     expect(inv.slots[2]).toBeNull()
   })
 
@@ -68,7 +68,7 @@ describe('transfer', () => {
     const before = totalQuantity(a) + totalQuantity(b)
     expect(transferSlot(a, 0, b)).toEqual({ moved: 4, remainder: 0 })
     expect(a.slots[0]).toBeNull()
-    expect(b.slots[0]).toEqual({ itemId: 'canned_food', quantity: 4 })
+    expect(b.slots[0]).toMatchObject({ itemId: 'canned_food', quantity: 4 })
     expect(totalQuantity(a) + totalQuantity(b)).toBe(before)
   })
 
@@ -81,8 +81,8 @@ describe('transfer', () => {
 
     const r = transferSlot(src, 0, dst) // chỉ còn 2 chỗ trong stack water của đích
     expect(r).toEqual({ moved: 2, remainder: 3 })
-    expect(src.slots[0]).toEqual({ itemId: 'water', quantity: 3 })
-    expect(dst.slots[0]).toEqual({ itemId: 'water', quantity: 5 })
+    expect(src.slots[0]).toMatchObject({ itemId: 'water', quantity: 3 })
+    expect(dst.slots[0]).toMatchObject({ itemId: 'water', quantity: 5 })
 
     const all = transferAll(src, dst)
     expect(all.moved).toBe(0)

@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "savedAt": 1790208000000,
+  "mapId": "neighborhood-50",
+  "worldSeed": 20260924,
+  "clock": {
+    "elapsed": 30,
+    "timeOfDay": 0.35,
+    "day": 1
+  },
+  "player": {
+    "position": {
+      "x": -12,
+      "y": 0.9,
+      "z": -11
+    },
+    "facing": 0,
+    "health": 73,
+    "stamina": 100,
+    "hunger": 100,
+    "thirst": 100,
+    "kills": 0,
+    "inventory": {
+      "slots": [
+        {
+          "itemId": "water",
+          "quantity": 1
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  },
+  "doors": [
+    {
+      "id": "door-safehouse",
+      "open": false
+    },
+    {
+      "id": "door-store",
+      "open": false
+    },
+    {
+      "id": "door-house",
+      "open": false
+    }
+  ],
+  "containers": [
+    {
+      "id": "ct-safehouse-cabinet",
+      "opened": true,
+      "items": {
+        "slots": [
+          null,
+          {
+            "itemId": "canned_food",
+            "quantity": 1
+          },
+          {
+            "itemId": "bandage",
+            "quantity": 1
+          },
+          {
+            "itemId": "soda",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-1",
+      "opened": false,
+      "items": {
+        "slots": [
+          {
+            "itemId": "soda",
+            "quantity": 1
+          },
+          {
+            "itemId": "canned_food",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-2",
+      "opened": false,
+      "items": {
+        "slots": [
+          {
+            "itemId": "soda",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-3",
+      "opened": false,
+      "items": {
+        "slots": [
+          {
+            "itemId": "canned_food",
+            "quantity": 1
+          },
+          {
+            "itemId": "soda",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-fridge",
+      "opened": false,
+      "items": {
+        "slots": [
+          {
+            "itemId": "water",
+            "quantity": 3
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-wardrobe",
+      "opened": false,
+      "items": {
+        "slots": [
+          {
+            "itemId": "bandage",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-kitchen",
+      "opened": false,
+      "items": {
+        "slots": [
+          {
+            "itemId": "canned_food",
+            "quantity": 1
+          },
+          {
+            "itemId": "chips",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    }
+  ],
+  "zombies": [
+    {
+      "id": "zombie-1",
+      "position": {
+        "x": -14,
+        "y": 0,
+        "z": 13
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-2",
+      "position": {
+        "x": 4,
+        "y": 0,
+        "z": 14
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-3",
+      "position": {
+        "x": 20,
+        "y": 0,
+        "z": 0
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-4",
+      "position": {
+        "x": -2,
+        "y": 0,
+        "z": -20
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-5",
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": -5
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-6",
+      "position": {
+        "x": 22,
+        "y": 0,
+        "z": 20
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-7",
+      "position": {
+        "x": -22,
+        "y": 0,
+        "z": 0
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-8",
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": 22
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    }
+  ],
+  "spawn": {
+    "nextZombieId": 9,
+    "timer": 25,
+    "counter": 0
+  },
+  "cameraZoom": 28
+}

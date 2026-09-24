@@ -1,22 +1,26 @@
-import { ITEMS } from '../entities/items'
-import type { Inventory } from './inventory'
+import { ITEMS, type ItemId } from '../entities/items'
+import { addItem, createInventory, type Inventory } from './inventory'
+import { DOOR_MAX_HP } from '../world/doors'
+import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
+import { GAME_CONFIG } from '../core/config'
 import { SAVE_SCHEMA_VERSION, type SaveGame, type SaveSummary } from '../../types/save'
 import type { Vec3, ZombieAIState } from '../../types'
 
 export type SaveValidation =
-  | { ok: true; save: SaveGame }
+  | { ok: true; save: SaveGame; migrated: boolean }
   | { ok: false; reason: 'corrupt' | 'incompatible' | 'wrong-map'; detail: string }
 
 const AI_STATES: ReadonlySet<string> = new Set<ZombieAIState>(['IDLE', 'CHASE', 'SEARCH', 'ATTACK', 'DEAD'])
 
 /**
- * Kiểm tra dữ liệu đọc từ IndexedDB trước khi nạp: đúng phiên bản schema, đúng
- * bản đồ, mọi trường bắt buộc đúng kiểu và số hữu hạn. Không lặng lẽ nạp sai.
+ * Validate current snapshots or migrate v1, without mutating input. Reject invalid
+ * ownership, capacity and unknown schemas before the runtime or storage changes.
  */
-export function validateSaveGame(data: unknown, expectedMapId: string): SaveValidation {
+export function validateSaveGame(data: unknown, expectedMapId: string, map?: MapData): SaveValidation {
   if (!isRecord(data)) return corrupt('không phải object')
   if (typeof data.schemaVersion !== 'number') return corrupt('thiếu schemaVersion')
-  if (data.schemaVersion !== SAVE_SCHEMA_VERSION) {
+  const legacy = data.schemaVersion === 1
+  if (!legacy && data.schemaVersion !== SAVE_SCHEMA_VERSION) {
     return { ok: false, reason: 'incompatible', detail: `schemaVersion ${data.schemaVersion}, cần ${SAVE_SCHEMA_VERSION}` }
   }
   if (typeof data.mapId !== 'string') return corrupt('thiếu mapId')
@@ -40,17 +44,20 @@ export function validateSaveGame(data: unknown, expectedMapId: string): SaveVali
     !isFiniteNumber(player.hunger) ||
     !isFiniteNumber(player.thirst) ||
     !isFiniteNumber(player.kills) ||
-    !isInventory(player.inventory)
+    !(legacy ? isLegacyInventory(player.inventory) : isInventory(player.inventory))
   ) {
     return corrupt('player')
   }
 
-  if (!Array.isArray(data.doors) || !data.doors.every((d) => isRecord(d) && typeof d.id === 'string' && typeof d.open === 'boolean')) {
+  if (!Array.isArray(data.doors) || !data.doors.every((d) => isRecord(d) && typeof d.id === 'string' && (legacy
+    ? typeof d.open === 'boolean'
+    : ['open', 'closed', 'destroyed'].includes(String(d.state)) && isFiniteNumber(d.hp) && d.hp >= 0 && d.hp <= DOOR_MAX_HP && (d.state === 'destroyed' ? d.hp === 0 : d.hp > 0)))) {
     return corrupt('doors')
   }
   if (
     !Array.isArray(data.containers) ||
-    !data.containers.every((c) => isRecord(c) && typeof c.id === 'string' && typeof c.opened === 'boolean' && isInventory(c.items))
+    !data.containers.every((c) => isRecord(c) && typeof c.id === 'string' && typeof c.opened === 'boolean' &&
+      (legacy ? isLegacyInventory(c.items) : isInventory(c.items)) && (c.position === undefined || !legacy && isVec3(c.position)))
   ) {
     return corrupt('containers')
   }
@@ -81,7 +88,51 @@ export function validateSaveGame(data: unknown, expectedMapId: string): SaveVali
     ids.add(z.id)
   }
 
-  return { ok: true, save: data as unknown as SaveGame }
+  for (const collection of [data.doors, data.containers]) {
+    const ids = new Set<string>()
+    for (const entry of collection as { id: string }[]) {
+      if (!entry.id || ids.has(entry.id)) return corrupt(`id trùng: ${entry.id}`)
+      ids.add(entry.id)
+    }
+  }
+  const knownMap = map ?? (expectedMapId === NEIGHBORHOOD_MAP.id ? NEIGHBORHOOD_MAP : undefined)
+  const containers = data.containers as unknown as SaveGame['containers']
+  if ((player.inventory as Inventory).slots.length !== GAME_CONFIG.inventory.slots) return corrupt('player inventory capacity')
+  if (knownMap) {
+    const doors = data.doors as { id: string }[]
+    if (doors.length !== knownMap.doors.length || knownMap.doors.some((d) => !doors.some((s) => s.id === d.id))) return corrupt('door IDs do not match map')
+    if (knownMap.containers.some((c) => !containers.some((s) => s.id === c.id))) return corrupt('missing map container')
+    for (const c of containers) {
+      const fixed = knownMap.containers.some((d) => d.id === c.id)
+      if (fixed ? c.position !== undefined : legacy || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
+      if (c.items.slots.length !== (fixed ? GAME_CONFIG.inventory.containerSlots : 1)) return corrupt('container capacity')
+      if (c.position && (Math.abs(c.position.x) > knownMap.size / 2 || Math.abs(c.position.z) > knownMap.size / 2)) return corrupt('drop outside map')
+    }
+  }
+  if (legacy) return migratePhase1(data, expectedMapId, knownMap)
+  const save = data as unknown as SaveGame
+  const owners = new Set<string>()
+  const inventoryIds = new Set<string>()
+  const inventories = [save.player.inventory, ...save.containers.map((c) => c.items)]
+  for (const inv of inventories) {
+    if (inventoryIds.has(inv.id)) return corrupt('duplicate inventory namespace')
+    inventoryIds.add(inv.id)
+    for (const item of inv.slots) {
+      if (!item) continue
+      if (owners.has(item.id)) return corrupt(`item ownership trùng: ${item.id}`)
+      owners.add(item.id)
+    }
+  }
+  // Counters must not reuse an ID, including items transferred to another owner.
+  for (const inv of inventories) for (const id of owners) {
+    if (!id.startsWith(`${inv.id}:`)) continue
+    const suffix = id.slice(inv.id.length + 1)
+    if (/^\d+$/.test(suffix) && Number(suffix) >= inv.nextItemId) return corrupt('item counter would reuse ID')
+  }
+  if (!isRecord(player.equipment)) return corrupt('equipment')
+  const weaponId = player.equipment.weaponInstanceId
+  if (weaponId !== null && (typeof weaponId !== 'string' || !save.player.inventory.slots.some((i) => i?.id === weaponId && i.kind === 'weapon'))) return corrupt('equipment owner/reference')
+  return { ok: true, save, migrated: false }
 }
 
 export function summarizeSave(save: SaveGame): SaveSummary {
@@ -114,10 +165,50 @@ function isVec3(v: unknown): v is Vec3 {
 }
 
 function isInventory(v: unknown): v is Inventory {
-  if (!isRecord(v) || !Array.isArray(v.slots)) return false
+  if (!isRecord(v) || typeof v.id !== 'string' || !v.id || !Number.isSafeInteger(v.nextItemId) || Number(v.nextItemId) < 1 || !Array.isArray(v.slots)) return false
   return v.slots.every(
-    (s) =>
-      s === null ||
-      (isRecord(s) && typeof s.itemId === 'string' && s.itemId in ITEMS && isFiniteNumber(s.quantity) && s.quantity > 0),
+    (s) => {
+      if (s === null) return true
+      if (!isRecord(s) || typeof s.id !== 'string' || !s.id || typeof s.itemId !== 'string' || !Object.hasOwn(ITEMS, s.itemId)) return false
+      const def = ITEMS[s.itemId as ItemId]
+      if (!Number.isSafeInteger(s.quantity) || Number(s.quantity) <= 0 || Number(s.quantity) > def.stackLimit) return false
+      if (def.kind === 'weapon') return s.kind === 'weapon' && s.quantity === 1 && isFiniteNumber(s.condition) && s.condition >= 0 && s.condition <= def.maxCondition! && s.fuel === undefined
+      if (def.kind === 'tool') return s.kind === 'tool' && s.quantity === 1 && s.condition === undefined && (def.maxFuel === undefined ? s.fuel === undefined : isFiniteNumber(s.fuel) && s.fuel >= 0 && s.fuel <= def.maxFuel)
+      return s.kind === 'stack' && s.condition === undefined && s.fuel === undefined
+    },
   )
+}
+
+function isLegacyInventory(v: unknown): boolean {
+  return isRecord(v) && Array.isArray(v.slots) && v.slots.every((s) => s === null ||
+    isRecord(s) && typeof s.itemId === 'string' && Object.hasOwn(ITEMS, s.itemId) &&
+    ['food', 'drink', 'medical'].includes(ITEMS[s.itemId as ItemId].kind) &&
+    Number.isSafeInteger(s.quantity) && Number(s.quantity) > 0 && Number(s.quantity) <= ITEMS[s.itemId as ItemId].stackLimit)
+}
+
+/** Pure deterministic v1 → v2. Original data is never mutated; storage owns backup/commit. */
+function migratePhase1(data: Record<string, unknown>, mapId: string, map?: MapData): SaveValidation {
+  const save = structuredClone(data) as unknown as SaveGame
+  const convert = (old: Inventory, id: string): Inventory => {
+    const inv = createInventory(old.slots.length, id)
+    inv.slots = old.slots.map((s) => s ? { id: `${id}:${inv.nextItemId++}`, itemId: s.itemId, kind: 'stack', quantity: s.quantity } : null)
+    return inv
+  }
+  save.schemaVersion = SAVE_SCHEMA_VERSION
+  save.player.inventory = convert(save.player.inventory, 'player')
+  save.player.equipment = { weaponInstanceId: null }
+  save.containers = save.containers.map((c) => ({ ...c, items: convert(c.items, `loot:${save.worldSeed}:${c.id}`) }))
+  save.doors = (data.doors as { id: string; open: boolean }[]).map((d) => ({ id: d.id, state: d.open ? 'open' : 'closed', hp: DOOR_MAX_HP }))
+  const bag = save.player.inventory
+  if (bag.slots.includes(null)) {
+    addItem(bag, 'baseball_bat', 1)
+    save.player.equipment.weaponInstanceId = bag.slots.find((i) => i?.kind === 'weapon')!.id
+  } else {
+    // A non-solid loot bag at the saved player position is reachable without crossing a wall.
+    const items = createInventory(1, 'legacy-bat')
+    addItem(items, 'baseball_bat', 1)
+    save.containers.push({ id: 'drop:legacy-bat', opened: false, position: { ...save.player.position, y: 0 }, items })
+  }
+  const checked = validateSaveGame(save, mapId, map)
+  return checked.ok ? { ...checked, migrated: true } : checked
 }

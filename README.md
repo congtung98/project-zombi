@@ -1,7 +1,7 @@
-# Zombie Outbreak — Phase 1 (MVP)
+# Zombie Outbreak — Phase 2
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md`. Repo đã hoàn thành **Sprint 6: hoàn thiện và phát hành** (Phase 1 MVP, đã xong Sprint 1–6). Bản build production
+`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6) và **Phase 2 — Sprint 1: dữ liệu item, migration save và thử cửa động**. Bản build production
 nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
@@ -43,7 +43,7 @@ npm run lint
 | Con lăn chuột | Zoom camera trong giới hạn min/max |
 | Esc | Tạm dừng (dừng simulation, cooldown và đồng hồ); menu pause có Lưu game / Lưu và về menu |
 | F3 | Overlay debug: FPS, vị trí, trạng thái zombie (và collider Rapier) |
-| I | Mở/đóng túi đồ 12 ô. Trong túi: click trái dùng vật phẩm; khi đang mở tủ: click trái cất vào tủ, chuột phải dùng. Trong panel tủ: click lấy, nút Lấy tất cả |
+| I | Mở/đóng túi 12 ô. Click nhu yếu phẩm để dùng; click gậy để trang bị/bỏ trang bị. Khi mở tủ: click trái cất, chuột phải dùng/trang bị. Panel tủ: click lấy hoặc Lấy tất cả. Nút Thả gậy tạo túi đồ rơi, E để nhặt lại |
 | Esc (khi túi mở) | Đóng túi/tủ trước, nhấn lần nữa mới tạm dừng |
 
 Tab mất focus sẽ tự tạm dừng và xóa mọi phím đang giữ. Ở chế độ dev, `window.__runtime` trỏ tới
@@ -88,6 +88,20 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Phase 2 — Sprint 1 (24/09/2026)
+
+- Item có ID instance và kind; hai gậy giữ condition riêng qua equip/transfer/drop/save. Equipment tham chiếu ID trong túi, vẫn chiếm một trong 12 ô. S1 còn cấp gậy lúc New Game để giữ vòng chơi Phase 1; S2 mới bỏ cấp gậy, thêm loot melee và hao mòn/broken damage.
+- Save schema **v2**, tự chuyển v1 khi Continue. Giữ nguyên consumable, vị trí, chỉ số, clock, cửa và loot đã lấy. Túi cũ đầy: gậy nằm trong túi đồ rơi dưới chân, không xóa món khác hay tăng capacity.
+- IndexedDB giữ bản gốc tại `slot-1.backup-v1` trước khi ghi v2 trong cùng transaction. Nếu đã có backup khác, lưu thêm key có UUID. Chỉ xem menu không ghi/migrate slot; schema lạ hoặc ownership sai bị từ chối. Backup không bị xóa khi New Game/chết.
+- Cửa có state `closed/open/destroyed` và HP; cửa vỡ gỡ cả mesh/collider. Nav cập nhật các ô cửa liên quan, tăng revision để AI repath. Truy vấn portal thử nghiệm chọn cửa thuộc tuyến tới mục tiêu, ưu tiên đường đang thông. Zombie chưa tự đập cửa (S5).
+- Phòng thử: `npm run dev` → mở `http://localhost:5173/?lab=doors` → New Game. Dùng các nút đóng/mở/phá cửa, F3 xem collider. Mở cửa để zombie thấy player rồi đóng và bấm “Kiểm tra tuyến zombie”. “Thêm hai gậy 10 / 70” → Lưu thử → Nạp lại để kiểm tra instance. Lab dùng `slot-lab`, tách khỏi `slot-1`; query lab bị vô hiệu trong production.
+- Kiểm chứng: **135 test**, gồm migration/ownership và Rapier capsule qua cửa; TypeScript/build/lint; Chrome headless kiểm tra IndexedDB, collider thật và save/reload. Xem `docs/phase2-s1.md` và `CURRENT_STATE.md` để tái lập.
+- Soak sau sửa AI không có đường: **30 phút sống, 11 kill, 60 damage, minHealth 40, endHealth 65, 7/7 tủ, 29 snapshot round-trip**; dùng 4 nước/3 đồ hộp/1 băng, 11 spawn, tối đa 9 zombie. Không đổi thông số combat/spawn/survival.
+
+### Lịch sử Phase 1
+
+Các mục dưới đây ghi kết quả tại thời điểm từng sprint Phase 1; schema và hành vi hiện tại xem mục Phase 2 phía trên.
 
 Sprint 1 (xong): scene + sân 50×50, input manager, player capsule + collider, WASD/Shift với stamina,
 camera orthographic theo nhân vật có zoom, một zombie FSM (IDLE → CHASE → ATTACK) đuổi và gây sát

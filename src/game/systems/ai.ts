@@ -242,6 +242,7 @@ function moveTowards(
       zombie.pathIndex += 1
     }
     if (zombie.pathIndex < zombie.path.length) waypoint = zombie.path[zombie.pathIndex]
+    else return { x: 0, z: 0 } // No route: wait for topology/perception changes, never walk straight through the blocker.
   } else {
     clearPath(zombie)
   }

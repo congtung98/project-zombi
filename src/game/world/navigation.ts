@@ -1,6 +1,7 @@
 import type { Vec3 } from '../../types'
 import type { MapData } from './mapData'
 import type { DoorPlacement } from './buildings'
+import { DOOR_LEAF_THICKNESS, type DoorStatus } from './doors'
 
 export interface NavGridOptions {
   cellSize: number
@@ -9,7 +10,6 @@ export interface NavGridOptions {
 
 /** Vật cản có đáy cao hơn ngưỡng này (dầm trên cửa) thì không chặn đường đi. */
 const OVERHEAD_MIN_BOTTOM = 1.6
-const DOOR_LEAF_THICKNESS = 0.12
 /** Giới hạn số ô A* mở rộng để một truy vấn không bao giờ làm khựng frame. */
 const MAX_EXPANSIONS = 20000
 
@@ -39,7 +39,9 @@ export class NavGrid {
   private readonly staticBlocked: Uint8Array
   private readonly blocked: Uint8Array
   private readonly doorCells = new Map<string, DoorCells>()
-  private readonly doorOpen = new Map<string, boolean>()
+  private readonly doorStates = new Map<string, DoorStatus>()
+  private readonly cellDoors = new Map<number, Set<string>>()
+  readonly portals = new Map<string, { sides: [Vec3, Vec3] }>()
 
   constructor(map: MapData, opts: NavGridOptions) {
     this.cellSize = opts.cellSize
@@ -72,19 +74,36 @@ export class NavGrid {
       for (const idx of corridor) this.staticBlocked[idx] = 0
       const openLeaf = this.doorLeafCells(door, door.openAngle, r).filter((idx) => !corridor.includes(idx))
       this.doorCells.set(door.id, { corridor, openLeaf })
-      this.doorOpen.set(door.id, false)
+      this.doorStates.set(door.id, 'closed')
+      for (const idx of [...corridor, ...openLeaf]) {
+        const owners = this.cellDoors.get(idx) ?? new Set<string>()
+        owners.add(door.id)
+        this.cellDoors.set(idx, owners)
+      }
+      const alongX = door.hinge.x !== door.center.x
+      const offset = thickness / 2 + r + this.cellSize
+      this.portals.set(door.id, { sides: [-1, 1].map((sign) => ({
+        x: door.center.x + (alongX ? 0 : sign * offset), y: 0,
+        z: door.center.z + (alongX ? sign * offset : 0),
+      })) as [Vec3, Vec3] })
     }
     this.rebuild()
   }
 
   setDoorOpen(id: string, open: boolean): void {
-    if (!this.doorCells.has(id) || this.doorOpen.get(id) === open) return
-    this.doorOpen.set(id, open)
-    this.rebuild()
+    this.setDoorState(id, open ? 'open' : 'closed')
+  }
+
+  setDoorState(id: string, state: DoorStatus): void {
+    const cells = this.doorCells.get(id)
+    if (!cells || this.doorStates.get(id) === state) return
+    this.doorStates.set(id, state)
+    for (const idx of new Set([...cells.corridor, ...cells.openLeaf])) this.refreshCell(idx)
+    this.version += 1
   }
 
   resetDoors(): void {
-    for (const id of this.doorOpen.keys()) this.doorOpen.set(id, false)
+    for (const id of this.doorStates.keys()) this.doorStates.set(id, 'closed')
     this.rebuild()
   }
 
@@ -247,12 +266,72 @@ export class NavGrid {
 
   private rebuild(): void {
     this.blocked.set(this.staticBlocked)
-    for (const [id, cells] of this.doorCells) {
-      const open = this.doorOpen.get(id) ?? false
-      for (const idx of cells.corridor) this.blocked[idx] = open ? 0 : 1
-      if (open) for (const idx of cells.openLeaf) this.blocked[idx] = 1
-    }
+    for (const idx of this.cellDoors.keys()) this.refreshCell(idx)
     this.version += 1
+  }
+
+  private refreshCell(idx: number): void {
+    let blocked = this.staticBlocked[idx]
+    for (const id of this.cellDoors.get(idx) ?? []) {
+      const cells = this.doorCells.get(id)!
+      const state = this.doorStates.get(id)
+      if (state === 'closed' && cells.corridor.includes(idx) || state === 'open' && cells.openLeaf.includes(idx)) blocked = 1
+    }
+    this.blocked[idx] = blocked
+  }
+
+  /** Planning only: graph edges cross closed portals at a cost. Never opens live cells. */
+  findDoorRoute(from: Vec3, to: Vec3): { doorId: string | null; approach: Vec3; path: Vec3[] } | null {
+    const direct = this.findPath(from, to)
+    if (direct) return { doorId: null, approach: to, path: direct }
+    const nodes: { point: Vec3; doorId: string; side: number }[] = []
+    for (const [doorId, portal] of this.portals) {
+      if (this.doorStates.get(doorId) !== 'closed') continue
+      portal.sides.forEach((point, side) => {
+        if (this.isWalkable(point.x, point.z)) nodes.push({ point, doorId, side })
+      })
+    }
+    const points = [from, ...nodes.map((n) => n.point), to]
+    const end = points.length - 1
+    const distances = points.map(() => Infinity)
+    const previous = points.map(() => -1)
+    const visited = new Set<number>()
+    distances[0] = 0
+    while (visited.size < points.length) {
+      let current = -1
+      for (let i = 0; i < points.length; i++) {
+        if (!visited.has(i) && Number.isFinite(distances[i]) && (current < 0 || distances[i] < distances[current])) current = i
+      }
+      if (current < 0) return null
+      if (current === end) break
+      visited.add(current)
+      for (let next = 1; next < points.length; next++) {
+        if (visited.has(next)) continue
+        const a = nodes[current - 1]
+        const b = nodes[next - 1]
+        const crossing = a && b && a.doorId === b.doorId && a.side !== b.side
+        const path = crossing ? null : this.findPath(points[current], points[next])
+        if (!crossing && !path) continue
+        let cost = crossing ? 12 : 0 // planning cost in metres, tune with siege in S5
+        let last = points[current]
+        for (const p of path ?? []) { cost += Math.hypot(p.x - last.x, p.z - last.z); last = p }
+        if (distances[current] + cost < distances[next]) {
+          distances[next] = distances[current] + cost
+          previous[next] = current
+        }
+      }
+    }
+    const route: number[] = []
+    for (let i = end; i >= 0; i = previous[i]) route.unshift(i)
+    for (let i = 1; i < route.length - 1; i++) {
+      const a = nodes[route[i] - 1]
+      const b = nodes[route[i + 1] - 1]
+      if (a && b && a.doorId === b.doorId && a.side !== b.side) {
+        const path = this.findPath(from, a.point)
+        return path ? { doorId: a.doorId, approach: a.point, path } : null
+      }
+    }
+    return null
   }
 
   private fillRect(target: Uint8Array, minX: number, minZ: number, maxX: number, maxZ: number, value: number): void {

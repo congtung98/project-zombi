@@ -2,8 +2,7 @@ import { RigidBody } from '@react-three/rapier'
 import type { DoorPlacement } from '../world/buildings'
 import { useWorldStore } from '../../stores/worldStore'
 import { blockerData } from './blockerData'
-
-const LEAF_THICKNESS = 0.12
+import { doorLeafTransform, DOOR_LEAF_THICKNESS as LEAF_THICKNESS } from '../world/doors'
 
 interface DoorViewProps {
   door: DoorPlacement
@@ -14,8 +13,11 @@ interface DoorViewProps {
  * body (key) để collider khớp vị trí mới; cửa đóng chặn đường đi và raycast.
  */
 export function DoorView({ door }: DoorViewProps) {
-  const open = useWorldStore((s) => s.doorOpen[door.id] ?? false)
-  const angle = open ? door.openAngle : door.closedAngle
+  const state = useWorldStore((s) => s.doorStates[door.id] ?? 'closed')
+  const leaf = doorLeafTransform(door, state)
+  if (!leaf) return null
+  const open = state === 'open'
+  const angle = leaf.angle
 
   return (
     <RigidBody

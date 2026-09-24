@@ -68,7 +68,7 @@ describe('snapshot round trip', () => {
     const snap = rt.createSnapshot()
     expect(snap.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
     expect(snap.zombies.map((z) => z.id)).toEqual(['zombie-1', 'zombie-2', 'zombie-3'])
-    expect(totalQuantity(snap.player.inventory) + totalQuantity(snap.containers[0].items)).toBe(lootBefore)
+    expect(totalQuantity(snap.player.inventory) + totalQuantity(snap.containers[0].items)).toBe(lootBefore + 1)
 
     // Bản lưu là dữ liệu thuần: qua JSON không mất gì.
     const json = JSON.parse(JSON.stringify(snap)) as unknown
@@ -89,7 +89,7 @@ describe('snapshot round trip', () => {
     expect(rt2.player.health).toBe(rt.player.health)
     expect(rt2.player.thirst).toBe(rt.player.thirst)
     expect(rt2.player.inventory).toEqual(rt.player.inventory)
-    expect(rt2.world.doors.get('door-hut')?.open).toBe(true)
+    expect(rt2.world.doors.get('door-hut')?.state).toBe('open')
     expect(rt2.nav.findPath({ x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 5 })).not.toBeNull()
     expect(rt2.world.containers.get('ct-hut')!.items).toEqual(box.items)
     expect(rt2.world.containers.get('ct-hut')!.opened).toBe(true)
@@ -125,7 +125,7 @@ describe('snapshot round trip', () => {
     expect(spawned.id).toBe('zombie-4')
   })
 
-  it('clamps out-of-range stats and fits inventories to the current slot count', () => {
+  it('rejects invalid inventory before mutating the live runtime (never truncates items)', () => {
     const rt = new GameRuntime(makeMap())
     const snap = rt.createSnapshot()
     snap.player.health = 999
@@ -133,11 +133,9 @@ describe('snapshot round trip', () => {
     addItem(snap.player.inventory, 'water', 5)
     snap.player.inventory.slots[0]!.quantity = 99
     snap.player.inventory.slots.push(null, null, null)
-    rt.loadSnapshot(snap)
-    expect(rt.player.health).toBe(GAME_CONFIG.player.maxHealth)
-    expect(rt.player.hunger).toBe(0)
-    expect(rt.player.inventory.slots.length).toBe(GAME_CONFIG.inventory.slots)
-    expect(rt.player.inventory.slots[0]?.quantity).toBe(5)
+    const before = rt.createSnapshot()
+    expect(() => rt.loadSnapshot(snap)).toThrow('Invalid save')
+    expect(rt.createSnapshot().player).toEqual(before.player)
   })
 })
 
@@ -179,7 +177,7 @@ describe('validateSaveGame', () => {
     expect(validateSaveGame(b, 'test-map').ok).toBe(false)
 
     const c = good()
-    c.player.inventory.slots[0] = { itemId: 'wood' as never, quantity: 1 }
+    c.player.inventory.slots[0] = { id: 'bad:1', kind: 'stack', itemId: 'wood' as never, quantity: 1 }
     expect(validateSaveGame(c, 'test-map').ok).toBe(false)
 
     const d = good()

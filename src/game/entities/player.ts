@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from '../core/config'
 import { createInventory, type Inventory } from '../systems/inventory'
 import type { Vec3 } from '../../types'
+import type { Equipment } from './items'
 
 export interface PlayerState {
   health: number
@@ -27,6 +28,7 @@ export interface PlayerState {
   kills: number
   /** Túi đồ 12 ô; tuần tự hóa được để lưu ở Sprint 5. */
   inventory: Inventory
+  equipment: Equipment
 }
 
 export function createPlayerState(spawn: Vec3): PlayerState {
@@ -46,6 +48,7 @@ export function createPlayerState(spawn: Vec3): PlayerState {
     attackHitPending: false,
     pushCooldown: 0,
     kills: 0,
-    inventory: createInventory(GAME_CONFIG.inventory.slots),
+    inventory: createInventory(GAME_CONFIG.inventory.slots, 'player'),
+    equipment: { weaponInstanceId: null },
   }
 }

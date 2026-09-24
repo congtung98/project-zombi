@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { GameRuntime } from '../game/core/runtime'
-import { cloneInventory, type Inventory } from '../game/systems/inventory'
+import { cloneInventory, createInventory, type Inventory } from '../game/systems/inventory'
 
 interface ContainerSnapshot {
   id: string
@@ -16,6 +16,7 @@ interface ContainerSnapshot {
 interface InventoryUiState {
   open: boolean
   bag: Inventory
+  weaponInstanceId: string | null
   container: ContainerSnapshot | null
   sync: (rt: GameRuntime) => void
   reset: () => void
@@ -23,7 +24,8 @@ interface InventoryUiState {
 
 export const useInventoryStore = create<InventoryUiState>((set) => ({
   open: false,
-  bag: { slots: [] },
+  bag: createInventory(0, 'ui'),
+  weaponInstanceId: null,
   container: null,
 
   sync: (rt) => {
@@ -32,9 +34,10 @@ export const useInventoryStore = create<InventoryUiState>((set) => ({
     set({
       open: rt.inventoryOpen,
       bag: cloneInventory(rt.player.inventory),
+      weaponInstanceId: rt.player.equipment.weaponInstanceId,
       container: c ? { id: c.id, name, items: cloneInventory(c.items) } : null,
     })
   },
 
-  reset: () => set({ open: false, bag: { slots: [] }, container: null }),
+  reset: () => set({ open: false, bag: createInventory(0, 'ui'), weaponInstanceId: null, container: null }),
 }))

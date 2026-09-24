@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { runtime } from '../game/core/runtime'
 import { summarizeSave, validateSaveGame } from '../game/systems/save'
-import { deleteSave, readSave, writeSave } from '../game/systems/saveStorage'
+import { commitMigratedSave, deleteSave, readSave, writeSave } from '../game/systems/saveStorage'
 import type { SaveSummary } from '../types/save'
 import { sfx } from '../game/audio/sfx'
 import { useHudStore } from './hudStore'
@@ -9,6 +9,7 @@ import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
 
 export type Screen = 'menu' | 'playing' | 'paused' | 'gameover'
+const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : 'slot-1'
 
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */
 export type SaveSlotState =
@@ -67,7 +68,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   },
 
   refreshSaveSlot: async () => {
-    const r = await readSave()
+    const r = await readSave(ACTIVE_SAVE_SLOT)
     if (!r.ok) {
       set({ saveSlot: { kind: 'error', detail: r.error } })
       return
@@ -86,7 +87,7 @@ export const useUiStore = create<UiState>((set, get) => ({
     if (get().busy) return
     set({ busy: true })
     try {
-      const r = await readSave()
+      const r = await readSave(ACTIVE_SAVE_SLOT)
       if (!r.ok || r.value === undefined) {
         set({ saveSlot: r.ok ? { kind: 'empty' } : { kind: 'error', detail: r.error } })
         return
@@ -96,8 +97,16 @@ export const useUiStore = create<UiState>((set, get) => ({
         set({ saveSlot: v.reason === 'incompatible' ? { kind: 'incompatible', detail: v.detail } : { kind: 'corrupt', detail: v.detail } })
         return
       }
+      if (v.migrated) {
+        const migration = await commitMigratedSave(r.value, v.save)
+        if (!migration.ok) {
+          set({ saveSlot: { kind: 'error', detail: migration.error } })
+          return
+        }
+      }
       runtime.loadSnapshot(v.save)
       enterSession(set)
+      if (v.migrated) useHudStore.getState().showToast('Đã nâng cấp save và giữ bản sao v1. Loot cũ giữ nguyên; gậy ở túi hoặc túi đồ rơi dưới chân.', 6000)
     } finally {
       set({ busy: false })
     }
@@ -109,9 +118,14 @@ export const useUiStore = create<UiState>((set, get) => ({
     if (screen !== 'playing' && screen !== 'paused') return false
     if (!runtime.player.alive) return false
     const snapshot = runtime.createSnapshot()
+    const checked = validateSaveGame(snapshot, runtime.map.id, runtime.map)
+    if (!checked.ok) {
+      useHudStore.getState().showToast(`Không lưu được: ${checked.detail}`, 4000)
+      return false
+    }
     set({ busy: true })
     try {
-      const r = await writeSave(snapshot)
+      const r = await writeSave(snapshot, ACTIVE_SAVE_SLOT)
       if (r.ok) {
         set({ saveSlot: { kind: 'ready', summary: summarizeSave(snapshot) } })
         useHudStore.getState().showToast(label, 1500)
@@ -126,7 +140,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   },
 
   discardSave: async () => {
-    const r = await deleteSave()
+    const r = await deleteSave(ACTIVE_SAVE_SLOT)
     set({ saveSlot: r.ok ? { kind: 'empty' } : { kind: 'error', detail: r.error } })
   },
 

@@ -15,11 +15,16 @@ import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { getItemDef } from '../entities/items'
 import { cloneInventory } from '../systems/inventory'
+import { addItem, createInventory } from '../systems/inventory'
+import { equipWeapon, equippedWeapon, reconcileEquipment } from '../systems/equipment'
+import { validateSaveGame } from '../systems/save'
+import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
 import { NavGrid } from '../world/navigation'
 import { createWorldState, type ContainerState, type WorldState } from '../world/worldState'
 import type { EntityId, Vec3 } from '../../types'
+import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
 
 interface PendingAttack {
   sourceId: EntityId
@@ -57,7 +62,7 @@ export class GameRuntime {
   readonly nav: NavGrid
   readonly cameraBasis = computeCameraBasis(GAME_CONFIG.camera.offset)
   /** Danh sách đối tượng tương tác được, dựng một lần từ map data. */
-  readonly interactables: readonly Interactable[]
+  interactables: Interactable[]
   private readonly interactableById: Map<string, Interactable>
 
   cameraZoom = GAME_CONFIG.camera.zoomDefault
@@ -120,7 +125,16 @@ export class GameRuntime {
     this.input.clear()
     this.cameraZoom = GAME_CONFIG.camera.zoomDefault
     this.player = createPlayerState(this.map.playerSpawn)
+    // S1 keeps the Phase 1 starting bat. S2 removes this grant and introduces weapon loot.
+    addItem(this.player.inventory, 'baseball_bat', 1)
+    const bat = this.player.inventory.slots[0]!
+    this.player.inventory.slots[0] = null
+    this.player.inventory.slots[GAME_CONFIG.inventory.slots - 1] = bat
+    this.player.equipment.weaponInstanceId = bat.id
     this.world = createWorldState(this.map, seed)
+    this.interactables = buildInteractables(this.map)
+    this.interactableById.clear()
+    for (const item of this.interactables) this.interactableById.set(item.id, item)
     this.nav.resetDoors()
     this.currentInteractable = null
     this.interactPrompt = null
@@ -182,9 +196,10 @@ export class GameRuntime {
         thirst: p.thirst,
         kills: p.kills,
         inventory: cloneInventory(p.inventory),
+        equipment: { ...p.equipment },
       },
-      doors: Array.from(this.world.doors.values()).map((d) => ({ id: d.id, open: d.open })),
-      containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items) })),
+      doors: Array.from(this.world.doors.values()).map((d) => ({ ...d })),
+      containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items), ...(c.position ? { position: { ...c.position } } : {}) })),
       zombies,
       spawn: { nextZombieId: this.nextZombieId, timer: this.spawnTimer, counter: this.spawnCounter },
       cameraZoom: this.cameraZoom,
@@ -198,6 +213,9 @@ export class GameRuntime {
    * và đặt body tại vị trí đã lưu.
    */
   loadSnapshot(save: SaveGame): void {
+    const validation = validateSaveGame(save, this.map.id, this.map)
+    if (!validation.ok) throw new Error(`Invalid save: ${validation.detail}`)
+    save = validation.save
     this.newGame(save.worldSeed)
     this.zombies.clear()
     this.clock.restore(save.clock.elapsed, save.clock.timeOfDay, save.clock.day)
@@ -213,19 +231,25 @@ export class GameRuntime {
     p.thirst = clamp(save.player.thirst, 0, lim.maxThirst)
     p.kills = save.player.kills
     p.alive = p.health > 0
-    p.inventory = fitInventory(save.player.inventory, GAME_CONFIG.inventory.slots)
+    p.inventory = cloneInventory(save.player.inventory)
+    p.equipment = { ...save.player.equipment }
 
     for (const d of save.doors) {
       const door = this.world.doors.get(d.id)
       if (!door) continue
-      door.open = d.open
-      this.nav.setDoorOpen(door.id, door.open)
+      door.state = d.state
+      door.hp = d.hp
+      this.nav.setDoorState(door.id, door.state)
     }
     for (const c of save.containers) {
-      const container = this.world.containers.get(c.id)
-      if (!container) continue
+      if (c.position) {
+        this.world.containers.set(c.id, { ...c, position: { ...c.position }, items: cloneInventory(c.items) })
+        this.registerDropInteractable(c.id, c.position)
+        continue
+      }
+      const container = this.world.containers.get(c.id)!
       container.opened = c.opened
-      container.items = fitInventory(c.items, GAME_CONFIG.inventory.containerSlots)
+      container.items = cloneInventory(c.items)
     }
 
     for (const z of save.zombies) {
@@ -399,7 +423,8 @@ export class GameRuntime {
   private describeInteraction(target: Interactable): string {
     if (target.kind === 'door') {
       const door = this.world.doors.get(target.id)
-      return `${door?.open ? 'Đóng' : 'Mở'} ${target.name}`
+      if (door?.state === 'destroyed') return `${target.name} đã vỡ`
+      return `${door?.state === 'open' ? 'Đóng' : 'Mở'} ${target.name}`
     }
     if (this.openContainerId === target.id) return `Đóng ${target.name}`
     const container = this.world.containers.get(target.id)
@@ -410,10 +435,8 @@ export class GameRuntime {
   interact(target: Interactable): void {
     if (target.kind === 'door') {
       const door = this.world.doors.get(target.id)
-      if (!door) return
-      door.open = !door.open
-      this.nav.setDoorOpen(door.id, door.open)
-      this.events.queue('door:toggled', { id: door.id, open: door.open })
+      if (!door || door.state === 'destroyed') return
+      this.setDoorState(door.id, door.state === 'open' ? 'closed' : 'open')
       this.interactPrompt = this.describeInteraction(target)
       return
     }
@@ -437,6 +460,55 @@ export class GameRuntime {
   }
 
   // ----- Inventory / container: gọi từ UI (ngoài tick) hoặc test -----
+
+  /** S1 dynamic-door spike; automatic zombie damage is implemented in S5. */
+  setDoorState(id: string, state: DoorStatus): void {
+    const door = this.world.doors.get(id)
+    if (!door || door.state === state) return
+    door.state = state
+    door.hp = state === 'destroyed' ? 0 : door.hp || DOOR_MAX_HP
+    this.nav.setDoorState(id, state)
+    this.events.queue('door:toggled', { id, open: state === 'open' })
+    this.events.queue('door:changed', { id, state })
+  }
+
+  equipItem(id: string | null): boolean {
+    if (!this.player.alive || this.player.attackTimer >= 0) return false
+    if (!equipWeapon(this.player.inventory, this.player.equipment, id)) return false
+    this.queueInventoryChanged()
+    return true
+  }
+
+  activateItem(slot: number): void {
+    const item = this.player.inventory.slots[slot]
+    if (item?.kind === 'weapon') this.equipItem(this.player.equipment.weaponInstanceId === item.id ? null : item.id)
+    else this.consumeItem(slot)
+  }
+
+  dropItem(slot: number): boolean {
+    const item = this.player.inventory.slots[slot]
+    if (!item || !this.player.alive || this.player.attackTimer >= 0) return false
+    const id = `drop:${item.id}`
+    // Reuse a previously emptied bag at this ID; never overwrite owned items.
+    if (this.world.containers.get(id)?.items.slots.some(Boolean)) return false
+    const items = createInventory(1, id)
+    items.slots[0] = item
+    this.player.inventory.slots[slot] = null
+    reconcileEquipment(this.player.inventory, this.player.equipment)
+    const position = { ...this.player.position, y: 0 }
+    this.world.containers.set(id, { id, opened: false, items, position })
+    this.registerDropInteractable(id, position)
+    this.events.queue('drops:changed', {})
+    this.queueInventoryChanged()
+    return true
+  }
+
+  private registerDropInteractable(id: string, position: Vec3): void {
+    const item: Interactable = { id, kind: 'container', name: 'Túi đồ rơi', position: { ...position, y: 0.25 }, radius: 0.25 }
+    this.interactables = this.interactables.filter((i) => i.id !== id)
+    this.interactables.push(item)
+    this.interactableById.set(id, item)
+  }
 
   /** Phím I: mở/đóng túi. Đóng túi cũng đóng panel container. */
   toggleInventory(): void {
@@ -502,7 +574,9 @@ export class GameRuntime {
   putIntoContainer(slot: number): TransferResult {
     const c = this.openContainer
     if (!c) return { moved: 0, remainder: 0 }
+    if (this.player.attackTimer >= 0) return { moved: 0, remainder: this.player.inventory.slots[slot]?.quantity ?? 0 }
     const r = transferSlot(this.player.inventory, slot, c.items)
+    reconcileEquipment(this.player.inventory, this.player.equipment)
     if (r.moved > 0) this.queueInventoryChanged()
     return r
   }
@@ -576,7 +650,7 @@ export class GameRuntime {
   private stepCombat(attacks: PendingAttack[], dt: number): void {
     const player = this.player
     if (player.alive && !this.uiOpen) {
-      if (this.input.wasPressed('attack') && startAttack(player)) {
+      if (this.input.wasPressed('attack') && equippedWeapon(player.inventory, player.equipment) && startAttack(player)) {
         if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
       }
       if (this.input.wasPressed('push') && startPush(player)) {
@@ -673,15 +747,6 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v))
 }
 
-/** Đưa inventory đã lưu về đúng số ô hiện tại (thừa thì cắt, thiếu thì thêm ô trống); stack vượt giới hạn bị kẹp. */
-function fitInventory(saved: { slots: ({ itemId: string; quantity: number } | null)[] }, size: number) {
-  const inv = cloneInventory(saved as Parameters<typeof cloneInventory>[0])
-  for (const s of inv.slots) if (s) s.quantity = Math.min(s.quantity, getItemDef(s.itemId).stackLimit)
-  inv.slots = inv.slots.slice(0, size)
-  while (inv.slots.length < size) inv.slots.push(null)
-  return inv
-}
-
 function maxZombieNumber(zombies: Map<EntityId, ZombieState>): number {
   let max = 0
   for (const id of zombies.keys()) {
@@ -715,4 +780,4 @@ function buildInteractables(map: MapData): Interactable[] {
 }
 
 /** Singleton runtime cho ứng dụng. Test tạo instance riêng bằng `new GameRuntime()`. */
-export const runtime = new GameRuntime()
+export const runtime = new GameRuntime(DOOR_LAB_ENABLED ? DOOR_LAB_MAP : NEIGHBORHOOD_MAP)

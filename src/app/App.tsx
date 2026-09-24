@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { DOOR_LAB_ENABLED } from '../game/world/doorLab'
 import { GameCanvas } from './GameCanvas'
 import { HUD } from '../components/HUD'
 import { InventoryOverlay } from '../components/ContainerPanel'
@@ -28,7 +29,8 @@ function describeEffect(effect: ItemEffect): string {
   return parts.join(', ')
 }
 
-const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal' } as const
+const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup' } as const
+const DoorLab = lazy(() => import('../components/DoorLab'))
 
 export function App() {
   const screen = useUiStore((s) => s.screen)
@@ -59,7 +61,8 @@ export function App() {
       runtime.events.on('zombie:died', (e) => {
         if (e.sourceId === 'player') useHudStore.getState().showToast('Đã hạ một zombie.', 1500)
       }),
-      runtime.events.on('door:toggled', (e) => useWorldStore.getState().setDoor(e.id, e.open)),
+      runtime.events.on('door:changed', (e) => useWorldStore.getState().setDoor(e.id, e.state)),
+      runtime.events.on('drops:changed', () => useWorldStore.getState().syncFromRuntime(runtime)),
       runtime.events.on('zombie:spawned', (e) => useWorldStore.getState().addZombie(e.id)),
       runtime.events.on('zombie:removed', (e) => useWorldStore.getState().removeZombie(e.id)),
       runtime.events.on('container:opened', (e) => useWorldStore.getState().setContainerOpened(e.id)),
@@ -115,6 +118,7 @@ export function App() {
         </div>
       )}
       {screen === 'playing' && <InventoryOverlay />}
+      {DOOR_LAB_ENABLED && screen === 'playing' && <Suspense fallback={null}><DoorLab /></Suspense>}
       {screen === 'menu' && <MainMenu />}
       {screen === 'paused' && <PauseMenu />}
       {screen === 'gameover' && <GameOverScreen />}

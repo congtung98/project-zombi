@@ -93,7 +93,7 @@ export function rollLoot(table: LootTable, rng: Rng): ItemStack[] {
  * Kết quả được lưu vào `WorldState`; mở lại không gọi hàm này nữa.
  */
 export function generateContainerLoot(table: LootTable | undefined, worldSeed: number, containerId: string, slots: number): Inventory {
-  const inv = createInventory(slots)
+  const inv = createInventory(slots, `loot:${worldSeed}:${containerId}`)
   if (!table) return inv
   const rng = createRng(hashSeed(worldSeed, containerId))
   for (const stack of rollLoot(table, rng)) addItem(inv, stack.itemId, stack.quantity)

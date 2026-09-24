@@ -1,4 +1,5 @@
 import type { SaveGame } from '../../types/save'
+import { validateSaveGame } from './save'
 
 /**
  * Lưu một slot trong IndexedDB. Mỗi thao tác là một transaction riêng nên ghi
@@ -9,6 +10,7 @@ const DB_NAME = 'zombie-outbreak'
 const DB_VERSION = 1
 const STORE = 'saves'
 export const SAVE_SLOT = 'slot-1'
+export const LEGACY_BACKUP_SLOT = 'slot-1.backup-v1'
 
 export type StorageResult<T = void> = { ok: true; value: T } | { ok: false; error: string }
 
@@ -69,4 +71,37 @@ export function readSave(slot = SAVE_SLOT): Promise<StorageResult<unknown>> {
 
 export function deleteSave(slot = SAVE_SLOT): Promise<StorageResult<undefined>> {
   return withStore('readwrite', (s) => s.delete(slot))
+}
+
+/** Backup and upgrade share one transaction: failure leaves the original slot intact. */
+export async function commitMigratedSave(original: unknown, save: SaveGame): Promise<StorageResult> {
+  const validated = validateSaveGame(save, save.mapId)
+  if (!validated.ok || validated.migrated) return { ok: false, error: 'Dữ liệu migration không hợp lệ; giữ nguyên bản gốc.' }
+  if (!hasIndexedDb()) return { ok: false, error: 'Trình duyệt không hỗ trợ IndexedDB.' }
+  let db: IDBDatabase | null = null
+  try {
+    db = await openDb()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db!.transaction(STORE, 'readwrite')
+      const store = tx.objectStore(STORE)
+      const current = store.get(SAVE_SLOT)
+      current.onsuccess = () => {
+        if (JSON.stringify(current.result) !== JSON.stringify(original)) { tx.abort(); return }
+        const backup = store.get(LEGACY_BACKUP_SLOT)
+        backup.onsuccess = () => {
+          if (backup.result === undefined) store.put(original, LEGACY_BACKUP_SLOT)
+          else if (JSON.stringify(backup.result) !== JSON.stringify(original)) store.put(original, `${LEGACY_BACKUP_SLOT}:${crypto.randomUUID()}`)
+          store.put(save, SAVE_SLOT)
+        }
+      }
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error ?? new Error('Không chuyển đổi được bản lưu.'))
+      tx.onabort = () => reject(tx.error ?? new Error('Bản lưu đã thay đổi hoặc migration bị hủy; bản gốc được giữ nguyên.'))
+    })
+    return { ok: true, value: undefined }
+  } catch (e) {
+    return { ok: false, error: describe(e) }
+  } finally {
+    db?.close()
+  }
 }

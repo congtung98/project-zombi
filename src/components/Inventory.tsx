@@ -1,10 +1,10 @@
-import { getItemDef } from '../game/entities/items'
+import { getItemDef, type ItemInstance } from '../game/entities/items'
 import { runtime } from '../game/core/runtime'
-import { countUsedSlots, type Inventory as InventoryData, type ItemStack } from '../game/systems/inventory'
+import { countUsedSlots, type Inventory as InventoryData } from '../game/systems/inventory'
 import { useInventoryStore } from '../stores/inventoryStore'
 
 interface SlotProps {
-  stack: ItemStack | null
+  stack: ItemInstance | null
   title: string
   onClick?: () => void
   onContextMenu?: () => void
@@ -18,7 +18,7 @@ export function ItemSlot({ stack, title, onClick, onContextMenu }: SlotProps) {
       type="button"
       className={`slot${stack ? ' slot-filled' : ''}`}
       disabled={!stack}
-      title={def ? `${def.name} ×${stack!.quantity}\n${def.description}\n${title}` : ''}
+      title={def ? `${def.name} ×${stack!.quantity}\n${stack?.kind === 'weapon' ? `Condition ${stack.condition}/${def.maxCondition}\n` : ''}${def.description}\n${title}` : ''}
       onClick={onClick}
       onContextMenu={(e) => {
         e.preventDefault()
@@ -31,6 +31,7 @@ export function ItemSlot({ stack, title, onClick, onContextMenu }: SlotProps) {
             {def.icon}
           </span>
           <span className="slot-name">{def.name}</span>
+          {stack?.kind === 'weapon' && <span>{stack.condition}/{def.maxCondition}</span>}
           {stack!.quantity > 1 && <span className="slot-qty">{stack!.quantity}</span>}
         </>
       )}
@@ -74,6 +75,7 @@ export function SlotGrid({
 export function InventoryPanel() {
   const bag = useInventoryStore((s) => s.bag)
   const container = useInventoryStore((s) => s.container)
+  const equippedId = useInventoryStore((s) => s.weaponInstanceId)
   const used = countUsedSlots(bag)
   const looting = container !== null
 
@@ -88,18 +90,22 @@ export function InventoryPanel() {
       <SlotGrid
         inv={bag}
         columns={4}
-        title={looting ? 'Trái: cất vào tủ · Phải: dùng' : 'Trái: dùng'}
-        onClick={(i) => (looting ? runtime.putIntoContainer(i) : runtime.consumeItem(i))}
-        onContextMenu={(i) => runtime.consumeItem(i)}
+        title={looting ? 'Trái: cất vào tủ · Phải: dùng/trang bị' : 'Trái: dùng/trang bị/bỏ trang bị'}
+        onClick={(i) => (looting ? runtime.putIntoContainer(i) : runtime.activateItem(i))}
+        onContextMenu={(i) => runtime.activateItem(i)}
       />
+      <p>Đang cầm: {bag.slots.find((s) => s?.id === equippedId)?.itemId ? 'Gậy bóng chày' : 'Tay không'}</p>
+      {bag.slots.map((item, i) => item?.kind === 'weapon' ? (
+        <button key={item.id} type="button" onClick={() => runtime.dropItem(i)}>Thả gậy ({item.condition}/{getItemDef(item.itemId).maxCondition})</button>
+      ) : null)}
       <div className="inv-hint">
         {looting ? (
           <>
-            <kbd>Trái</kbd> cất vào tủ · <kbd>Phải</kbd> dùng
+            <kbd>Trái</kbd> cất vào tủ · <kbd>Phải</kbd> dùng/trang bị
           </>
         ) : (
           <>
-            <kbd>Trái</kbd> dùng · <kbd>I</kbd> đóng
+            <kbd>Trái</kbd> dùng/trang bị · <kbd>I</kbd> đóng
           </>
         )}
       </div>
