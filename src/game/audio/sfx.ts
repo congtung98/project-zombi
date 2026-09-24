@@ -20,6 +20,7 @@ export type SfxName =
   | 'pickup'
   | 'ui'
   | 'save'
+  | 'weaponBreak'
 
 class Sfx {
   private ctx: AudioContext | null = null
@@ -108,6 +109,7 @@ const MIN_GAP_MS: Record<SfxName, number> = {
   pickup: 40,
   ui: 40,
   save: 300,
+  weaponBreak: 300,
 }
 
 type Recipe = (ctx: AudioContext, out: AudioNode, noise: AudioBuffer) => void
@@ -196,6 +198,11 @@ const RECIPES: Record<SfxName, Recipe> = {
   },
   pickup: (c, o) => tone(c, o, { type: 'triangle', from: 700, to: 1000, duration: 0.08, gain: 0.15 }),
   ui: (c, o) => tone(c, o, { type: 'sine', from: 500, duration: 0.05, gain: 0.08 }),
+  // Gỗ/kim loại gãy: tiếng rắc ngắn + nốt trầm đi xuống để khác tiếng trúng đòn thường.
+  weaponBreak: (c, o, n) => {
+    burst(c, o, n, { duration: 0.18, gain: 0.45, filter: 2200, q: 3 })
+    tone(c, o, { type: 'square', from: 330, to: 90, duration: 0.35, gain: 0.14, delay: 0.04 })
+  },
   save: (c, o) => {
     tone(c, o, { type: 'sine', from: 520, duration: 0.1, gain: 0.12 })
     tone(c, o, { type: 'sine', from: 780, duration: 0.18, gain: 0.12, delay: 0.1 })

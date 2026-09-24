@@ -1,5 +1,9 @@
 import type { ItemId } from '../entities/items'
+import { getItemDef } from '../entities/items'
 import { addItem, createInventory, type Inventory, type ItemStack } from './inventory'
+
+/** Condition range for weapons as a fraction of maxCondition, rolled once when loot is generated. */
+export type ConditionRange = readonly [number, number]
 
 /** Một dòng loot: `null` itemId nghĩa là "không ra gì" (cho phép tủ trống một phần). */
 export interface LootEntry {
@@ -7,12 +11,20 @@ export interface LootEntry {
   weight: number
   min: number
   max: number
+  condition?: ConditionRange
 }
 
+/** `oneOf` guarantees exactly one item picked by weight (e.g. "some basic melee"). */
 export interface GuaranteedEntry {
-  itemId: ItemId
+  itemId?: ItemId
+  oneOf?: readonly { itemId: ItemId; weight: number }[]
   min: number
   max: number
+  condition?: ConditionRange
+}
+
+export interface LootRoll extends ItemStack {
+  condition?: number
 }
 
 /**
@@ -72,18 +84,35 @@ function pickWeighted(rng: Rng, pool: readonly LootEntry[]): LootEntry | null {
   return pool[pool.length - 1]
 }
 
+/** Weapons get one roll per instance so two loot bats can differ; RNG is only used when a range exists. */
+function pushRoll(out: LootRoll[], rng: Rng, itemId: ItemId, quantity: number, range?: ConditionRange): void {
+  if (quantity <= 0) return
+  const def = getItemDef(itemId)
+  if (def.kind !== 'weapon') {
+    out.push({ itemId, quantity })
+    return
+  }
+  const max = def.maxCondition!
+  for (let n = 0; n < quantity; n++) {
+    // Loot is never generated broken: at least 1 condition even for a low range.
+    const condition = range ? Math.max(1, randInt(rng, Math.ceil(max * range[0]), Math.floor(max * range[1]))) : max
+    out.push({ itemId, quantity: 1, condition })
+  }
+}
+
 /** Sinh danh sách stack từ bảng loot bằng RNG đã seed. Thuần, không phụ thuộc runtime. */
-export function rollLoot(table: LootTable, rng: Rng): ItemStack[] {
-  const out: ItemStack[] = []
+export function rollLoot(table: LootTable, rng: Rng): LootRoll[] {
+  const out: LootRoll[] = []
   for (const g of table.guaranteed) {
+    const itemId = g.oneOf ? pickWeighted(rng, g.oneOf.map((o) => ({ ...o, min: 1, max: 1 })))?.itemId : g.itemId
     const q = randInt(rng, g.min, g.max)
-    if (q > 0) out.push({ itemId: g.itemId, quantity: q })
+    if (itemId) pushRoll(out, rng, itemId, q, g.condition)
   }
   for (let i = 0; i < table.rolls; i++) {
     const e = pickWeighted(rng, table.pool)
     if (!e || !e.itemId) continue
     const q = randInt(rng, e.min, e.max)
-    if (q > 0) out.push({ itemId: e.itemId, quantity: q })
+    pushRoll(out, rng, e.itemId, q, e.condition)
   }
   return out
 }
@@ -96,6 +125,6 @@ export function generateContainerLoot(table: LootTable | undefined, worldSeed: n
   const inv = createInventory(slots, `loot:${worldSeed}:${containerId}`)
   if (!table) return inv
   const rng = createRng(hashSeed(worldSeed, containerId))
-  for (const stack of rollLoot(table, rng)) addItem(inv, stack.itemId, stack.quantity)
+  for (const roll of rollLoot(table, rng)) addItem(inv, roll.itemId, roll.quantity, { condition: roll.condition })
   return inv
 }

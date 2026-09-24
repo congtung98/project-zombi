@@ -1,7 +1,7 @@
 # Zombie Outbreak — Phase 2
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6) và **Phase 2 — Sprint 1: dữ liệu item, migration save và thử cửa động**. Bản build production
+`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động) và **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng). Bản build production
 nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
@@ -37,13 +37,13 @@ npm run lint
 |---|---|
 | W A S D | Di chuyển theo hướng màn hình (đi chéo không nhanh hơn) |
 | Shift | Chạy, tiêu stamina; hồi khi ngừng chạy |
-| Chuột trái | Vung gậy về phía con trỏ (tiêu stamina, có cooldown) |
+| Chuột trái | Đánh bằng vũ khí đang cầm về phía con trỏ (stamina/cooldown/tầm theo vũ khí). Tay không: chỉ hiện gợi ý |
 | Space | Đẩy zombie ra xa, không gây sát thương (cooldown và stamina riêng) |
 | E | Tương tác với cửa (mở/đóng) và container gần nhất trong tầm, ưu tiên hướng nhìn |
 | Con lăn chuột | Zoom camera trong giới hạn min/max |
 | Esc | Tạm dừng (dừng simulation, cooldown và đồng hồ); menu pause có Lưu game / Lưu và về menu |
 | F3 | Overlay debug: FPS, vị trí, trạng thái zombie (và collider Rapier) |
-| I | Mở/đóng túi 12 ô. Click nhu yếu phẩm để dùng; click gậy để trang bị/bỏ trang bị. Khi mở tủ: click trái cất, chuột phải dùng/trang bị. Panel tủ: click lấy hoặc Lấy tất cả. Nút Thả gậy tạo túi đồ rơi, E để nhặt lại |
+| I | Mở/đóng túi 12 ô. Click trái chọn món → thẻ chi tiết (damage, độ bền, trạng thái) với Trang bị/Dùng, Cất vào tủ, Thả xuống. Chuột phải dùng/trang bị nhanh; Shift+trái cất nhanh khi mở tủ. Panel tủ: click lấy hoặc Lấy tất cả. Đồ thả tạo túi đồ rơi, E để nhặt lại |
 | Esc (khi túi mở) | Đóng túi/tủ trước, nhấn lần nữa mới tạm dừng |
 
 Tab mất focus sẽ tự tạm dừng và xóa mọi phím đang giữ. Ở chế độ dev, `window.__runtime` trỏ tới
@@ -88,6 +88,15 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Phase 2 — Sprint 2 (24/09/2026)
+
+- New Game **tay không**; Space đẩy vẫn dùng được, click đánh chỉ hiện gợi ý. Tủ quần áo nhà an toàn luôn có một melee cơ bản (gậy hoặc ống sắt). Save Phase 1 migrate vẫn giữ gậy cũ.
+- Bốn vũ khí: gậy (baseline Phase 1), ống sắt, xà beng, búa; chỉ số theo definition, condition theo instance. 4 container mới: tủ quần áo nhà an toàn, kệ dụng cụ cửa hàng (luôn có búa), tủ đầu giường nhà dân, thùng dụng cụ công viên. Loot và condition gieo một lần theo seed.
+- Mỗi đòn trúng mất 1 độ bền (một lần mỗi cú vung dù trúng nhiều con; đánh trượt không mất). Condition 1 → 0 vẫn đủ damage; vũ khí **hỏng** còn 20% damage, vẫn cầm/thả/lưu được. Cảnh báo vàng ≤ 25%, đỏ + âm thanh khi vừa hỏng; HUD hiện vũ khí đang cầm.
+- Save schema **v3**: v1 → v2 → v3 hoặc v2 → v3 khi Continue, thêm các tủ mới đúng một lần, không reroll tủ cũ; backup `slot-1.backup-v1`/`-v2` trong cùng transaction.
+- Kiểm chứng: **157 test**, build/lint; Playwright + Chromium kiểm tra dev và production bằng input thật. Soak tách chính sách *shelter* (cổng: 30' sống, 11/11 tủ) và *patrol* (chỉ số liệu: chết ở 12'). Phát hiện: baseline soak Phase 1 "30 phút, 11 kill" chủ yếu là bot kẹt góc cửa nhà an toàn. Chi tiết: `docs/phase2-s2.md`.
+- Phòng thử `?lab=doors` có thêm "Bộ vũ khí thử (gậy 1, búa hỏng)".
 
 ### Phase 2 — Sprint 1 (24/09/2026)
 

@@ -66,10 +66,10 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
         Đói và khát giảm dần theo thời gian; về 0 thì mất máu. Zombie đông hơn về đêm.
       </p>
       <ol className="guide-steps">
-        <li>Mở tủ trong nhà an toàn (<kbd>E</kbd>) để lấy nước, đồ hộp và băng gạc.</li>
+        <li>Bạn bắt đầu tay không. Mở <b>tủ quần áo</b> trong nhà an toàn (<kbd>E</kbd>) để lấy vũ khí, rồi mở túi (<kbd>I</kbd>), click vũ khí → <b>Trang bị</b>. Tủ đồ bên cạnh có nước, đồ hộp, băng gạc.</li>
         <li>Ra <b>cửa hàng tiện lợi</b> (phía đông) và <b>nhà dân</b> (đông nam) để tìm thêm đồ; mỗi tủ chỉ có một lượt loot.</li>
-        <li>Mở túi (<kbd>I</kbd>), click vật phẩm để dùng: nước hồi khát, đồ ăn hồi đói, băng gạc/hộp cứu thương hồi máu.</li>
-        <li>Zombie tới gần: vung gậy (<kbd>chuột trái</kbd>) về phía con trỏ, hai gậy hạ một con. Bị vây thì <kbd>Space</kbd> đẩy ra rồi chạy (<kbd>Shift</kbd>).</li>
+        <li>Trong túi: click trái xem chi tiết, chuột phải dùng nhanh: nước hồi khát, đồ ăn hồi đói, băng gạc/hộp cứu thương hồi máu.</li>
+        <li>Zombie tới gần: đánh (<kbd>chuột trái</kbd>) về phía con trỏ. Mỗi đòn trúng mất 1 độ bền; vũ khí <b>hỏng</b> (0) chỉ còn 20% sát thương, hãy đổi vũ khí khác. Kệ dụng cụ ở cửa hàng có búa, ống sắt/xà beng hiếm hơn. Bị vây thì <kbd>Space</kbd> đẩy ra rồi chạy (<kbd>Shift</kbd>).</li>
         <li>Đóng cửa sau lưng (<kbd>E</kbd>): zombie không mở được cửa.</li>
         <li>Game tự lưu mỗi phút; <kbd>Esc</kbd> → Lưu game để lưu ngay. Chết là mất bản lưu.</li>
       </ol>

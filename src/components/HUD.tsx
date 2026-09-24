@@ -56,9 +56,17 @@ export function HUD() {
         <span className={hud.inventoryOpen ? 'active' : ''}>
           <kbd>I</kbd> Túi {hud.bagUsed}/{hud.bagSize}
         </span>
+        {hud.weapon ? (
+          <span className={`hud-weapon hud-weapon-${hud.weapon.level}`} title={hud.weapon.level === 'broken' ? 'Vũ khí hỏng: sát thương còn 20%' : 'Độ bền vũ khí đang cầm'}>
+            {hud.weapon.icon} {hud.weapon.name} {hud.weapon.condition}/{hud.weapon.maxCondition}
+            {hud.weapon.level === 'broken' && <strong> HỎNG</strong>}
+          </span>
+        ) : (
+          <span className="hud-weapon hud-weapon-none">✋ Tay không</span>
+        )}
       </div>
 
-      {hud.toast && <div className="hud-toast">{hud.toast}</div>}
+      {hud.toast && <div className={`hud-toast hud-toast-${hud.toastTone}`}>{hud.toast}</div>}
 
       {hud.interactPrompt && (
         <div className="hud-prompt">

@@ -10,7 +10,12 @@ const DB_NAME = 'zombie-outbreak'
 const DB_VERSION = 1
 const STORE = 'saves'
 export const SAVE_SLOT = 'slot-1'
-export const LEGACY_BACKUP_SLOT = 'slot-1.backup-v1'
+
+/** Backup key of the pre-migration original, per slot and stored schema version. */
+export function backupSlotFor(slot: string, schemaVersion: number): string {
+  return `${slot}.backup-v${schemaVersion}`
+}
+export const LEGACY_BACKUP_SLOT = backupSlotFor(SAVE_SLOT, 1)
 
 export type StorageResult<T = void> = { ok: true; value: T } | { ok: false; error: string }
 
@@ -74,24 +79,27 @@ export function deleteSave(slot = SAVE_SLOT): Promise<StorageResult<undefined>> 
 }
 
 /** Backup and upgrade share one transaction: failure leaves the original slot intact. */
-export async function commitMigratedSave(original: unknown, save: SaveGame): Promise<StorageResult> {
+export async function commitMigratedSave(original: unknown, save: SaveGame, slot = SAVE_SLOT): Promise<StorageResult> {
   const validated = validateSaveGame(save, save.mapId)
   if (!validated.ok || validated.migrated) return { ok: false, error: 'Dữ liệu migration không hợp lệ; giữ nguyên bản gốc.' }
   if (!hasIndexedDb()) return { ok: false, error: 'Trình duyệt không hỗ trợ IndexedDB.' }
+  const fromVersion = typeof original === 'object' && original !== null ? (original as { schemaVersion?: unknown }).schemaVersion : undefined
+  if (typeof fromVersion !== 'number') return { ok: false, error: 'Bản gốc không có schemaVersion; giữ nguyên.' }
+  const backupSlot = backupSlotFor(slot, fromVersion)
   let db: IDBDatabase | null = null
   try {
     db = await openDb()
     await new Promise<void>((resolve, reject) => {
       const tx = db!.transaction(STORE, 'readwrite')
       const store = tx.objectStore(STORE)
-      const current = store.get(SAVE_SLOT)
+      const current = store.get(slot)
       current.onsuccess = () => {
         if (JSON.stringify(current.result) !== JSON.stringify(original)) { tx.abort(); return }
-        const backup = store.get(LEGACY_BACKUP_SLOT)
+        const backup = store.get(backupSlot)
         backup.onsuccess = () => {
-          if (backup.result === undefined) store.put(original, LEGACY_BACKUP_SLOT)
-          else if (JSON.stringify(backup.result) !== JSON.stringify(original)) store.put(original, `${LEGACY_BACKUP_SLOT}:${crypto.randomUUID()}`)
-          store.put(save, SAVE_SLOT)
+          if (backup.result === undefined) store.put(original, backupSlot)
+          else if (JSON.stringify(backup.result) !== JSON.stringify(original)) store.put(original, `${backupSlot}:${crypto.randomUUID()}`)
+          store.put(save, slot)
         }
       }
       tx.oncomplete = () => resolve()

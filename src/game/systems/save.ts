@@ -1,13 +1,16 @@
 import { ITEMS, type ItemId } from '../entities/items'
 import { addItem, createInventory, type Inventory } from './inventory'
 import { DOOR_MAX_HP } from '../world/doors'
-import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
+import { CONTAINERS_ADDED_V3, NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
+import { LOOT_TABLES } from '../world/lootTables'
+import { generateContainerLoot } from './loot'
 import { GAME_CONFIG } from '../core/config'
 import { SAVE_SCHEMA_VERSION, type SaveGame, type SaveSummary } from '../../types/save'
 import type { Vec3, ZombieAIState } from '../../types'
 
+/** `fromVersion` is the stored schema before any in-memory migration. */
 export type SaveValidation =
-  | { ok: true; save: SaveGame; migrated: boolean }
+  | { ok: true; save: SaveGame; migrated: boolean; fromVersion: number }
   | { ok: false; reason: 'corrupt' | 'incompatible' | 'wrong-map'; detail: string }
 
 const AI_STATES: ReadonlySet<string> = new Set<ZombieAIState>(['IDLE', 'CHASE', 'SEARCH', 'ATTACK', 'DEAD'])
@@ -19,8 +22,9 @@ const AI_STATES: ReadonlySet<string> = new Set<ZombieAIState>(['IDLE', 'CHASE', 
 export function validateSaveGame(data: unknown, expectedMapId: string, map?: MapData): SaveValidation {
   if (!isRecord(data)) return corrupt('không phải object')
   if (typeof data.schemaVersion !== 'number') return corrupt('thiếu schemaVersion')
-  const legacy = data.schemaVersion === 1
-  if (!legacy && data.schemaVersion !== SAVE_SCHEMA_VERSION) {
+  const version = data.schemaVersion
+  const legacy = version === 1
+  if (version !== 1 && version !== 2 && version !== SAVE_SCHEMA_VERSION) {
     return { ok: false, reason: 'incompatible', detail: `schemaVersion ${data.schemaVersion}, cần ${SAVE_SCHEMA_VERSION}` }
   }
   if (typeof data.mapId !== 'string') return corrupt('thiếu mapId')
@@ -101,8 +105,11 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (knownMap) {
     const doors = data.doors as { id: string }[]
     if (doors.length !== knownMap.doors.length || knownMap.doors.some((d) => !doors.some((s) => s.id === d.id))) return corrupt('door IDs do not match map')
-    if (knownMap.containers.some((c) => !containers.some((s) => s.id === c.id))) return corrupt('missing map container')
+    // Saves older than v3 predate the P2-S2 containers; migration seeds them once.
+    const required = knownMap.containers.filter((c) => version >= 3 || !CONTAINERS_ADDED_V3.has(c.id))
+    if (required.some((c) => !containers.some((s) => s.id === c.id))) return corrupt('missing map container')
     for (const c of containers) {
+      if (version < 3 && CONTAINERS_ADDED_V3.has(c.id)) return corrupt('container newer than schema')
       const fixed = knownMap.containers.some((d) => d.id === c.id)
       if (fixed ? c.position !== undefined : legacy || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
       if (c.items.slots.length !== (fixed ? GAME_CONFIG.inventory.containerSlots : 1)) return corrupt('container capacity')
@@ -132,7 +139,8 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (!isRecord(player.equipment)) return corrupt('equipment')
   const weaponId = player.equipment.weaponInstanceId
   if (weaponId !== null && (typeof weaponId !== 'string' || !save.player.inventory.slots.some((i) => i?.id === weaponId && i.kind === 'weapon'))) return corrupt('equipment owner/reference')
-  return { ok: true, save, migrated: false }
+  if (version === 2) return migrateV2(save, expectedMapId, knownMap)
+  return { ok: true, save, migrated: false, fromVersion: version }
 }
 
 export function summarizeSave(save: SaveGame): SaveSummary {
@@ -194,7 +202,7 @@ function migratePhase1(data: Record<string, unknown>, mapId: string, map?: MapDa
     inv.slots = old.slots.map((s) => s ? { id: `${id}:${inv.nextItemId++}`, itemId: s.itemId, kind: 'stack', quantity: s.quantity } : null)
     return inv
   }
-  save.schemaVersion = SAVE_SCHEMA_VERSION
+  save.schemaVersion = 2
   save.player.inventory = convert(save.player.inventory, 'player')
   save.player.equipment = { weaponInstanceId: null }
   save.containers = save.containers.map((c) => ({ ...c, items: convert(c.items, `loot:${save.worldSeed}:${c.id}`) }))
@@ -209,6 +217,29 @@ function migratePhase1(data: Record<string, unknown>, mapId: string, map?: MapDa
     addItem(items, 'baseball_bat', 1)
     save.containers.push({ id: 'drop:legacy-bat', opened: false, position: { ...save.player.position, y: 0 }, items })
   }
+  // Continue through v2 → v3 with the same validator, so both steps are checked.
   const checked = validateSaveGame(save, mapId, map)
-  return checked.ok ? { ...checked, migrated: true } : checked
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 1 } : checked
+}
+
+/**
+ * Pure deterministic v2 → v3: add each P2-S2 map container the save lacks, seeded by
+ * hash(worldSeed, id) exactly like New Game. Existing containers (looted or not) are never
+ * rerolled; fixed containers keep map order and drops follow, matching `createSnapshot`.
+ */
+function migrateV2(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = SAVE_SCHEMA_VERSION
+  if (map) {
+    const byId = new Map(save.containers.map((c) => [c.id, c]))
+    const fixed = map.containers.map((def) => byId.get(def.id) ?? {
+      id: def.id,
+      opened: false,
+      items: generateContainerLoot(def.loot ? LOOT_TABLES[def.loot] : undefined, save.worldSeed, def.id, GAME_CONFIG.inventory.containerSlots),
+    })
+    const fixedIds = new Set(map.containers.map((c) => c.id))
+    save.containers = [...fixed, ...save.containers.filter((c) => !fixedIds.has(c.id))]
+  }
+  const checked = validateSaveGame(save, mapId, map)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 2 } : checked
 }

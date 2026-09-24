@@ -19,6 +19,14 @@ const hut: BuildingDef = {
   containers: [{ id: 'ct-hut', name: 'Tủ', position: { x: 0, y: 0.5, z: -2.5 }, size: [1, 1, 0.6], color: '#000' }],
 }
 
+/** New Game is unarmed since P2-S2; combat tests equip a looted-style weapon explicitly. */
+function arm(rt: GameRuntime, itemId: 'baseball_bat' | 'metal_pipe' | 'crowbar' | 'hammer' = 'baseball_bat', condition?: number): string {
+  addItem(rt.player.inventory, itemId, 1, { condition })
+  const weapon = rt.player.inventory.slots.findLast((i) => i?.itemId === itemId)!
+  expect(rt.equipItem(weapon.id)).toBe(true)
+  return weapon.id
+}
+
 function makeMap(zombieSpawns: MapData['zombieSpawns']): MapData {
   return {
     id: 'test',
@@ -200,6 +208,7 @@ describe('GameRuntime combat', () => {
     rt.events.on('zombie:damaged', (e) => damaged.push(e.health))
     rt.events.on('zombie:died', (e) => died.push(e.sourceId))
     rt.player.facing = Math.PI / 2 // nhìn về +X
+    arm(rt)
 
     swing(rt)
     expect(zombie.health).toBe(GAME_CONFIG.zombie.health - melee.damage)
@@ -224,6 +233,7 @@ describe('GameRuntime combat', () => {
   it('does not hit a zombie behind the player or one behind a wall', () => {
     const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
     const zombie = Array.from(rt.zombies.values())[0]
+    arm(rt)
     rt.player.facing = -Math.PI / 2 // quay lưng về zombie
     swing(rt)
     expect(zombie.health).toBe(GAME_CONFIG.zombie.health)
@@ -344,19 +354,19 @@ describe('GameRuntime inventory and loot', () => {
     expect(totalQuantity(container.items) + totalQuantity(rt.player.inventory)).toBe(total)
 
     rt.putIntoContainer(0)
-    expect(totalQuantity(rt.player.inventory)).toBe(1) // starting bat is now an owned item
-    expect(totalQuantity(container.items)).toBe(total - 1)
+    expect(totalQuantity(rt.player.inventory)).toBe(0) // New Game is unarmed: nothing else in the bag
+    expect(totalQuantity(container.items)).toBe(total)
 
     // Lấp đầy túi bằng medkit (stack 1) rồi Take All: đồ phải còn nguyên trong container.
     for (let i = 0; i < GAME_CONFIG.inventory.slots; i++) addItem(rt.player.inventory, 'medkit', 1)
     const all = rt.takeAll()
     expect(all.moved).toBe(0)
-    expect(all.remainder).toBe(total - 1)
-    expect(totalQuantity(container.items)).toBe(total - 1)
+    expect(all.remainder).toBe(total)
+    expect(totalQuantity(container.items)).toBe(total)
 
     rt.player.inventory = createInventory(GAME_CONFIG.inventory.slots)
     const all2 = rt.takeAll()
-    expect(all2.moved).toBe(total - 1)
+    expect(all2.moved).toBe(total)
     expect(totalQuantity(container.items)).toBe(0)
   })
 
@@ -402,6 +412,7 @@ describe('GameRuntime inventory and loot', () => {
 
   it('an open inventory blocks attack and push input', () => {
     const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
+    arm(rt)
     rt.toggleInventory()
     expect(rt.uiOpen).toBe(true)
     rt.input.simulateKey('Mouse0', true)
@@ -422,7 +433,8 @@ describe('GameRuntime inventory and loot', () => {
     addItem(rt.player.inventory, 'water', 2)
     rt.toggleInventory()
     rt.newGame(1)
-    expect(totalQuantity(rt.player.inventory)).toBe(1)
+    expect(totalQuantity(rt.player.inventory)).toBe(0)
+    expect(rt.player.equipment.weaponInstanceId).toBeNull()
     expect(rt.uiOpen).toBe(false)
     expect(rt.inventoryOpen).toBe(false)
   })

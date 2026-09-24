@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import legacyFixture from './fixtures/phase1-v1.json'
 import currentFixture from './fixtures/phase2-s1-v2.json'
+import s2Fixture from './fixtures/phase2-s2-v3.json'
 import { GameRuntime } from '../core/runtime'
 import { validateSaveGame } from './save'
 import { addItem, createInventory, totalQuantity, transferSlot } from './inventory'
 import { equippedWeapon, equipWeapon } from './equipment'
-import { NEIGHBORHOOD_MAP } from '../world/mapData'
+import { CONTAINERS_ADDED_V3, NEIGHBORHOOD_MAP } from '../world/mapData'
+import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 
 const mapId = NEIGHBORHOOD_MAP.id
 const migrate = (data: unknown) => {
@@ -19,23 +21,27 @@ describe('Phase 1 fixture migration', () => {
     const before = JSON.stringify(legacyFixture)
     const { save, migrated } = migrate(legacyFixture)
     expect(migrated).toBe(true)
-    expect(save.schemaVersion).toBe(2)
+    expect(save.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
     expect(save.clock).toEqual(legacyFixture.clock)
     expect(save.player.position).toEqual(legacyFixture.player.position)
     expect(save.player.health).toBe(73)
     expect(save.player.inventory.slots[0]).toMatchObject(legacyFixture.player.inventory.slots[0]!)
     expect(equippedWeapon(save.player.inventory, save.player.equipment)).toMatchObject({ kind: 'weapon', condition: 80 })
     expect(totalQuantity(save.player.inventory)).toBe(legacyFixture.player.inventory.slots.reduce((n, s) => n + (s?.quantity ?? 0), 0) + 1)
-    for (let i = 0; i < save.containers.length; i++) {
-      expect(save.containers[i].opened).toBe(legacyFixture.containers[i].opened)
-      save.containers[i].items.slots.forEach((s, j) => {
-        const old = legacyFixture.containers[i].items.slots[j]
-        if (old) expect(s).toMatchObject(old)
+    for (const old of legacyFixture.containers) {
+      const c = save.containers.find((s) => s.id === old.id)!
+      expect(c.opened).toBe(old.opened)
+      c.items.slots.forEach((s, j) => {
+        const before = old.items.slots[j]
+        if (before) expect(s).toMatchObject(before)
         else expect(s).toBeNull()
       })
     }
+    // v1 → v2 → v3 in one pass: the P2-S2 containers are seeded, not the old ones.
+    expect(save.containers.map((c) => c.id)).toEqual(NEIGHBORHOOD_MAP.containers.map((c) => c.id))
     expect(migrate(legacyFixture).save).toEqual(save)
-    expect(migrate(save)).toEqual({ ok: true, save, migrated: false })
+    expect(migrate(legacyFixture).fromVersion).toBe(1)
+    expect(migrate(save)).toEqual({ ok: true, save, migrated: false, fromVersion: SAVE_SCHEMA_VERSION })
     expect(JSON.stringify(legacyFixture)).toBe(before)
   })
 
@@ -76,10 +82,60 @@ describe('Phase 1 fixture migration', () => {
   })
 })
 
-describe('instance ownership', () => {
-  it('loads the browser-generated v2 milestone fixture without migration or condition reset', () => {
-    const { save, migrated } = migrate(currentFixture)
+describe('v2 → v3 (P2-S2 melee containers)', () => {
+  it('seeds each new container exactly like New Game for the same seed; old loot is never rerolled', () => {
+    const { save } = migrate(currentFixture)
+    const fresh = new GameRuntime()
+    fresh.newGame(currentFixture.worldSeed)
+    for (const id of CONTAINERS_ADDED_V3) {
+      expect(currentFixture.containers.some((c) => c.id === id)).toBe(false)
+      const added = save.containers.find((c) => c.id === id)!
+      expect(added.opened).toBe(false)
+      expect(added.items).toEqual(fresh.world.containers.get(id)!.items)
+    }
+    expect(save.containers.find((c) => c.id === 'ct-safehouse-closet')!.items.slots.some((i) => i?.kind === 'weapon')).toBe(true)
+    // Idempotent: migrating again (or re-validating the v3 result) adds nothing.
+    expect(migrate(currentFixture).save).toEqual(save)
+    expect(migrate(save)).toMatchObject({ migrated: false, save })
+  })
+
+  it('rejects a v3 save missing a new container and a v2 save that already has one', () => {
+    const { save } = migrate(currentFixture)
+    const missing = structuredClone(save)
+    missing.containers = missing.containers.filter((c) => c.id !== 'ct-store-tools')
+    expect(validateSaveGame(missing, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+    const early = structuredClone(currentFixture) as unknown as SaveGame
+    early.containers.push({ ...structuredClone(save.containers.find((c) => c.id === 'ct-store-tools')!) })
+    expect(validateSaveGame(early, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+  })
+})
+
+describe('P2-S2 browser fixture (v3)', () => {
+  it('loads without migration: broken equipped weapon, looted closet and a dropped pipe survive round trips', () => {
+    const { save, migrated } = migrate(s2Fixture)
     expect(migrated).toBe(false)
+    const rt = new GameRuntime()
+    rt.loadSnapshot(save)
+    for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    const held = equippedWeapon(rt.player.inventory, rt.player.equipment)!
+    expect([held.itemId, held.condition]).toEqual(['metal_pipe', 0])
+    // The ID minted by the closet survives take → drop → pick up → save.
+    expect(held.id.startsWith('loot:') && held.id.includes('ct-safehouse-closet')).toBe(true)
+    expect(rt.world.containers.get('ct-safehouse-closet')).toMatchObject({ opened: true })
+    const dropped = Array.from(rt.world.containers.values()).flatMap((c) => c.position ? c.items.slots : []).find((i) => i?.kind === 'weapon')
+    expect(dropped).toMatchObject({ itemId: 'metal_pipe', condition: 33 })
+  })
+})
+
+describe('instance ownership', () => {
+  it('migrates the browser-generated v2 (S1) fixture without condition reset or loot reroll', () => {
+    const before = JSON.stringify(currentFixture)
+    const { save, migrated, fromVersion } = migrate(currentFixture)
+    expect([migrated, fromVersion]).toEqual([true, 2])
+    expect(JSON.stringify(currentFixture)).toBe(before)
+    for (const old of currentFixture.containers) expect(save.containers.find((c) => c.id === old.id)).toEqual(old)
+    expect(save.player).toEqual(currentFixture.player)
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     const again = rt.createSnapshot()
@@ -89,7 +145,7 @@ describe('instance ownership', () => {
   it('keeps two bat IDs and conditions through equip, transfer, drop and repeated reload', () => {
     const rt = new GameRuntime()
     rt.newGame(20260924)
-    addItem(rt.player.inventory, 'baseball_bat', 1)
+    addItem(rt.player.inventory, 'baseball_bat', 2)
     const bats = rt.player.inventory.slots.filter((i) => i?.kind === 'weapon')
     expect(bats).toHaveLength(2)
     bats[0]!.condition = 10
@@ -110,7 +166,8 @@ describe('instance ownership', () => {
     expect(rt.dropItem(rt.player.inventory.slots.findIndex((i) => i?.id === bats[0]!.id))).toBe(true)
     expect(rt.player.equipment.weaponInstanceId).toBeNull()
     for (let i = 0; i < 3; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
-    const items = [rt.player.inventory, ...Array.from(rt.world.containers.values()).map((c) => c.items)].flatMap((i) => i.slots).filter((i) => i?.kind === 'weapon')
+    const ids = new Set(bats.map((b) => b!.id))
+    const items = [rt.player.inventory, ...Array.from(rt.world.containers.values()).map((c) => c.items)].flatMap((i) => i.slots).filter((i) => i?.kind === 'weapon').filter((i) => ids.has(i.id))
     expect(items.map((i) => [i!.id, i!.condition]).sort()).toEqual(bats.map((i) => [i!.id, i!.condition]).sort())
   })
 

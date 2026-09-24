@@ -3,8 +3,11 @@ import type { Vec3, ZombieAIState } from './index'
 import type { Equipment } from '../game/entities/items'
 import type { DoorState } from '../game/world/doors'
 
-/** v1 migrates to v2; unknown versions are rejected without overwriting the original. */
-export const SAVE_SCHEMA_VERSION = 2
+/**
+ * v1 (Phase 1) → v2 (item instances, door state) → v3 (P2-S2 melee containers). Older
+ * versions migrate in memory; unknown versions are rejected without overwriting the original.
+ */
+export const SAVE_SCHEMA_VERSION = 3
 
 export interface SavedPlayer {
   position: Vec3

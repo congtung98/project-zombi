@@ -247,7 +247,17 @@ kbd {
   border-left: 3px solid var(--accent);
   border-radius: 6px;
   font-size: 14px;
-  white-space: nowrap;
+  max-width: min(640px, calc(100vw - 32px));
+  text-align: center;
+}
+
+.hud-toast-warn {
+  border-left-color: #e0b23a;
+}
+
+.hud-toast-danger {
+  border-left-color: #d9453d;
+  color: #ffd9d6;
 }
 
 /* ---------- Combat ---------- */
@@ -434,6 +444,133 @@ kbd {
 
 .hud-actions span.active {
   color: #f2c14e;
+}
+
+/* ---------- Weapon condition (P2-S2) ---------- */
+
+.hud-weapon {
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-weapon-none {
+  color: var(--muted);
+}
+
+.hud-weapon-low {
+  color: #e0b23a;
+}
+
+.hud-weapon-broken {
+  color: #ff6b61;
+}
+
+.slot-equipped {
+  border-color: rgba(74, 144, 217, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(74, 144, 217, 0.6);
+}
+
+.slot-selected {
+  outline: 2px solid #f2c14e;
+  outline-offset: -2px;
+}
+
+.slot-broken .slot-icon {
+  filter: grayscale(1) opacity(0.7);
+}
+
+.slot-badge {
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(74, 144, 217, 0.85);
+  border-radius: 4px;
+}
+
+.slot-cond {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  bottom: 4px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.slot-cond > span {
+  display: block;
+  height: 100%;
+  background: #6cc36c;
+}
+
+.slot-cond.low > span {
+  background: #e0b23a;
+}
+
+.slot-cond.broken > span {
+  background: #d9453d;
+}
+
+.slot-broken-tag {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: #b8342b;
+  border-radius: 4px;
+}
+
+.item-detail {
+  margin-top: 10px;
+  padding: 10px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.item-detail h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.item-detail p {
+  margin: 2px 0;
+  color: var(--muted);
+}
+
+.item-detail .stat-line {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.item-detail .status-low {
+  color: #e0b23a;
+}
+
+.item-detail .status-broken {
+  color: #ff6b61;
+  font-weight: 600;
+}
+
+.item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.item-actions button {
+  flex: 1 1 auto;
+  padding: 6px 8px;
+  font-size: 12px;
 }
 
 /* ---------- Save / menu ---------- */

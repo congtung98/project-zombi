@@ -15,7 +15,8 @@ import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { getItemDef } from '../entities/items'
 import { cloneInventory } from '../systems/inventory'
-import { addItem, createInventory } from '../systems/inventory'
+import { createInventory } from '../systems/inventory'
+import { applyWeaponWear, meleeStats, weaponHitDamage } from '../systems/weapons'
 import { equipWeapon, equippedWeapon, reconcileEquipment } from '../systems/equipment'
 import { validateSaveGame } from '../systems/save'
 import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
@@ -124,13 +125,9 @@ export class GameRuntime {
     this.events.clear()
     this.input.clear()
     this.cameraZoom = GAME_CONFIG.camera.zoomDefault
+    // P2-S2: New Game starts unarmed (shove still works); melee is looted from containers.
+    // Only the v1 save migration grants the Phase 1 bat.
     this.player = createPlayerState(this.map.playerSpawn)
-    // S1 keeps the Phase 1 starting bat. S2 removes this grant and introduces weapon loot.
-    addItem(this.player.inventory, 'baseball_bat', 1)
-    const bat = this.player.inventory.slots[0]!
-    this.player.inventory.slots[0] = null
-    this.player.inventory.slots[GAME_CONFIG.inventory.slots - 1] = bat
-    this.player.equipment.weaponInstanceId = bat.id
     this.world = createWorldState(this.map, seed)
     this.interactables = buildInteractables(this.map)
     this.interactableById.clear()
@@ -475,6 +472,8 @@ export class GameRuntime {
   equipItem(id: string | null): boolean {
     if (!this.player.alive || this.player.attackTimer >= 0) return false
     if (!equipWeapon(this.player.inventory, this.player.equipment, id)) return false
+    const item = id === null ? null : this.player.inventory.slots.find((i) => i?.id === id) ?? null
+    this.events.queue('item:equipped', { id, itemId: item?.itemId ?? null })
     this.queueInventoryChanged()
     return true
   }
@@ -650,8 +649,12 @@ export class GameRuntime {
   private stepCombat(attacks: PendingAttack[], dt: number): void {
     const player = this.player
     if (player.alive && !this.uiOpen) {
-      if (this.input.wasPressed('attack') && equippedWeapon(player.inventory, player.equipment) && startAttack(player)) {
-        if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
+      if (this.input.wasPressed('attack')) {
+        const weapon = equippedWeapon(player.inventory, player.equipment)
+        if (!weapon) this.events.queue('player:unarmed', {})
+        else if (startAttack(player, meleeStats(weapon.itemId), GAME_CONFIG.player, weapon.id)) {
+          if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
+        }
       }
       if (this.input.wasPressed('push') && startPush(player)) {
         if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
@@ -680,17 +683,30 @@ export class GameRuntime {
     return this.physics.isBlocked(atHeight(this.player.position, SWING_HEIGHT), atHeight(target.position, SWING_HEIGHT), [])
   }
 
+  /**
+   * Hit window of the current swing. Damage uses the weapon's condition at this moment (1 still
+   * deals full damage); wear is applied afterwards, once per attackId however many targets were hit.
+   */
   private resolvePlayerMelee(): void {
     const cfg = GAME_CONFIG.melee
-    const hits = resolveConeHits(this.player.position, this.player.facing, this.meleeTargets(), cfg, (t) => this.isTargetBlocked(t))
+    const player = this.player
+    const found = player.inventory.slots.find((i) => i?.id === player.attackWeaponId)
+    const weapon = found?.kind === 'weapon' ? found : null
+    if (!weapon) {
+      this.events.queue('player:attacked', { hitIds: [], damage: 0, weaponId: null })
+      return
+    }
+    const stats = meleeStats(weapon.itemId)
+    const damage = weaponHitDamage(weapon.itemId, weapon.condition)
+    const hits = resolveConeHits(player.position, player.facing, this.meleeTargets(), { range: stats.range, halfAngleDeg: cfg.halfAngleDeg }, (t) => this.isTargetBlocked(t))
     const hitIds: EntityId[] = []
     for (const hit of hits) {
       const zombie = this.zombies.get(hit.id)
       if (!zombie) continue
       hitIds.push(zombie.id)
       const from = zombie.ai
-      const died = damageZombie(zombie, cfg.damage)
-      this.events.queue('zombie:damaged', { id: zombie.id, amount: cfg.damage, health: zombie.health })
+      const died = damageZombie(zombie, damage)
+      this.events.queue('zombie:damaged', { id: zombie.id, amount: damage, health: zombie.health })
       if (died) {
         this.events.queue('zombie:stateChanged', { id: zombie.id, from, to: 'DEAD' })
         this.onZombieDied(zombie, 'player')
@@ -698,7 +714,14 @@ export class GameRuntime {
         applyKnockback(zombie, this.player.position, cfg.knockback, cfg.stagger)
       }
     }
-    this.events.queue('player:attacked', { hitIds })
+    this.events.queue('player:attacked', { hitIds, damage, weaponId: weapon.id })
+    if (hitIds.length === 0) return
+    const wear = applyWeaponWear(weapon, player.attackId, player)
+    if (wear.worn === 0) return
+    const name = getItemDef(weapon.itemId).name
+    this.events.queue('weapon:worn', { id: weapon.id, itemId: weapon.itemId, condition: weapon.condition })
+    if (wear.broke) this.events.queue('weapon:broken', { id: weapon.id, itemId: weapon.itemId, name })
+    else if (wear.becameLow) this.events.queue('weapon:lowCondition', { id: weapon.id, itemId: weapon.itemId, name })
   }
 
   private resolvePlayerPush(): void {

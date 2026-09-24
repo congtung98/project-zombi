@@ -79,6 +79,10 @@ export const GAME_CONFIG = {
     /** Không tiến được trong khoảng này thì buộc tìm đường lại. */
     stuckTime: 1,
   },
+  /**
+   * damage/range/cooldown/stamina are the Phase 1 bat baseline that `ITEMS.baseball_bat` reuses;
+   * other weapons define their own. Timing, arc, knockback and stagger are shared by all melee.
+   */
   melee: {
     damage: 25,
     range: 2,
@@ -94,6 +98,14 @@ export const GAME_CONFIG = {
     halfAngleDeg: 60,
     /** Zombie trúng gậy đứng khựng trong khoảng này. */
     stagger: 0.2,
+  },
+  weapon: {
+    /** Condition lost once per swing that hits at least one valid target (never per target). */
+    wearPerHit: 1,
+    /** Damage of a broken weapon (condition 0) = round(base × ratio), minimum 1. */
+    brokenDamageRatio: 0.2,
+    /** Yellow warning when condition ≤ this fraction of max. */
+    lowConditionRatio: 0.25,
   },
   push: {
     range: 1.8,

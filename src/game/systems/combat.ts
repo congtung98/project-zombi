@@ -1,5 +1,6 @@
 import { GAME_CONFIG } from '../core/config'
 import type { PlayerState } from '../entities/player'
+import type { MeleeStats } from '../entities/items'
 import type { Vec3 } from '../../types'
 
 export interface MeleeTarget {
@@ -47,16 +48,24 @@ export function resolveConeHits<T extends MeleeTarget>(
 }
 
 /**
- * Bắt đầu một cú vung gậy nếu đủ điều kiện (còn sống, hết cooldown, đủ stamina).
- * Trừ stamina ngay và mở cửa sổ trúng đòn chờ `hitDelay`.
+ * Bắt đầu một cú vung nếu đủ điều kiện (còn sống, hết cooldown, đủ stamina) với
+ * cooldown/stamina của vũ khí. Trừ stamina ngay, cấp attackId mới và mở cửa sổ
+ * trúng đòn chờ `hitDelay` (dùng chung mọi melee).
  */
-export function startAttack(player: PlayerState, cfg = GAME_CONFIG.melee, limits = GAME_CONFIG.player): boolean {
-  if (!player.alive || player.attackCooldown > 0 || player.stamina < cfg.stamina) return false
-  player.stamina = Math.max(0, player.stamina - cfg.stamina)
+export function startAttack(
+  player: PlayerState,
+  stats: Pick<MeleeStats, 'cooldown' | 'stamina'> = GAME_CONFIG.melee,
+  limits = GAME_CONFIG.player,
+  weaponId: string | null = null,
+): boolean {
+  if (!player.alive || player.attackCooldown > 0 || player.stamina < stats.stamina) return false
+  player.stamina = Math.max(0, player.stamina - stats.stamina)
   player.staminaRegenTimer = limits.staminaRegenDelay
-  player.attackCooldown = cfg.cooldown
+  player.attackCooldown = stats.cooldown
   player.attackTimer = 0
   player.attackHitPending = true
+  player.attackId += 1
+  player.attackWeaponId = weaponId
   return true
 }
 

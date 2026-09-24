@@ -482,12 +482,14 @@ Mỗi sprint kết thúc bằng một build chơi được và một ghi chú tr
 
 ### Sprint P2-S2 — Từ gậy mặc định sang đồ phải đi tìm
 
-- [ ] Bỏ gậy tự cấp ở New Game; giữ shove khi tay không.
-- [ ] Đặt container thật và nhóm loot; bảo đảm melee đầu game trong một container phải tự lấy.
-- [ ] Tạo melee definitions: gậy, ống sắt, xà beng, búa; dùng mesh đơn giản trước khi có model hoàn chỉnh.
-- [ ] Equip/unequip/drop/transfer theo instance ID, vẫn giới hạn 12 ô.
-- [ ] Implement condition wear, broken 20% damage, tooltip và cảnh báo.
-- [ ] Lưu condition/weapon reference/loot generation.
+- [x] Bỏ gậy tự cấp ở New Game; giữ shove khi tay không.
+- [x] Đặt container thật và nhóm loot; bảo đảm melee đầu game trong một container phải tự lấy.
+- [x] Tạo melee definitions: gậy, ống sắt, xà beng, búa; dùng mesh đơn giản trước khi có model hoàn chỉnh.
+- [x] Equip/unequip/drop/transfer theo instance ID, vẫn giới hạn 12 ô.
+- [x] Implement condition wear, broken 20% damage, tooltip và cảnh báo.
+- [x] Lưu condition/weapon reference/loot generation.
+
+**Đã triển khai 24/09/2026.** Chi tiết: `docs/phase2-s2.md`. Gậy giữ baseline Phase 1, vũ khí khác theo tỷ lệ tương đối của bảng §5.2. 4 container ID mới; save v3 thêm chúng một lần khi migrate. Soak tách chính sách shelter (cổng) và patrol (số liệu); baseline soak Phase 1 được xác định là bot kẹt góc. Đánh công trình trừ 2 condition chờ S5–S7.
 
 **Nghiệm thu:** New Game không có gậy; loot và trang bị được; đổi hai cây cùng loại không đổi lẫn condition; hit không gây hao mòn nhiều lần ngoài ý muốn; broken vẫn tồn tại và yếu rõ; reload không hồi condition.
 

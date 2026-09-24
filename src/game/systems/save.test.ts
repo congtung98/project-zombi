@@ -68,7 +68,7 @@ describe('snapshot round trip', () => {
     const snap = rt.createSnapshot()
     expect(snap.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
     expect(snap.zombies.map((z) => z.id)).toEqual(['zombie-1', 'zombie-2', 'zombie-3'])
-    expect(totalQuantity(snap.player.inventory) + totalQuantity(snap.containers[0].items)).toBe(lootBefore + 1)
+    expect(totalQuantity(snap.player.inventory) + totalQuantity(snap.containers[0].items)).toBe(lootBefore)
 
     // Bản lưu là dữ liệu thuần: qua JSON không mất gì.
     const json = JSON.parse(JSON.stringify(snap)) as unknown

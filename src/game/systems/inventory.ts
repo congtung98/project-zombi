@@ -65,11 +65,16 @@ export function totalQuantity(inv: Inventory): number {
   return n
 }
 
+/** Initial state for new individual items; omitted condition means a new (full) weapon. */
+export interface ItemInit {
+  condition?: number
+}
+
 /**
  * Thêm `quantity` vật phẩm: lấp đầy các stack cùng loại trước, rồi tới ô trống.
  * Không bao giờ vượt `stackLimit`; phần không chứa được trả về trong `remainder`.
  */
-export function addItem(inv: Inventory, itemId: ItemId, quantity: number): AddResult {
+export function addItem(inv: Inventory, itemId: ItemId, quantity: number, init: ItemInit = {}): AddResult {
   if (!Number.isFinite(quantity) || quantity <= 0) return { added: 0, remainder: Math.max(0, quantity || 0) }
   const def = getItemDef(itemId)
   const limit = def.stackLimit
@@ -87,7 +92,7 @@ export function addItem(inv: Inventory, itemId: ItemId, quantity: number): AddRe
     const take = Math.min(limit, left)
     const id = nextId(inv)
     inv.slots[i] = def.kind === 'weapon'
-      ? { id, itemId, kind: 'weapon', quantity: 1, condition: def.maxCondition! }
+      ? { id, itemId, kind: 'weapon', quantity: 1, condition: Math.min(def.maxCondition!, Math.max(0, Math.round(init.condition ?? def.maxCondition!))) }
       : def.kind === 'tool'
         ? { id, itemId, kind: 'tool', quantity: 1, ...(def.maxFuel === undefined ? {} : { fuel: def.maxFuel }) }
         : { id, itemId, kind: 'stack', quantity: take }

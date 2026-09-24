@@ -23,6 +23,11 @@ export interface PlayerState {
   attackTimer: number
   /** Cú vung hiện tại chưa tới khung gây sát thương. */
   attackHitPending: boolean
+  /** Increments per swing start; wear is paid at most once per attackId. */
+  attackId: number
+  /** Weapon instance that started the current swing (equipment cannot change mid-swing). */
+  attackWeaponId: string | null
+  lastWornAttackId: number
   pushCooldown: number
   /** Số zombie đã hạ trong ván. */
   kills: number
@@ -46,6 +51,9 @@ export function createPlayerState(spawn: Vec3): PlayerState {
     attackCooldown: 0,
     attackTimer: -1,
     attackHitPending: false,
+    attackId: 0,
+    attackWeaponId: null,
+    lastWornAttackId: 0,
     pushCooldown: 0,
     kills: 0,
     inventory: createInventory(GAME_CONFIG.inventory.slots, 'player'),

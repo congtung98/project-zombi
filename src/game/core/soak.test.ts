@@ -5,6 +5,8 @@ import { NEIGHBORHOOD_MAP } from '../world/mapData'
 import { computeMoveDirection } from '../systems/movement'
 import { validateSaveGame } from '../systems/save'
 import { getItemDef } from '../entities/items'
+import { equippedWeapon } from '../systems/equipment'
+import { meleeStats } from '../systems/weapons'
 import type { NavGrid } from '../world/navigation'
 import type { Vec3 } from '../../types'
 
@@ -67,10 +69,24 @@ interface Metrics {
   maxZombies: number
   snapshotsChecked: number
   containersLooted: number
+  /** P2-S2: seconds until the unarmed bot first equips a looted weapon. */
+  firstWeaponSec: number
+  swingsHit: number
+  swingsMissed: number
+  wear: number
+  broken: number
+  weaponsFound: string[]
 }
 
-describe('30-minute automated survival loop', () => {
-  it('runs without errors, keeps invariants and reports balance metrics', () => {
+/**
+ * `shelter`: loot the whole route, then go home, close the safehouse door and rest like a
+ * cautious player (pass/fail gate). `patrol`: keep walking past spawn points and fighting
+ * everything forever (metrics for later balance; no survival gate, only invariants).
+ * P2-S2 measured that the Phase 1 bot stood ~1545 s of 1800 s in one cell by the safehouse
+ * door (8-direction keys pushing into a wall corner), so its "30 min, 11 kills" was not a
+ * combat measurement. Movement now slides around corners; see docs/phase2-s2.md.
+ */
+function runSoak(policy: 'shelter' | 'patrol') {
     const rt = new GameRuntime(NEIGHBORHOOD_MAP)
     rt.newGame(20260924)
     const nav = rt.nav
@@ -101,20 +117,19 @@ describe('30-minute automated survival loop', () => {
         rt.cameraBasis,
       ),
     }))
+    // 8-direction keys like a player; prefer the best-aligned combo whose next step is walkable,
+    // so the bot slides around wall corners instead of pushing into them forever.
     const move = (dx: number, dz: number) => {
       for (const k of MOVE_KEYS) rt.input.simulateKey(k, false)
       const len = Math.hypot(dx, dz)
       if (len < 1e-3) return
-      let best = combos[0]
-      let bestDot = -Infinity
-      for (const c of combos) {
-        const dot = (c.dir.x * dx + c.dir.z * dz) / len
-        if (dot > bestDot) {
-          bestDot = dot
-          best = c
-        }
-      }
-      for (const k of best.keys) rt.input.simulateKey(k, true)
+      const pos = rt.player.position
+      const ranked = combos
+        .map((c) => ({ c, dot: (c.dir.x * dx + c.dir.z * dz) / len }))
+        .filter((r) => r.dot > 0)
+        .sort((a, b) => b.dot - a.dot)
+      const best = ranked.find((r) => nav.isWalkable(pos.x + r.c.dir.x * 0.3, pos.z + r.c.dir.z * 0.3)) ?? ranked[0]
+      if (best) for (const k of best.c.keys) rt.input.simulateKey(k, true)
     }
 
     const m: Metrics = {
@@ -130,13 +145,43 @@ describe('30-minute automated survival loop', () => {
       maxZombies: 0,
       snapshotsChecked: 0,
       containersLooted: 0,
+      firstWeaponSec: -1,
+      swingsHit: 0,
+      swingsMissed: 0,
+      wear: 0,
+      broken: 0,
+      weaponsFound: [],
     }
     rt.events.on('zombie:spawned', () => (m.spawned += 1))
     rt.events.on('player:damaged', (e) => (m.damageTaken += e.amount))
     rt.events.on('item:used', (e) => (m.itemsUsed[e.itemId] = (m.itemsUsed[e.itemId] ?? 0) + 1))
+    rt.events.on('player:attacked', (e) => (e.hitIds.length > 0 ? (m.swingsHit += 1) : (m.swingsMissed += 1)))
+    rt.events.on('weapon:worn', () => (m.wear += 1))
+    rt.events.on('weapon:broken', (e) => {
+      m.broken += 1
+      // Broken weapons stay owned (never deleted), they are only weaker.
+      expect(rt.player.inventory.slots.some((i) => i?.id === e.id && i.kind === 'weapon' && i.condition === 0)).toBe(true)
+    })
+    /** Bot policy: keep the best usable weapon (damage per second of cooldown) in hand. */
+    const equipBest = () => {
+      const current = equippedWeapon(rt.player.inventory, rt.player.equipment)
+      if (current && current.condition > 0) return
+      let best: { id: string; score: number } | null = null
+      for (const item of rt.player.inventory.slots) {
+        if (item?.kind !== 'weapon' || item.condition <= 0) continue
+        const s = meleeStats(item.itemId)
+        const score = s.damage / s.cooldown
+        if (!best || score > best.score) best = { id: item.id, score }
+      }
+      if (best && rt.equipItem(best.id) && m.firstWeaponSec < 0) m.firstWeaponSec = +m.survivedSec.toFixed(1)
+    }
 
-    // Lộ trình loot: nhà an toàn → cửa hàng → nhà dân → về nhà an toàn, rồi lặp tuần tra.
-    const route = ['ct-safehouse-cabinet', 'ct-store-shelf-1', 'ct-store-shelf-2', 'ct-store-shelf-3', 'ct-store-fridge', 'ct-house-kitchen', 'ct-house-wardrobe']
+    // Lộ trình loot: nhà an toàn (vũ khí khởi đầu trước) → cửa hàng → nhà dân → công viên, rồi lặp tuần tra.
+    const route = [
+      'ct-safehouse-closet', 'ct-safehouse-cabinet',
+      'ct-store-shelf-1', 'ct-store-shelf-2', 'ct-store-shelf-3', 'ct-store-fridge', 'ct-store-tools',
+      'ct-house-kitchen', 'ct-house-wardrobe', 'ct-house-nightstand', 'ct-park-toolbox',
+    ]
     const looted = new Set<string>()
     const skipped: string[] = []
     const home: Vec3 = { ...map.playerSpawn }
@@ -178,6 +223,9 @@ describe('30-minute automated survival loop', () => {
       if (next) {
         goalContainer = next
         goalPos = walkableNear(containerPos(next))
+      } else if (policy === 'shelter') {
+        goalContainer = null
+        goalPos = walkableNear(home)
       } else {
         goalContainer = null
         goalPos = walkableNear(patrol[patrolIdx % patrol.length])
@@ -188,6 +236,9 @@ describe('30-minute automated survival loop', () => {
     pickGoal()
 
     const dist = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.z - b.z)
+    const safehouse = map.buildings.find((b) => b.id === 'safehouse')!
+    const insideSafehouse = (q: Vec3) =>
+      Math.abs(q.x - safehouse.center.x) < safehouse.size.w / 2 - 0.3 && Math.abs(q.z - safehouse.center.z) < safehouse.size.d / 2 - 0.3
     let mouseHeld = false
     let spaceHeld = false
     let autosaveClock = 0
@@ -233,17 +284,25 @@ describe('30-minute automated survival loop', () => {
         }
       }
 
-      // ---- Cửa: gặp cửa đóng trước mặt thì mở
+      if (p.attackTimer < 0) equipBest()
+
+      // ---- Cửa: gặp cửa đóng trước mặt thì mở; shelter đã loot xong thì vào nhà và đóng cửa
       const target = rt.currentInteractable
-      if (target?.kind === 'door' && rt.world.doors.get(target.id)?.state === 'closed' && !fighting) {
-        rt.interact(target)
+      const sheltering = policy === 'shelter' && goalContainer === null && insideSafehouse(pos)
+      const zombieInside = Array.from(rt.zombies.values()).some((z) => z.ai !== 'DEAD' && insideSafehouse(z.position))
+      if (target?.kind === 'door' && !fighting) {
+        const state = rt.world.doors.get(target.id)?.state
+        if (sheltering && state === 'open' && target.id === 'door-safehouse' && !zombieInside) rt.interact(target)
+        else if (!sheltering && state === 'closed') rt.interact(target)
       }
 
       // ---- Loot: tới tủ mục tiêu thì mở, lấy hết, đóng
       if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting) {
         rt.interact(target)
         const before = p.inventory.slots.filter(Boolean).reduce((n, s) => n + s!.quantity, 0)
+        for (const item of rt.openContainer!.items.slots) if (item?.kind === 'weapon') m.weaponsFound.push(`${item.itemId}@${item.condition}`)
         rt.takeAll()
+        equipBest()
         const after = p.inventory.slots.filter(Boolean).reduce((n, s) => n + s!.quantity, 0)
         m.lootTaken += after - before
         rt.closeAllUi()
@@ -331,16 +390,34 @@ describe('30-minute automated survival loop', () => {
       endHealth: Math.round(rt.player.health),
       endHunger: Math.round(rt.player.hunger),
       endThirst: Math.round(rt.player.thirst),
-      bag: rt.player.inventory.slots.filter(Boolean).map((s) => `${s!.itemId}x${s!.quantity}`),
+      bag: rt.player.inventory.slots.filter(Boolean).map((s) => (s!.kind === 'weapon' ? `${s!.itemId}@${s!.condition}` : `${s!.itemId}x${s!.quantity}`)),
+      equipped: equippedWeapon(rt.player.inventory, rt.player.equipment)?.itemId ?? null,
       day: rt.clock.day,
       time: rt.clock.formatTime(),
       skipped,
+      policy,
     }
-    console.log('SOAK REPORT ' + JSON.stringify(report))
+    console.log(`SOAK REPORT ${policy} ` + JSON.stringify(report))
+    expect(m.wear).toBeLessThanOrEqual(m.swingsHit)
+    return { m, report, route, skipped }
+}
 
-    // Cổng cân bằng: vòng chơi 15–30 phút phải chơi được với loot đặt tay.
+describe('30-minute automated survival loop', () => {
+  it('shelter policy: loots every container, finds the starting melee in time and survives 30 minutes', () => {
+    const { m, route, skipped } = runSoak('shelter')
+    // Cổng: vòng chơi Phase 2 (tay không → tìm vũ khí → loot → trú ẩn) chơi được với loot đặt tay.
     expect(m.containersLooted).toBe(route.length)
     expect(skipped).toEqual([])
-    expect(m.survivedSec).toBeGreaterThanOrEqual(15 * 60)
+    // Unarmed start: the guaranteed starting melee is found and equipped within the plan's 1–3 minutes.
+    expect(m.firstWeaponSec).toBeGreaterThanOrEqual(0)
+    expect(m.firstWeaponSec).toBeLessThanOrEqual(180)
+    expect(m.survivedSec).toBeGreaterThanOrEqual(SESSION_SEC - 1)
+  }, 120_000)
+
+  it('patrol policy: fights continuously; reports time-to-death and wear without a survival gate', () => {
+    const { m } = runSoak('patrol')
+    expect(m.firstWeaponSec).toBeGreaterThanOrEqual(0)
+    expect(m.swingsHit).toBeGreaterThan(0)
+    expect(m.snapshotsChecked).toBeGreaterThanOrEqual(1)
   }, 120_000)
 })

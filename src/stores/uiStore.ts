@@ -10,6 +10,11 @@ import { useWorldStore } from './worldStore'
 
 export type Screen = 'menu' | 'playing' | 'paused' | 'gameover'
 const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : 'slot-1'
+const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
+const MIGRATION_TOAST: Record<number, string> = {
+  1: `Đã nâng cấp save Phase 1 và giữ bản sao v1. Gậy cũ ở túi hoặc túi đồ rơi dưới chân. ${NEW_CONTAINERS_NOTE}`,
+  2: `Đã nâng cấp save và giữ bản sao v2. ${NEW_CONTAINERS_NOTE}`,
+}
 
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */
 export type SaveSlotState =
@@ -65,6 +70,9 @@ export const useUiStore = create<UiState>((set, get) => ({
   startNewGame: () => {
     runtime.newGame()
     enterSession(set)
+    if (runtime.map.containers.some((c) => c.id === 'ct-safehouse-closet')) {
+      useHudStore.getState().showToast('Bạn đang tay không. Tủ quần áo trong nhà an toàn có vũ khí: lại gần, nhấn E, rồi trang bị trong túi.', 6000)
+    }
   },
 
   refreshSaveSlot: async () => {
@@ -98,7 +106,7 @@ export const useUiStore = create<UiState>((set, get) => ({
         return
       }
       if (v.migrated) {
-        const migration = await commitMigratedSave(r.value, v.save)
+        const migration = await commitMigratedSave(r.value, v.save, ACTIVE_SAVE_SLOT)
         if (!migration.ok) {
           set({ saveSlot: { kind: 'error', detail: migration.error } })
           return
@@ -106,7 +114,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       }
       runtime.loadSnapshot(v.save)
       enterSession(set)
-      if (v.migrated) useHudStore.getState().showToast('Đã nâng cấp save và giữ bản sao v1. Loot cũ giữ nguyên; gậy ở túi hoặc túi đồ rơi dưới chân.', 6000)
+      if (v.migrated) useHudStore.getState().showToast(MIGRATION_TOAST[v.fromVersion] ?? 'Đã nâng cấp save.', 7000)
     } finally {
       set({ busy: false })
     }

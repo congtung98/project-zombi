@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { GameRuntime } from '../game/core/runtime'
 import { countUsedSlots } from '../game/systems/inventory'
+import { equippedWeapon } from '../game/systems/equipment'
+import { conditionLevel, type ConditionLevel } from '../game/systems/weapons'
+import { getItemDef } from '../game/entities/items'
 import type { EntityId, ZombieAIState } from '../types'
 
 export interface ZombieHudInfo {
@@ -9,6 +12,16 @@ export interface ZombieHudInfo {
   health: number
   distance: number
 }
+
+export interface HudWeapon {
+  name: string
+  icon: string
+  condition: number
+  maxCondition: number
+  level: ConditionLevel
+}
+
+export type ToastTone = 'info' | 'warn' | 'danger'
 
 interface HudSnapshot {
   health: number
@@ -37,15 +50,18 @@ interface HudSnapshot {
   bagUsed: number
   bagSize: number
   inventoryOpen: boolean
+  /** Vũ khí đang cầm (null = tay không), đọc từ instance trong túi. */
+  weapon: HudWeapon | null
 }
 
 interface HudState extends HudSnapshot {
   toast: string | null
+  toastTone: ToastTone
   /** Tăng mỗi lần người chơi trúng đòn; HUD dùng làm key để chạy lại hiệu ứng lóe đỏ. */
   damageFlash: number
   /** Chụp snapshot từ runtime theo nhịp chậm (không phải mỗi frame). */
   sync: (rt: GameRuntime, fps: number) => void
-  showToast: (text: string, durationMs?: number) => void
+  showToast: (text: string, durationMs?: number, tone?: ToastTone) => void
   flashDamage: () => void
 }
 
@@ -75,12 +91,16 @@ export const useHudStore = create<HudState>((set) => ({
   bagUsed: 0,
   bagSize: 12,
   inventoryOpen: false,
+  weapon: null,
   toast: null,
+  toastTone: 'info',
   damageFlash: 0,
 
   sync: (rt, fps) => {
     const p = rt.player
     const cfg = rt.config.player
+    const w = equippedWeapon(p.inventory, p.equipment)
+    const def = w ? getItemDef(w.itemId) : null
     const zombies: ZombieHudInfo[] = []
     for (const z of rt.zombies.values()) {
       zombies.push({
@@ -114,14 +134,17 @@ export const useHudStore = create<HudState>((set) => ({
       bagUsed: countUsedSlots(p.inventory),
       bagSize: p.inventory.slots.length,
       inventoryOpen: rt.inventoryOpen,
+      weapon: w && def
+        ? { name: def.name, icon: def.icon, condition: w.condition, maxCondition: def.maxCondition!, level: conditionLevel(w.itemId, w.condition) }
+        : null,
     })
   },
 
   flashDamage: () => set((s) => ({ damageFlash: s.damageFlash + 1 })),
 
-  showToast: (text, durationMs = 2500) => {
+  showToast: (text, durationMs = 2500, tone = 'info') => {
     if (toastTimer) clearTimeout(toastTimer)
-    set({ toast: text })
+    set({ toast: text, toastTone: tone })
     toastTimer = setTimeout(() => {
       toastTimer = null
       set({ toast: null })

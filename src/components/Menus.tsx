@@ -95,7 +95,7 @@ export function MainMenu() {
         {view === 'main' && (
           <>
             <h1>Zombie Outbreak</h1>
-            <p className="subtitle">Phase 1 MVP · bản phát hành thử</p>
+            <p className="subtitle">Phase 2 · bản phát triển (vũ khí và độ bền)</p>
             <SaveSlotInfo />
             {confirmNew ? (
               <div className="actions">

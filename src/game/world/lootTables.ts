@@ -63,4 +63,45 @@ export const LOOT_TABLES: Record<string, LootTable> = {
       { itemId: null, weight: 1, min: 0, max: 0 },
     ],
   },
+  // ---- P2-S2 melee loot. Phase 1 tables above are unchanged so their seeded rolls stay identical.
+  'safehouse-closet': {
+    id: 'safehouse-closet',
+    // Guaranteed basic melee in the starting house: no seed leaves the player without a weapon.
+    guaranteed: [{ oneOf: [{ itemId: 'baseball_bat', weight: 3 }, { itemId: 'metal_pipe', weight: 1 }], min: 1, max: 1, condition: [0.6, 1] }],
+    rolls: 0,
+    pool: [],
+  },
+  'house-nightstand': {
+    id: 'house-nightstand',
+    guaranteed: [],
+    rolls: 2,
+    pool: [
+      { itemId: 'bandage', weight: 2, min: 1, max: 1 },
+      { itemId: 'chips', weight: 2, min: 1, max: 1 },
+      { itemId: 'baseball_bat', weight: 1, min: 1, max: 1, condition: [0.3, 0.9] },
+      { itemId: null, weight: 2, min: 0, max: 0 },
+    ],
+  },
+  'tool-shelf': {
+    id: 'tool-shelf',
+    // A hammer always exists on the near exploration route (crafting/barricade tool from S4/S6).
+    guaranteed: [{ itemId: 'hammer', min: 1, max: 1, condition: [0.5, 1] }],
+    rolls: 1,
+    pool: [
+      { itemId: 'metal_pipe', weight: 2, min: 1, max: 1, condition: [0.4, 1] },
+      { itemId: 'crowbar', weight: 1, min: 1, max: 1, condition: [0.4, 1] },
+      { itemId: null, weight: 3, min: 0, max: 0 },
+    ],
+  },
+  'park-toolbox': {
+    id: 'park-toolbox',
+    guaranteed: [],
+    rolls: 2,
+    pool: [
+      { itemId: 'metal_pipe', weight: 2, min: 1, max: 1, condition: [0.25, 0.8] },
+      { itemId: 'crowbar', weight: 1, min: 1, max: 1, condition: [0.25, 0.8] },
+      { itemId: 'hammer', weight: 1, min: 1, max: 1, condition: [0.25, 0.8] },
+      { itemId: null, weight: 3, min: 0, max: 0 },
+    ],
+  },
 }

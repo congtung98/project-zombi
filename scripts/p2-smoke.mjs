@@ -1,5 +1,8 @@
 // Start a fresh Vite process on 5173 and isolated headless Chrome with --remote-debugging-port=9223.
 // This script uses only that Chrome profile, never the user's normal browser data.
+// P2-S1 regression (migration/backup/door physics). Since P2-S2: schema v3, New Game is unarmed and
+// the S1 fixture is frozen (no longer rewritten). BASE_URL overrides the dev/preview origin.
+// S2 weapon checks live in scripts/p2-s2-browser.mjs (Playwright).
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
@@ -37,6 +40,7 @@ async function evaluate(expression) {
   if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails))
   return result.result.value
 }
+const base = process.env.BASE_URL
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 async function until(expression) {
   for (let i = 0; i < 100; i++) {
@@ -63,15 +67,15 @@ try {
       await send('Input.dispatchKeyEvent', { type: 'keyDown', code, key })
       await send('Input.dispatchKeyEvent', { type: 'keyUp', code, key })
     }
-    await navigate('http://127.0.0.1:5199/?lab=doors')
+    await navigate(`${base ?? 'http://127.0.0.1:5199'}/?lab=doors`)
     assert.equal(await evaluate('typeof window.__runtime'), 'undefined')
     await click('New Game')
     await click('Xóa bản lưu và bắt đầu ván mới')
     await until("!document.querySelector('h1') && !document.body.textContent.includes('Đang tải…')")
     assert.equal(await evaluate("document.body.textContent.includes('Phòng thử cửa')"), false)
     await key('KeyI', 'i')
-    await until("document.body.textContent.includes('Gậy bóng chày')")
-    assert.equal(await evaluate("document.body.textContent.includes('80/80')"), true)
+    await until("document.body.textContent.includes('Tay không')")
+    assert.equal(await evaluate("document.querySelectorAll('.inv-panel .slot-filled').length"), 0)
     await key('Escape', 'Escape')
     await key('Escape', 'Escape')
     await until("document.body.textContent.includes('Tạm dừng')")
@@ -82,19 +86,19 @@ try {
       req.onsuccess = () => { const db=req.result; const tx=db.transaction('saves'); const read=tx.objectStore('saves').get('slot-1'); read.onsuccess=()=>resolve(read.result); tx.oncomplete=()=>db.close() }
       req.onerror=()=>reject(req.error)
     })`)
-    assert.equal(saved.schemaVersion, 2)
-    assert.equal(saved.player.inventory.slots.filter((i) => i?.kind === 'weapon').length, 1)
-    assert(saved.player.equipment.weaponInstanceId)
-    await navigate('http://127.0.0.1:5199/')
+    assert.equal(saved.schemaVersion, 3)
+    assert.equal(saved.player.inventory.slots.filter((i) => i?.kind === 'weapon').length, 0)
+    assert.equal(saved.player.equipment.weaponInstanceId, null)
+    await navigate(`${base ?? 'http://127.0.0.1:5199'}/`)
     await until("Array.from(document.querySelectorAll('button')).some(b => b.textContent.trim() === 'Continue' && !b.disabled)")
     await click('Continue')
     await until("!document.querySelector('h1') && !document.body.textContent.includes('Đang tải…')")
     await key('KeyI', 'i')
-    await until("document.body.textContent.includes('Gậy bóng chày')")
+    await until("document.body.textContent.includes('Tay không')")
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    console.log('PASS: production New Game, inventory, save, reload, Continue; dev lab disabled; no uncaught exceptions')
+    console.log('PASS: production unarmed New Game, inventory, save, reload, Continue; dev lab disabled; no uncaught exceptions')
   } else {
-  await navigate('http://127.0.0.1:5173/')
+  await navigate(`${base ?? 'http://127.0.0.1:5173'}/`)
   const legacy = JSON.parse(readFileSync('src/game/systems/fixtures/phase1-v1.json', 'utf8'))
   const result = await evaluate(`(async () => {
     const { useUiStore } = await import('/src/stores/uiStore.ts')
@@ -145,7 +149,7 @@ try {
   })()`)
   assert.equal(result.ready, 'ready')
   assert.equal(result.unchangedOnPreview, true)
-  assert.equal(result.version, 2)
+  assert.equal(result.version, 3)
   assert.equal(result.backupMatches, true)
   assert.equal(result.saved, true)
   assert.deepEqual(result.conditions, [10, 70])
@@ -155,12 +159,10 @@ try {
   assert.equal(result.fullState.slots, 12)
   assert.equal(result.fullState.drop.condition, 80)
   assert.deepEqual(result.invalid, { screen: 'menu', kind: 'incompatible', kept: true })
-  const snapshot = result.snapshot
-  snapshot.savedAt = 1790208000000
-  writeFileSync('src/game/systems/fixtures/phase2-s1-v2.json', JSON.stringify(snapshot, null, 2) + '\n')
+  // phase2-s1-v2.json is the frozen S1 milestone fixture; S2's fixture comes from p2-s2-browser.mjs.
   delete result.snapshot
   console.log('INDEXEDDB / MIGRATION', JSON.stringify(result))
-  await navigate('http://127.0.0.1:5173/?lab=doors')
+  await navigate(`${base ?? 'http://127.0.0.1:5173'}/?lab=doors`)
   await evaluate("document.querySelectorAll('button').forEach(b => { if (b.textContent === 'New Game') b.click() })")
   await until("document.body.textContent.includes('Phòng thử cửa') && !document.body.textContent.includes('Đang tải…')")
   // Exercise the actual DoorView unmount/remount and PhysicsBridge raycast.

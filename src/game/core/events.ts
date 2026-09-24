@@ -12,8 +12,15 @@ export type GameEvents = {
   'zombie:spawned': { id: EntityId }
   /** Xác zombie bị dọn khỏi danh sách; view gỡ body. */
   'zombie:removed': { id: EntityId }
-  /** Người chơi vung gậy; `hitIds` là các zombie trúng đòn (có thể rỗng). */
-  'player:attacked': { hitIds: EntityId[] }
+  /** Người chơi vung vũ khí; `hitIds` là các zombie trúng đòn (có thể rỗng), `damage` mỗi mục tiêu. */
+  'player:attacked': { hitIds: EntityId[]; damage: number; weaponId: string | null }
+  /** Bấm đánh khi tay không: UI nhắc tìm vũ khí / dùng Space đẩy. */
+  'player:unarmed': Record<string, never>
+  'item:equipped': { id: string | null; itemId: ItemId | null }
+  /** Condition đổi sau một đòn trúng; UI chỉ đồng bộ, không phát âm pickup. */
+  'weapon:worn': { id: string; itemId: ItemId; condition: number }
+  'weapon:lowCondition': { id: string; itemId: ItemId; name: string }
+  'weapon:broken': { id: string; itemId: ItemId; name: string }
   'player:pushed': { hitIds: EntityId[] }
   'door:toggled': { id: string; open: boolean }
   'door:changed': { id: string; state: import('../world/doors').DoorStatus }

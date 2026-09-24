@@ -53,6 +53,19 @@ export function App() {
         useHudStore.getState().showToast(`Đã dùng ${e.name}: ${describeEffect(e.effect)}.`, 1800),
       ),
       runtime.events.on('item:useFailed', (e) => useHudStore.getState().showToast(`${e.name}: ${USE_FAIL_TEXT[e.reason]}`, 1800)),
+      // Vũ khí P2-S2: tay không, đổi vũ khí, hao mòn (chỉ đồng bộ UI, không phát âm pickup), sắp hỏng, hỏng.
+      runtime.events.on('player:unarmed', () =>
+        useHudStore.getState().showToast('Tay không: tìm vũ khí trong tủ (E để mở), trang bị trong túi (I). Space để đẩy.', 2200, 'warn'),
+      ),
+      runtime.events.on('item:equipped', (e) =>
+        useHudStore.getState().showToast(e.itemId ? `Đang cầm ${getItemDef(e.itemId).name}.` : 'Đã cất vũ khí: tay không.', 1400),
+      ),
+      runtime.events.on('weapon:worn', () => inv().sync(runtime)),
+      runtime.events.on('weapon:lowCondition', (e) => useHudStore.getState().showToast(`${e.name} sắp hỏng (≤ 25% độ bền).`, 2500, 'warn')),
+      runtime.events.on('weapon:broken', (e) => {
+        useHudStore.getState().showToast(`${e.name} đã HỎNG! Sát thương còn 20%. Đổi vũ khí khác trong túi (I).`, 3500, 'danger')
+        sfx.play('weaponBreak')
+      }),
       runtime.input.onAction('debug', () => ui().toggleDebug()),
       runtime.events.on('player:died', () => ui().gameOver()),
       runtime.events.on('player:damaged', (e) => {
