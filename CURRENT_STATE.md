@@ -1,113 +1,93 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: 2026-09-24, sau khi hoàn thành **Sprint 6** (Sprint 4, 5, 6 đều **chưa commit**; commit gần nhất vẫn là `77b3139 docs: update project state after phase 1 sprint 3`).
-> Đọc file này trước, rồi `README.md` (tổng quan, điều khiển, phát hành) và `Zombie_Outbreak_Phase_1_MVP.md` (kế hoạch 8 tuần, tiếng Việt).
-> Người dùng giao việc theo sprint của kế hoạch: "tiếp tục sprint N" nghĩa là **Sprint N** trong kế hoạch.
+> Cập nhật: **2026-09-24**, hoàn thành **Phase 2 — Sprint P2-S1**.
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md và docs/phase2-s1.md.
+> **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 1. Phase hiện tại
+## 1. Trạng thái hiện tại
 
-Phase 1 (MVP): **cả 6 sprint đã xong về mặt mã**. Hai việc còn lại để đóng Phase 1 theo tiêu chí kế hoạch không làm được từ máy dev:
+Phase 1 đã hoàn thành mã cả 6 sprint. Phase 2 đã hoàn thành **S1: dữ liệu item, save/migration và thử cửa động**. Sprint kế tiếp là **P2-S2**, không phải Sprint 2 Phase 1.
 
-1. **Deploy thực tế**: cần bật *Settings → Pages → Source: GitHub Actions* trên repo `congtung98/project-zombi` và push `master` (workflow `.github/workflows/deploy.yml` đã sẵn). Chưa push vì người dùng chưa yêu cầu commit.
-2. **Đo FPS và playtest thủ công 15–30 phút trên máy thật** (laptop GPU tích hợp): ghi thiết bị, trình duyệt, độ phân giải, số zombie; xác nhận cảm nhận cân bằng sau các thay đổi Sprint 6.
+Mốc Git trước phiên: **f56399c** (docs: update project status after phase 1 sprint 6); mã Sprint 6 ở f2f70b2. Khác nội dung CURRENT_STATE cũ: Sprint 4/5/6 thực tế đã được commit (01977b3, 15fb349, f2f70b2). Đã ghi nhận mốc Phase 1 trong tài liệu, không tạo tag. Lúc bắt đầu chỉ có plan Phase 2 chưa track; các thay đổi của phiên S1 đều để người dùng review/commit.
 
-| Sprint | Trạng thái | Commit |
-|---|---|---|
-| 1 Nền tảng và prototype | Xong | `fa5904b` |
-| 2 Khu phố và tương tác | Xong | `5ce1fa5` |
-| 3 AI và chiến đấu | Xong | `8c55bce` |
-| 4 Survival, inventory, loot | Xong (2026-09-24) | chưa commit |
-| 5 Clock/spawn/save (IndexedDB) | Xong (2026-09-24) | chưa commit |
-| 6 Hoàn thiện và phát hành | Xong về mã (2026-09-24); deploy + đo máy thật chờ người dùng | chưa commit |
+| Sprint | Trạng thái |
+|---|---|
+| Phase 1 S1–S6 | Xong mã; deploy thật, FPS GPU thật và playtest tay vẫn cần xác nhận |
+| P2-S1 Item/save/cửa động | Xong; 135 test, build/lint, Chrome dev + production qua; chưa commit |
+| P2-S2 Loot/equipment/melee/condition | Tiếp theo |
+| P2-S3 Model/animation/character creation | Chưa làm |
+| P2-S4 Timed action/craft/repair | Chưa làm |
+| P2-S5 Perception/zombie phá cửa | Chưa làm; dùng kết quả spike S1 |
+| P2-S6 Barricade/tool/fuel | Chưa làm |
+| P2-S7 Building/thùng/vách/rebuild | Chưa làm |
+| P2-S8 Tích hợp/cân bằng/release | Chưa làm |
 
-Kiểm chứng cuối Sprint 6: `npm test` 113/113 (gồm soak 30 phút), `npx tsc -b` sạch, `npm run lint` sạch, `npm run build` thành công (chunk tách rapier/three/r3f/react), playtest headless bản production qua `vite preview` pass, không lỗi console.
+## 2. S1 đã bàn giao
 
-Gợi ý commit (chỉ khi người dùng yêu cầu): ba commit theo sprint bằng `git add` từng nhóm (§3), hoặc một commit `phase4-6: inventory, loot, day/night, spawn, save and release polish`. Attribution ở §8.
+- **ItemDefinition/ItemInstance/Equipment**: itemId tham chiếu definition (giữ tên field từ Phase 1), instance có id/kind. Stack giữ quantity; weapon/tool không stack, quantity 1. Definition gậy thử có maxCondition 80; instance giữ condition. Chưa thêm các melee khác/vật liệu/fuel gameplay.
+- **Ownership**: slot trong inventory/container sở hữu instance; equipment chỉ tham chiếu ID của weapon trong túi 12 ô. Inventory có namespace id + nextItemId, lưu counter để không tái sử dụng ID. Chuyển món không stack giữ ID/condition; tách stack cấp ID mới, gộp giữ ID stack đích.
+- **Equipment có thể chơi/thử**: click gậy để equip/unequip, chuyển sang tủ tự unequip; thả gậy tạo container một ô có marker dưới chân và E để nhặt lại. Chặn đổi/thả vũ khí khi đang vung. Model gậy theo equipment. Không có gậy thì shove vẫn dùng được.
+- **New Game S1 còn gậy**: cấp gậy thật, đặt ở ô cuối và trang bị sẵn để giữ vòng chơi Phase 1. Đây là quyết định theo bàn giao S1 của plan; **S2 mới bỏ grant này** và đưa melee vào loot. Condition chỉ lưu/hiển thị ở S1, chưa wear/broken damage.
+- **Save v2/migration v1**: migrate thuần, không mutate đầu vào, giữ stack/loot/clock/stats/vị trí. Gậy mặc định Phase 1 thành instance condition đầy. Túi v1 đủ 12 ô → drop:legacy-bat tại vị trí player, không mất món cũ, không tăng capacity. Cửa nhận state/HP.
+- **Backup IndexedDB**: preview menu không ghi save. Continue validate → kiểm tra slot còn đúng bản gốc → backup + ghi v2 trong một transaction → load. Backup đầu ở slot-1.backup-v1, bản v1 khác nhập sau có backup UUID riêng. Schema lạ, ownership/counter/condition/capacity/ID sai giữ slot và báo lỗi; không tự New Game. Autosave validate trước khi ghi. Bỏ logic cắt slot/kẹp số lượng item lúc load.
+- **Door foundation**: state closed/open/destroyed và hp; destroyed loại cả body/collider/mesh. doorLeafTransform dùng chung cho render và test. Lưu/load cả state và HP.
+- **Nav động**: chỉ cập nhật các ô corridor/open-leaf liên quan, giữ blocker của cửa chồng nhau; revision đổi khi topology đổi, không theo HP. Portal có hai điểm tiếp cận. findDoorRoute ưu tiên tuyến thông, rồi graph portal có chi phí phá cửa; trả cửa đầu tiên thực sự nằm trên tuyến cùng path tới phía tiếp cận.
+- **Lỗi AI Phase 1 đã sửa**: không còn đi thẳng tới goal khi A* trả null; dừng chờ và repath sau cửa mở/vỡ. Không sửa thông số balance.
+- **Phòng thử dev ?lab=doors**: một phòng, một cửa, một zombie; nút đóng/mở/phá, kiểm tra route dựa trên lastKnownTarget, thêm hai gậy 10/70 và save/load. Slot riêng slot-lab; production không bật lab. Chưa nối route vào FSM approach/bash của map chính (S5).
 
-## 2. Những gì đã hoàn thành
+## 3. Kiểm chứng cuối sprint
 
-**Sprint 1–3.** Nền tảng Vite/React/R3F/Rapier, runtime tick cố định, bản đồ 50×50 với 3 công trình, cửa/container, tương tác E, NavGrid A*, FSM zombie, combat gậy + đẩy, feedback.
+- **npm test: 135/135**, 15 file, gồm soak 30 phút, fixture/migration/ownership và Rapier WASM thật.
+- **npm run build** thành công, bao gồm tsc -b; **npm run lint** sạch.
+- Soak sau sửa AI: **30 phút sống, 11 kill, 60 damageTaken, minHealth 40, endHealth 65, 7/7 tủ, 29 snapshot round-trip, 11 spawn, tối đa 9 zombie**. Dùng 4 water/3 canned_food/1 bandage; còn gậy thật trong túi. Kết quả balance không đổi so với Phase 1.
+- Chrome headless 1280×800, profile riêng: v1→v2 + backup; hai condition 10/70 qua IndexedDB; túi đầy có gậy rơi; schema 99 không ghi đè/không tự New Game; transaction conflict giữ slot. Render thật: đóng chặn raycast, mở/vỡ thông, dựng lại chặn; nav đồng nhất. Save/load cửa vỡ và slot-lab không thay đổi slot-1. Không exception trình duyệt.
+- Production vite preview port 5199: New Game → túi có gậy 80/80 → lưu/về menu → reload → Continue. Không window.__runtime, ?lab=doors không mở phòng thử. Không exception trình duyệt.
+- Fixture v1 xuất từ runtime Phase 1 thật trước khi sửa schema (seed 20260924, đã loot tủ, health 73, clock 30 giây); fixture v2 từ Chrome smoke. Không phải save do người dùng gửi hoặc schema tự đoán.
 
-**Sprint 4.** Vật phẩm, inventory túi 12/tủ 8, loot theo seed sinh một lần lúc New Game, dùng vật phẩm, panel túi/tủ, phím I.
+## 4. File/module liên quan
 
-**Sprint 5.** Ánh sáng ngày/đêm, spawn có giới hạn (điểm đặt tay, RNG theo seed), schema save v1, snapshot/load, IndexedDB một slot, Continue, autosave 60 s, chết xóa save, New Game hỏi xác nhận.
+| File | Trách nhiệm |
+|---|---|
+| src/game/entities/items.ts, player.ts | Definitions, instance union, equipment/player state |
+| src/game/systems/inventory.ts, equipment.ts | IDs/counters, transfer, equip, reconcile ownership |
+| src/game/systems/save.ts, saveStorage.ts | Validate/migrate v1→v2, IndexedDB atomic backup |
+| src/game/systems/fixtures/ | phase1-v1.json, phase2-s1-v2.json |
+| src/game/systems/phase2-save.test.ts | Migration, ownership, cả hai fixture |
+| src/game/world/doors.ts | State/HP và shared leaf geometry |
+| src/game/world/navigation.ts | Local door cells, revision, portals/route query |
+| src/game/world/doorLab.ts, doorLab.test.ts | Dev map, route selection, Rapier, repath/load |
+| src/game/core/runtime.ts | Lifecycle/save/drop/equip/door integration |
+| src/components/DoorLab.tsx | Dev controls |
+| scripts/p2-smoke.mjs | Chrome CDP smoke dev và --production |
+| docs/phase2-s1.md | Baseline, quyết định, kiểm chứng và hướng dẫn |
 
-**Sprint 6 (phiên này).**
-- **Soak test** `src/game/core/soak.test.ts`: bot 30 phút game (dt 1/20), body giả bám `NavGrid`, raycast = `hasLineOfWalk`. Lộ trình 7 tủ, mở cửa (nhắm ô phía người chơi của cửa đóng), đánh khi zombie < 2 m, đẩy khi ≥ 2 con < 2,6 m, ăn/uống < 35, băng < 45. Bất biến mỗi tick + snapshot mỗi 60 s (validate + load vào runtime khác phải cho cùng snapshot). In `SOAK REPORT` (chạy `npx vitest run src/game/core/soak.test.ts --reporter=verbose`). Chạy ~2 s.
-- **Cân bằng combat theo dữ liệu soak** (`config.ts`): lần 1 damageTaken = 0 (khóa hoàn toàn) → gậy cooldown 1,0, knockback 1,0, stagger 0,2, stamina 12; đẩy cooldown 2,0, stamina 20, knockback 2,5; zombie speed 2,3, windup 0,3. Kết quả: sống 30 phút, 11 kill, 60 sát thương, minHealth 40, 7/7 tủ. Đây là số liệu từ bot "phản xạ hoàn hảo, đánh mọi thứ"; người thật sẽ né/đóng cửa nhiều hơn → có thể vẫn hơi dễ, cần playtest tay.
-- **Audio** `src/game/audio/sfx.ts`: lớp `Sfx` (Web Audio, master gain, noise buffer, chống spam theo tên), 15 hiệu ứng tổng hợp; `sfx.unlock()` ở pointerdown/keydown (App). Không có asset ngoài nên không cần ghi giấy phép.
-- **Settings** `src/stores/settingsStore.ts` (localStorage `zombie-outbreak.settings.v1`, sanitize khi đọc): `volume`, `muted`, `shadows` off/low/high, `maxPixelRatio` 1/1.5/2, `showHints`. `GameCanvas` key theo shadows+dpr (remount renderer), `Lights` castShadow + shadow map 1024/2048, HUD ẩn hint. `components/Settings.tsx`: `SettingsPanel`, `GuidePanel`; `Menus.tsx` có view main/settings/guide ở menu chính và pause.
-- **Hoàn thiện**: `uiStore.sceneReady` + `markSceneReady` (GameLoop sau 2 tick) → overlay "Đang tải…"; `vite.config.ts` `base: './'`, `advancedChunks`, `chunkSizeWarningLimit` 2400 (rapier WASM ~2,2 MB); `.github/workflows/deploy.yml` (npm ci → test → build → Pages); `package.json` description/license/`deploy:check`; menu phụ đề "Phase 1 MVP · bản phát hành thử".
-- **Playtest production** (`scratchpad/playtest6.mjs` phiên 22688918): chạy trên `vite preview` port 5199; kiểm tra tải chunk, guide/settings + localStorage, New Game, F3 FPS (~27 headless SwiftShader), chơi 20 s, Lưu và về menu → reload → Continue, autosave sau 60 s, không lỗi console.
+Các file khác cập nhật theo contract: events, worldState, types/save, AI, loot, stores, Inventory UI, DoorView/PlayerView/Scene/App và test cũ. Các system survival/combat/spawn và config gameplay giữ nguyên thông số. Plan S1 được đánh dấu hoàn tất; README thêm trạng thái và điều khiển hiện tại.
 
-## 3. File đã thay đổi (chưa commit)
+## 5. Bước tiếp theo — P2-S2
 
-Sprint 4 và 5: xem danh sách trong phiên bản trước của file này (git diff `77b3139` sẽ liệt kê đầy đủ). Tóm tắt: `entities/items.ts`, `systems/{inventory,loot,spawn,save,saveStorage}.ts` (+test), `world/{lootTables,worldState}.ts`, `types/save.ts`, `rendering/{Lights,daylight,Scene,PlayerView,GameLoop}.tsx`, `stores/{inventoryStore,worldStore,uiStore,hudStore}.ts`, `components/{Inventory,ContainerPanel,Menus,HUD}.tsx`, `core/{config,events,clock,runtime}.ts`, `app/{App,GameCanvas}.tsx`, `index.css`, `mapData.ts`, `buildings.ts`, `player.ts`, `survival.ts`.
+1. Bỏ cấp gậy trong GameRuntime.newGame, giữ shove và gợi ý khi tay không. **Không bỏ grant riêng của migration v1.**
+2. Mở rộng loot container với melee đầu game có bảo đảm; vẫn gieo đúng một lần theo seed. Không reroll container save cũ.
+3. Definitions gậy/ống sắt/xà beng/búa và các thông số; đối chiếu baseline GAME_CONFIG.melee đã cân bằng bằng soak, không chép bảng plan một cách máy móc.
+4. Damage/wear theo instance, trừ một lần theo attackId kể cả nhiều target; condition 1→0 vẫn damage đầy cho hit đó, hit sau broken 20%. Tool broken không đủ điều kiện craft khi S4 triển khai.
+5. Hoàn thiện equip/drop/transfer UI, tooltip damage/condition, cảnh báo vũ khí hỏng. Giữ ownership và snapshot nhất quán; thêm fixture/migration nếu schema đổi.
+6. Chạy regression + soak nếu đổi combat, ghi số liệu, cập nhật CURRENT_STATE cuối sprint. Người dùng tự commit/push.
 
-Sprint 6 — mới: `src/game/core/soak.test.ts`, `src/game/audio/sfx.ts`, `src/stores/settingsStore.ts`, `src/components/Settings.tsx`, `.github/workflows/deploy.yml`. Sửa: `config.ts` (combat/zombie), `app/App.tsx` (sfx, unlock, loading overlay), `app/GameCanvas.tsx` (settings), `rendering/Lights.tsx` (shadow quality), `rendering/GameLoop.tsx` (sceneReady), `stores/uiStore.ts` (sceneReady, sfx save), `components/Menus.tsx` (viết lại: views), `components/HUD.tsx` (hint toggle), `index.css`, `vite.config.ts`, `package.json`, `README.md`, file này.
+## 6. Giới hạn và việc còn lại
 
-## 4. Kiến trúc hiện tại
+- Chưa deploy thật, đo FPS GPU tích hợp thật hay playtest tay 15–30 phút. Không coi headless là benchmark GPU thật.
+- Chưa có wear/broken damage, loot melee mới, model/appearance, timed action/repair, zombie tự phá cửa, barricade hay building. Các phần này thuộc S2–S8.
+- Route portal S1 là spike đã kiểm chứng. Khi tích hợp S5 cần cache theo topology revision và chỉ tìm khi đổi mục tiêu, tránh A* giữa mọi cặp portal mỗi frame. Chi phí phá cửa tạm là 12 đơn vị đường đi, chưa theo HP/DPS.
+- Save chưa lưu cooldown/AI timer; load có thể ổn định lại trong khoảng 2 giây. Ngoại hình mặc định sẽ thêm cùng schema appearance S3.
+- Warning thư viện: THREE.Clock, Rapier init parameters, Vite advancedChunks deprecated. Không đổi dependency trong sprint này.
+- Bot soak dùng body giả theo nav; đã thêm Rapier capsule và render/raycast Chrome cho phòng thử, nhưng góc hẹp/chen nhiều zombie vẫn cần playtest tay.
+- Audio Safari chưa được kiểm chứng trên thiết bị iOS thật.
 
-```text
-src/
-  app/                 App (event → store, sfx, unlock audio, loading overlay), GameCanvas (Canvas key = shadows+dpr, Scene key = sessionId)
-  game/core/           config, clock, events, runtime, soak.test (bot 30 phút)
-  game/entities/       player, zombie, items
-  game/systems/        input, movement, ai, combat, survival, interaction, inventory, loot, spawn, save, saveStorage
-  game/world/          buildings, mapData, worldState, lootTables, navigation
-  game/rendering/      Scene, CameraRig, CursorProbe, Ground, Roads, Walls, BuildingView, DoorView, ContainerView,
-                       PlayerView, ZombieView, Lights + daylight, OcclusionFader, PhysicsBridge, GameLoop, blockerData
-  game/audio/          sfx (Web Audio tổng hợp)
-  components/          HUD, Menus, Settings (SettingsPanel + GuidePanel), Inventory, ContainerPanel
-  stores/              uiStore, hudStore, worldStore, inventoryStore, settingsStore (localStorage)
-  types/               index, save
-.github/workflows/     deploy.yml (GitHub Pages)
-```
+## 7. Kiểm tra nhanh và nguyên tắc giữ lại
 
-Luồng tick và ranh giới không đổi so với Sprint 5 (xem README). Audio chỉ là listener sự kiện ở App; settings không chạm simulation.
+Chạy npm test, npm run build, npm run lint. Để xem số liệu soak: npx vitest run src/game/core/soak.test.ts --reporter=verbose. Chơi thử bằng npm run dev; mở http://localhost:5173/?lab=doors cho phòng thử.
 
-## 5. Quyết định quan trọng và lý do (Sprint 6)
+Browser smoke: xem hướng dẫn profile/cổng trong docs/phase2-s1.md. Script dùng profile Chrome thử và ghi/xóa slot thử, không chạy trên profile chơi thật. Vite phải khởi động mới sau sửa source để tránh script import nhầm module do URL HMR. Ảnh lab: node_modules/.tmp/p2-door-lab.png (không track).
 
-- **Playtest bằng bot thay cho playtest tay**: máy dev không có người chơi; bot cho số liệu lặp lại được để chỉnh config có căn cứ (kế hoạch: "chỉ chỉnh số sau playtest có ghi nhận"). Nó không thay được cảm nhận thật; ghi rõ ở §1.
-- **Đẩy là công cụ thoát thân** (cooldown 2 s, 20 thể lực) chứ không phải khóa nhóm; gậy vẫn thắng 1v1 nhưng nhóm ≥ 2 gây sát thương. Nếu playtest tay thấy quá khó, nới `push.cooldown` 1,5 hoặc `melee.cooldown` 0,9 trước.
-- **Âm thanh tổng hợp** thay vì file: tránh vấn đề giấy phép và tải asset; đủ cho feedback MVP; đổi sang Howler + file ở Phase 2 nếu cần chất lượng.
-- **Settings remount Canvas** khi đổi bóng/pixel ratio (đơn giản, hiếm khi đổi); simulation không bị ảnh hưởng vì `runtime` là singleton ngoài React, nhưng body Rapier được tạo lại từ `runtime.player.position`/`zombie.position` nên vị trí giữ nguyên.
-- **`base: './'`** để cùng một `dist/` chạy ở root lẫn sub-path GitHub Pages.
-- **Không tách nhỏ chunk rapier**: WASM nhúng của `rapier3d-compat`; tách được chỉ khi đổi sang gói `rapier3d` (WASM rời) — để Phase 2.
+Giữ simulation ngoài React; thứ tự tick hiện có; không import Rapier runtime vào simulation (test được dùng WASM). Giữ layout map neighborhood-50, IDs map và fixture v1. Tăng schema khi đổi cấu trúc save; không im lặng cắt/mất item. Không thay balance khi chưa đo; chạy soak sau sửa combat/AI/spawn/survival. Không thêm asset ngoài khi chưa ghi nguồn/giấy phép. **Không commit/push; chỉ gợi ý message.**
 
-## 6. Bug / TODO còn lại
-
-- **Chưa deploy thật, chưa đo FPS máy thật, chưa playtest tay** (xem §1). Mốc ~60 FPS trên GPU tích hợp chưa được xác nhận.
-- Cảnh báo console dev do thư viện (THREE.Clock deprecated, Rapier init params): không phải lỗi dự án.
-- Save chưa gồm timer nhỏ (stamina regen, cooldown, timer AI); tự ổn định < 2 s sau load.
-- `saveStorage.ts` và `sfx.ts` không có unit test (cần trình duyệt); kiểm bằng playtest headless.
-- Bot soak không kiểm tra va chạm thật (body giả bám lưới) nên không phát hiện kẹt góc của Rapier; playtest tay ở cửa/góc vẫn cần.
-- Audio: iOS Safari cần gesture để `resume()`; đã gắn unlock ở pointerdown/keydown nhưng chưa thử trên thiết bị thật.
-
-## 7. Bước tiếp theo
-
-Nếu người dùng yêu cầu: (1) commit 3 sprint; (2) push → bật Pages → kiểm tra URL theo mục "Kiểm tra sau deploy" trong README; (3) ghi kết quả đo FPS + playtest tay vào README ("Đo FPS") và chỉnh `config.ts` nếu cần. Sau đó Phase 1 đóng; Phase 2 (ngoài phạm vi tài liệu này) có thể là map lớn hơn, asset thật, âm thanh file, navmesh nếu cần.
-
-## 8. Những thứ không được tự ý thay đổi
-
-- Thứ tự tick trong `GameRuntime.tick`; simulation ngoài React state; không import Rapier trong simulation.
-- ID ổn định của tường/cửa/container/zombie/item; `mapId` `neighborhood-50`; `SAVE_SCHEMA_VERSION` phải tăng khi đổi cấu trúc `SaveGame`.
-- Layout bản đồ 50×50.
-- Số liệu gameplay chỉ sửa trong `config.ts` sau playtest có ghi nhận; **chạy lại soak test sau khi đổi combat/spawn/survival** và ghi `SOAK REPORT` mới vào README.
-- Contract `ZombieAIContext`; tính thuần của các system có test.
-- Không gieo lại loot ngoài `newGame(seed)`.
-- oxlint: không đặt tên hàm `use*`; không mutate giá trị từ `useThree()` trong `useFrame` (dùng ref trên JSX).
-- Không thêm asset ngoài nếu chưa ghi nguồn/giấy phép (hiện không có asset ngoài: icon emoji, âm thanh tổng hợp).
-- Không commit/push nếu người dùng không yêu cầu. Attribution commit: `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
-
-## 9. Cách kiểm chứng nhanh
-
-```bash
-npm test                                   # 113 test, gồm soak 30 phút (~2 s)
-npx vitest run src/game/core/soak.test.ts --reporter=verbose   # xem SOAK REPORT
-npx tsc -b && npm run lint && npm run build
-npm run preview                            # http://localhost:4173 bản production
-npm run dev                                # http://localhost:5173 (có window.__runtime)
-```
-
-Playtest headless: xem memory `windows-headless-chromium-recipe`. Bản production không có `window.__runtime` nên kịch bản `playtest6.mjs` điều khiển hoàn toàn qua UI và đọc IndexedDB (`zombie-outbreak`/`saves`/`slot-1`) và localStorage (`zombie-outbreak.settings.v1`). Khi tắt server, kill đúng PID đang nghe cổng.
+Commit message gợi ý: **feat(phase2): add item instances, save migration and dynamic door prototype**
