@@ -1,93 +1,92 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-24**, hoàn thành **Phase 2 — Sprint P2-S1**.
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md và docs/phase2-s1.md.
+> Cập nhật: **2026-09-24**, hoàn thành **Phase 2 — Sprint P2-S2**.
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md và docs/phase2-s2.md.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
 ## 1. Trạng thái hiện tại
 
-Phase 1 đã hoàn thành mã cả 6 sprint. Phase 2 đã hoàn thành **S1: dữ liệu item, save/migration và thử cửa động**. Sprint kế tiếp là **P2-S2**, không phải Sprint 2 Phase 1.
+Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1** (item/save/cửa động, commit 6977c79 + docs 1944aee) và **S2** (tay không, loot melee, độ bền/hỏng, save v3). Sprint kế tiếp là **P2-S3: model, animation, tạo nhân vật**.
 
-Mốc Git trước phiên: **f56399c** (docs: update project status after phase 1 sprint 6); mã Sprint 6 ở f2f70b2. Khác nội dung CURRENT_STATE cũ: Sprint 4/5/6 thực tế đã được commit (01977b3, 15fb349, f2f70b2). Đã ghi nhận mốc Phase 1 trong tài liệu, không tạo tag. Lúc bắt đầu chỉ có plan Phase 2 chưa track; các thay đổi của phiên S1 đều để người dùng review/commit.
+Mốc Git trước phiên S2: **1944aee** (docs: update project status after phase 2 sprint 1), working tree sạch. Toàn bộ thay đổi S2 chưa commit, để người dùng review.
 
 | Sprint | Trạng thái |
 |---|---|
 | Phase 1 S1–S6 | Xong mã; deploy thật, FPS GPU thật và playtest tay vẫn cần xác nhận |
-| P2-S1 Item/save/cửa động | Xong; 135 test, build/lint, Chrome dev + production qua; chưa commit |
-| P2-S2 Loot/equipment/melee/condition | Tiếp theo |
-| P2-S3 Model/animation/character creation | Chưa làm |
+| P2-S1 Item/save/cửa động | Xong, đã commit |
+| P2-S2 Loot/equipment/melee/condition | Xong; 157 test, build/lint, Playwright dev + production qua; **chưa commit** |
+| P2-S3 Model/animation/character creation | Tiếp theo |
 | P2-S4 Timed action/craft/repair | Chưa làm |
 | P2-S5 Perception/zombie phá cửa | Chưa làm; dùng kết quả spike S1 |
 | P2-S6 Barricade/tool/fuel | Chưa làm |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
 
-## 2. S1 đã bàn giao
+## 2. S2 đã bàn giao
 
-- **ItemDefinition/ItemInstance/Equipment**: itemId tham chiếu definition (giữ tên field từ Phase 1), instance có id/kind. Stack giữ quantity; weapon/tool không stack, quantity 1. Definition gậy thử có maxCondition 80; instance giữ condition. Chưa thêm các melee khác/vật liệu/fuel gameplay.
-- **Ownership**: slot trong inventory/container sở hữu instance; equipment chỉ tham chiếu ID của weapon trong túi 12 ô. Inventory có namespace id + nextItemId, lưu counter để không tái sử dụng ID. Chuyển món không stack giữ ID/condition; tách stack cấp ID mới, gộp giữ ID stack đích.
-- **Equipment có thể chơi/thử**: click gậy để equip/unequip, chuyển sang tủ tự unequip; thả gậy tạo container một ô có marker dưới chân và E để nhặt lại. Chặn đổi/thả vũ khí khi đang vung. Model gậy theo equipment. Không có gậy thì shove vẫn dùng được.
-- **New Game S1 còn gậy**: cấp gậy thật, đặt ở ô cuối và trang bị sẵn để giữ vòng chơi Phase 1. Đây là quyết định theo bàn giao S1 của plan; **S2 mới bỏ grant này** và đưa melee vào loot. Condition chỉ lưu/hiển thị ở S1, chưa wear/broken damage.
-- **Save v2/migration v1**: migrate thuần, không mutate đầu vào, giữ stack/loot/clock/stats/vị trí. Gậy mặc định Phase 1 thành instance condition đầy. Túi v1 đủ 12 ô → drop:legacy-bat tại vị trí player, không mất món cũ, không tăng capacity. Cửa nhận state/HP.
-- **Backup IndexedDB**: preview menu không ghi save. Continue validate → kiểm tra slot còn đúng bản gốc → backup + ghi v2 trong một transaction → load. Backup đầu ở slot-1.backup-v1, bản v1 khác nhập sau có backup UUID riêng. Schema lạ, ownership/counter/condition/capacity/ID sai giữ slot và báo lỗi; không tự New Game. Autosave validate trước khi ghi. Bỏ logic cắt slot/kẹp số lượng item lúc load.
-- **Door foundation**: state closed/open/destroyed và hp; destroyed loại cả body/collider/mesh. doorLeafTransform dùng chung cho render và test. Lưu/load cả state và HP.
-- **Nav động**: chỉ cập nhật các ô corridor/open-leaf liên quan, giữ blocker của cửa chồng nhau; revision đổi khi topology đổi, không theo HP. Portal có hai điểm tiếp cận. findDoorRoute ưu tiên tuyến thông, rồi graph portal có chi phí phá cửa; trả cửa đầu tiên thực sự nằm trên tuyến cùng path tới phía tiếp cận.
-- **Lỗi AI Phase 1 đã sửa**: không còn đi thẳng tới goal khi A* trả null; dừng chờ và repath sau cửa mở/vỡ. Không sửa thông số balance.
-- **Phòng thử dev ?lab=doors**: một phòng, một cửa, một zombie; nút đóng/mở/phá, kiểm tra route dựa trên lastKnownTarget, thêm hai gậy 10/70 và save/load. Slot riêng slot-lab; production không bật lab. Chưa nối route vào FSM approach/bash của map chính (S5).
+- **New Game tay không**: không cấp gậy; click đánh → `player:unarmed` + toast gợi ý; Space đẩy vẫn dùng. Migration v1 vẫn cấp gậy Phase 1 (không đổi).
+- **Vũ khí** (`ItemDefinition.melee`, `toolTags`): gậy 25/2,0/1,0 s/12/80 (= `GAME_CONFIG.melee`, baseline Phase 1), ống sắt 28/1,8/1,2/15/120, xà beng 32/1,8/1,25/17/150 (`pry`), búa 18/1,3/0,8/10/100 (`hammer`). Hit timing/góc/knockback dùng chung. Với zombie 50 HP chỉ búa cần 3 đòn.
+- **Wear/broken** (`systems/weapons.ts`): damage đọc condition lúc xác nhận hit; >0 đủ damage; 0 → 20% làm tròn, tối thiểu 1. Wear 1 sau khi giải quyết damage, một lần/`attackId` (ledger `lastWornAttackId`), trượt không mất. Broken suy ra từ condition. Sự kiện `weapon:worn/lowCondition/broken`, `item:equipped`. `isUsableTool` sẵn cho S4/S6 (tool hỏng không đủ điều kiện).
+- **Loot**: 4 container ID mới — `ct-safehouse-closet` (bảo đảm gậy/ống sắt 60–100%), `ct-store-tools` (bảo đảm búa 50–100% + ống sắt/xà beng hiếm), `ct-house-nightstand` (băng/snack/gậy hiếm), `ct-park-toolbox` (ống/xà beng/búa 25–80%, gần spawn). Condition gieo một lần theo seed, không sinh đồ hỏng. Bảng/ID 7 container Phase 1 không đổi (test đối chiếu fixture v1).
+- **Save v3**: v1→v2→v3 hoặc v2→v3, thuần/không mutate; thêm container mới bằng loot seed như New Game, không reroll tủ cũ, thứ tự khớp snapshot. `commitMigratedSave(original, save, slot)` backup `slot.backup-v<gốc>` cùng transaction (trước chỉ cố định slot-1). Toast theo `fromVersion`.
+- **UI**: túi đồ click trái → thẻ chi tiết (Trang bị/Dùng, Cất vào tủ, Thả xuống, Sửa disabled); chuột phải dùng/trang bị nhanh; Shift+trái cất nhanh. Ô có thanh độ bền, tag HỎNG, badge E. HUD hiện vũ khí + độ bền (vàng/đỏ) hoặc "Tay không". Toast có tone. Âm `weaponBreak`. Model tạm theo loại vũ khí, hỏng ánh đỏ. Hướng dẫn/menu cập nhật. Lab có "Bộ vũ khí thử".
 
 ## 3. Kiểm chứng cuối sprint
 
-- **npm test: 135/135**, 15 file, gồm soak 30 phút, fixture/migration/ownership và Rapier WASM thật.
-- **npm run build** thành công, bao gồm tsc -b; **npm run lint** sạch.
-- Soak sau sửa AI: **30 phút sống, 11 kill, 60 damageTaken, minHealth 40, endHealth 65, 7/7 tủ, 29 snapshot round-trip, 11 spawn, tối đa 9 zombie**. Dùng 4 water/3 canned_food/1 bandage; còn gậy thật trong túi. Kết quả balance không đổi so với Phase 1.
-- Chrome headless 1280×800, profile riêng: v1→v2 + backup; hai condition 10/70 qua IndexedDB; túi đầy có gậy rơi; schema 99 không ghi đè/không tự New Game; transaction conflict giữ slot. Render thật: đóng chặn raycast, mở/vỡ thông, dựng lại chặn; nav đồng nhất. Save/load cửa vỡ và slot-lab không thay đổi slot-1. Không exception trình duyệt.
-- Production vite preview port 5199: New Game → túi có gậy 80/80 → lưu/về menu → reload → Continue. Không window.__runtime, ?lab=doors không mở phòng thử. Không exception trình duyệt.
-- Fixture v1 xuất từ runtime Phase 1 thật trước khi sửa schema (seed 20260924, đã loot tủ, health 73, clock 30 giây); fixture v2 từ Chrome smoke. Không phải save do người dùng gửi hoặc schema tự đoán.
+- **npm test: 157/157**, 17 file. **npm run build** (gồm tsc -b) và **npm run lint** sạch.
+- **Soak** (seed 20260924), hai chính sách:
+  - *shelter* (cổng): 30' sống, 11/11 tủ, vũ khí đầu ở giây 0,2, 4 kill/4 spawn, 30 dmg, minHealth 70, 8 hit → wear 8, 29 snapshot round-trip; dùng 4 nước/3 đồ hộp.
+  - *patrol* (chỉ số liệu): chết ở 12,0', 34 kill, 180 dmg, 69 hit → wear 69, 1 lần hỏng rồi đổi sang xà beng.
+  - **Phát hiện**: bot soak Phase 1/S1 đứng ~1545/1800 s trong một ô ngoài cửa nhà an toàn (kẹt góc). Bot cũ + nội dung S2 + gậy sẵn/tắt wear tái lập đúng 30'/11 kill/60 dmg; bot sửa di chuyển chết ở 10,8' kể cả nội dung Phase 1. Không đổi balance; chuyển cho S8. Chi tiết `docs/phase2-s2.md`.
+- **Playwright/Chromium 151 headless 1280×800, context riêng** (`scripts/p2-s2-browser.mjs`): dev — input thật loot/trang bị, chuột thật đánh: 28 dmg 78→77; condition 1 → 28 rồi HỎNG; đòn sau 6; thả/nhặt/trang bị lại; lưu → reload → Continue giữ 0/120 HỎNG và túi rơi ống 33; Continue fixture v2 và v1 → backup `-v2`/`-v1` bằng bản gốc, v3 đủ 11 container; lab kit. Production — không `__runtime`, không lab, luồng tay không → tủ → trang bị → lưu → reload → Continue. Không lỗi console/page.
+- **Hồi quy S1** (`scripts/p2-smoke.mjs` qua CDP tới Chromium của Playwright, dev + production): migration v1, backup, schema 99, xung đột transaction, túi đầy, cửa/raycast/nav, slot-lab. PASS.
+- Fixture mới `phase2-s2-v3.json` xuất từ save thật trong Chromium (ống sắt hỏng đang cầm giữ ID từ tủ, túi rơi ống 33). `phase2-s1-v2.json` đóng băng, script S1 không còn ghi đè.
 
 ## 4. File/module liên quan
 
 | File | Trách nhiệm |
 |---|---|
-| src/game/entities/items.ts, player.ts | Definitions, instance union, equipment/player state |
-| src/game/systems/inventory.ts, equipment.ts | IDs/counters, transfer, equip, reconcile ownership |
-| src/game/systems/save.ts, saveStorage.ts | Validate/migrate v1→v2, IndexedDB atomic backup |
-| src/game/systems/fixtures/ | phase1-v1.json, phase2-s1-v2.json |
-| src/game/systems/phase2-save.test.ts | Migration, ownership, cả hai fixture |
-| src/game/world/doors.ts | State/HP và shared leaf geometry |
-| src/game/world/navigation.ts | Local door cells, revision, portals/route query |
-| src/game/world/doorLab.ts, doorLab.test.ts | Dev map, route selection, Rapier, repath/load |
-| src/game/core/runtime.ts | Lifecycle/save/drop/equip/door integration |
-| src/components/DoorLab.tsx | Dev controls |
-| scripts/p2-smoke.mjs | Chrome CDP smoke dev và --production |
-| docs/phase2-s1.md | Baseline, quyết định, kiểm chứng và hướng dẫn |
+| src/game/entities/items.ts | Definitions + `melee`/`toolTags`, 4 vũ khí |
+| src/game/systems/weapons.ts (+ .test) | Damage theo condition, wear/attackId, level, tool requirement; test loot 400 seed |
+| src/game/systems/combat.ts, entities/player.ts | `startAttack` theo chỉ số vũ khí, `attackId`/`attackWeaponId`/`lastWornAttackId` |
+| src/game/core/runtime.ts | Bỏ grant gậy, unarmed, resolve melee theo vũ khí + wear, sự kiện |
+| src/game/core/melee.test.ts | Runtime: tay không, wear, broken, chỉ số, reload |
+| src/game/systems/loot.ts, world/lootTables.ts, world/mapData.ts | Condition range, `oneOf`, 4 bảng + container mới, `CONTAINERS_ADDED_V3` |
+| src/game/systems/save.ts, saveStorage.ts, types/save.ts | Schema v3, migrate v2→v3, `fromVersion`, backup theo slot/phiên bản |
+| src/components/Inventory.tsx, HUD.tsx, stores/hudStore.ts, app/App.tsx | Thẻ chi tiết, thanh độ bền, HUD vũ khí, toast/âm thanh |
+| src/game/rendering/PlayerView.tsx | Model tạm theo loại vũ khí |
+| src/game/core/soak.test.ts | `runSoak('shelter' | 'patrol')`, bot né góc, đổi vũ khí hỏng |
+| scripts/p2-s2-browser.mjs | Playwright dev/production, xuất fixture v3 |
+| scripts/p2-smoke.mjs | Hồi quy S1 qua CDP (đã cập nhật v3, không ghi fixture S1) |
+| docs/phase2-s2.md | Quyết định, bảng chỉ số, phát hiện soak, cách tái lập |
 
-Các file khác cập nhật theo contract: events, worldState, types/save, AI, loot, stores, Inventory UI, DoorView/PlayerView/Scene/App và test cũ. Các system survival/combat/spawn và config gameplay giữ nguyên thông số. Plan S1 được đánh dấu hoàn tất; README thêm trạng thái và điều khiển hiện tại.
+## 5. Bước tiếp theo — P2-S3
 
-## 5. Bước tiếp theo — P2-S2
-
-1. Bỏ cấp gậy trong GameRuntime.newGame, giữ shove và gợi ý khi tay không. **Không bỏ grant riêng của migration v1.**
-2. Mở rộng loot container với melee đầu game có bảo đảm; vẫn gieo đúng một lần theo seed. Không reroll container save cũ.
-3. Definitions gậy/ống sắt/xà beng/búa và các thông số; đối chiếu baseline GAME_CONFIG.melee đã cân bằng bằng soak, không chép bảng plan một cách máy móc.
-4. Damage/wear theo instance, trừ một lần theo attackId kể cả nhiều target; condition 1→0 vẫn damage đầy cho hit đó, hit sau broken 20%. Tool broken không đủ điều kiện craft khi S4 triển khai.
-5. Hoàn thiện equip/drop/transfer UI, tooltip damage/condition, cảnh báo vũ khí hỏng. Giữ ownership và snapshot nhất quán; thêm fixture/migration nếu schema đổi.
-6. Chạy regression + soak nếu đổi combat, ghi số liệu, cập nhật CURRENT_STATE cuối sprint. Người dùng tự commit/push.
+1. Kiểm tra quyền dùng asset (ghi nguồn/giấy phép trước khi thêm), rig, scale; một player + một zombie trước.
+2. Gắn model vào controller hiện có; collider độc lập bộ xương. `weaponSocket` tay phải; offset/rotation từng melee (4 loại hiện có) trong cấu hình, thay mesh tạm ở `PlayerView.WeaponModel`.
+3. Hit timing vẫn do `tickPlayerCombat`/`hitDelay`; animation theo `attackTimer`, không phát damage lần hai khi loop/crossfade; animation chết không gây damage.
+4. `CharacterAppearance` (preset, tóc, màu da/áo/quần), UI preview kéo xoay, Randomize/Reset; New Game → Character Creation → xác nhận; Back không xóa save; Continue đọc appearance từ save.
+5. Appearance vào save → **schema v4** + migration v3→v4 (ngoại hình mặc định), fixture mới; giữ fixture v1/v2/v3.
+6. Đo cùng số zombie/camera/settings như baseline trước/sau model (ghi rõ headless không phải benchmark GPU).
 
 ## 6. Giới hạn và việc còn lại
 
-- Chưa deploy thật, đo FPS GPU tích hợp thật hay playtest tay 15–30 phút. Không coi headless là benchmark GPU thật.
-- Chưa có wear/broken damage, loot melee mới, model/appearance, timed action/repair, zombie tự phá cửa, barricade hay building. Các phần này thuộc S2–S8.
-- Route portal S1 là spike đã kiểm chứng. Khi tích hợp S5 cần cache theo topology revision và chỉ tìm khi đổi mục tiêu, tránh A* giữa mọi cặp portal mỗi frame. Chi phí phá cửa tạm là 12 đơn vị đường đi, chưa theo HP/DPS.
-- Save chưa lưu cooldown/AI timer; load có thể ổn định lại trong khoảng 2 giây. Ngoại hình mặc định sẽ thêm cùng schema appearance S3.
-- Warning thư viện: THREE.Clock, Rapier init parameters, Vite advancedChunks deprecated. Không đổi dependency trong sprint này.
-- Bot soak dùng body giả theo nav; đã thêm Rapier capsule và render/raycast Chrome cho phòng thử, nhưng góc hẹp/chen nhiều zombie vẫn cần playtest tay.
-- Audio Safari chưa được kiểm chứng trên thiết bị iOS thật.
+- Chưa deploy thật, đo FPS GPU tích hợp thật hay playtest tay 15–30 phút.
+- Chưa repair/craft (S4): nút Sửa disabled; vũ khí hỏng chỉ thay bằng món khác. Chưa có vật liệu, fuel, đánh công trình trừ 2 condition.
+- Cân bằng: soak patrol cho thấy đánh liên tục chết ở ~11–14' (không hồi máu tự nhiên, spawn bù mỗi 12–25 s). Cần quyết định ở S8 bằng playtest người thật; không đổi config khi chưa đo.
+- Damage 28/32 của ống sắt/xà beng không giảm số đòn hạ zombie 50 HP so với gậy; vai trò hiện là độ bền/tốc độ/stamina. Xem lại ở S8 nếu cần.
+- Route portal S1 là spike; tích hợp S5 cần cache theo topology revision. Chi phí phá cửa tạm 12.
+- Save chưa lưu cooldown/AI timer; `attackId` reset sau load (không ảnh hưởng wear vì không có cú vung dở qua save).
+- Warning thư viện: THREE.Clock, Rapier init parameters, Vite advancedChunks deprecated.
+- Container có collider nhưng không trong nav grid (như Phase 1); góc hẹp/chen zombie cần playtest tay. Audio Safari chưa kiểm chứng iOS thật.
+- Một tiến trình khác đang nghe cổng 5173 trên máy dev trong phiên S2 (không phải của phiên); các kiểm chứng dùng 5174/5199/9223 và đã tắt sau khi chạy.
 
 ## 7. Kiểm tra nhanh và nguyên tắc giữ lại
 
-Chạy npm test, npm run build, npm run lint. Để xem số liệu soak: npx vitest run src/game/core/soak.test.ts --reporter=verbose. Chơi thử bằng npm run dev; mở http://localhost:5173/?lab=doors cho phòng thử.
+Chạy npm test, npm run build, npm run lint. Số liệu soak: `npx vitest run src/game/core/soak.test.ts --reporter=verbose`. Chơi thử `npm run dev`; lab `?lab=doors`.
 
-Browser smoke: xem hướng dẫn profile/cổng trong docs/phase2-s1.md. Script dùng profile Chrome thử và ghi/xóa slot thử, không chạy trên profile chơi thật. Vite phải khởi động mới sau sửa source để tránh script import nhầm module do URL HMR. Ảnh lab: node_modules/.tmp/p2-door-lab.png (không track).
+Browser: xem mục "Tái lập browser check" trong docs/phase2-s2.md. Playwright không phải dependency: cài tạm ngoài repo, truyền `PLAYWRIGHT_MODULE` (file:// URL) và `CHROMIUM_PATH`. Khởi động Vite mới sau khi sửa source. Chế độ dev của `p2-s2-browser.mjs` ghi đè `phase2-s2-v3.json`. Ảnh chụp ở node_modules/.tmp (không track).
 
-Giữ simulation ngoài React; thứ tự tick hiện có; không import Rapier runtime vào simulation (test được dùng WASM). Giữ layout map neighborhood-50, IDs map và fixture v1. Tăng schema khi đổi cấu trúc save; không im lặng cắt/mất item. Không thay balance khi chưa đo; chạy soak sau sửa combat/AI/spawn/survival. Không thêm asset ngoài khi chưa ghi nguồn/giấy phép. **Không commit/push; chỉ gợi ý message.**
+Giữ simulation ngoài React; thứ tự tick hiện có; không import Rapier runtime vào simulation. Giữ layout/ID map và fixture cũ. Tăng schema khi đổi cấu trúc save; không im lặng cắt/mất item. Không đổi balance khi chưa đo; chạy soak sau sửa combat/AI/spawn/survival (cổng là chính sách shelter; patrol chỉ báo cáo). Không thêm asset ngoài khi chưa ghi nguồn/giấy phép. **Không commit/push; chỉ gợi ý message.**
 
-Commit message gợi ý: **feat(phase2): add item instances, save migration and dynamic door prototype**
+Commit message gợi ý: **feat(phase2): unarmed start, melee loot, weapon condition and save v3**
