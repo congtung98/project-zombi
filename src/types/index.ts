@@ -11,5 +11,18 @@ export interface Vec2 {
 
 export type EntityId = string
 
-/** SEARCH: mất dấu người chơi, đi tới vị trí cuối cùng còn thấy. */
-export type ZombieAIState = 'IDLE' | 'CHASE' | 'SEARCH' | 'ATTACK' | 'DEAD'
+/**
+ * IDLE nghỉ → WANDER đi tới điểm ngẫu nhiên quanh vùng → IDLE; MIGRATE do hệ thống di cư bên ngoài
+ * đẩy cả nhóm sang vùng khác. CHASE thấy người chơi; SEARCH tới vị trí nhớ (thấy hoặc nghe);
+ * APPROACH_STRUCTURE/ATTACK_STRUCTURE tới và đập cửa chặn tuyến tới vị trí nhớ (P2-S5).
+ */
+export type ZombieAIState =
+  | 'IDLE'
+  | 'WANDER'
+  | 'MIGRATE'
+  | 'CHASE'
+  | 'SEARCH'
+  | 'APPROACH_STRUCTURE'
+  | 'ATTACK_STRUCTURE'
+  | 'ATTACK'
+  | 'DEAD'

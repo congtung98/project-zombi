@@ -74,7 +74,8 @@ describe('GameRuntime tick', () => {
     for (let t = 0; t < 10; t += dt) rt.tick(dt)
     expect(damaged).toBe(0)
     expect(rt.player.health).toBe(GAME_CONFIG.player.maxHealth)
-    expect(Array.from(rt.zombies.values())[0].ai).toBe('IDLE')
+    // Never detected: it only rests/wanders (P2-S5), it does not hunt.
+    expect(['IDLE', 'WANDER']).toContain(Array.from(rt.zombies.values())[0].ai)
   })
 
   it('newGame resets state and bumps the session id', () => {
@@ -273,6 +274,9 @@ describe('GameRuntime combat', () => {
     rt.registerPlayerBody(asRigidBody(playerBody))
     rt.registerZombieBody('zombie-1', asRigidBody(zombieBody))
     const zombie = rt.zombies.get('zombie-1')!
+    // Phase 1 scenario: a zombie standing still, facing the hut (no wandering off).
+    rt.pickWanderPoint = () => null
+    zombie.facing = Math.PI
 
     const step = (seconds: number) => {
       for (let t = 0; t < seconds; t += DT) {

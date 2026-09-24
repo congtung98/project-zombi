@@ -7,8 +7,11 @@ import type { Vec3 } from '../../types'
 const cfg = GAME_CONFIG.zombie
 const DT = 1 / 60
 
-function zombieAt(x: number, z: number) {
-  return createZombieState('z1', { x, y: 0, z })
+/** Faces +X (where most targets below stand): unaware zombies only see inside their view cone. */
+function zombieAt(x: number, z: number, facing = Math.PI / 2) {
+  const zombie = createZombieState('z1', { x, y: 0, z })
+  zombie.facing = facing
+  return zombie
 }
 
 /** Chạy tick cho tới khi đủ `seconds` giây; trả về true nếu có tick nào ra đòn. */
@@ -110,7 +113,7 @@ describe('zombie FSM', () => {
     const z = zombieAt(0, 0)
     stepZombie(z, { x: 3, y: 0, z: 0 }, true, DT)
     const far = { x: cfg.detectRange + 20, y: 0, z: 0 }
-    run(z, far, cfg.searchTimeout + cfg.detectInterval + DT)
+    run(z, far, cfg.memoryDuration + cfg.detectInterval + DT)
     expect(z.ai).toBe('IDLE')
   })
 

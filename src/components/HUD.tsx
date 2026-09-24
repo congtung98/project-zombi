@@ -104,10 +104,14 @@ export function HUD() {
             Player: ({hud.playerX.toFixed(1)}, {hud.playerZ.toFixed(1)}) {hud.running ? 'RUN' : ''}
           </div>
           <div>Interact: {hud.interactPrompt ?? '-'}</div>
+          <div>Tiếng bước chân: {hud.noise > 0 ? `${hud.noise} m` : 'im lặng'} · Di cư sau {hud.hordeTimer.toFixed(0)}s</div>
           <div>Zombies: {hud.zombies.filter((z) => z.ai !== 'DEAD').length} sống / {hud.zombies.length}</div>
           {hud.zombies.map((z) => (
             <div key={z.id}>
               {z.id}: {z.ai} hp={z.health} d={z.distance.toFixed(1)}
+              {z.zone ? ` ${z.zone.replace('zone-', '')}` : ''}
+              {z.memory ? ` nhớ(${z.memory})` : ''}
+              {z.door ? ` cửa=${z.door}` : ''}
             </div>
           ))}
         </div>

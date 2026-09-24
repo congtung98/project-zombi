@@ -24,6 +24,10 @@ export type SfxName =
   | 'workStart'
   | 'workDone'
   | 'workCancel'
+  | 'doorBash'
+  | 'doorBreak'
+  | 'stepWalk'
+  | 'stepRun'
 
 class Sfx {
   private ctx: AudioContext | null = null
@@ -50,8 +54,9 @@ class Sfx {
     if (ctx && ctx.state === 'suspended') void ctx.resume().catch(() => undefined)
   }
 
-  play(name: SfxName): void {
-    if (this.muted || this.volume <= 0) return
+  /** `gain` 0..1 scales this one sound (distance falloff for world sounds such as door bashing). */
+  play(name: SfxName, gain = 1): void {
+    if (this.muted || this.volume <= 0 || gain <= 0) return
     const ctx = this.ensure()
     if (!ctx || ctx.state !== 'running') return
     const now = performance.now()
@@ -59,7 +64,14 @@ class Sfx {
     if (now - last < MIN_GAP_MS[name]) return
     this.lastPlayed.set(name, now)
     try {
-      RECIPES[name](ctx, this.master!, this.noise())
+      let out: AudioNode = this.master!
+      if (gain < 1) {
+        const g = ctx.createGain()
+        g.gain.value = gain
+        g.connect(this.master!)
+        out = g
+      }
+      RECIPES[name](ctx, out, this.noise())
     } catch {
       // Audio không bao giờ được làm hỏng game loop.
     }
@@ -116,6 +128,10 @@ const MIN_GAP_MS: Record<SfxName, number> = {
   workStart: 150,
   workDone: 200,
   workCancel: 200,
+  doorBash: 120,
+  doorBreak: 300,
+  stepWalk: 40,
+  stepRun: 40,
 }
 
 type Recipe = (ctx: AudioContext, out: AudioNode, noise: AudioBuffer) => void
@@ -220,6 +236,31 @@ const RECIPES: Record<SfxName, Recipe> = {
     tone(c, o, { type: 'triangle', from: 990, duration: 0.2, gain: 0.14, delay: 0.16 })
   },
   workCancel: (c, o) => tone(c, o, { type: 'triangle', from: 300, to: 160, duration: 0.2, gain: 0.14 }),
+  // Zombie fist on a wooden door: low thump + short rattle. Breaking: splinter crack + debris.
+  doorBash: (c, o, n) => {
+    tone(c, o, { type: 'sine', from: 95, to: 55, duration: 0.22, gain: 0.45 })
+    burst(c, o, n, { duration: 0.12, gain: 0.3, filter: 350, q: 1.2, type: 'lowpass' })
+    burst(c, o, n, { duration: 0.08, gain: 0.12, filter: 1800, q: 4, delay: 0.05 })
+  },
+  // Footsteps (only while zombies can hear the player): a soft heel thud when walking; running
+  // is louder with a gritty scuff. Small random detune per step so a walk does not sound looped.
+  stepWalk: (c, o, n) => {
+    const v = 0.9 + Math.random() * 0.2
+    burst(c, o, n, { duration: 0.07, gain: 0.16, filter: 320 * v, q: 0.9, type: 'lowpass' })
+    tone(c, o, { type: 'sine', from: 85 * v, to: 55, duration: 0.07, gain: 0.12 })
+  },
+  stepRun: (c, o, n) => {
+    const v = 0.9 + Math.random() * 0.2
+    burst(c, o, n, { duration: 0.08, gain: 0.26, filter: 420 * v, q: 0.9, type: 'lowpass' })
+    tone(c, o, { type: 'sine', from: 95 * v, to: 55, duration: 0.08, gain: 0.18 })
+    burst(c, o, n, { duration: 0.05, gain: 0.08, filter: 2600 * v, q: 1.5, delay: 0.01 })
+  },
+  doorBreak: (c, o, n) => {
+    burst(c, o, n, { duration: 0.35, gain: 0.5, filter: 2500, sweepTo: 600, q: 1.5 })
+    tone(c, o, { type: 'sawtooth', from: 140, to: 45, duration: 0.45, gain: 0.2 })
+    burst(c, o, n, { duration: 0.1, gain: 0.25, filter: 1200, q: 3, delay: 0.18 })
+    burst(c, o, n, { duration: 0.1, gain: 0.2, filter: 900, q: 3, delay: 0.3 })
+  },
   save: (c, o) => {
     tone(c, o, { type: 'sine', from: 520, duration: 0.1, gain: 0.12 })
     tone(c, o, { type: 'sine', from: 780, duration: 0.18, gain: 0.12, delay: 0.1 })

@@ -19,6 +19,8 @@ export interface TimedAction {
   id: number
   recipe: Recipe
   targetId: string | null
+  /** World object the action works on (door for S6 barricades); a zombie hit on it cancels. */
+  worldTargetId: string | null
   /** Tool instances chosen at start, in recipe order. */
   toolIds: string[]
   label: string
@@ -28,7 +30,7 @@ export interface TimedAction {
   reservation: Reservation
 }
 
-export type ActionCancelReason = 'moved' | 'attacked' | 'hit' | 'cancelled' | 'dead'
+export type ActionCancelReason = 'moved' | 'attacked' | 'hit' | 'cancelled' | 'dead' | 'target-damaged'
 
 export function reservationFor(recipe: Recipe, targetId: string | null, check: RecipeCheck): Reservation {
   const counts: Partial<Record<ItemId, number>> = {}

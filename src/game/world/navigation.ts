@@ -12,6 +12,28 @@ export interface NavGridOptions {
 const OVERHEAD_MIN_BOTTOM = 1.6
 /** Giới hạn số ô A* mở rộng để một truy vấn không bao giờ làm khựng frame. */
 const MAX_EXPANSIONS = 20000
+/** Planning cost (metres) of breaking through a closed door, versus walking around (plan §10.2). */
+const BREACH_COST = 12
+/** Bash slots sit this far either side of the door centre, along the wall. */
+const SLOT_SPREAD = 0.35
+
+export interface DoorPortal {
+  /** Door centre on the ground. */
+  center: Vec3
+  /** Approach point on each side, outside the door corridor cells. */
+  sides: [Vec3, Vec3]
+  /** Up to two contact positions per side for zombies bashing the door. */
+  slots: [Vec3[], Vec3[]]
+}
+
+/** First door to break on the way to a target; `doorId` null = there is an open route. */
+export interface DoorRoute {
+  doorId: string | null
+  /** Approach point on the caller's side of that door (the target itself when open). */
+  approach: Vec3
+  /** Portal side index of `approach`; -1 when the route is open. */
+  side: number
+}
 
 interface DoorCells {
   /** Ô trong khung cửa: đi được khi cửa mở, chặn khi đóng. */
@@ -41,7 +63,10 @@ export class NavGrid {
   private readonly doorCells = new Map<string, DoorCells>()
   private readonly doorStates = new Map<string, DoorStatus>()
   private readonly cellDoors = new Map<number, Set<string>>()
-  readonly portals = new Map<string, { sides: [Vec3, Vec3] }>()
+  readonly portals = new Map<string, DoorPortal>()
+  /** 4-connected component label per cell (-1 blocked), rebuilt lazily per `version`. */
+  private components: Int32Array | null = null
+  private componentsVersion = -1
 
   constructor(map: MapData, opts: NavGridOptions) {
     this.cellSize = opts.cellSize
@@ -82,12 +107,21 @@ export class NavGrid {
       }
       const alongX = door.hinge.x !== door.center.x
       const offset = thickness / 2 + r + this.cellSize
-      this.portals.set(door.id, { sides: [-1, 1].map((sign) => ({
+      const sides = [-1, 1].map((sign) => ({
         x: door.center.x + (alongX ? 0 : sign * offset), y: 0,
         z: door.center.z + (alongX ? sign * offset : 0),
-      })) as [Vec3, Vec3] })
+      })) as [Vec3, Vec3]
+      const slots = sides.map((side) => [-1, 1].map((sign) => ({
+        x: side.x + (alongX ? sign * SLOT_SPREAD : 0), y: 0,
+        z: side.z + (alongX ? 0 : sign * SLOT_SPREAD),
+      }))) as [Vec3[], Vec3[]]
+      this.portals.set(door.id, { center: { x: door.center.x, y: 0, z: door.center.z }, sides, slots })
     }
     this.rebuild()
+    // Slots that fall on blocked cells (furniture, walls) use the side point instead.
+    for (const portal of this.portals.values()) {
+      portal.slots = portal.slots.map((list, i) => list.map((p) => (this.staticWalkable(p) ? p : { ...portal.sides[i] }))) as [Vec3[], Vec3[]]
+    }
   }
 
   setDoorOpen(id: string, open: boolean): void {
@@ -164,15 +198,61 @@ export class NavGrid {
   }
 
   /**
+   * Connected region (4-neighbour, which is exactly what A* without corner cutting can reach) of
+   * the walkable cell nearest to a point; -1 when there is none. Labels are cached per `version`,
+   * so "is there any route" is a lookup instead of an A* that floods the whole reachable area.
+   */
+  componentAt(x: number, z: number): number {
+    const c = this.nearestWalkableCell(x, z)
+    return c ? this.componentLabels()[c.cz * this.cols + c.cx] : -1
+  }
+
+  private componentLabels(): Int32Array {
+    if (this.components && this.componentsVersion === this.version) return this.components
+    const total = this.cols * this.rows
+    const labels = this.components ?? new Int32Array(total)
+    labels.fill(-1)
+    const queue = new Int32Array(total)
+    let next = 0
+    for (let seed = 0; seed < total; seed++) {
+      if (this.blocked[seed] || labels[seed] >= 0) continue
+      let head = 0
+      let tail = 0
+      queue[tail++] = seed
+      labels[seed] = next
+      while (head < tail) {
+        const idx = queue[head++]
+        const cx = idx % this.cols
+        for (const n of [cx > 0 ? idx - 1 : -1, cx < this.cols - 1 ? idx + 1 : -1, idx - this.cols, idx + this.cols]) {
+          if (n < 0 || n >= total || this.blocked[n] || labels[n] >= 0) continue
+          labels[n] = next
+          queue[tail++] = n
+        }
+      }
+      next += 1
+    }
+    this.components = labels
+    this.componentsVersion = this.version
+    return labels
+  }
+
+  private staticWalkable(p: Vec3): boolean {
+    const c = this.worldToCell(p.x, p.z)
+    return c.cx >= 0 && c.cz >= 0 && c.cx < this.cols && c.cz < this.rows && this.staticBlocked[c.cz * this.cols + c.cx] === 0
+  }
+
+  /**
    * Tìm đường từ `from` tới `to`. Trả về danh sách waypoint (không gồm điểm
    * xuất phát, điểm cuối là `to` nếu ô đích đi được), đã làm thẳng bằng kiểm
-   * tra tầm đi. null nếu không có đường.
+   * tra tầm đi. null nếu không có đường (khác vùng liên thông: trả ngay, không chạy A*).
    */
   findPath(from: Vec3, to: Vec3): Vec3[] | null {
     const start = this.nearestWalkableCell(from.x, from.z)
     const goal = this.nearestWalkableCell(to.x, to.z)
     if (!start || !goal) return null
     if (start.cx === goal.cx && start.cz === goal.cz) return [this.goalPoint(to, goal)]
+    const labels = this.componentLabels()
+    if (labels[start.cz * this.cols + start.cx] !== labels[goal.cz * this.cols + goal.cx]) return null
 
     const cells = this.astar(start, goal)
     if (!cells) return null
@@ -280,58 +360,66 @@ export class NavGrid {
     this.blocked[idx] = blocked
   }
 
-  /** Planning only: graph edges cross closed portals at a cost. Never opens live cells. */
-  findDoorRoute(from: Vec3, to: Vec3): { doorId: string | null; approach: Vec3; path: Vec3[] } | null {
-    const direct = this.findPath(from, to)
-    if (direct) return { doorId: null, approach: to, path: direct }
-    const nodes: { point: Vec3; doorId: string; side: number }[] = []
+  /**
+   * Planning only (plan §10.2), never opens live cells: which closed door to break to reach `to`.
+   * Nodes are the start, both approach points of every closed door and the goal; walking edges join
+   * nodes of the same connected region (straight-line length as the estimate), breach edges join
+   * the two sides of one closed door at `BREACH_COST`. Returns the first door on the cheapest
+   * route, so a door that does not lead towards the target is never chosen; an open alternative
+   * route wins outright. null when even breaking doors cannot reach the target. Cheap: the region
+   * labels are cached per nav revision and the graph has 2 nodes per closed door.
+   */
+  findDoorRoute(from: Vec3, to: Vec3): DoorRoute | null {
+    const startRegion = this.componentAt(from.x, from.z)
+    const goalRegion = this.componentAt(to.x, to.z)
+    if (startRegion < 0 || goalRegion < 0) return null
+    if (startRegion === goalRegion) return { doorId: null, approach: { ...to }, side: -1 }
+    const nodes: { point: Vec3; region: number; doorId: string | null; side: number }[] = [
+      { point: from, region: startRegion, doorId: null, side: -1 },
+      { point: to, region: goalRegion, doorId: null, side: -1 },
+    ]
     for (const [doorId, portal] of this.portals) {
       if (this.doorStates.get(doorId) !== 'closed') continue
       portal.sides.forEach((point, side) => {
-        if (this.isWalkable(point.x, point.z)) nodes.push({ point, doorId, side })
+        const region = this.isWalkable(point.x, point.z) ? this.componentAt(point.x, point.z) : -1
+        if (region >= 0) nodes.push({ point, region, doorId, side })
       })
     }
-    const points = [from, ...nodes.map((n) => n.point), to]
-    const end = points.length - 1
-    const distances = points.map(() => Infinity)
-    const previous = points.map(() => -1)
-    const visited = new Set<number>()
-    distances[0] = 0
-    while (visited.size < points.length) {
+    const dist = nodes.map(() => Infinity)
+    const previous = nodes.map(() => -1)
+    const done = nodes.map(() => false)
+    dist[0] = 0
+    for (;;) {
       let current = -1
-      for (let i = 0; i < points.length; i++) {
-        if (!visited.has(i) && Number.isFinite(distances[i]) && (current < 0 || distances[i] < distances[current])) current = i
-      }
+      for (let i = 0; i < nodes.length; i++) if (!done[i] && dist[i] < Infinity && (current < 0 || dist[i] < dist[current])) current = i
       if (current < 0) return null
-      if (current === end) break
-      visited.add(current)
-      for (let next = 1; next < points.length; next++) {
-        if (visited.has(next)) continue
-        const a = nodes[current - 1]
-        const b = nodes[next - 1]
-        const crossing = a && b && a.doorId === b.doorId && a.side !== b.side
-        const path = crossing ? null : this.findPath(points[current], points[next])
-        if (!crossing && !path) continue
-        let cost = crossing ? 12 : 0 // planning cost in metres, tune with siege in S5
-        let last = points[current]
-        for (const p of path ?? []) { cost += Math.hypot(p.x - last.x, p.z - last.z); last = p }
-        if (distances[current] + cost < distances[next]) {
-          distances[next] = distances[current] + cost
+      if (current === 1) break
+      done[current] = true
+      const a = nodes[current]
+      for (let next = 1; next < nodes.length; next++) {
+        if (done[next]) continue
+        const b = nodes[next]
+        const breach = a.doorId !== null && a.doorId === b.doorId && a.side !== b.side
+        if (!breach && a.region !== b.region) continue
+        const cost = breach ? BREACH_COST : Math.hypot(a.point.x - b.point.x, a.point.z - b.point.z)
+        if (dist[current] + cost < dist[next]) {
+          dist[next] = dist[current] + cost
           previous[next] = current
         }
       }
     }
     const route: number[] = []
-    for (let i = end; i >= 0; i = previous[i]) route.unshift(i)
-    for (let i = 1; i < route.length - 1; i++) {
-      const a = nodes[route[i] - 1]
-      const b = nodes[route[i + 1] - 1]
-      if (a && b && a.doorId === b.doorId && a.side !== b.side) {
-        const path = this.findPath(from, a.point)
-        return path ? { doorId: a.doorId, approach: a.point, path } : null
-      }
+    for (let i = 1; i >= 0; i = previous[i]) route.unshift(i)
+    for (let i = 0; i < route.length - 1; i++) {
+      const a = nodes[route[i]]
+      const b = nodes[route[i + 1]]
+      if (a.doorId !== null && a.doorId === b.doorId && a.side !== b.side) return { doorId: a.doorId, approach: { ...a.point }, side: a.side }
     }
     return null
+  }
+
+  doorState(id: string): DoorStatus | undefined {
+    return this.doorStates.get(id)
   }
 
   private fillRect(target: Uint8Array, minX: number, minZ: number, maxX: number, maxZ: number, value: number): void {

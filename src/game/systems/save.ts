@@ -4,6 +4,7 @@ import { DOOR_MAX_HP } from '../world/doors'
 import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
+import { nearestZone } from './horde'
 import { GAME_CONFIG } from '../core/config'
 import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME, isAppearance, isValidName } from '../entities/appearance'
 import { SAVE_SCHEMA_VERSION, type SaveGame, type SaveSummary } from '../../types/save'
@@ -14,7 +15,11 @@ export type SaveValidation =
   | { ok: true; save: SaveGame; migrated: boolean; fromVersion: number }
   | { ok: false; reason: 'corrupt' | 'incompatible' | 'wrong-map'; detail: string }
 
-const AI_STATES: ReadonlySet<string> = new Set<ZombieAIState>(['IDLE', 'CHASE', 'SEARCH', 'ATTACK', 'DEAD'])
+const V1_STATES: ZombieAIState[] = ['IDLE', 'CHASE', 'SEARCH', 'ATTACK', 'DEAD']
+const AI_STATES_V1: ReadonlySet<string> = new Set(V1_STATES)
+/** v6 (P2-S5) adds wander, migration and door siege states. */
+const AI_STATES_V6: ReadonlySet<string> = new Set<ZombieAIState>([...V1_STATES, 'WANDER', 'MIGRATE', 'APPROACH_STRUCTURE', 'ATTACK_STRUCTURE'])
+const SIEGE_STATES: ReadonlySet<string> = new Set(['APPROACH_STRUCTURE', 'ATTACK_STRUCTURE'])
 
 /**
  * Validate current snapshots or migrate v1, without mutating input. Reject invalid
@@ -78,11 +83,16 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
         isFiniteNumber(z.facing) &&
         isFiniteNumber(z.health) &&
         typeof z.ai === 'string' &&
-        AI_STATES.has(z.ai) &&
-        (z.lastKnownTarget === null || isVec3(z.lastKnownTarget)),
+        (version >= 6 ? AI_STATES_V6 : AI_STATES_V1).has(z.ai) &&
+        (z.lastKnownTarget === null || isVec3(z.lastKnownTarget)) &&
+        (version < 6 || isZombieV6(z)),
     )
   ) {
     return corrupt('zombies')
+  }
+  if (version >= 6) {
+    const horde = data.horde
+    if (!isRecord(horde) || !isFiniteNumber(horde.timer) || horde.timer < 0 || !Number.isSafeInteger(horde.counter) || Number(horde.counter) < 0) return corrupt('horde')
   }
   const spawn = data.spawn
   if (!isRecord(spawn) || !isFiniteNumber(spawn.nextZombieId) || !isFiniteNumber(spawn.timer) || !isFiniteNumber(spawn.counter)) {
@@ -112,6 +122,13 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     const newerThanSave = (id: string) => (version < 3 && CONTAINERS_ADDED_V3.has(id)) || (version < 5 && CONTAINERS_ADDED_V5.has(id))
     const required = knownMap.containers.filter((c) => !newerThanSave(c.id))
     if (required.some((c) => !containers.some((s) => s.id === c.id))) return corrupt('missing map container')
+    if (version >= 6) {
+      // Zones and siege doors must exist on this map.
+      for (const z of data.zombies as { zoneId: string | null; structureTargetId: string | null }[]) {
+        if (z.zoneId !== null && !knownMap.zombieZones?.some((zone) => zone.id === z.zoneId)) return corrupt('zombie zone')
+        if (z.structureTargetId !== null && !knownMap.doors.some((d) => d.id === z.structureTargetId)) return corrupt('zombie door target')
+      }
+    }
     for (const c of containers) {
       if (newerThanSave(c.id)) return corrupt('container newer than schema')
       const fixed = knownMap.containers.some((d) => d.id === c.id)
@@ -146,6 +163,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (version === 2) return migrateV2(save, expectedMapId, knownMap)
   if (version === 3) return migrateV3(save, expectedMapId, knownMap)
   if (version === 4) return migrateV4(save, expectedMapId, knownMap)
+  if (version === 5) return migrateV5(save, expectedMapId, knownMap)
   return { ok: true, save, migrated: false, fromVersion: version }
 }
 
@@ -192,6 +210,17 @@ function isInventory(v: unknown): v is Inventory {
       return s.kind === 'stack' && s.condition === undefined && s.fuel === undefined
     },
   )
+}
+
+/** Memory is all-or-nothing; siege states always name their door and keep the memory they chase. */
+function isZombieV6(z: Record<string, unknown>): boolean {
+  if (!isFiniteNumber(z.memoryAge) || z.memoryAge < 0) return false
+  if (z.memorySource !== null && z.memorySource !== 'sight' && z.memorySource !== 'noise') return false
+  if ((z.lastKnownTarget === null) !== (z.memorySource === null)) return false
+  if (z.zoneId !== null && typeof z.zoneId !== 'string') return false
+  if (z.structureTargetId !== null && typeof z.structureTargetId !== 'string') return false
+  const siege = SIEGE_STATES.has(String(z.ai))
+  return siege ? z.structureTargetId !== null && z.lastKnownTarget !== null : z.structureTargetId === null
 }
 
 function isLegacyInventory(v: unknown): boolean {
@@ -276,4 +305,24 @@ function migrateV4(source: SaveGame, mapId: string, map?: MapData): SaveValidati
   seedAddedContainers(save, CONTAINERS_ADDED_V5, map)
   const checked = validateSaveGame(save, mapId, map)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 4 } : checked
+}
+
+/**
+ * Pure v5 → v6 (P2-S5): zombies keep state, HP and position; a remembered position counts as a
+ * fresh sighting, each zombie joins the zone nearest to it, no door siege is in progress and the
+ * horde director starts its first countdown. Items, doors and containers are untouched.
+ */
+function migrateV5(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = 6
+  save.zombies = save.zombies.map((z) => ({
+    ...z,
+    memoryAge: 0,
+    memorySource: z.lastKnownTarget ? 'sight' : null,
+    zoneId: nearestZone(z.position, map?.zombieZones)?.id ?? null,
+    structureTargetId: null,
+  }))
+  save.horde = { timer: GAME_CONFIG.horde.intervalMin, counter: 0 }
+  const checked = validateSaveGame(save, mapId, map)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 5 } : checked
 }

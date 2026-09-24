@@ -3,14 +3,16 @@ import type { Vec3, ZombieAIState } from './index'
 import type { Equipment } from '../game/entities/items'
 import type { DoorState } from '../game/world/doors'
 import type { CharacterAppearance } from '../game/entities/appearance'
+import type { MemorySource } from '../game/entities/zombie'
 
 /**
  * v1 (Phase 1) → v2 (item instances, door state) → v3 (P2-S2 melee containers) → v4 (P2-S3
- * name + appearance) → v5 (P2-S4 material containers; crafted items are ordinary instances).
+ * name + appearance) → v5 (P2-S4 material containers; crafted items are ordinary instances) → v6
+ * (P2-S5 zombie perception memory, wander/migration zones, door siege target, horde director).
  * Older versions migrate in memory; unknown versions are rejected without overwriting the
  * original. Timed actions (craft/repair in progress) are never part of a save.
  */
-export const SAVE_SCHEMA_VERSION = 5
+export const SAVE_SCHEMA_VERSION = 6
 
 export interface SavedPlayer {
   name: string
@@ -32,7 +34,15 @@ export interface SavedZombie {
   facing: number
   health: number
   ai: ZombieAIState
+  /** Remembered player position (seen or heard); null = none. */
   lastKnownTarget: Vec3 | null
+  /** v6: seconds since the memory was refreshed (0 without memory). */
+  memoryAge: number
+  memorySource: MemorySource | null
+  /** v6: horde zone (group); null on maps without zones. */
+  zoneId: string | null
+  /** v6: door being approached/bashed (APPROACH_STRUCTURE / ATTACK_STRUCTURE only). */
+  structureTargetId: string | null
 }
 
 export interface SavedContainer {
@@ -58,6 +68,8 @@ export interface SaveGame {
   /** Chỉ zombie còn sống; xác không cần khôi phục. */
   zombies: SavedZombie[]
   spawn: { nextZombieId: number; timer: number; counter: number }
+  /** v6: seconds to the next horde migration attempt and the attempt counter (seeds its RNG). */
+  horde: { timer: number; counter: number }
   cameraZoom: number
 }
 

@@ -30,6 +30,12 @@ export const GAME_CONFIG = {
     radius: 0.4,
     height: 1.8,
     mass: 80,
+    /**
+     * Metres per full gait cycle (two footsteps). Drives both the leg animation and the footstep
+     * sounds: walking ≈ 3.6 steps/s, running ≈ 4.4 steps/s (Phase 2 S3 used 1.5 m for both).
+     */
+    walkStride: 2.2,
+    runStride: 3.2,
   },
   survival: {
     /** Hunger giảm 100 → 0 trong ~20 phút thời gian game. */
@@ -54,8 +60,32 @@ export const GAME_CONFIG = {
     chaseRange: 14,
     /** Thời gian vung tay trước khi gây sát thương; người chơi có thể né. */
     attackWindup: 0.3,
-    /** Thời gian tối đa đi tới vị trí cuối thấy người chơi trước khi bỏ cuộc. */
-    searchTimeout: 8,
+    /**
+     * P2-S5 (plan §10.1): a sighting or heard footstep is remembered this long. SEARCH gives up
+     * when the memory is older (replaces Phase 1's fixed 8 s search timeout).
+     */
+    memoryDuration: 20,
+    /**
+     * Unaware zombies (IDLE/WANDER/MIGRATE) only see inside this half-angle around their facing;
+     * hunting zombies track all around. 180 restores Phase 1's all-round vision.
+     */
+    viewHalfAngleDeg: 70,
+    /** Anything this close is noticed whatever the facing (bumping into the player). */
+    closeSenseRange: 1.2,
+    /** Considered at a SEARCH/WANDER goal within this distance. */
+    arriveDistance: 0.75,
+    /** Wander: rest a random time, walk to a random reachable point around the zone, repeat. */
+    wanderSpeed: 0.9,
+    wanderRestMin: 3,
+    wanderRestMax: 8,
+    /** Radius around the spawn point when the map has no zones (test/lab maps). */
+    wanderRadius: 6,
+    /** Skip wander targets closer than this (the zombie would barely move). */
+    wanderMinStep: 1.5,
+    /** Give up a wander/migration leg after this long (blocked by other zombies, etc.). */
+    wanderTimeout: 20,
+    migrateSpeed: 1.4,
+    migrateTimeout: 60,
     /** Tách zombie khỏi nhau để không chồng lên một điểm. */
     separationRadius: 1.1,
     separationSpeed: 1.2,
@@ -64,6 +94,41 @@ export const GAME_CONFIG = {
     radius: 0.4,
     height: 1.8,
     mass: 60,
+  },
+  /**
+   * P2-S5 hearing: the player's footsteps reach every zombie within a fixed radius (walking vs
+   * running), in any direction. Walls/closed doors between them shrink the radius by `wallFactor`.
+   * Standing still, crafting or opening doors makes no footstep noise.
+   */
+  hearing: {
+    walkRadius: 5,
+    runRadius: 12,
+    wallFactor: 0.5,
+  },
+  /** P2-S5 zombies bashing doors (plan §10.4): 10 structure damage every 1.2 s (windup 0.3 + 0.9). */
+  structure: {
+    damage: 10,
+    /** Cooldown after a structure hit; the zombie windup (`zombie.attackWindup`) comes on top. */
+    cooldown: 0.9,
+    /** Max distance from the zombie to the door centre to hit it. */
+    reach: 1.3,
+    /** Keep bashing this long after the last new information about the player, then give up. */
+    siegeHold: 60,
+    /** Zombies without one of the two contact slots per door side wait this far from the door. */
+    queueDistance: 2.4,
+  },
+  /**
+   * P2-S5 horde migration: an external director every few minutes pushes every zombie of one zone
+   * (group) to another zone. Only zombies that are not hunting start walking at once; hunters
+   * keep hunting and wander in the new zone afterwards.
+   */
+  horde: {
+    intervalMin: 90,
+    intervalMax: 180,
+    /** A zone needs at least this many idle/wandering zombies to migrate. */
+    minGroupSize: 2,
+    /** Retry sooner when no zone had a group this time. */
+    retryDelay: 20,
   },
   nav: {
     /** Kích thước ô lưới điều hướng (đơn vị thế giới). */

@@ -8,6 +8,8 @@ export interface SpawnCandidateContext {
   aliveZombies: readonly Vec3[]
   /** true nếu điểm bị tường/cửa đóng che khỏi người chơi; ưu tiên các điểm này. Mặc định: không biết. */
   isHiddenFromPlayer?: (point: Vec3) => boolean
+  /** P2-S5: false for points inside buildings or on blocked cells (never spawn there). Default: all. */
+  isAllowed?: (point: Vec3) => boolean
 }
 
 /**
@@ -23,6 +25,7 @@ export function pickSpawnPoint(
 ): Vec3 | null {
   const valid: Vec3[] = []
   for (const p of candidates) {
+    if (ctx.isAllowed && !ctx.isAllowed(p)) continue
     if (dist2(p, ctx.playerPos) < cfg.minDistance * cfg.minDistance) continue
     let overlaps = false
     for (const z of ctx.aliveZombies) {

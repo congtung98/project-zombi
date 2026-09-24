@@ -8,13 +8,12 @@ import { computePose, createPose } from './character/pose'
 import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, playerLook, shadowDetail } from './character/rig'
 import { buildWeaponModel, type WeaponModel } from './character/weaponModels'
+import { smoothSpeed } from './character/gait'
 
 const CFG = runtime.config.player
 const MELEE = runtime.config.melee
 const PUSH = runtime.config.push
 const HALF_HEIGHT = (CFG.height - 2 * CFG.radius) / 2
-/** Metres per full gait cycle (two steps); the phase follows distance so feet do not slide. */
-const STRIDE = 1.5
 const SHOVE_TIME = 0.4
 const HURT_TIME = 0.3
 const DEATH_TIME = 0.6
@@ -32,8 +31,7 @@ export function PlayerView() {
   const rig = useMemo(() => buildCharacter(playerLook(runtime.player.appearance), shadowDetail(shadows)), [shadows])
   const weapon = useRef<{ key: string; model: WeaponModel | null }>({ key: '', model: null })
   const pose = useRef(createPose())
-  const gait = useRef(0)
-  const last = useRef({ x: runtime.player.position.x, z: runtime.player.position.z })
+  const speed = useRef(0)
   const clock = useRef(0)
   const deadTime = useRef(-1)
   const spawn = runtime.player.position
@@ -61,12 +59,10 @@ export function PlayerView() {
     visual.rotation.y = p.facing
     clock.current += delta
 
-    const dist = Math.hypot(p.position.x - last.current.x, p.position.z - last.current.z)
-    last.current = { x: p.position.x, z: p.position.z }
-    // Ignore teleports (load/debug) so the gait does not spin.
-    const step = dist < 1 ? dist : 0
-    gait.current = (gait.current + (step / STRIDE) * Math.PI * 2) % (Math.PI * 2)
-    const speed = delta > 0 ? step / delta : 0
+    // Gait phase and speed come from the simulation (intended movement, advanced every tick), not
+    // from the body position that only changes on fixed physics steps: smooth at any frame rate,
+    // and the legs stay in step with the footstep sounds. Speed eases in/out over ~0.1 s.
+    speed.current = smoothSpeed(speed.current, p.alive ? p.moveSpeed : 0, delta)
 
     const held = equippedWeapon(p.inventory, p.equipment)
     const key = held ? `${held.itemId}:${held.condition <= 0}` : ''
@@ -84,8 +80,8 @@ export function PlayerView() {
       {
         kind: 'player',
         time: clock.current,
-        gaitPhase: gait.current,
-        speed: p.alive ? speed : 0,
+        gaitPhase: p.stridePhase,
+        speed: speed.current,
         swing: p.attackTimer >= 0 ? p.attackTimer / MELEE.swingDuration : -1,
         hitAt: MELEE.hitDelay / MELEE.swingDuration,
         shove: p.pushCooldown > 0 && shoveElapsed < SHOVE_TIME ? shoveElapsed / SHOVE_TIME : -1,

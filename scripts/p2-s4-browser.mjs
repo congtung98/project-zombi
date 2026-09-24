@@ -3,8 +3,8 @@
 //   Dev:        BASE_URL=http://127.0.0.1:5174 node scripts/p2-s4-browser.mjs
 //   Production: BASE_URL=http://127.0.0.1:5199 node scripts/p2-s4-browser.mjs --production
 // Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
-// Dev mode writes src/game/systems/fixtures/phase2-s4-v5.json from a real browser save.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+// The S4 fixture phase2-s4-v5.json is frozen since P2-S5 (v6); this script no longer rewrites it.
+import { mkdirSync, readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
 const production = process.argv.includes('--production')
@@ -164,7 +164,7 @@ try {
       await page.waitForTimeout(800)
       await saveToMenu()
       const mid = await readSlot('slot-1')
-      assert.equal(mid.schemaVersion, 5)
+      assert.equal(mid.schemaVersion, 6)
       assert.equal(count(mid.player.inventory, 'duct_tape'), 1)
       assert.doesNotMatch(JSON.stringify(mid), /action|reserv/i)
       await page.reload()
@@ -222,6 +222,11 @@ try {
     await closeBag()
 
     // 2) Break the weapon (dev hook), hit a parked zombie: 20% damage.
+    // With INTERACT_RANGE 1 the closet prompt stops the player in the NE corner; step back into the
+    // room (real A key) so the zombie parked towards the cursor is not behind the east wall.
+    await page.keyboard.down('KeyA')
+    await page.waitForTimeout(600)
+    await page.keyboard.up('KeyA')
     const canvas = page.locator('canvas').first()
     const box = await canvas.boundingBox()
     const park = () => rt(() => {
@@ -341,7 +346,7 @@ try {
     await button('Lưu và về menu').click()
     await menu()
     const mid = await readSlot('slot-1')
-    assert.equal(mid.schemaVersion, 5)
+    assert.equal(mid.schemaVersion, 6)
     assert.deepEqual(mid.player.inventory, preSave)
     assert.doesNotMatch(JSON.stringify(mid), /action|reserv/i)
     await page.reload()
@@ -375,9 +380,8 @@ try {
     // 8) Save → fixture → reload → Continue keeps the club, the repaired weapon and materials.
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 5)
+    assert.equal(saved.schemaVersion, 6)
     assert.equal(saved.containers.find((c) => c.id === 'ct-safehouse-toolbox').opened, true)
-    writeFileSync('src/game/systems/fixtures/phase2-s4-v5.json', JSON.stringify({ ...saved, savedAt: 1790380800000 }, null, 2) + '\n')
     await page.reload()
     await menu()
     await continueGame()
@@ -396,14 +400,14 @@ try {
     await hasText('3 chỗ vật liệu')
     const migrated = await readSlot('slot-1')
     const backup = await readSlot('slot-1.backup-v4')
-    assert.equal(migrated.schemaVersion, 5)
+    assert.equal(migrated.schemaVersion, 6)
     assert.deepEqual(backup, v4)
     const ids = migrated.containers.filter((c) => !c.position).map((c) => c.id)
     for (const id of ['ct-safehouse-toolbox', 'ct-store-hardware', 'ct-house-scrap']) assert.ok(ids.includes(id))
-    log('migration v4 → v5', { containers: ids.length, backup: 'slot-1.backup-v4' })
+    log('migration v4 → v6', { containers: ids.length, backup: 'slot-1.backup-v4' })
     await shot('p2s4-migrated')
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    log('PASS dev', 'loot kit/closet, broken→repair→full damage, cancel (move/X/hit), reservation, pause/save mid-action, craft+equip club, fixture, v4 migration')
+    log('PASS dev', 'loot kit/closet, broken→repair→full damage, cancel (move/X/hit), reservation, pause/save mid-action, craft+equip club, v4 → v6 migration')
   }
 } finally {
   await browser.close()

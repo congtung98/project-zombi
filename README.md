@@ -1,7 +1,7 @@
 # Zombie Outbreak — Phase 2
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng), **Sprint 3** (model/animation, tạo nhân vật) và **Sprint 4** (hành động có thời gian, sửa vũ khí, chế tạo). Bản build production
+`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng), **Sprint 3** (model/animation, tạo nhân vật), **Sprint 4** (hành động có thời gian, sửa vũ khí, chế tạo) và **Sprint 5** (zombie nghe tiếng bước chân, lang thang/di cư theo đàn, phá cửa). Bản build production
 nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
@@ -48,6 +48,10 @@ npm run lint
 | X | Hủy sửa/chế tạo đang làm (di chuyển, đánh, đẩy hoặc bị trúng đòn cũng hủy; không mất nguyên liệu) |
 | Esc (khi túi mở) | Đóng túi/tủ trước, nhấn lần nữa mới tạm dừng (tạm dừng thì thao tác đang làm cũng dừng) |
 
+Zombie nhìn phía trước mặt và **nghe tiếng bước chân** quanh mình (đi bộ 5 m, chạy 12 m, đứng yên im lặng, qua tường
+còn một nửa). Khi nghe thấy tiếng bước chân của chính mình là lúc zombie xung quanh có thể nghe bạn. Zombie đã thấy/nghe bạn sẽ **đập cửa** đóng chặn đường (cửa rung, sẫm dần, prompt E hiện độ bền) và phá
+được; zombie chưa phát hiện bạn thì không biết bạn ở trong nhà.
+
 Tab mất focus sẽ tự tạm dừng và xóa mọi phím đang giữ. Ở chế độ dev, `window.__runtime` trỏ tới
 simulation để kiểm tra từ console hoặc kịch bản playtest tự động.
 
@@ -57,14 +61,15 @@ simulation để kiểm tra từ console hoặc kịch bản playtest tự độ
 src/
   app/                 App (điều hướng màn hình), GameCanvas
   game/
-    core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, snapshot/load)
+    core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, di cư, đòn vào cửa, snapshot/load)
     entities/          player, zombie (state thuần), items (định nghĩa vật phẩm, ID ổn định), recipes (craft/repair)
-    systems/           input, movement, ai (FSM + bám path), combat, survival (+ dùng vật phẩm), interaction,
+    systems/           input, movement, ai (FSM: nhìn/nghe/trí nhớ, lang thang, vây cửa + bám path), horde (đạo diễn di cư),
+                       combat, survival (+ dùng vật phẩm), interaction,
                        inventory (add/remove/transfer), loot (PRNG seed, bảng loot), spawn (chọn điểm spawn),
                        save (validate schema, tóm tắt), saveStorage (IndexedDB), crafting (kiểm tra/commit
                        recipe), timedAction (reservation, tiến độ)  (+ unit test)
     world/             buildings (generator tường/cửa), mapData (khu phố 50×50), worldState (cửa/container + loot),
-                       lootTables (bảng loot đặt tay), navigation (lưới A*, cửa mở/đóng)
+                       lootTables (bảng loot đặt tay), navigation (lưới A*, cửa mở/đóng/vỡ, vùng liên thông, chọn cửa phá)
     rendering/         Scene, CameraRig, CursorProbe, Ground, Roads, Walls, BuildingView, DoorView,
                        ContainerView, PlayerView, ZombieView, Lights (+ daylight), OcclusionFader, PhysicsBridge, GameLoop
       character/       rig dựng bằng code (khớp, weaponSocket), pose thuần (animation), model vũ khí, animator sau tick
@@ -93,6 +98,14 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Phase 2 — Sprint 5 (24/09/2026)
+
+- **Cảm nhận**: zombie chưa phát hiện nhìn hình nón ±70° phía trước (10 m, mọi hướng trong 1,2 m); đang săn thì nhìn mọi hướng. **Nghe tiếng bước chân** trong bán kính cố định: đi bộ 5 m, chạy 12 m, đứng yên/sửa đồ im lặng, qua tường/cửa đóng còn một nửa. Nhớ vị trí thấy/nghe 20 s; người chơi chưa bị phát hiện sau tường kín không bao giờ bị nhắm.
+- **Lang thang**: nghỉ 3–8 s → đi tới điểm ngẫu nhiên đi được trong vùng của mình (tìm đường A*) → nghỉ → điểm mới. **Di cư**: 8 vùng ngoài trời; mỗi 90–180 s một đạo diễn bên ngoài đẩy cả nhóm của một vùng sang vùng khác (ưu tiên vùng vắng).
+- **Phá cửa**: zombie đã thấy/nghe bạn mà bị cửa đóng chặn sẽ chọn đúng cửa trên tuyến tới vị trí nhớ, tới một trong 2 chỗ đập mỗi phía (con khác xếp hàng), đập 10 HP/1,2 s; mở cửa lúc lấy đà hủy đòn; vỡ ở 0 HP (collider + đường đi cập nhật), zombie vào tìm rồi đuổi khi thấy lại. Âm đập/vỡ theo khoảng cách, cửa rung và sẫm theo HP. Respawn không bao giờ trong nhà.
+- Save schema **v6** (trí nhớ, vùng, cửa đang đập, bộ đếm di cư; backup `slot-1.backup-v5`). F3 hiện trạng thái/vùng/trí nhớ zombie và bán kính tiếng bước chân.
+- **259 test**; soak shelter vẫn sống 30' (lần đầu có zombie phá cửa nhà an toàn), patrol 853 s; Playwright dev + production (`scripts/p2-s5-browser.mjs`). Chi tiết `docs/phase2-s5.md`.
 
 ### Phase 2 — Sprint 4 (24/09/2026)
 

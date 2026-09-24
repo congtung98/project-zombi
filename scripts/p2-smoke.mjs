@@ -90,7 +90,7 @@ try {
       req.onsuccess = () => { const db=req.result; const tx=db.transaction('saves'); const read=tx.objectStore('saves').get('slot-1'); read.onsuccess=()=>resolve(read.result); tx.oncomplete=()=>db.close() }
       req.onerror=()=>reject(req.error)
     })`)
-    assert.equal(saved.schemaVersion, 5)
+    assert.equal(saved.schemaVersion, 6)
     assert.equal(saved.player.inventory.slots.filter((i) => i?.kind === 'weapon').length, 0)
     assert.equal(saved.player.equipment.weaponInstanceId, null)
     await navigate(`${base ?? 'http://127.0.0.1:5199'}/`)
@@ -153,7 +153,7 @@ try {
   })()`)
   assert.equal(result.ready, 'ready')
   assert.equal(result.unchangedOnPreview, true)
-  assert.equal(result.version, 5)
+  assert.equal(result.version, 6)
   assert.equal(result.backupMatches, true)
   assert.equal(result.saved, true)
   assert.deepEqual(result.conditions, [10, 70])

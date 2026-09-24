@@ -1,86 +1,86 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-24**, hoàn thành **Phase 2 — Sprint P2-S4**.
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md và docs/phase2-s1.md … phase2-s4.md.
+> Cập nhật: **2026-09-24**, hoàn thành **Phase 2 — Sprint P2-S5**.
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md và docs/phase2-s1.md … phase2-s5.md.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
 ## 1. Trạng thái hiện tại
 
-Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1** (6977c79), **S2** (96c2af6), **S3** (cd632cc, docs 9e4ffe6) và **S4** (timed action, sửa, chế tạo, save v5). Sprint kế tiếp là **P2-S5: perception, zombie phá cửa, repath**.
+Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S4** (đã commit, S4 = 0752802, docs e66cba5) và **S5** (perception + nghe bước chân, lang thang/di cư đàn, zombie phá cửa, save v6). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Mốc Git trước phiên S4: **9e4ffe6** (docs: update project status after phase 2 sprint 3), working tree sạch. Thay đổi S4 chưa commit, để người dùng review.
+Mốc Git trước phiên S5: **e66cba5**, working tree sạch. Thay đổi S5 chưa commit, để người dùng review.
 
 | Sprint | Trạng thái |
 |---|---|
 | Phase 1 S1–S6 | Xong mã; deploy thật, FPS GPU thật và playtest tay vẫn cần xác nhận |
-| P2-S1 Item/save/cửa động | Xong, đã commit |
-| P2-S2 Loot/equipment/melee/condition | Xong, đã commit |
-| P2-S3 Model/animation/character creation | Xong, đã commit |
-| P2-S4 Timed action/craft/repair | Xong; 211 test, build/lint, Playwright dev + production qua; **chưa commit** |
-| P2-S5 Perception/zombie phá cửa | Tiếp theo; dùng kết quả spike S1 |
-| P2-S6 Barricade/tool/fuel | Chưa làm; dùng lại TimedAction + tool requirement S4 |
+| P2-S1 … P2-S4 | Xong, đã commit |
+| P2-S5 Perception/lang thang/di cư/phá cửa | Xong + feedback animation/tiếng bước chân; 266 test, build/lint, Playwright qua; **chưa commit** |
+| P2-S6 Barricade/tool/fuel | Tiếp theo; dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
 
-## 2. S4 đã bàn giao
+## 2. S5 đã bàn giao
 
-- **Vật liệu**: `wood_plank`, `scrap_metal`, `duct_tape` (stack 10), `nails` (50), kind `material`, không dùng trực tiếp. **Gậy gỗ tự chế** `wooden_club` (18 dmg, 1,7 m, 1,05 s, 11 stamina, độ bền 40, model riêng). `repairGroup` gỗ/kim loại trên definition.
-- **Loot**: 3 container ID mới `ct-safehouse-toolbox` (bảo đảm 1 ván/1 băng keo/1 kim loại vụn), `ct-store-hardware` (bảo đảm đinh/ván/băng keo), `ct-house-scrap` (ngoài trời, rủi ro). Bảng loot Phase 1/S2 không đổi. 400 seed (tổng 3 container): băng keo 2–6 (TB 2,6), ván 2–10 (TB 4,6); mỗi seed đủ ≥ 2 việc cần băng keo.
-- **TimedAction** (`systems/timedAction.ts`, `systems/crafting.ts`, `entities/recipes.ts`, `runtime.action`): start kiểm tra + reservation → tiến độ theo dt tick (pause dừng) → hủy khi di chuyển/đánh/đẩy/trúng đòn zombie/X/chết (đói không hủy) → commit nguyên tử trên bản sao túi (action xóa trước commit, gọi lặp no-op). Reservation chặn thả/cất/dùng. Không lưu action; snapshot luôn trước hoặc sau commit.
-- **Recipe**: gậy gỗ 2 ván + 1 băng keo 4 s; sửa gỗ 1 ván + 1 băng keo +30 4 s; sửa kim loại 1 kim loại vụn + 1 băng keo +25 5 s; không cần dụng cụ; chặn ở max, đầy bị chặn, hỏng sửa được. Chỗ thành phẩm tính sau khi tiêu input. Tool requirement (`isUsableTool`, hao mòn khi commit, instance chọn lúc start) có sẵn, test bằng recipe thử.
-- **UI**: nút Sửa trong thẻ chi tiết (xem trước độ bền, nguyên liệu có/cần, lý do), bảng Chế tạo trong overlay túi, thanh tiến trình HUD trên bảng chỉ số + Hủy (X), toast/âm thanh bắt đầu/xong/hủy. Tư thế làm việc dùng chung trong `pose.ts` (input `work`).
-- **Save v5**: migrate v4 → v5 gieo 3 container mới một lần (`seedAddedContainers`, dùng chung v2 → v3); backup `slot-1.backup-v4`. Fixture mới `phase2-s4-v5.json` từ Chromium; `phase2-s3-v4.json` đóng băng.
-- **Sửa lỗi S3**: ô tên tạo nhân vật (controlled input) mất ký tự đầu ở bản production khi canvas đang khởi động → uncontrolled input. Đây là nguyên nhân lần fail "không rõ" của script S3 production.
+- **Cảm nhận**: zombie chưa phát hiện nhìn hình nón ±70°/10 m (hoặc mọi hướng trong 1,2 m); đang săn nhìn mọi hướng 14 m. **Nghe bước chân** bán kính cố định: đi 5 m, chạy 12 m, đứng yên im lặng; qua tường × 0,5. Trí nhớ `lastKnownTarget/memoryAge/memorySource` 20 s (thay timeout SEARCH 8 s). Bị đánh khi chưa phát hiện → tìm hướng đòn.
+- **Lang thang**: IDLE nghỉ 3–8 s → WANDER tới điểm ngẫu nhiên đi được, cùng vùng liên thông, ngoài trời, trong vùng (0,9 m/s) → nghỉ → điểm mới.
+- **Di cư**: 8 `zombieZones` trên map khu phố; director mỗi 90–180 s chuyển cả nhóm của một vùng (≥ 2 con đang nghỉ/lang thang) sang vùng khác ưu tiên vùng vắng; con rảnh chuyển MIGRATE (1,4 m/s), con đang săn giữ săn. Seed theo ván + bộ đếm, lưu trong save.
+- **Phá cửa**: `findDoorRoute` trên nhãn vùng liên thông (cache theo `nav.version`); APPROACH_STRUCTURE → ATTACK_STRUCTURE, 10 dmg/1,2 s, 2 slot mỗi phía cửa, hàng chờ 2,4 m, runtime kiểm tra lại cửa còn đóng + trong tầm mỗi đòn; mở cửa lúc lấy đà hủy đòn; vây tối đa 60 s từ thông tin mới nhất; vỡ → collider/nav/`door:destroyed` → SEARCH vị trí nhớ. `findPath` trả null ngay khi khác vùng liên thông (không còn A* loang).
+- **Phản hồi**: âm đập/vỡ cửa giảm theo khoảng cách, cửa rung + sẫm theo HP, prompt "(độ bền x/120)", toast cửa vỡ, mắt đỏ khi vây cửa, F3 hiện vùng/trí nhớ/cửa đang đập, bán kính bước chân, giờ di cư. Hướng dẫn trong game cập nhật. Lab `?lab=doors` hiện HP cửa + trạng thái zombie.
+- **Respawn** cấm điểm trong nhà và ô không đi được (`pickSpawnPoint.isAllowed`).
+- **Feedback 25/09 — animation + bước chân**: chân người chơi/zombie không còn phụ thuộc FPS (tốc độ lọc 0,12 s, pha tích phân; `rendering/character/gait.ts`), sải dài hơn (`config.player.walkStride/runStride` 2,2/3,2 m, zombie 1,6 m), zombie quay mượt. Tiếng bước chân `player:footstep` phát mỗi nửa sải **chỉ khi zombie nghe được** (`playerNoise` > 0), âm `stepWalk`/`stepRun`.
+- **Hook S6**: `TimedAction.worldTargetId` — cửa trúng đòn hủy action nhắm nó (`target-damaged`), không trừ gì.
+- **Save v6**: zombie thêm `memoryAge/memorySource/zoneId/structureTargetId`, save thêm `horde {timer, counter}`; migrate v5 → v6 (vùng gần nhất, không vây, timer 90), backup `slot-1.backup-v5`. Fixture `phase2-s5-v6.json` (Chromium, lưu giữa lúc đang đập cửa); `phase2-s4-v5.json` đóng băng.
 
 ## 3. Kiểm chứng cuối sprint
 
-- **npm test: 211/211**, 22 file. **npm run build**, **npm run lint** sạch. Soak shelter/patrol giữ nguyên số liệu S2/S3 (30'/4 kill/30 dmg; 721,9 s/34 kill); lộ trình soak không đổi.
-- **Playwright/Chromium 151** (`scripts/p2-s4-browser.mjs`): dev — loot hộp đồ nghề/tủ quần áo bằng input thật, gậy hỏng 5 dmg → sửa 0 → 30 (≥ 4 s game, cùng ID) → 25 dmg, hủy bằng di chuyển/X/trúng đòn không mất gì, chặn thả đồ đặt trước, pause đứng tiến độ, save giữa action rồi Continue, chế tạo + trang bị gậy gỗ (socket `weapon:wooden_club`), fixture v5, migrate fixture v4 qua Continue. Production — loot thật, bảng Chế tạo, sửa/pause/save/reload/Continue; **7/7 PASS liên tiếp**.
-- Hồi quy: `p2-s2-browser.mjs`, `p2-s3-browser.mjs` (production 4/4 sau sửa ô tên), `p2-smoke.mjs` dev + production: PASS. Script cũ giờ assert schema 5.
+- **npm test: 266/266**, 27 file (gồm `gait.test.ts`, `footsteps.test.ts`). **npm run build**, **npm run lint** sạch.
+- Soak (lộ trình không đổi): shelter **sống 30'**, 4 kill, 30 dmg, **cửa nhà an toàn bị phá ở giây 61** (zombie nghe/thấy bot chạy về), 12 lần di cư; patrol chết ở **853 s** (trước 721,9 s), 30 kill. Bất biến ≤ 2 zombie đập mỗi phía cửa.
+- Playwright/Chrome 153 (`scripts/p2-s5-browser.mjs`): dev 3/3 (lang thang, bước chân bằng phím thật, E mở/đóng cửa, đập cửa với Rapier thật, lưu giữa vây → reload → Continue → vỡ → vào nhà → đánh, ghi fixture v6); production 4/4. Hồi quy p2-s2/s3/s4 dev + production, p2-smoke dev + production: PASS (schema 6).
+- **3 test interaction lỗi sẵn trên HEAD** (commit S4 đổi `INTERACT_RANGE` 2 → 1 m) đã sửa vị trí vật trong test; script S4 thêm bước lùi vào phòng vì cùng nguyên nhân. Hằng số không đổi.
 
 ## 4. File/module liên quan
 
 | File | Trách nhiệm |
 |---|---|
-| src/game/entities/items.ts | Vật liệu, `wooden_club`, `repairGroup` |
-| src/game/entities/recipes.ts | Dữ liệu recipe, `repairRecipeFor`, `CRAFT_RECIPES` |
-| src/game/systems/crafting.ts (+ .test) | `checkRecipe`/`commitRecipe` thuần, không đổi gì khi thất bại |
-| src/game/systems/timedAction.ts | Kiểu action, reservation, `advanceAction` |
-| src/game/core/runtime.ts | `action`, `startCraft/startRepair/startRecipe`, `cancelAction`, `completeAction`, `stepAction`, chặn đồ đặt trước |
-| src/game/core/timedAction.test.ts | Test tích hợp runtime (hủy, save, commit, acceptance) |
-| src/game/world/lootTables.ts, mapData.ts, materials.test.ts | 3 container + bảng loot vật liệu, `CONTAINERS_ADDED_V5`, test seed/vị trí |
-| src/game/systems/save.ts, types/save.ts | Schema v5, `migrateV4`, `seedAddedContainers` |
-| src/components/Inventory.tsx, CraftingPanel.tsx, craftText.ts, HUD.tsx | Sửa, chế tạo, tiến trình, lý do |
-| src/game/rendering/character/pose.ts, weaponModels.ts | Tư thế làm việc, model gậy gỗ |
-| src/components/CharacterCreation.tsx | Ô tên uncontrolled (sửa lỗi S3) |
-| scripts/p2-s4-browser.mjs | Kiểm thử S4 dev/production; dev ghi `phase2-s4-v5.json` |
-| docs/phase2-s4.md | Quyết định, số liệu, kiểm chứng |
+| src/game/systems/ai.ts (+ ai.test, perception.test) | FSM, `perceive` (nón nhìn + nghe), trí nhớ, lang thang/MIGRATE, vây cửa, `moveTowards` báo `blocked` |
+| src/game/entities/zombie.ts | Trường trí nhớ, lang thang, vùng, cửa mục tiêu; `UNAWARE_STATES` |
+| src/game/systems/horde.ts (+ horde.test) | `nearestZone`, `planMigration`, `migrationInterval` thuần |
+| src/game/world/navigation.ts | `componentAt` (nhãn vùng cache theo revision), `findDoorRoute` mới, `portals` có `center/sides/slots` |
+| src/game/world/mapData.ts | `ZoneDef`, `zombieZones` map khu phố |
+| src/game/core/runtime.ts | `playerNoise`, ngữ cảnh AI (route/slot/cửa/điểm lang thang), `stepStructureHits`, `stepHorde`, lọc respawn, snapshot/load v6 |
+| src/game/core/siege.test.ts | Nghiệm thu runtime S5 (body giả trên lưới) |
+| src/game/core/config.ts | `zombie.*` (nón, trí nhớ, lang thang), `hearing`, `structure`, `horde` |
+| src/game/systems/save.ts, types/save.ts | Schema v6, `migrateV5`, `isZombieV6` |
+| src/game/rendering/DoorView.tsx, ZombieView.tsx, audio/sfx.ts, app/App.tsx | Rung/sẫm cửa, mắt đỏ, `doorBash/doorBreak` theo khoảng cách, toast |
+| src/components/HUD.tsx, stores/hudStore.ts, DoorLab.tsx, Settings.tsx | F3, lab, hướng dẫn |
+| scripts/p2-s5-browser.mjs | Kiểm thử S5 dev/production; dev ghi `phase2-s5-v6.json` |
+| src/game/rendering/character/gait.ts (+ test), core/footsteps.test.ts, scripts/p2-s5-gait.mjs | Gait độc lập FPS, nhịp/âm bước chân |
+| docs/phase2-s5.md | Quyết định, số liệu, kiểm chứng |
 
-## 5. Bước tiếp theo — P2-S5
+## 5. Bước tiếp theo — P2-S6
 
-1. LOS + `lastSeenPosition/lastSeenTime` (nhớ 20 s); không phát hiện player sau tường kín chưa từng thấy. AI hiện có `lastKnownTarget` và raycast mắt 1,5 m.
-2. Tích hợp `nav.findDoorRoute` (spike S1) vào FSM: APPROACH/ATTACK_STRUCTURE, chỉ cửa trên tuyến tới vị trí nhớ; cache theo `nav.version`, không chạy mọi frame/mọi zombie.
-3. Door HP (đã có `hp`, `DOOR_MAX_HP` 120) nhận damage công trình 10/1,2 s theo `attackWindup`; tối đa 2 vị trí đánh; vỡ → `setDoorState('destroyed')` (collider + nav đã có). Pose đập dùng lại `attack` của zombie.
-4. Mở cửa khi zombie đang lấy đà: hủy mục tiêu, không hit từ xa. Audio bash/break. Lưu HP cửa (đã có trong save; kiểm tra lại) — nếu thêm trạng thái AI mới vào save thì tăng schema v6.
-5. Respawn: cấm spawn trong nội thất/collider mới.
-6. Khi cửa bị đánh, action nhắm cửa (S6) phải hủy: dùng `cancelAction`/sự kiện; S4 chưa có action nhắm world target.
-7. Soak lại (đổi AI) — cổng shelter có thể đổi vì zombie phá cửa nhà an toàn; ghi rõ số liệu mới.
+1. Barricade trên `DoorState` (gỗ 1–3 ván, kim loại); `stepStructureHits` trừ barricade trước, phần dư vào cửa (plan §9.3). Cửa barricade không mở được.
+2. Action nhắm cửa: `startRecipe` với `worldTargetId = doorId` (hook đã có), kiểm tra khoảng cách tới cửa, cooldown 3 s sau lần cửa trúng đòn.
+3. Items `metal_sheet`, `welding_torch` (fuel), `welder_mask`, `fuel_canister`; refuel là recipe có thời gian. Búa đã là tool (`isUsableTool`).
+4. Save v7 cho barricade/fuel; migrate v6 → v7; fixture mới; giữ `phase2-s5-v6.json` đóng băng (script S5 đang ghi đè nó — tắt ghi khi đổi schema).
+5. Cân bằng thời gian trụ cửa với 1–2 zombie; soak shelter hiện mất cửa ở giây 61 — cân nhắc cho bot gia cố/sửa cửa khi có S6/S7.
 
 ## 6. Giới hạn và việc còn lại
 
 - Chưa deploy thật, đo FPS GPU tích hợp thật hay playtest tay. Draw call tăng ~1,6–1,8× so với capsule (S3).
-- Cân bằng: soak patrol chết ở ~12' khi đánh liên tục; lượng vật liệu/băng keo là giá trị khởi điểm. Quyết định ở S8.
-- Đinh chỉ mới là loot; recipe dùng búa, refuel, barricade, build thuộc S6–S7. `metal_sheet`, torch, mask, fuel chưa có.
-- Route portal S1 là spike; S5 cần cache theo topology revision. Save chưa lưu cooldown/AI timer.
+- Cân bằng S5 (nón 70°, nghe 5/12 m, di cư 90–180 s) là giá trị khởi điểm. Nghe chưa có sai số; tiếng đánh/đập cửa chưa thu hút zombie.
+- Cửa vỡ chưa lắp lại được (S7); nhà an toàn có thể mất cửa sớm.
+- Chi phí phá cửa 12 m/cạnh đi bộ đường thẳng là ước lượng; đủ cho map hiện tại.
 - Warning thư viện: THREE.Clock, Rapier init parameters, Vite advancedChunks deprecated. Audio Safari chưa kiểm chứng iOS thật.
-- Trên máy dev có tiến trình khác nghe cổng 5173; các kiểm chứng dùng 5174/5199/9223 và đã tắt.
 
 ## 7. Kiểm tra nhanh và nguyên tắc giữ lại
 
-Chạy npm test, npm run build, npm run lint. Soak: `npx vitest run src/game/core/soak.test.ts --reporter=verbose`. Chơi thử `npm run dev`; lab `?lab=doors` (có "Vật liệu thử").
+**Môi trường**: repo cần Node ≥ 20 (Vitest/Rolldown dùng `node:util.styleText`). Máy dev hiện chỉ có Node 18.12 trên PATH; S5 dùng Node 22.20 portable ngoài repo. `node_modules` từng thiếu binding Windows của rolldown/oxlint (lỗi optional deps của npm) — đã giải nén đúng phiên bản trong lockfile; nếu tái cài thì `npm ci` bằng Node ≥ 20.
 
-Browser: Playwright không phải dependency; truyền `PLAYWRIGHT_MODULE` (file:// URL) và `CHROMIUM_PATH`, `BASE_URL` nếu không dùng cổng mặc định. Khởi động Vite mới sau khi sửa source. `p2-s4-browser.mjs` (dev) ghi đè `phase2-s4-v5.json`; fixture v1–v4 đóng băng. `p2-smoke.mjs` cần Chromium mở sẵn với `--remote-debugging-port=9223` và profile thử. Ảnh ở node_modules/.tmp (không track). Giữ log đầy đủ khi script fail (race ở script thường do đọc DOM trước khi React render).
+Chạy npm test, npm run build, npm run lint. Lưu ý: `npm run` bằng npm 10 từng ghi đè trường `license` trong package-lock.json (đã hoàn tác); có thể gọi thẳng `node node_modules/vitest/vitest.mjs run`, `node node_modules/vite/bin/vite.js build`, `./node_modules/.bin/oxlint`. Soak: `npx vitest run src/game/core/soak.test.ts --reporter=verbose` (in thêm `sightAlerts/noiseAlerts/sieges/doorHits/doorsDestroyed/migrations`). Chơi thử `npm run dev`; F3 xem trạng thái/vùng/trí nhớ zombie; lab `?lab=doors` (mở cửa cho zombie thấy, đóng lại, xem HP cửa).
 
-Giữ simulation ngoài React; thứ tự tick: input → movement → interaction → AI → combat → **action** → survival/clock → events; pose chạy sau tick qua `CharacterAnimator`; không import Rapier runtime vào simulation. Mọi hành động có thời gian mới (barricade, build, refuel) dùng `startRecipe`/reservation/commit nguyên tử, không trừ gì khi hủy. Giữ layout/ID map và fixture cũ. Tăng schema khi đổi cấu trúc save; không im lặng cắt/mất item. Không đổi balance khi chưa đo; soak sau sửa combat/AI/spawn/survival (cổng: shelter). Không thêm asset ngoài khi chưa ghi nguồn/giấy phép. **Không commit/push; chỉ gợi ý message.**
+Browser: Playwright không phải dependency; truyền `PLAYWRIGHT_MODULE` (file:// URL, ví dụ npx cache `playwright@1.64`) và `CHROMIUM_PATH` (Chrome cài sẵn), `BASE_URL`. Khởi động Vite mới sau khi sửa source. `p2-s5-browser.mjs` (dev) ghi đè `phase2-s5-v6.json`; fixture v1–v5 đóng băng. `p2-smoke.mjs` cần Chrome headless mở sẵn với `--remote-debugging-port=9223` và profile thử riêng. Ảnh ở node_modules/.tmp (không track).
 
-Commit message gợi ý: **feat(phase2): timed actions, weapon repair, crafting and save v5**
+Giữ simulation ngoài React; thứ tự tick: input → movement (tính tiếng bước chân) → interaction → AI → combat → **đòn vào công trình** → action → survival/clock → spawn → **di cư** → events; pose chạy sau tick qua `CharacterAnimator`; không import Rapier runtime vào simulation. AI chỉ biết vị trí người chơi qua nhìn/nghe/trí nhớ. Mọi hành động có thời gian mới dùng `startRecipe`/reservation/commit nguyên tử. Giữ layout/ID map, ID vùng và fixture cũ. Tăng schema khi đổi cấu trúc save. Không đổi balance khi chưa đo; soak sau sửa combat/AI/spawn/survival. **Không commit/push; chỉ gợi ý message.**
+
+Commit message gợi ý: **feat(phase2): zombie hearing, wandering hordes and door breaking, save v6**

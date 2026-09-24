@@ -40,6 +40,10 @@ export interface PlayerState {
   pushCooldown: number
   /** View only: hit-reaction time left after taking a blow (not saved). */
   hurtTimer: number
+  /** Intended ground speed this tick (0 = standing, silent); drives footsteps and the leg pose. */
+  moveSpeed: number
+  /** Gait phase (radians, one full cycle = two footsteps); a footstep lands at every multiple of π. */
+  stridePhase: number
   /** Số zombie đã hạ trong ván. */
   kills: number
   /** Túi đồ 12 ô; tuần tự hóa được để lưu ở Sprint 5. */
@@ -69,6 +73,8 @@ export function createPlayerState(spawn: Vec3, profile?: CharacterProfile): Play
     lastWornAttackId: 0,
     pushCooldown: 0,
     hurtTimer: 0,
+    moveSpeed: 0,
+    stridePhase: 0,
     kills: 0,
     inventory: createInventory(GAME_CONFIG.inventory.slots, 'player'),
     equipment: { weaponInstanceId: null },

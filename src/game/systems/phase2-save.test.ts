@@ -4,12 +4,15 @@ import currentFixture from './fixtures/phase2-s1-v2.json'
 import s2Fixture from './fixtures/phase2-s2-v3.json'
 import s3Fixture from './fixtures/phase2-s3-v4.json'
 import s4Fixture from './fixtures/phase2-s4-v5.json'
+import s5Fixture from './fixtures/phase2-s5-v6.json'
+import { DOOR_MAX_HP } from '../world/doors'
 import { GameRuntime } from '../core/runtime'
 import { validateSaveGame } from './save'
 import { addItem, createInventory, totalQuantity, transferSlot } from './inventory'
 import { equippedWeapon, equipWeapon } from './equipment'
 import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, NEIGHBORHOOD_MAP } from '../world/mapData'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
+import { GAME_CONFIG } from '../core/config'
 import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME } from '../entities/appearance'
 
 const mapId = NEIGHBORHOOD_MAP.id
@@ -17,6 +20,18 @@ const migrate = (data: unknown) => {
   const result = validateSaveGame(data, mapId)
   if (!result.ok) throw new Error(result.detail)
   return result
+}
+/** The save without the P2-S5 (v6) zombie AI fields, to compare with pre-v6 fixtures. */
+const withoutV6 = (save: SaveGame): Omit<SaveGame, 'horde'> => {
+  const copy: Partial<SaveGame> = structuredClone(save)
+  delete copy.horde
+  for (const z of copy.zombies as Partial<SaveGame['zombies'][number]>[]) {
+    delete z.memoryAge
+    delete z.memorySource
+    delete z.zoneId
+    delete z.structureTargetId
+  }
+  return copy as Omit<SaveGame, 'horde'>
 }
 
 describe('Phase 1 fixture migration', () => {
@@ -126,7 +141,7 @@ describe('v4 → v5 (P2-S4 material containers)', () => {
       const added = save.containers.find((c) => c.id === id)!
       expect(added).toEqual({ id, opened: false, items: fresh.world.containers.get(id)!.items })
     }
-    expect({ ...save, schemaVersion: 4, containers: save.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id)) }).toEqual(s3Fixture)
+    expect({ ...withoutV6(save), schemaVersion: 4, containers: save.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id)) }).toEqual(s3Fixture)
     // Map order first, then drops (matches createSnapshot), and idempotent.
     const fixed = save.containers.filter((c) => !c.position).map((c) => c.id)
     expect(fixed).toEqual(NEIGHBORHOOD_MAP.containers.map((c) => c.id))
@@ -165,16 +180,16 @@ describe('v4 → v5 (P2-S4 material containers)', () => {
 })
 
 describe('P2-S2 browser fixture (v3)', () => {
-  it('v3 → v5 adds only the default name/appearance and the P2-S4 material containers; everything else is the S2 save', () => {
+  it('v3 → v6 adds only the default name/appearance, the P2-S4 material containers and zombie AI fields; everything else is the S2 save', () => {
     const before = JSON.stringify(s2Fixture)
     const { save, migrated, fromVersion } = migrate(s2Fixture)
-    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 3, 5])
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 3, 6])
     expect(JSON.stringify(s2Fixture)).toBe(before)
     const { name, appearance, ...rest } = save.player
     expect([name, appearance]).toEqual([DEFAULT_PLAYER_NAME, DEFAULT_APPEARANCE])
     expect(rest).toEqual(s2Fixture.player)
     const containers = save.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id))
-    expect({ ...save, player: rest, schemaVersion: 3, containers }).toEqual(s2Fixture)
+    expect({ ...withoutV6(save), player: rest, schemaVersion: 3, containers }).toEqual(s2Fixture)
     expect(migrate(s2Fixture).save).toEqual(save)
   })
 
@@ -195,9 +210,9 @@ describe('P2-S2 browser fixture (v3)', () => {
 })
 
 describe('P2-S3 browser fixture (v4)', () => {
-  it('migrates to v5 and keeps the chosen name/appearance through repeated round trips', () => {
+  it('migrates to v6 and keeps the chosen name/appearance through repeated round trips', () => {
     const { save, migrated, fromVersion } = migrate(s3Fixture)
-    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 4, 5])
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 4, 6])
     expect([save.player.name, save.player.appearance]).toEqual(['Trần Tùng', { preset: 'sturdy', hair: 'mohawk', skin: 'dark', shirt: 'red', pants: 'olive' }])
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
@@ -294,9 +309,9 @@ describe('instance ownership', () => {
 })
 
 describe('P2-S4 browser fixture (v5)', () => {
-  it('loads without migration: crafted club equipped, closet bat repaired then worn, materials and looted kit kept', () => {
-    const { save, migrated } = migrate(s4Fixture)
-    expect(migrated).toBe(false)
+  it('migrates to v6 only in zombie AI fields: crafted club equipped, closet bat repaired then worn, materials and looted kit kept', () => {
+    const { save, migrated, fromVersion } = migrate(s4Fixture)
+    expect([migrated, fromVersion]).toEqual([true, 5])
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
@@ -310,5 +325,82 @@ describe('P2-S4 browser fixture (v5)', () => {
     expect(rt.startRepair(bat.id).ok).toBe(true)
     for (let t = 0; t < 4.1; t += 1 / 60) rt.tick(1 / 60)
     expect(rt.player.inventory.slots.find((i) => i?.id === bat.id)).toMatchObject({ condition: 59 })
+  })
+})
+
+describe('v5 → v6 (P2-S5 zombie perception, zones, siege, horde)', () => {
+  it('adds only zombie AI fields and the horde countdown; zombies join the zone nearest to them', () => {
+    const before = JSON.stringify(s4Fixture)
+    const { save, fromVersion } = migrate(s4Fixture)
+    expect(JSON.stringify(s4Fixture)).toBe(before)
+    expect([fromVersion, save.schemaVersion]).toEqual([5, 6])
+    expect({ ...withoutV6(save), schemaVersion: 5 }).toEqual(s4Fixture)
+    expect(save.horde).toEqual({ timer: GAME_CONFIG.horde.intervalMin, counter: 0 })
+    expect(Object.fromEntries(save.zombies.map((z) => [z.id, z.zoneId]))).toEqual({
+      'zombie-2': 'zone-south', 'zombie-3': 'zone-east', 'zombie-4': 'zone-north', 'zombie-5': 'zone-store',
+      'zombie-6': 'zone-yard', 'zombie-7': 'zone-west', 'zombie-8': 'zone-south',
+    })
+    for (const z of save.zombies) expect(z).toMatchObject({ memoryAge: 0, memorySource: null, structureTargetId: null })
+    expect(migrate(s4Fixture).save).toEqual(save)
+    expect(migrate(save)).toMatchObject({ migrated: false, save })
+  })
+
+  it('a remembered position in a v5 save becomes a fresh sighting', () => {
+    const old = structuredClone(s4Fixture) as unknown as SaveGame
+    old.zombies[0] = { ...old.zombies[0], ai: 'SEARCH', lastKnownTarget: { x: -13, y: 0.9, z: -13 } }
+    const { save } = migrate(old)
+    expect(save.zombies[0]).toMatchObject({ ai: 'SEARCH', memoryAge: 0, memorySource: 'sight', structureTargetId: null })
+  })
+
+  it.each([
+    ['unknown zone', (s: SaveGame) => { s.zombies[0].zoneId = 'zone-moon' }],
+    ['siege without a door', (s: SaveGame) => { s.zombies[0] = { ...s.zombies[0], ai: 'ATTACK_STRUCTURE', lastKnownTarget: { x: 0, y: 0, z: 0 }, memorySource: 'sight' } }],
+    ['siege door not on the map', (s: SaveGame) => { s.zombies[0] = { ...s.zombies[0], ai: 'APPROACH_STRUCTURE', lastKnownTarget: { x: 0, y: 0, z: 0 }, memorySource: 'sight', structureTargetId: 'door-x' } }],
+    ['door target outside a siege', (s: SaveGame) => { s.zombies[0].structureTargetId = 'door-house' }],
+    ['memory source without memory', (s: SaveGame) => { s.zombies[0].memorySource = 'noise' }],
+    ['negative memory age', (s: SaveGame) => { s.zombies[0].memoryAge = -1 }],
+    ['missing horde', (s: SaveGame) => { delete (s as Partial<SaveGame>).horde }],
+    ['v6 state in a v5 save', (s: SaveGame) => { Object.assign(s, withoutV6(s), { schemaVersion: 5 }); s.zombies[0].ai = 'WANDER' }],
+  ])('rejects %s', (_, corruptSave) => {
+    const save = structuredClone(migrate(s4Fixture).save)
+    corruptSave(save)
+    expect(validateSaveGame(save, mapId)).toMatchObject({ ok: false })
+  })
+
+  it('a valid siege save loads and round-trips exactly', () => {
+    const save = structuredClone(migrate(s4Fixture).save)
+    save.zombies[0] = { ...save.zombies[0], ai: 'ATTACK_STRUCTURE', lastKnownTarget: { x: 12, y: 0.9, z: 11 }, memorySource: 'noise', memoryAge: 4.5, structureTargetId: 'door-house' }
+    save.doors = save.doors.map((d) => (d.id === 'door-house' ? { ...d, hp: 70 } : d))
+    save.horde = { timer: 42.5, counter: 3 }
+    const rt = new GameRuntime()
+    rt.loadSnapshot(migrate(save).save)
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect(rt.zombies.get('zombie-2')).toMatchObject({ ai: 'ATTACK_STRUCTURE', structureTargetId: 'door-house', memoryAge: 4.5 })
+    expect(rt.world.doors.get('door-house')!.hp).toBe(70)
+    expect([rt.hordeTimer, rt.hordeCounter]).toEqual([42.5, 3])
+  })
+})
+
+describe('P2-S5 browser fixture (v6, saved mid-siege in Chromium)', () => {
+  it('loads without migration, round-trips exactly, and the loaded siege breaks the door', () => {
+    const { save, migrated } = migrate(s5Fixture)
+    expect(migrated).toBe(false)
+    const siege = save.zombies.find((z) => z.ai === 'ATTACK_STRUCTURE')!
+    expect(siege).toMatchObject({ structureTargetId: 'door-safehouse', memorySource: 'sight' })
+    const door = save.doors.find((d) => d.id === 'door-safehouse')!
+    expect(door.state).toBe('closed')
+    expect(door.hp).toBeLessThan(DOOR_MAX_HP)
+    const rt = new GameRuntime()
+    rt.loadSnapshot(save)
+    for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    // No Rapier in Node: walls and the closed door block sight like the grid does.
+    rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
+    let destroyed = 0
+    rt.events.on('door:destroyed', () => (destroyed += 1))
+    const period = GAME_CONFIG.zombie.attackWindup + GAME_CONFIG.structure.cooldown
+    for (let t = 0; t < (door.hp / GAME_CONFIG.structure.damage) * period + 2; t += 1 / 30) rt.tick(1 / 30)
+    expect(rt.world.doors.get('door-safehouse')).toMatchObject({ state: 'destroyed', hp: 0 })
+    expect(destroyed).toBe(1)
   })
 })

@@ -4,7 +4,7 @@ import { GameClock } from './clock'
 import { EventBus, type GameEvents } from './events'
 import { createPlayerState, type CharacterProfile, type PlayerState } from '../entities/player'
 import { normalizeName } from '../entities/appearance'
-import { createZombieState, type ZombieState } from '../entities/zombie'
+import { createZombieState, UNAWARE_STATES, type ZombieState } from '../entities/zombie'
 import { InputManager } from '../systems/input'
 import { computeCameraBasis, computeMoveDirection, dampAngle, regenStamina, resolvePlayerSpeed } from '../systems/movement'
 import { applyKnockback, damageZombie, stepZombie, type ZombieAIContext } from '../systems/ai'
@@ -14,6 +14,7 @@ import { INTERACT_RANGE, selectInteractable, type Interactable } from '../system
 import { transferAll, transferSlot, type TransferResult } from '../systems/inventory'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
+import { migrationInterval, nearestZone, planMigration } from '../systems/horde'
 import { getItemDef } from '../entities/items'
 import { cloneInventory } from '../systems/inventory'
 import { createInventory } from '../systems/inventory'
@@ -27,6 +28,7 @@ import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
 import { NavGrid } from '../world/navigation'
+import { isInsideBuilding } from '../world/buildings'
 import { createWorldState, type ContainerState, type WorldState } from '../world/worldState'
 import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
@@ -34,6 +36,11 @@ import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
 interface PendingAttack {
   sourceId: EntityId
   damage: number
+}
+
+interface PendingStructureHit {
+  sourceId: EntityId
+  doorId: string
 }
 
 export type ActionStartFailure = CraftFailure | 'busy' | 'dead'
@@ -105,6 +112,15 @@ export class GameRuntime {
    */
   action: TimedAction | null = null
   private nextActionId = 1
+  /** P2-S5: radius of the player's footstep noise this tick (0 = silent); zombies inside hear it. */
+  playerNoise = 0
+  /** P2-S5 horde director: seconds to the next migration attempt and attempt counter (seeds its RNG). */
+  hordeTimer: number = GAME_CONFIG.horde.intervalMin
+  hordeCounter = 0
+  /** Contact slots per door side (`doorId:side` → zombie IDs); at most two zombies bash a side. */
+  private doorSlots = new Map<string, (EntityId | null)[]>()
+  /** Rest-time RNG for the AI (not saved; wander targets use per-zombie seeds). */
+  private aiRng = createRng(1)
 
   private playerBody: RapierRigidBody | null = null
   private zombieBodies = new Map<EntityId, RapierRigidBody>()
@@ -128,6 +144,16 @@ export class GameRuntime {
       findPath: (from, to) => this.nav.findPath(from, to),
       hasLineOfWalk: (from, to) => this.nav.hasLineOfWalk(from, to),
       getNavVersion: () => this.nav.version,
+      noiseRadius: () => this.playerNoise,
+      findDoorRoute: (from, to) => this.nav.findDoorRoute(from, to),
+      getDoor: (id) => {
+        const door = this.world.doors.get(id)
+        const portal = this.nav.portals.get(id)
+        return door && portal ? { state: door.state, center: portal.center } : null
+      },
+      claimDoorSlot: (zombie, doorId, side) => this.claimDoorSlot(zombie, doorId, side),
+      pickWanderPoint: (zombie) => this.pickWanderPoint(zombie),
+      random: () => this.aiRng(),
     }
 
     this.newGame()
@@ -166,16 +192,22 @@ export class GameRuntime {
     this.autosaveTimer = GAME_CONFIG.save.autosaveInterval
     this.autosaveDue = false
     this.action = null
+    this.playerNoise = 0
+    this.hordeTimer = GAME_CONFIG.horde.intervalMin
+    this.hordeCounter = 0
+    this.doorSlots.clear()
+    this.aiRng = createRng(hashSeed(seed, 'ai'))
     for (const spawn of this.map.zombieSpawns) this.spawnZombie(spawn)
   }
 
+  /** New zombies join the group of the zone nearest their spawn point. */
   spawnZombie(position: Vec3): ZombieState {
     const id = `zombie-${this.nextZombieId++}`
-    return this.addZombie(id, position)
+    return this.addZombie(id, position, nearestZone(position, this.map.zombieZones)?.id ?? null)
   }
 
-  private addZombie(id: EntityId, position: Vec3): ZombieState {
-    const zombie = createZombieState(id, position)
+  private addZombie(id: EntityId, position: Vec3, zoneId: string | null): ZombieState {
+    const zombie = createZombieState(id, position, zoneId)
     this.zombies.set(id, zombie)
     return zombie
   }
@@ -195,6 +227,10 @@ export class GameRuntime {
         health: z.health,
         ai: z.ai,
         lastKnownTarget: z.lastKnownTarget ? { ...z.lastKnownTarget } : null,
+        memoryAge: z.lastKnownTarget ? z.memoryAge : 0,
+        memorySource: z.lastKnownTarget ? z.memorySource : null,
+        zoneId: z.zoneId,
+        structureTargetId: z.structureTargetId,
       })
     }
     return {
@@ -220,6 +256,7 @@ export class GameRuntime {
       containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items), ...(c.position ? { position: { ...c.position } } : {}) })),
       zombies,
       spawn: { nextZombieId: this.nextZombieId, timer: this.spawnTimer, counter: this.spawnCounter },
+      horde: { timer: this.hordeTimer, counter: this.hordeCounter },
       cameraZoom: this.cameraZoom,
     }
   }
@@ -270,16 +307,28 @@ export class GameRuntime {
       container.items = cloneInventory(c.items)
     }
 
+    // AI resumes in the saved state; timers, paths and door slots are recomputed (never saved).
     for (const z of save.zombies) {
-      const zombie = this.addZombie(z.id, z.position)
+      const zombie = this.addZombie(z.id, z.position, z.zoneId)
       zombie.facing = z.facing
       zombie.health = clamp(z.health, 0, GAME_CONFIG.zombie.health)
       zombie.ai = z.ai === 'DEAD' ? 'IDLE' : z.ai
       zombie.lastKnownTarget = z.lastKnownTarget ? { ...z.lastKnownTarget } : null
+      zombie.memoryAge = z.memoryAge
+      zombie.memorySource = z.memorySource
+      zombie.structureTargetId = z.structureTargetId
+      const portal = z.structureTargetId ? this.nav.portals.get(z.structureTargetId) : undefined
+      if (portal) {
+        const side = planar(portal.sides[0], z.position) <= planar(portal.sides[1], z.position) ? 0 : 1
+        zombie.structureSide = side
+        zombie.structureApproach = { ...portal.sides[side] }
+      }
     }
     this.nextZombieId = Math.max(save.spawn.nextZombieId, maxZombieNumber(this.zombies) + 1)
     this.spawnTimer = Math.max(0, save.spawn.timer)
     this.spawnCounter = save.spawn.counter
+    this.hordeTimer = Math.max(0, save.horde.timer)
+    this.hordeCounter = save.horde.counter
   }
 
   /** Game loop gọi ngay sau tick; true đúng một lần mỗi khi tới hạn autosave. */
@@ -314,11 +363,13 @@ export class GameRuntime {
 
     this.stepPlayerMovement(dt)
     this.stepInteraction()
-    const attacks = this.stepZombies(dt)
+    const { attacks, structureHits } = this.stepZombies(dt)
     this.stepCombat(attacks, dt)
+    this.stepStructureHits(structureHits)
     this.stepAction(dt)
     this.stepSurvival(dt)
     this.stepSpawn(dt)
+    this.stepHorde(dt)
     this.clock.advance(dt)
     this.events.flush()
     this.input.endFrame()
@@ -363,6 +414,8 @@ export class GameRuntime {
         playerPos: this.player.position,
         aliveZombies,
         isHiddenFromPlayer: this.physics ? (pt) => this.physics!.isBlocked(playerEye, atHeight(pt, EYE_HEIGHT), []) : undefined,
+        // Plan §10.5: never inside a building (a barricaded shelter stays empty) or a blocked cell.
+        isAllowed: (pt) => this.nav.isWalkable(pt.x, pt.z) && !this.map.buildings.some((b) => isInsideBuilding(b, pt.x, pt.z, 0.5)),
       },
       createRng(hashSeed(this.world.seed, `spawn:${this.spawnCounter}`)),
     )
@@ -376,6 +429,131 @@ export class GameRuntime {
     this.zombies.delete(id)
     this.zombieBodies.delete(id)
     this.events.queue('zombie:removed', { id })
+  }
+
+  /**
+   * Horde migration (external director): every few minutes one zone's group is pushed to another
+   * zone. Idle/wandering members start walking there at once (MIGRATE); hunting members keep
+   * hunting and wander in the new zone afterwards. Seeded by (world seed, attempt counter).
+   */
+  private stepHorde(dt: number): void {
+    const zones = this.map.zombieZones
+    if (!zones || zones.length < 2) return
+    this.hordeTimer -= dt
+    if (this.hordeTimer > 0) return
+    const rng = createRng(hashSeed(this.world.seed, `horde:${this.hordeCounter}`))
+    this.hordeCounter += 1
+    const plan = planMigration(Array.from(this.zombies.values(), (z) => ({ id: z.id, zoneId: z.zoneId, ai: z.ai })), zones, rng)
+    if (!plan) {
+      this.hordeTimer = GAME_CONFIG.horde.retryDelay
+      return
+    }
+    this.hordeTimer = migrationInterval(rng)
+    const moving: EntityId[] = []
+    for (const id of plan.ids) {
+      const zombie = this.zombies.get(id)!
+      zombie.zoneId = plan.to
+      if (!UNAWARE_STATES.has(zombie.ai)) continue
+      const point = this.pickWanderPoint(zombie)
+      if (!point) continue
+      zombie.moveTarget = point
+      zombie.moveTimer = 0
+      zombie.path = []
+      zombie.pathIndex = 0
+      zombie.pathGoal = null
+      if (zombie.ai !== 'MIGRATE') this.events.queue('zombie:stateChanged', { id, from: zombie.ai, to: 'MIGRATE' })
+      zombie.ai = 'MIGRATE'
+      moving.push(id)
+    }
+    this.events.queue('horde:migrated', { from: plan.from, to: plan.to, ids: plan.ids, moving })
+  }
+
+  /**
+   * Random reachable wander destination inside the zombie's zone (or around its spawn point when
+   * the map has no zones): walkable, same connected region (never behind a closed door) and not
+   * inside a building unless the zombie is already in that building. Deterministic per zombie.
+   */
+  pickWanderPoint(zombie: ZombieState): Vec3 | null {
+    const cfg = GAME_CONFIG.zombie
+    const zone = zombie.zoneId ? this.map.zombieZones?.find((z) => z.id === zombie.zoneId) : undefined
+    const anchor = zone?.center ?? zombie.home
+    const radius = zone?.radius ?? cfg.wanderRadius
+    const rng = createRng(hashSeed(this.world.seed, `wander:${zombie.id}:${zombie.wanderCount++}`))
+    const region = this.nav.componentAt(zombie.position.x, zombie.position.z)
+    const building = this.buildingAt(zombie.position)
+    for (let i = 0; i < 8; i++) {
+      const angle = rng() * Math.PI * 2
+      const r = radius * Math.sqrt(rng())
+      const cell = this.nav.nearestWalkableCell(anchor.x + Math.cos(angle) * r, anchor.z + Math.sin(angle) * r, 2)
+      if (!cell) continue
+      const point = this.nav.cellToWorld(cell.cx, cell.cz)
+      if (region < 0 || this.nav.componentAt(point.x, point.z) !== region) continue
+      if (this.buildingAt(point) !== building) continue
+      if (planar(point, zombie.position) < cfg.wanderMinStep) continue
+      return point
+    }
+    return null
+  }
+
+  private buildingAt(p: Vec3): string | null {
+    return this.map.buildings.find((b) => isInsideBuilding(b, p.x, p.z))?.id ?? null
+  }
+
+  /** Keep or claim one of the two contact slots on a door side; null when both are taken. */
+  private claimDoorSlot(zombie: ZombieState, doorId: string, side: number): Vec3 | null {
+    const portal = this.nav.portals.get(doorId)
+    if (!portal || (side !== 0 && side !== 1)) return null
+    const key = `${doorId}:${side}`
+    const holders = this.doorSlots.get(key) ?? portal.slots[side].map(() => null)
+    this.doorSlots.set(key, holders)
+    let index = holders.indexOf(zombie.id)
+    if (index < 0) {
+      // Take the free slot nearest to us.
+      let best = -1
+      for (let i = 0; i < holders.length; i++) {
+        if (holders[i] !== null) continue
+        if (best < 0 || planar(portal.slots[side][i], zombie.position) < planar(portal.slots[side][best], zombie.position)) best = i
+      }
+      if (best < 0) return null
+      holders[best] = zombie.id
+      index = best
+    }
+    return portal.slots[side][index]
+  }
+
+  /** Free slots whose holder died, left the siege or targets another door. */
+  private releaseDoorSlots(): void {
+    for (const [key, holders] of this.doorSlots) {
+      const [doorId, side] = [key.slice(0, key.lastIndexOf(':')), Number(key.slice(key.lastIndexOf(':') + 1))]
+      for (let i = 0; i < holders.length; i++) {
+        const z = holders[i] ? this.zombies.get(holders[i]!) : undefined
+        if (!z || (z.ai !== 'APPROACH_STRUCTURE' && z.ai !== 'ATTACK_STRUCTURE') || z.structureTargetId !== doorId || z.structureSide !== side) holders[i] = null
+      }
+    }
+  }
+
+  /**
+   * Door hits from zombies (plan §10.4). Re-validated here: the zombie is alive, the door is still
+   * closed and in reach, so opening the door during the windup or a knockback cancels the hit.
+   * HP reaching 0 destroys the leaf: collider, nav and events follow `setDoorState`.
+   */
+  private stepStructureHits(hits: PendingStructureHit[]): void {
+    const cfg = GAME_CONFIG.structure
+    for (const hit of hits) {
+      const zombie = this.zombies.get(hit.sourceId)
+      const door = this.world.doors.get(hit.doorId)
+      const portal = this.nav.portals.get(hit.doorId)
+      if (!zombie || zombie.ai === 'DEAD' || !door || !portal || door.state !== 'closed') continue
+      if (planar(zombie.position, portal.center) > cfg.reach * 1.25) continue
+      door.hp = Math.max(0, door.hp - cfg.damage)
+      this.events.queue('door:damaged', { id: door.id, hp: door.hp, maxHp: DOOR_MAX_HP, sourceId: zombie.id })
+      // A timed action aimed at this door (barricade/repair, S6) is interrupted by the hit.
+      if (this.action?.worldTargetId === door.id) this.cancelAction('target-damaged')
+      if (door.hp <= 0) {
+        this.setDoorState(door.id, 'destroyed')
+        this.events.queue('door:destroyed', { id: door.id, sourceId: zombie.id })
+      }
+    }
   }
 
   private stepPlayerMovement(dt: number): void {
@@ -400,7 +578,11 @@ export class GameRuntime {
     const moving = dir.x !== 0 || dir.z !== 0
     // Walking away interrupts a craft/repair; nothing is consumed (plan §7.1 step 4).
     if (moving && this.action) this.cancelAction('moved')
-    const { speed } = resolvePlayerSpeed(player, this.input.isDown('run'), moving, dt)
+    const { speed, running } = resolvePlayerSpeed(player, this.input.isDown('run'), moving, dt)
+    // Footsteps (P2-S5): a fixed hearing radius for walking/running; standing still is silent.
+    const hearing = GAME_CONFIG.hearing
+    this.playerNoise = player.alive && speed > 0 ? (running ? hearing.runRadius : hearing.walkRadius) : 0
+    this.advanceFootsteps(this.playerNoise > 0 ? speed : 0, running, dt)
 
     // Khi đang vung gậy, giữ hướng nhìn về con trỏ; chuyển động không xoay nhân vật.
     if (moving && player.alive && player.attackTimer < 0) {
@@ -411,6 +593,27 @@ export class GameRuntime {
       const v = body.linvel()
       body.setLinvel({ x: dir.x * speed, y: v.y, z: dir.z * speed }, true)
     }
+  }
+
+  /**
+   * Gait cadence from the intended speed (not the physics body, which only moves on fixed physics
+   * steps): one footstep every half stride while the player makes noise, the first one as soon as
+   * they start moving, so the sound is an exact cue of "zombies can hear me now".
+   */
+  private advanceFootsteps(speed: number, running: boolean, dt: number): void {
+    const p = this.player
+    const wasMoving = p.moveSpeed > 0
+    p.moveSpeed = speed
+    if (speed <= 0) return
+    const cfg = GAME_CONFIG.player
+    if (!wasMoving) {
+      p.stridePhase = (Math.round(p.stridePhase / Math.PI) * Math.PI) % (Math.PI * 2)
+      this.events.queue('player:footstep', { running })
+    }
+    const before = Math.floor(p.stridePhase / Math.PI)
+    const after = p.stridePhase + (speed * dt / (running ? cfg.runStride : cfg.walkStride)) * Math.PI * 2
+    if (Math.floor(after / Math.PI) > before) this.events.queue('player:footstep', { running })
+    p.stridePhase = after % (Math.PI * 2)
   }
 
   private stepInteraction(): void {
@@ -445,7 +648,8 @@ export class GameRuntime {
     if (target.kind === 'door') {
       const door = this.world.doors.get(target.id)
       if (door?.state === 'destroyed') return `${target.name} đã vỡ`
-      return `${door?.state === 'open' ? 'Đóng' : 'Mở'} ${target.name}`
+      const damaged = door && door.hp < DOOR_MAX_HP ? ` (độ bền ${door.hp}/${DOOR_MAX_HP})` : ''
+      return `${door?.state === 'open' ? 'Đóng' : 'Mở'} ${target.name}${damaged}`
     }
     if (this.openContainerId === target.id) return `Đóng ${target.name}`
     const container = this.world.containers.get(target.id)
@@ -482,14 +686,14 @@ export class GameRuntime {
 
   // ----- Inventory / container: gọi từ UI (ngoài tick) hoặc test -----
 
-  /** S1 dynamic-door spike; automatic zombie damage is implemented in S5. */
+  /** Door state change from the player, zombies (destroyed at 0 HP) or the lab; collider/nav follow. */
   setDoorState(id: string, state: DoorStatus): void {
     const door = this.world.doors.get(id)
     if (!door || door.state === state) return
     door.state = state
     door.hp = state === 'destroyed' ? 0 : door.hp || DOOR_MAX_HP
     this.nav.setDoorState(id, state)
-    this.events.queue('door:toggled', { id, open: state === 'open' })
+    if (state !== 'destroyed') this.events.queue('door:toggled', { id, open: state === 'open' })
     this.events.queue('door:changed', { id, state })
   }
 
@@ -643,7 +847,7 @@ export class GameRuntime {
     if (!check.ok) return this.rejectAction(label, check.failure!)
     const toolIds = check.tools.map((t) => t.instanceId!)
     const id = this.nextActionId++
-    this.action = { id, recipe, targetId, toolIds, label, duration: recipe.duration, elapsed: 0, reservation: reservationFor(recipe, targetId, check) }
+    this.action = { id, recipe, targetId, worldTargetId: null, toolIds, label, duration: recipe.duration, elapsed: 0, reservation: reservationFor(recipe, targetId, check) }
     this.events.queue('action:started', { id, kind: recipe.kind, label, duration: recipe.duration })
     this.queueInventoryChanged()
     return { ok: true, id }
@@ -734,10 +938,12 @@ export class GameRuntime {
     this.events.queue('inventory:changed', { inventoryOpen: this.inventoryOpen, containerId: this.openContainerId })
   }
 
-  private stepZombies(dt: number): PendingAttack[] {
+  private stepZombies(dt: number): { attacks: PendingAttack[]; structureHits: PendingStructureHit[] } {
     const attacks: PendingAttack[] = []
+    const structureHits: PendingStructureHit[] = []
     const target = this.player.position
     const cfg = GAME_CONFIG.zombie
+    this.releaseDoorSlots()
     for (const zombie of this.zombies.values()) {
       const body = this.zombieBodies.get(zombie.id)
       if (body) {
@@ -756,13 +962,14 @@ export class GameRuntime {
       if (result.attack) {
         attacks.push({ sourceId: zombie.id, damage: cfg.damage })
       }
+      if (result.structureHit) structureHits.push({ sourceId: zombie.id, doorId: result.structureHit })
       if (body && zombie.ai !== 'DEAD') {
         const sep = this.separation(zombie)
         const v = body.linvel()
         body.setLinvel({ x: result.velocity.x + sep.x, y: v.y, z: result.velocity.z + sep.z }, true)
       }
     }
-    return attacks
+    return { attacks, structureHits }
   }
 
   /** Đẩy nhẹ zombie ra khỏi các zombie còn sống khác để không chồng lên một điểm. */
@@ -909,6 +1116,10 @@ export class GameRuntime {
 
 function atHeight(p: Vec3, y: number): Vec3 {
   return { x: p.x, y, z: p.z }
+}
+
+function planar(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.z - b.z)
 }
 
 function clamp(v: number, lo: number, hi: number): number {

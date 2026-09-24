@@ -24,8 +24,16 @@ export type GameEvents = {
   'weapon:lowCondition': { id: string; itemId: ItemId; name: string }
   'weapon:broken': { id: string; itemId: ItemId; name: string }
   'player:pushed': { hitIds: EntityId[] }
+  /** A player footstep landed (only while the footsteps are audible to zombies, P2-S5 noise). */
+  'player:footstep': { running: boolean }
   'door:toggled': { id: string; open: boolean }
   'door:changed': { id: string; state: import('../world/doors').DoorStatus }
+  /** P2-S5: a zombie bash landed on a closed door. */
+  'door:damaged': { id: string; hp: number; maxHp: number; sourceId: EntityId }
+  /** The bash that took the door to 0 HP (the leaf, collider and nav blocker are gone). */
+  'door:destroyed': { id: string; sourceId: EntityId }
+  /** Horde director moved a zone's group; `moving` = members that started walking now. */
+  'horde:migrated': { from: string; to: string; ids: EntityId[]; moving: EntityId[] }
   'drops:changed': Record<string, never>
   'container:opened': { id: string; name: string; firstTime: boolean }
   'container:closed': { id: string }

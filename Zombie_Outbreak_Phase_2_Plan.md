@@ -521,13 +521,16 @@ Mỗi sprint kết thúc bằng một build chơi được và một ghi chú tr
 
 ### Sprint P2-S5 — Zombie phá cửa để vào nhà
 
-- [ ] LOS và last-seen memory; kiểm tra phát hiện qua cửa mở/tường kín.
-- [ ] Door HP/state và damage target riêng với player.
-- [ ] Chọn portal/cửa hợp lệ, điểm tiếp cận và trạng thái bash.
-- [ ] Damage theo hit window, tiếp xúc và cooldown; hạn chế số zombie đánh cửa.
-- [ ] Phá cửa cập nhật collider/nav; mở cửa giữa lúc zombie đánh hủy target hợp lý.
-- [ ] Audio bash/break và feedback cửa bị hư; lưu HP/trạng thái.
-- [ ] Chặn respawn trong nội thất và collider mới.
+- [x] LOS và last-seen memory; kiểm tra phát hiện qua cửa mở/tường kín.
+- [x] Door HP/state và damage target riêng với player.
+- [x] Chọn portal/cửa hợp lệ, điểm tiếp cận và trạng thái bash.
+- [x] Damage theo hit window, tiếp xúc và cooldown; hạn chế số zombie đánh cửa.
+- [x] Phá cửa cập nhật collider/nav; mở cửa giữa lúc zombie đánh hủy target hợp lý.
+- [x] Audio bash/break và feedback cửa bị hư; lưu HP/trạng thái.
+- [x] Chặn respawn trong nội thất và collider mới.
+- [x] (Bổ sung của chủ dự án) Nghe tiếng bước chân trong bán kính cố định; lang thang Idle → điểm ngẫu nhiên → pathfind → nghỉ; hệ thống di cư đẩy cả nhóm sang vùng khác.
+
+**Đã triển khai 24/09/2026.** Chi tiết: `docs/phase2-s5.md`. Zombie chưa phát hiện nhìn hình nón ±70° (thêm để việc nghe có ý nghĩa; `viewHalfAngleDeg: 180` trả lại 360°); nghe đi 5 m/chạy 12 m, qua tường × 0,5; nhớ 20 s. Chọn cửa dùng nhãn vùng liên thông cache theo revision thay cho A* nhiều cặp của spike S1. 2 slot đập mỗi phía cửa, giữ vây 60 s. Save v6. Soak shelter vẫn đạt cổng nhưng cửa nhà an toàn bị phá ở giây 61.
 
 **Nghiệm thu:** zombie thấy player vào nhà → player đóng cửa → zombie đập cửa → cửa vỡ → zombie vào và tìm/đuổi tiếp. Player chưa từng bị thấy sau tường kín không bị AI phát hiện bằng tọa độ toàn cục.
 

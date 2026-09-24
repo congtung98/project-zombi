@@ -33,6 +33,15 @@ function describeEffect(effect: ItemEffect): string {
 }
 
 const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup' } as const
+const UNAWARE = new Set(['IDLE', 'WANDER', 'MIGRATE'])
+
+/** World sounds fade with distance from the player (full within 6 m, quiet but audible at 30 m). */
+function doorGain(id: string): number {
+  const door = runtime.map.doors.find((d) => d.id === id)
+  if (!door) return 1
+  const d = Math.hypot(door.center.x - runtime.player.position.x, door.center.z - runtime.player.position.z)
+  return Math.max(0.15, Math.min(1, 1 - (d - 6) / 30))
+}
 const DoorLab = lazy(() => import('../components/DoorLab'))
 
 export function App() {
@@ -100,6 +109,12 @@ export function App() {
         if (e.sourceId === 'player') useHudStore.getState().showToast('Đã hạ một zombie.', 1500)
       }),
       runtime.events.on('door:changed', (e) => useWorldStore.getState().setDoor(e.id, e.state)),
+      runtime.events.on('door:damaged', (e) => sfx.play('doorBash', doorGain(e.id))),
+      runtime.events.on('door:destroyed', (e) => {
+        sfx.play('doorBreak', doorGain(e.id))
+        const door = runtime.map.doors.find((d) => d.id === e.id)
+        if (door) useHudStore.getState().showToast(`${door.name} đã bị zombie phá vỡ!`, 3000, 'danger')
+      }),
       runtime.events.on('drops:changed', () => useWorldStore.getState().syncFromRuntime(runtime)),
       runtime.events.on('zombie:spawned', (e) => useWorldStore.getState().addZombie(e.id)),
       runtime.events.on('zombie:removed', (e) => useWorldStore.getState().removeZombie(e.id)),
@@ -108,10 +123,12 @@ export function App() {
       // Âm thanh tổng hợp (không asset ngoài); mỗi sự kiện một hiệu ứng ngắn.
       runtime.events.on('player:attacked', (e) => sfx.play(e.hitIds.length > 0 ? 'hit' : 'swing')),
       runtime.events.on('player:pushed', () => sfx.play('push')),
+      // Footsteps play exactly while zombies can hear the player (walk 5 m / run 12 m, P2-S5).
+      runtime.events.on('player:footstep', (e) => sfx.play(e.running ? 'stepRun' : 'stepWalk')),
       runtime.events.on('zombie:damaged', () => sfx.play('zombieHurt')),
       runtime.events.on('zombie:died', () => sfx.play('zombieDie')),
       runtime.events.on('zombie:stateChanged', (e) => {
-        if (e.to === 'CHASE' && e.from === 'IDLE') sfx.play('zombieAlert')
+        if (e.to === 'CHASE' && UNAWARE.has(e.from)) sfx.play('zombieAlert')
       }),
       runtime.events.on('player:damaged', (e) => {
         if (e.sourceId !== 'starvation') sfx.play('playerHurt')

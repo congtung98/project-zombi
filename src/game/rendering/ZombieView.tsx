@@ -6,12 +6,17 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { computePose, createPose } from './character/pose'
 import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, setCharacterGlow, shadowDetail, zombieLook } from './character/rig'
+import { advanceMeasuredGait, createMeasuredGait } from './character/gait'
+import { dampAngle } from '../systems/movement'
 import type { EntityId } from '../../types'
 
 const CFG = runtime.config.zombie
 const HALF_HEIGHT = (CFG.height - 2 * CFG.radius) / 2
 const FALL_DURATION = 0.45
-const STRIDE = 1.3
+/** Metres per gait cycle: a slow shamble (chase 2.3 m/s ≈ 1.4 cycles/s, wander ≈ 0.55). */
+const STRIDE = 1.6
+/** Visual turn rate: path corners and retargets no longer snap the body around. */
+const TURN_SMOOTHING = 10
 /** Longest stagger (push) used to normalise the hit-reaction pose. */
 const MAX_STAGGER = Math.max(runtime.config.melee.stagger, runtime.config.push.stagger)
 /** Keep the slam pose briefly after the damage frame so the hit reads on screen (visual only). */
@@ -35,7 +40,7 @@ export function ZombieView({ id }: ZombieViewProps) {
   const rig = useMemo(() => buildCharacter(zombieLook(id), shadowDetail(shadows)), [id, shadows])
   const pose = useRef(createPose())
   const zombie = runtime.zombies.get(id)
-  const anim = useRef({ gait: 0, time: (zombie?.id.length ?? 0) * 0.37, last: zombie ? { x: zombie.position.x, z: zombie.position.z } : { x: 0, z: 0 }, strike: 0, windup: -1 })
+  const anim = useRef({ gait: createMeasuredGait(), time: (zombie?.id.length ?? 0) * 0.37, strike: 0, windup: -1, facing: zombie?.facing ?? 0 })
 
   useEffect(() => {
     runtime.registerZombieBody(id, bodyRef.current)
@@ -49,14 +54,12 @@ export function ZombieView({ id }: ZombieViewProps) {
     const z = runtime.zombies.get(id)
     const visual = visualRef.current
     if (!z || !visual) return
-    visual.rotation.y = z.facing
     const a = anim.current
     a.time += delta
-
-    const dist = Math.hypot(z.position.x - a.last.x, z.position.z - a.last.z)
-    a.last = { x: z.position.x, z: z.position.z }
-    const step = dist < 1 && z.ai !== 'DEAD' ? dist : 0
-    a.gait = (a.gait + (step / STRIDE) * Math.PI * 2) % (Math.PI * 2)
+    a.facing = dampAngle(a.facing, z.facing, TURN_SMOOTHING, delta)
+    visual.rotation.y = a.facing
+    // Filtered speed + integrated phase: steady legs at 60, 144 or 240 Hz (physics steps at 60 Hz).
+    advanceMeasuredGait(a.gait, z.position.x, z.position.z, delta, STRIDE, z.ai !== 'DEAD')
 
     // attackWindup counts down to the damage frame, then resets to −1: hold the slam briefly.
     let attack = z.attackWindup >= 0 ? 1 - z.attackWindup / CFG.attackWindup : -1
@@ -71,8 +74,8 @@ export function ZombieView({ id }: ZombieViewProps) {
       {
         kind: 'zombie',
         time: a.time,
-        gaitPhase: a.gait,
-        speed: delta > 0 ? step / delta : 0,
+        gaitPhase: a.gait.phase,
+        speed: a.gait.speed,
         swing: -1,
         hitAt: 1,
         shove: -1,
@@ -86,13 +89,14 @@ export function ZombieView({ id }: ZombieViewProps) {
     )
     applyPose(rig, pose.current)
 
-    setCharacterGlow(rig, z.hitFlashTimer > 0, z.ai === 'CHASE' || z.ai === 'ATTACK')
+    // Red eyes while hunting the player or besieging a door (not while wandering/searching).
+    setCharacterGlow(rig, z.hitFlashTimer > 0, z.ai === 'CHASE' || z.ai === 'ATTACK' || z.ai === 'APPROACH_STRUCTURE' || z.ai === 'ATTACK_STRUCTURE')
 
     const bar = healthBarRef.current
     if (bar) {
       bar.visible = z.ai !== 'DEAD' && z.health < CFG.health
       // Thanh máu luôn quay về camera isometric (bỏ xoay của mesh cha).
-      bar.rotation.y = -z.facing
+      bar.rotation.y = -a.facing
       const fill = healthFillRef.current
       if (fill) {
         const ratio = Math.max(0, z.health / CFG.health)

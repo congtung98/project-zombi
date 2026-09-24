@@ -11,6 +11,10 @@ export interface ZombieHudInfo {
   ai: ZombieAIState
   health: number
   distance: number
+  /** F3 debug (P2-S5): zone, memory age/source, door being bashed. */
+  zone: string | null
+  memory: string | null
+  door: string | null
 }
 
 export interface HudWeapon {
@@ -48,6 +52,9 @@ interface HudSnapshot {
   playerX: number
   playerZ: number
   zombies: ZombieHudInfo[]
+  /** F3: footstep noise radius and seconds to the next horde migration. */
+  noise: number
+  hordeTimer: number
   /** Nội dung prompt tương tác, ví dụ "Mở Cửa nhà an toàn". */
   interactPrompt: string | null
   kills: number
@@ -94,6 +101,8 @@ export const useHudStore = create<HudState>((set) => ({
   playerX: 0,
   playerZ: 0,
   zombies: [],
+  noise: 0,
+  hordeTimer: 0,
   interactPrompt: null,
   kills: 0,
   attackCooldown: 0,
@@ -119,6 +128,9 @@ export const useHudStore = create<HudState>((set) => ({
         ai: z.ai,
         health: z.health,
         distance: Math.hypot(z.position.x - p.position.x, z.position.z - p.position.z),
+        zone: z.zoneId,
+        memory: z.lastKnownTarget ? `${z.memorySource === 'noise' ? 'nghe' : 'thấy'} ${z.memoryAge.toFixed(0)}s` : null,
+        door: z.structureTargetId,
       })
     }
     set({
@@ -139,6 +151,8 @@ export const useHudStore = create<HudState>((set) => ({
       playerX: p.position.x,
       playerZ: p.position.z,
       zombies,
+      noise: rt.playerNoise,
+      hordeTimer: rt.hordeTimer,
       interactPrompt: rt.interactPrompt,
       kills: p.kills,
       attackCooldown: p.attackCooldown,

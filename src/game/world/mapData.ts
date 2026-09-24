@@ -19,11 +19,25 @@ export interface RoadDef {
   color: string
 }
 
+/**
+ * Outdoor area a zombie group wanders in (P2-S5). Every zombie belongs to the zone nearest its
+ * spawn point; the horde director moves whole groups between zones.
+ */
+export interface ZoneDef {
+  id: string
+  name: string
+  center: Vec3
+  /** Wander destinations are picked within this radius of the centre. */
+  radius: number
+}
+
 export interface MapData {
   id: string
   size: number
   playerSpawn: Vec3
   zombieSpawns: Vec3[]
+  /** Wander/migration zones; maps without zones wander around each spawn point, no migration. */
+  zombieZones?: ZoneDef[]
   buildings: BuildingDef[]
   /** Mọi khối tĩnh có collider: tường công trình, hàng rào, vật cản, biên. */
   walls: WallDef[]
@@ -160,6 +174,17 @@ export const NEIGHBORHOOD_MAP: MapData = {
     { x: 22, y: 0, z: 20 },
     { x: -22, y: 0, z: 0 },
     { x: 8, y: 0, z: 22 },
+  ],
+  /** Outdoor only (never inside a building), each around one or two spawn points, all connected. */
+  zombieZones: [
+    { id: 'zone-park', name: 'Công viên', center: { x: -15, y: 0, z: 13 }, radius: 5 },
+    { id: 'zone-west', name: 'Đường phía tây', center: { x: -21, y: 0, z: -3 }, radius: 3.5 },
+    { id: 'zone-north', name: 'Bãi đất phía bắc', center: { x: -2, y: 0, z: -19 }, radius: 3.5 },
+    { id: 'zone-store', name: 'Sân cửa hàng', center: { x: 14, y: 0, z: -5 }, radius: 3.5 },
+    { id: 'zone-east', name: 'Đường phía đông', center: { x: 21, y: 0, z: 2 }, radius: 3 },
+    { id: 'zone-cross', name: 'Ngã tư', center: { x: -1, y: 0, z: -1 }, radius: 4 },
+    { id: 'zone-south', name: 'Phố phía nam', center: { x: 4, y: 0, z: 17 }, radius: 4 },
+    { id: 'zone-yard', name: 'Sân sau nhà dân', center: { x: 20, y: 0, z: 20 }, radius: 3.5 },
   ],
   buildings: BUILDINGS,
   walls: [...boundaryWalls, ...BUILDINGS.flatMap(generateBuildingWalls), ...obstacles],

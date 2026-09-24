@@ -76,6 +76,14 @@ interface Metrics {
   wear: number
   broken: number
   weaponsFound: string[]
+  /** P2-S5: unaware zombies alerted by sight / by footsteps or a blow, sieges started, door hits. */
+  sightAlerts: number
+  noiseAlerts: number
+  sieges: number
+  doorHits: number
+  doorsDestroyed: string[]
+  migrations: number
+  maxBashersPerSide: number
 }
 
 /**
@@ -151,7 +159,23 @@ function runSoak(policy: 'shelter' | 'patrol') {
       wear: 0,
       broken: 0,
       weaponsFound: [],
+      sightAlerts: 0,
+      noiseAlerts: 0,
+      sieges: 0,
+      doorHits: 0,
+      doorsDestroyed: [],
+      migrations: 0,
+      maxBashersPerSide: 0,
     }
+    const unaware = new Set(['IDLE', 'WANDER', 'MIGRATE'])
+    rt.events.on('zombie:stateChanged', (e) => {
+      if (unaware.has(e.from) && e.to === 'CHASE') m.sightAlerts += 1
+      if (unaware.has(e.from) && e.to === 'SEARCH') m.noiseAlerts += 1
+      if (e.to === 'APPROACH_STRUCTURE') m.sieges += 1
+    })
+    rt.events.on('door:damaged', () => (m.doorHits += 1))
+    rt.events.on('door:destroyed', (e) => m.doorsDestroyed.push(`${e.id}@${Math.round(m.survivedSec)}s`))
+    rt.events.on('horde:migrated', () => (m.migrations += 1))
     rt.events.on('zombie:spawned', () => (m.spawned += 1))
     rt.events.on('player:damaged', (e) => (m.damageTaken += e.amount))
     rt.events.on('item:used', (e) => (m.itemsUsed[e.itemId] = (m.itemsUsed[e.itemId] ?? 0) + 1))
@@ -361,6 +385,15 @@ function runSoak(policy: 'shelter' | 'patrol') {
       expect(p.hunger).toBeGreaterThanOrEqual(0)
       expect(p.thirst).toBeGreaterThanOrEqual(0)
       for (const s of p.inventory.slots) if (s) expect(s.quantity).toBeGreaterThan(0)
+      // Plan §10.4: at most two zombies in contact with one side of a door.
+      const bashers = new Map<string, number>()
+      for (const z of rt.zombies.values()) {
+        if (z.ai !== 'ATTACK_STRUCTURE') continue
+        const key = `${z.structureTargetId}:${z.structureSide}`
+        bashers.set(key, (bashers.get(key) ?? 0) + 1)
+      }
+      for (const n of bashers.values()) m.maxBashersPerSide = Math.max(m.maxBashersPerSide, n)
+      expect(m.maxBashersPerSide).toBeLessThanOrEqual(2)
 
       autosaveClock += DT
       if (autosaveClock >= 60) {

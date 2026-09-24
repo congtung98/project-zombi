@@ -19,4 +19,5 @@ export const ACTION_CANCEL_TEXT: Record<ActionCancelReason, string> = {
   hit: 'bị trúng đòn',
   cancelled: 'bấm hủy',
   dead: 'đã chết',
+  'target-damaged': 'mục tiêu bị zombie đánh',
 }
