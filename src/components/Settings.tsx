@@ -70,6 +70,8 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
         <li>Ra <b>cửa hàng tiện lợi</b> (phía đông) và <b>nhà dân</b> (đông nam) để tìm thêm đồ; mỗi tủ chỉ có một lượt loot.</li>
         <li>Trong túi: click trái xem chi tiết, chuột phải dùng nhanh: nước hồi khát, đồ ăn hồi đói, băng gạc/hộp cứu thương hồi máu.</li>
         <li>Zombie tới gần: đánh (<kbd>chuột trái</kbd>) về phía con trỏ. Mỗi đòn trúng mất 1 độ bền; vũ khí <b>hỏng</b> (0) chỉ còn 20% sát thương, hãy đổi vũ khí khác. Kệ dụng cụ ở cửa hàng có búa, ống sắt/xà beng hiếm hơn. Bị vây thì <kbd>Space</kbd> đẩy ra rồi chạy (<kbd>Shift</kbd>).</li>
+        <li>Sửa vũ khí: mở túi (<kbd>I</kbd>), click vũ khí → <b>Sửa</b>. Đồ gỗ (gậy) cần 1 ván gỗ + 1 băng keo (+30), đồ kim loại (ống sắt, xà beng, búa) cần 1 kim loại vụn + 1 băng keo (+25). Vũ khí hỏng vẫn sửa được. Bảng <b>Chế tạo</b> cạnh túi làm gậy gỗ tự chế (2 ván + 1 băng keo). Vật liệu ở hộp đồ nghề nhà an toàn, kệ vật liệu cửa hàng, đống phế liệu sau nhà dân.</li>
+        <li>Sửa/chế tạo mất vài giây: di chuyển, đánh, bị trúng đòn hoặc <kbd>X</kbd> sẽ hủy và không mất nguyên liệu. Thời gian vẫn chạy khi mở túi; <kbd>Esc</kbd> tạm dừng thì thao tác dừng theo.</li>
         <li>Đóng cửa sau lưng (<kbd>E</kbd>): zombie không mở được cửa.</li>
         <li>Game tự lưu mỗi phút; <kbd>Esc</kbd> → Lưu game để lưu ngay. Chết là mất bản lưu.</li>
       </ol>
@@ -79,7 +81,8 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
         <li><kbd>Chuột trái</kbd> đánh về phía con trỏ</li>
         <li><kbd>Space</kbd> đẩy zombie ra xa</li>
         <li><kbd>E</kbd> tương tác cửa/tủ</li>
-        <li><kbd>I</kbd> túi đồ</li>
+        <li><kbd>I</kbd> túi đồ, sửa, chế tạo</li>
+        <li><kbd>X</kbd> hủy sửa/chế tạo đang làm</li>
         <li><kbd>Con lăn</kbd> zoom camera</li>
         <li><kbd>Esc</kbd> đóng túi / tạm dừng</li>
         <li><kbd>F3</kbd> overlay debug (FPS)</li>

@@ -66,6 +66,8 @@ const SAFE_HOUSE: BuildingDef = {
     { id: 'ct-safehouse-cabinet', name: 'Tủ đồ nhà an toàn', position: { x: -17, y: 0.5, z: -17.4 }, size: [1.2, 1, 0.6], color: '#8b5e3c', loot: 'safehouse-cabinet' },
     // P2-S2: New Game starts unarmed; the starting melee is guaranteed here, a few steps from spawn.
     { id: 'ct-safehouse-closet', name: 'Tủ quần áo nhà an toàn', position: { x: -10.5, y: 0.9, z: -15.5 }, size: [0.6, 1.8, 1.4], color: '#6d4c35', loot: 'safehouse-closet' },
+    // P2-S4: starter repair materials against the west wall.
+    { id: 'ct-safehouse-toolbox', name: 'Hộp đồ nghề nhà an toàn', position: { x: -17.5, y: 0.3, z: -13 }, size: [0.5, 0.6, 0.9], color: '#4f6d7a', loot: 'safehouse-toolbox' },
   ],
 }
 
@@ -86,6 +88,8 @@ const STORE: BuildingDef = {
     { id: 'ct-store-shelf-3', name: 'Kệ hàng 3', position: { x: 17, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a', loot: 'store-shelf' },
     { id: 'ct-store-fridge', name: 'Tủ lạnh', position: { x: 18.3, y: 0.9, z: -11 }, size: [0.8, 1.8, 0.8], color: '#d8dee6', loot: 'store-fridge' },
     { id: 'ct-store-tools', name: 'Kệ dụng cụ', position: { x: 7.5, y: 0.8, z: -12.5 }, size: [0.6, 1.6, 2], color: '#7a5f3a', loot: 'tool-shelf' },
+    // P2-S4: materials shelf against the east wall, between shelf 3 and the fridge.
+    { id: 'ct-store-hardware', name: 'Kệ vật liệu', position: { x: 18.45, y: 0.8, z: -14.3 }, size: [0.6, 1.6, 1.8], color: '#8a6a3a', loot: 'hardware-shelf' },
   ],
 }
 
@@ -112,10 +116,15 @@ const BUILDINGS: BuildingDef[] = [SAFE_HOUSE, STORE, HOUSE]
 /** Outdoor containers: riskier spots (the park has a zombie spawn) for rarer melee. */
 const outdoorContainers: ContainerDef[] = [
   { id: 'ct-park-toolbox', name: 'Thùng dụng cụ công viên', position: { x: -21.5, y: 0.35, z: 12.5 }, size: [0.9, 0.7, 0.5], color: '#b0472f', loot: 'park-toolbox' },
+  // P2-S4: scrap pile behind (east of) the house, between two zombie spawns.
+  { id: 'ct-house-scrap', name: 'Đống phế liệu sau nhà', position: { x: 20.5, y: 0.4, z: 12 }, size: [1.4, 0.8, 1], color: '#6b6f73', loot: 'scrap-pile' },
 ]
 
 /** Containers added in P2-S2 (save v3). Older saves receive them once, seeded, during migration. */
 export const CONTAINERS_ADDED_V3: ReadonlySet<string> = new Set(['ct-safehouse-closet', 'ct-store-tools', 'ct-house-nightstand', 'ct-park-toolbox'])
+
+/** Material containers added in P2-S4 (save v5); seeded once when an older save migrates. */
+export const CONTAINERS_ADDED_V5: ReadonlySet<string> = new Set(['ct-safehouse-toolbox', 'ct-store-hardware', 'ct-house-scrap'])
 
 /** Vật cản rời: hàng rào công viên, xe hỏng, quầy, giường, thùng. */
 const obstacles: WallDef[] = [

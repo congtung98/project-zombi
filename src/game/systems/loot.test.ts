@@ -102,7 +102,7 @@ describe('world loot on the neighborhood map', () => {
     }
   })
 
-  it('loot only contains defined, usable items (no wood/scrap)', () => {
+  it('loot only contains defined items within stack limits', () => {
     const w = createWorldState(NEIGHBORHOOD_MAP, 31337)
     for (const c of w.containers.values()) {
       for (const s of c.items.slots) {

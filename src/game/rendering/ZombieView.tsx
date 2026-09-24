@@ -80,6 +80,7 @@ export function ZombieView({ id }: ZombieViewProps) {
         hurt: z.ai === 'DEAD' ? 0 : z.staggerTimer / MAX_STAGGER,
         dead: z.ai === 'DEAD' ? Math.min(1, z.deadTimer / FALL_DURATION) : -1,
         armed: false,
+        work: -1,
       },
       pose.current,
     )

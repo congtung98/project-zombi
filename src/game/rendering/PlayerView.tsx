@@ -93,6 +93,7 @@ export function PlayerView() {
         hurt: p.hurtTimer / HURT_TIME,
         dead: deadTime.current >= 0 ? Math.min(1, deadTime.current / DEATH_TIME) : -1,
         armed: held !== null,
+        work: runtime.action && p.alive ? runtime.action.elapsed : -1,
       },
       pose.current,
     )

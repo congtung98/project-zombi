@@ -5,8 +5,9 @@ import { BODY_PRESETS, HAIR_STYLES, DEFAULT_APPEARANCE } from '../../entities/ap
 import { ARM_FORWARD, computePose, createPose, swingYaw, type PoseInput } from './pose'
 import { applyPose, buildCharacter, playerLook, setCharacterGlow, zombieLook } from './rig'
 import { buildWeaponModel } from './weaponModels'
+import { getItemDef, ITEM_IDS } from '../../entities/items'
 
-const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.15 / 0.35, shove: -1, attack: -1, hurt: 0, dead: -1, armed: true }
+const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.15 / 0.35, shove: -1, attack: -1, hurt: 0, dead: -1, armed: true, work: -1 }
 
 function bounds(obj: import('three').Object3D) {
   obj.updateMatrixWorld(true)
@@ -55,7 +56,9 @@ describe('procedural rig', () => {
   })
 
   it('weapon models attach along the socket with their grip at the hand for every melee', () => {
-    for (const id of ['baseball_bat', 'metal_pipe', 'crowbar', 'hammer'] as const) {
+    const melee = ITEM_IDS.filter((id) => getItemDef(id).melee)
+    expect(melee).toContain('wooden_club')
+    for (const id of melee) {
       const model = buildWeaponModel(id, false, true)!
       const box = bounds(model.group)
       expect(box.max.z).toBeGreaterThan(0.5) // extends forward from the grip
@@ -107,9 +110,27 @@ describe('pose', () => {
     const rig = buildCharacter(zombieLook('zombie-9'))
     const out = createPose()
     for (const kind of ['player', 'zombie'] as const) for (const v of [-1, 0, 0.5, 1, 2]) {
-      computePose({ ...base, kind, swing: v, shove: v, attack: v, dead: v, hurt: v, speed: Math.max(0, v * 5), gaitPhase: v * 3, time: v }, out)
+      computePose({ ...base, kind, swing: v, shove: v, attack: v, dead: v, hurt: v, work: v, speed: Math.max(0, v * 5), gaitPhase: v * 3, time: v }, out)
       for (const n of [out.bodyY, out.bodyPitch, out.torsoTwist, out.headPitch, out.headRoll, out.legL, out.legR, out.rootPitch, out.armL.x, out.armL.y, out.armL.z, out.armR.x, out.armR.y, out.armR.z]) expect(Number.isFinite(n)).toBe(true)
       applyPose(rig, out)
     }
+  })
+
+  it('work pose (craft/repair): leans over with both arms forward and taps; a swing overrides it', () => {
+    const idle = computePose({ ...base, armed: false })
+    const samples = [0, 0.1, 0.2, 0.3].map((t) => computePose({ ...base, armed: false, work: t }))
+    for (const w of samples) {
+      expect(w.bodyPitch).toBeGreaterThan(idle.bodyPitch + 0.2)
+      expect(w.headPitch).toBeGreaterThan(idle.headPitch + 0.3)
+      expect(w.armL.x).toBeLessThan(-0.8)
+      expect(w.armR.x).toBeLessThan(-0.6)
+    }
+    // The hammering hand actually moves over time.
+    expect(Math.max(...samples.map((w) => w.armR.x)) - Math.min(...samples.map((w) => w.armR.x))).toBeGreaterThan(0.3)
+    const swinging = computePose({ ...base, work: 0.2, swing: base.hitAt })
+    expect(swinging.armR.y).toBeCloseTo(0, 5)
+    expect(swinging.armR.x).toBeCloseTo(ARM_FORWARD, 5)
+    // No work (−1) leaves the Phase 2-S3 poses untouched.
+    expect(computePose({ ...base, work: -1 })).toEqual(computePose({ ...base }))
   })
 })

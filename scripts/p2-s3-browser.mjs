@@ -3,8 +3,8 @@
 //   Dev:        BASE_URL=http://127.0.0.1:5174 node scripts/p2-s3-browser.mjs
 //   Production: BASE_URL=http://127.0.0.1:5199 node scripts/p2-s3-browser.mjs --production
 // Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
-// Dev mode writes src/game/systems/fixtures/phase2-s3-v4.json from a real browser save.
-import { mkdirSync, writeFileSync } from 'node:fs'
+// The v4 fixture (phase2-s3-v4.json) was written by this script in S3 and is frozen since S4 (save v5).
+import { mkdirSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
 const production = process.argv.includes('--production')
@@ -74,7 +74,8 @@ async function createCharacter(name, picks) {
   await input.pressSequentially(name)
   for (const [group, label] of picks) {
     await radio(group, label).click()
-    assert.equal(await radio(group, label).getAttribute('aria-checked'), 'true')
+    // React applies the choice on its next render: wait for it instead of reading once (race seen in S3/S4 production runs).
+    await page.getByRole('radiogroup', { name: group }).getByRole('radio', { name: label, checked: true }).waitFor({ timeout: 3000 })
   }
 }
 
@@ -97,7 +98,7 @@ try {
   assert.equal((await page.locator('.hud-name').innerText()).trim(), 'Mai An')
   await saveToMenu()
   const first = await readSlot('slot-1')
-  assert.equal(first.schemaVersion, 4)
+  assert.equal(first.schemaVersion, 5)
   assert.deepEqual([first.player.name, first.player.appearance], ['Mai An', { preset: 'slim', hair: 'long', skin: 'light', shirt: 'green', pants: 'khaki' }])
   await hasText('Mai An')
 
@@ -211,11 +212,10 @@ try {
     assert.equal(zombieStates.rootPitch, -1.57)
     await shot('p2s3-zombie-dead')
 
-    // 7) Save → reload → Continue keeps name and appearance; write the milestone fixture.
+    // 7) Save → reload → Continue keeps name and appearance.
     await saveToMenu()
     const saved = await readSlot('slot-1')
     assert.deepEqual([saved.player.name, saved.player.appearance], ['Trần Tùng', look])
-    writeFileSync('src/game/systems/fixtures/phase2-s3-v4.json', JSON.stringify({ ...saved, savedAt: 1790380800000 }, null, 2) + '\n')
     await page.reload()
     await menu()
     await hasText('Trần Tùng')

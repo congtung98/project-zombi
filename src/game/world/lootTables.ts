@@ -104,4 +104,45 @@ export const LOOT_TABLES: Record<string, LootTable> = {
       { itemId: null, weight: 3, min: 0, max: 0 },
     ],
   },
+  // ---- P2-S4 materials (new containers, save v5). Earlier tables stay unchanged so seeds reproduce.
+  'safehouse-toolbox': {
+    id: 'safehouse-toolbox',
+    // Starter repair kit a few steps from spawn: enough for one repair of either group, not a club.
+    guaranteed: [
+      { itemId: 'wood_plank', min: 1, max: 1 },
+      { itemId: 'duct_tape', min: 1, max: 1 },
+      { itemId: 'scrap_metal', min: 1, max: 1 },
+    ],
+    rolls: 0,
+    pool: [],
+  },
+  'hardware-shelf': {
+    id: 'hardware-shelf',
+    // Near exploration route (store): nails, wood and tape are always here; scrap metal often.
+    guaranteed: [
+      { itemId: 'nails', min: 6, max: 12 },
+      { itemId: 'wood_plank', min: 1, max: 2 },
+      { itemId: 'duct_tape', min: 1, max: 1 },
+    ],
+    rolls: 2,
+    pool: [
+      { itemId: 'scrap_metal', weight: 2, min: 1, max: 2 },
+      { itemId: 'wood_plank', weight: 1, min: 1, max: 2 },
+      { itemId: 'duct_tape', weight: 1, min: 1, max: 1 },
+      { itemId: null, weight: 2, min: 0, max: 0 },
+    ],
+  },
+  'scrap-pile': {
+    id: 'scrap-pile',
+    // Outdoors behind the house, near two zombie spawns: more materials for more risk.
+    guaranteed: [{ itemId: 'scrap_metal', min: 1, max: 2 }],
+    rolls: 3,
+    pool: [
+      { itemId: 'wood_plank', weight: 3, min: 1, max: 2 },
+      { itemId: 'scrap_metal', weight: 2, min: 1, max: 1 },
+      { itemId: 'duct_tape', weight: 1, min: 1, max: 1 },
+      { itemId: 'nails', weight: 1, min: 4, max: 8 },
+      { itemId: null, weight: 2, min: 0, max: 0 },
+    ],
+  },
 }

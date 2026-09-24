@@ -1,5 +1,7 @@
 import type { ItemEffect, ItemId } from '../entities/items'
 import type { UseItemFailure } from '../systems/survival'
+import type { CraftFailure, RepairPreview } from '../systems/crafting'
+import type { ActionCancelReason } from '../systems/timedAction'
 import type { EntityId, ZombieAIState } from '../../types'
 
 export type GameEvents = {
@@ -31,6 +33,22 @@ export type GameEvents = {
   'inventory:changed': { inventoryOpen: boolean; containerId: string | null }
   'item:used': { itemId: ItemId; name: string; effect: ItemEffect }
   'item:useFailed': { itemId: ItemId; name: string; reason: UseItemFailure }
+  /** P2-S4 timed craft/repair: started (reserved), rejected at start, cancelled, failed at commit, completed. */
+  'action:started': { id: number; kind: 'craft' | 'repair'; label: string; duration: number }
+  'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' }
+  'action:cancelled': { id: number; label: string; reason: ActionCancelReason }
+  'action:failed': { id: number; label: string; reason: CraftFailure }
+  'action:completed': {
+    id: number
+    kind: 'craft' | 'repair'
+    recipeId: string
+    label: string
+    outputItemId: ItemId | null
+    outputId: string | null
+    repair: RepairPreview | null
+  }
+  /** Tried to drop/store/use an item reserved by the running action. */
+  'item:reserved': { itemId: ItemId; name: string; label: string }
 }
 
 type Listener<T> = (payload: T) => void

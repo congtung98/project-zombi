@@ -13,7 +13,7 @@ export interface Interactable {
 }
 
 /** Tầm tương tác tính từ tâm người chơi tới mép đối tượng. */
-export const INTERACT_RANGE = 2
+export const INTERACT_RANGE = 1
 
 /** Trọng số ưu tiên đối tượng nằm theo hướng người chơi đang nhìn. */
 const FACING_WEIGHT = 0.75

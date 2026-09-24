@@ -508,12 +508,14 @@ Mỗi sprint kết thúc bằng một build chơi được và một ghi chú tr
 
 ### Sprint P2-S4 — Crafting và sửa chữa
 
-- [ ] Thêm wood, scrap metal, tape, nails và loot tương ứng.
-- [ ] TimedAction: start, reserve, cancel, commit; pause/save đúng thời điểm.
-- [ ] Recipe data và UI hiện đủ/thiếu nguyên liệu, tool, output.
-- [ ] Craft gậy gỗ; repair nhóm gỗ/kim loại; xử lý item full condition.
-- [ ] Kiểm tra inventory full theo trạng thái sau khi tiêu input.
-- [ ] Test hoàn tất đúng một lần, hủy do di chuyển/bị đánh, save giữa action.
+- [x] Thêm wood, scrap metal, tape, nails và loot tương ứng.
+- [x] TimedAction: start, reserve, cancel, commit; pause/save đúng thời điểm.
+- [x] Recipe data và UI hiện đủ/thiếu nguyên liệu, tool, output.
+- [x] Craft gậy gỗ; repair nhóm gỗ/kim loại; xử lý item full condition.
+- [x] Kiểm tra inventory full theo trạng thái sau khi tiêu input.
+- [x] Test hoàn tất đúng một lần, hủy do di chuyển/bị đánh, save giữa action.
+
+**Đã triển khai 24/09/2026.** Chi tiết: `docs/phase2-s4.md`. 3 container vật liệu ID mới (save v5 thêm một lần khi migrate; bảng loot cũ không đổi). Recipe S4 không cần dụng cụ; cơ chế tool requirement/hao mòn đã có và được test bằng recipe thử, dùng thật ở S6/S7. Sửa kèm lỗi ô tên tạo nhân vật mất ký tự đầu ở bản production (S3).
 
 **Nghiệm thu:** loot vật liệu → sửa vũ khí broken → đánh với damage bình thường; hủy action không mất đồ; spam nút hoặc reload không nhân item.
 

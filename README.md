@@ -1,7 +1,7 @@
 # Zombie Outbreak — Phase 2
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng) và **Sprint 3** (model/animation, tạo nhân vật). Bản build production
+`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng), **Sprint 3** (model/animation, tạo nhân vật) và **Sprint 4** (hành động có thời gian, sửa vũ khí, chế tạo). Bản build production
 nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
@@ -44,7 +44,9 @@ npm run lint
 | Esc | Tạm dừng (dừng simulation, cooldown và đồng hồ); menu pause có Lưu game / Lưu và về menu |
 | F3 | Overlay debug: FPS, vị trí, trạng thái zombie (và collider Rapier) |
 | I | Mở/đóng túi 12 ô. Click trái chọn món → thẻ chi tiết (damage, độ bền, trạng thái) với Trang bị/Dùng, Cất vào tủ, Thả xuống. Chuột phải dùng/trang bị nhanh; Shift+trái cất nhanh khi mở tủ. Panel tủ: click lấy hoặc Lấy tất cả. Đồ thả tạo túi đồ rơi, E để nhặt lại |
-| Esc (khi túi mở) | Đóng túi/tủ trước, nhấn lần nữa mới tạm dừng |
+| I → click vũ khí → Sửa | Sửa vũ khí (đồ gỗ: 1 ván + 1 băng keo, +30; đồ kim loại: 1 kim loại vụn + 1 băng keo, +25), mất 4–5 s. Bảng **Chế tạo** cạnh túi: gậy gỗ tự chế (2 ván + 1 băng keo) |
+| X | Hủy sửa/chế tạo đang làm (di chuyển, đánh, đẩy hoặc bị trúng đòn cũng hủy; không mất nguyên liệu) |
+| Esc (khi túi mở) | Đóng túi/tủ trước, nhấn lần nữa mới tạm dừng (tạm dừng thì thao tác đang làm cũng dừng) |
 
 Tab mất focus sẽ tự tạm dừng và xóa mọi phím đang giữ. Ở chế độ dev, `window.__runtime` trỏ tới
 simulation để kiểm tra từ console hoặc kịch bản playtest tự động.
@@ -56,16 +58,18 @@ src/
   app/                 App (điều hướng màn hình), GameCanvas
   game/
     core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, snapshot/load)
-    entities/          player, zombie (state thuần), items (định nghĩa vật phẩm, ID ổn định)
+    entities/          player, zombie (state thuần), items (định nghĩa vật phẩm, ID ổn định), recipes (craft/repair)
     systems/           input, movement, ai (FSM + bám path), combat, survival (+ dùng vật phẩm), interaction,
                        inventory (add/remove/transfer), loot (PRNG seed, bảng loot), spawn (chọn điểm spawn),
-                       save (validate schema, tóm tắt), saveStorage (IndexedDB)  (+ unit test)
+                       save (validate schema, tóm tắt), saveStorage (IndexedDB), crafting (kiểm tra/commit
+                       recipe), timedAction (reservation, tiến độ)  (+ unit test)
     world/             buildings (generator tường/cửa), mapData (khu phố 50×50), worldState (cửa/container + loot),
                        lootTables (bảng loot đặt tay), navigation (lưới A*, cửa mở/đóng)
     rendering/         Scene, CameraRig, CursorProbe, Ground, Roads, Walls, BuildingView, DoorView,
                        ContainerView, PlayerView, ZombieView, Lights (+ daylight), OcclusionFader, PhysicsBridge, GameLoop
       character/       rig dựng bằng code (khớp, weaponSocket), pose thuần (animation), model vũ khí, animator sau tick
-  components/          HUD, Menus (main/pause/game over), Inventory (túi 12 ô), ContainerPanel (panel tủ + overlay)
+  components/          HUD, Menus (main/pause/game over), Inventory (túi 12 ô + sửa), ContainerPanel (panel tủ + overlay),
+                       CraftingPanel (bảng chế tạo)
   stores/              uiStore (màn hình, save/continue), hudStore (snapshot HUD 10 Hz), worldStore (mirror cửa/container/zombie),
                        inventoryStore (snapshot túi/tủ, cập nhật theo sự kiện)
   types/               kiểu dữ liệu chia sẻ, save (schema bản lưu)
@@ -89,6 +93,14 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Phase 2 — Sprint 4 (24/09/2026)
+
+- **Vật liệu**: ván gỗ, kim loại vụn, băng keo (stack 10), đinh (stack 50). 3 chỗ loot mới: hộp đồ nghề nhà an toàn (luôn 1 ván + 1 băng keo + 1 kim loại vụn), kệ vật liệu cửa hàng (luôn đinh, ván, băng keo), đống phế liệu ngoài trời sau nhà dân (rủi ro hơn). Bảng loot cũ không đổi.
+- **Hành động có thời gian** dùng chung: bắt đầu → đặt trước vật liệu → thanh tiến trình → hoàn tất nguyên tử; di chuyển/đánh/đẩy/trúng đòn/X hủy mà không mất gì; pause dừng tiến độ; save giữa chừng giữ trạng thái trước thao tác. Đồ đã đặt trước không thả/cất được.
+- **Sửa vũ khí** trong thẻ chi tiết (xem trước độ bền nhận được, nguyên liệu thiếu); vũ khí hỏng sửa được, chặn ở max. **Chế tạo** gậy gỗ tự chế (18 dmg, độ bền 40). Tư thế làm việc trên rig.
+- Save schema **v5** (thêm 3 container vật liệu một lần khi migrate, backup `slot-1.backup-v4`). Sửa lỗi ô tên màn tạo nhân vật mất ký tự đầu trong bản production.
+- **211 test**; soak giữ nguyên số liệu; Playwright dev + production (`scripts/p2-s4-browser.mjs`). Chi tiết `docs/phase2-s4.md`.
 
 ### Phase 2 — Sprint 3 (24/09/2026)
 

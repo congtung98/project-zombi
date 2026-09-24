@@ -21,6 +21,9 @@ export type SfxName =
   | 'ui'
   | 'save'
   | 'weaponBreak'
+  | 'workStart'
+  | 'workDone'
+  | 'workCancel'
 
 class Sfx {
   private ctx: AudioContext | null = null
@@ -110,6 +113,9 @@ const MIN_GAP_MS: Record<SfxName, number> = {
   ui: 40,
   save: 300,
   weaponBreak: 300,
+  workStart: 150,
+  workDone: 200,
+  workCancel: 200,
 }
 
 type Recipe = (ctx: AudioContext, out: AudioNode, noise: AudioBuffer) => void
@@ -203,6 +209,17 @@ const RECIPES: Record<SfxName, Recipe> = {
     burst(c, o, n, { duration: 0.18, gain: 0.45, filter: 2200, q: 3 })
     tone(c, o, { type: 'square', from: 330, to: 90, duration: 0.35, gain: 0.14, delay: 0.04 })
   },
+  // Timed craft/repair: two knocks to start, a bright chime when done, a dull drop when cancelled.
+  workStart: (c, o, n) => {
+    burst(c, o, n, { duration: 0.07, gain: 0.3, filter: 900, q: 2 })
+    burst(c, o, n, { duration: 0.07, gain: 0.3, filter: 900, q: 2, delay: 0.16 })
+  },
+  workDone: (c, o, n) => {
+    burst(c, o, n, { duration: 0.08, gain: 0.3, filter: 1400, q: 2 })
+    tone(c, o, { type: 'triangle', from: 660, duration: 0.12, gain: 0.14, delay: 0.06 })
+    tone(c, o, { type: 'triangle', from: 990, duration: 0.2, gain: 0.14, delay: 0.16 })
+  },
+  workCancel: (c, o) => tone(c, o, { type: 'triangle', from: 300, to: 160, duration: 0.2, gain: 0.14 }),
   save: (c, o) => {
     tone(c, o, { type: 'sine', from: 520, duration: 0.1, gain: 0.12 })
     tone(c, o, { type: 'sine', from: 780, duration: 0.18, gain: 0.12, delay: 0.1 })

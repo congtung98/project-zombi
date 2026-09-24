@@ -120,7 +120,7 @@ try {
     await shot('p2s2-prod-equipped')
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 4)
+    assert.equal(saved.schemaVersion, 5)
     const weapons = saved.player.inventory.slots.filter((i) => i?.kind === 'weapon')
     assert.equal(weapons.length, 1)
     assert.equal(saved.player.equipment.weaponInstanceId, weapons[0].id)
@@ -223,7 +223,7 @@ try {
     assert.equal(spare.dropped, true)
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 4)
+    assert.equal(saved.schemaVersion, 5)
     const equipped = saved.player.inventory.slots.find((i) => i?.id === saved.player.equipment.weaponInstanceId)
     assert.equal(equipped.condition, 0)
     assert.equal(saved.containers.find((c) => c.id === `drop:${spare.id}`).items.slots[0].condition, 33)
@@ -258,12 +258,12 @@ try {
       assert.match(await hud('.hud-toast'), new RegExp(note))
       const upgraded = await readSlot('slot-1')
       const backup = await readSlot(`slot-1.backup-v${version}`)
-      assert.equal(upgraded.schemaVersion, 4)
+      assert.equal(upgraded.schemaVersion, 5)
       assert.deepEqual(backup, original)
       const ids = upgraded.containers.map((c) => c.id)
       for (const id of ['ct-safehouse-closet', 'ct-store-tools', 'ct-house-nightstand', 'ct-park-toolbox']) assert.ok(ids.includes(id), id)
       const weapons = upgraded.player.inventory.slots.filter((i) => i?.kind === 'weapon').map((i) => i.condition).sort((a, b) => a - b)
-      log(`migration v${version} → v4`, { backup: `slot-1.backup-v${version}`, containers: ids.length, bagWeapons: weapons })
+      log(`migration v${version} → v5`, { backup: `slot-1.backup-v${version}`, containers: ids.length, bagWeapons: weapons })
     }
 
     // Lab: weapon kit and the unchanged door/physics checks still work next to the S2 UI.

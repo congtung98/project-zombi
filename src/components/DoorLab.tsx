@@ -36,6 +36,7 @@ export default function DoorLab() {
       <p>{report}</p>
       <button onClick={() => give([['baseball_bat', 10], ['baseball_bat', 70]])}>Thêm hai gậy 10 / 70</button>{' '}
       <button onClick={() => give([['baseball_bat', 1], ['metal_pipe', 30], ['crowbar', 150], ['hammer', 0]])}>Bộ vũ khí thử (gậy 1, búa hỏng)</button>{' '}
+      <button onClick={() => { for (const [id, n] of [['wood_plank', 3], ['scrap_metal', 2], ['duct_tape', 3], ['nails', 12]] as const) addItem(runtime.player.inventory, id, n); runtime.setInventoryOpen(true); runtime.events.flush() }}>Vật liệu thử (sửa/chế tạo)</button>{' '}
       <button onClick={() => { void useUiStore.getState().saveGame() }}>Lưu thử</button>{' '}
       <button onClick={() => { void useUiStore.getState().continueGame() }}>Nạp lại</button>
     </aside>

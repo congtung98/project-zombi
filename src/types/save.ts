@@ -6,10 +6,11 @@ import type { CharacterAppearance } from '../game/entities/appearance'
 
 /**
  * v1 (Phase 1) → v2 (item instances, door state) → v3 (P2-S2 melee containers) → v4 (P2-S3
- * name + appearance). Older versions migrate in memory; unknown versions are rejected without
- * overwriting the original.
+ * name + appearance) → v5 (P2-S4 material containers; crafted items are ordinary instances).
+ * Older versions migrate in memory; unknown versions are rejected without overwriting the
+ * original. Timed actions (craft/repair in progress) are never part of a save.
  */
-export const SAVE_SCHEMA_VERSION = 4
+export const SAVE_SCHEMA_VERSION = 5
 
 export interface SavedPlayer {
   name: string

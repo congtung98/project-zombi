@@ -17,7 +17,7 @@ function PreviewModel({ appearance, yaw }: { appearance: CharacterAppearance; ya
   useFrame((_, delta) => {
     time.current += delta
     if (turn.current) turn.current.rotation.y = yaw.current
-    computePose({ kind: 'player', time: time.current, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.4, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false }, pose.current)
+    computePose({ kind: 'player', time: time.current, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.4, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false, work: -1 }, pose.current)
     applyPose(rig, pose.current)
   })
 

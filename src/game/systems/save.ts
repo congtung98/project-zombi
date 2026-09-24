@@ -1,7 +1,7 @@
 import { ITEMS, type ItemId } from '../entities/items'
 import { addItem, createInventory, type Inventory } from './inventory'
 import { DOOR_MAX_HP } from '../world/doors'
-import { CONTAINERS_ADDED_V3, NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
+import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
 import { GAME_CONFIG } from '../core/config'
@@ -25,7 +25,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (typeof data.schemaVersion !== 'number') return corrupt('thiếu schemaVersion')
   const version = data.schemaVersion
   const legacy = version === 1
-  if (version !== 1 && version !== 2 && version !== 3 && version !== SAVE_SCHEMA_VERSION) {
+  if (!Number.isInteger(version) || version < 1 || version > SAVE_SCHEMA_VERSION) {
     return { ok: false, reason: 'incompatible', detail: `schemaVersion ${data.schemaVersion}, cần ${SAVE_SCHEMA_VERSION}` }
   }
   if (typeof data.mapId !== 'string') return corrupt('thiếu mapId')
@@ -108,11 +108,12 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (knownMap) {
     const doors = data.doors as { id: string }[]
     if (doors.length !== knownMap.doors.length || knownMap.doors.some((d) => !doors.some((s) => s.id === d.id))) return corrupt('door IDs do not match map')
-    // Saves older than v3 predate the P2-S2 containers; migration seeds them once.
-    const required = knownMap.containers.filter((c) => version >= 3 || !CONTAINERS_ADDED_V3.has(c.id))
+    // Saves older than v3/v5 predate the P2-S2/P2-S4 containers; migration seeds them once.
+    const newerThanSave = (id: string) => (version < 3 && CONTAINERS_ADDED_V3.has(id)) || (version < 5 && CONTAINERS_ADDED_V5.has(id))
+    const required = knownMap.containers.filter((c) => !newerThanSave(c.id))
     if (required.some((c) => !containers.some((s) => s.id === c.id))) return corrupt('missing map container')
     for (const c of containers) {
-      if (version < 3 && CONTAINERS_ADDED_V3.has(c.id)) return corrupt('container newer than schema')
+      if (newerThanSave(c.id)) return corrupt('container newer than schema')
       const fixed = knownMap.containers.some((d) => d.id === c.id)
       if (fixed ? c.position !== undefined : legacy || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
       if (c.items.slots.length !== (fixed ? GAME_CONFIG.inventory.containerSlots : 1)) return corrupt('container capacity')
@@ -144,6 +145,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (weaponId !== null && (typeof weaponId !== 'string' || !save.player.inventory.slots.some((i) => i?.id === weaponId && i.kind === 'weapon'))) return corrupt('equipment owner/reference')
   if (version === 2) return migrateV2(save, expectedMapId, knownMap)
   if (version === 3) return migrateV3(save, expectedMapId, knownMap)
+  if (version === 4) return migrateV4(save, expectedMapId, knownMap)
   return { ok: true, save, migrated: false, fromVersion: version }
 }
 
@@ -228,23 +230,29 @@ function migratePhase1(data: Record<string, unknown>, mapId: string, map?: MapDa
 }
 
 /**
- * Pure deterministic v2 → v3: add each P2-S2 map container the save lacks, seeded by
- * hash(worldSeed, id) exactly like New Game. Existing containers (looted or not) are never
- * rerolled; fixed containers keep map order and drops follow, matching `createSnapshot`.
+ * Add the map containers in `added` that the save lacks, seeded by hash(worldSeed, id) exactly
+ * like New Game. Existing containers (looted or not) are never rerolled; fixed containers keep
+ * map order and drops follow, matching `createSnapshot`.
  */
+function seedAddedContainers(save: SaveGame, added: ReadonlySet<string>, map?: MapData): void {
+  if (!map) return
+  const byId = new Map(save.containers.map((c) => [c.id, c]))
+  const fixed = map.containers.flatMap((def) => {
+    const existing = byId.get(def.id)
+    if (existing) return [existing]
+    if (!added.has(def.id)) return []
+    const items = generateContainerLoot(def.loot ? LOOT_TABLES[def.loot] : undefined, save.worldSeed, def.id, GAME_CONFIG.inventory.containerSlots)
+    return [{ id: def.id, opened: false, items }]
+  })
+  const fixedIds = new Set(map.containers.map((c) => c.id))
+  save.containers = [...fixed, ...save.containers.filter((c) => !fixedIds.has(c.id))]
+}
+
+/** Pure deterministic v2 → v3: seed the P2-S2 melee containers once. */
 function migrateV2(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
   const save = structuredClone(source)
   save.schemaVersion = 3
-  if (map) {
-    const byId = new Map(save.containers.map((c) => [c.id, c]))
-    const fixed = map.containers.map((def) => byId.get(def.id) ?? {
-      id: def.id,
-      opened: false,
-      items: generateContainerLoot(def.loot ? LOOT_TABLES[def.loot] : undefined, save.worldSeed, def.id, GAME_CONFIG.inventory.containerSlots),
-    })
-    const fixedIds = new Set(map.containers.map((c) => c.id))
-    save.containers = [...fixed, ...save.containers.filter((c) => !fixedIds.has(c.id))]
-  }
+  seedAddedContainers(save, CONTAINERS_ADDED_V3, map)
   const checked = validateSaveGame(save, mapId, map)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 2 } : checked
 }
@@ -256,4 +264,16 @@ function migrateV3(source: SaveGame, mapId: string, map?: MapData): SaveValidati
   save.player = { ...save.player, name: DEFAULT_PLAYER_NAME, appearance: { ...DEFAULT_APPEARANCE } }
   const checked = validateSaveGame(save, mapId, map)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 3 } : checked
+}
+
+/**
+ * Pure v4 → v5 (P2-S4): seed the three material containers once, like v2 → v3. Nothing else
+ * changes; timed actions are never saved, so there is no action state to convert.
+ */
+function migrateV4(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = 5
+  seedAddedContainers(save, CONTAINERS_ADDED_V5, map)
+  const checked = validateSaveGame(save, mapId, map)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 4 } : checked
 }

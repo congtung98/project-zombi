@@ -6,7 +6,7 @@ import type { ItemId } from '../../entities/items'
  * the origin; `WEAPON_GRIPS` holds the per-weapon offset/rotation inside the hand socket, so a
  * future GLB only has to match the same grip convention.
  */
-export type WeaponModelId = 'baseball_bat' | 'metal_pipe' | 'crowbar' | 'hammer'
+export type WeaponModelId = 'baseball_bat' | 'metal_pipe' | 'crowbar' | 'hammer' | 'wooden_club'
 
 export interface WeaponGrip {
   /** Offset of the model inside the socket (m); negative Z lets the handle end stick out below the fist. */
@@ -20,6 +20,7 @@ export const WEAPON_GRIPS: Record<WeaponModelId, WeaponGrip> = {
   crowbar: { position: [0, 0, -0.08], rotation: [0, 0, 0] },
   // Short handle: hold near the end so the head clears the fist.
   hammer: { position: [0, 0, -0.04], rotation: [0, 0, 0] },
+  wooden_club: { position: [0, 0, -0.1], rotation: [0, 0, 0] },
 }
 
 interface PartSpec {
@@ -38,6 +39,8 @@ const GEOMETRY = {
   crowbarHook: new BoxGeometry(0.14, 0.04, 0.05),
   hammerHandle: new CylinderGeometry(0.024, 0.03, 0.55, 6),
   hammerHead: new BoxGeometry(0.22, 0.08, 0.08),
+  clubPlank: new BoxGeometry(0.09, 0.045, 0.85),
+  clubTape: new CylinderGeometry(0.06, 0.06, 0.16, 8),
 }
 
 const PARTS: Record<WeaponModelId, PartSpec[]> = {
@@ -50,6 +53,11 @@ const PARTS: Record<WeaponModelId, PartSpec[]> = {
   hammer: [
     { geometry: GEOMETRY.hammerHandle, color: '#8a6a44', position: [0, 0, 0.275], rotation: ALONG_Z },
     { geometry: GEOMETRY.hammerHead, color: '#555a60', metal: true, position: [0, 0, 0.55] },
+  ],
+  // Crafted: a plank with a grey duct-tape grip.
+  wooden_club: [
+    { geometry: GEOMETRY.clubPlank, color: '#b08850', position: [0, 0, 0.42] },
+    { geometry: GEOMETRY.clubTape, color: '#9aa0a8', position: [0, 0, 0.08], rotation: ALONG_Z },
   ],
 }
 

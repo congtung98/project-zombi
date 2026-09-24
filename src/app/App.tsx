@@ -13,11 +13,13 @@ import { useHudStore } from '../stores/hudStore'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
+import { ACTION_CANCEL_TEXT, ACTION_FAILURE_TEXT } from '../components/craftText'
 
 const USE_FAIL_TEXT = {
   'no-effect': 'chỉ số đã đầy, không cần dùng.',
   empty: 'ô trống.',
   dead: 'không thể dùng lúc này.',
+  'not-usable': 'không dùng trực tiếp; dùng khi sửa vũ khí hoặc chế tạo.',
 } as const
 
 function describeEffect(effect: ItemEffect): string {
@@ -67,6 +69,28 @@ export function App() {
         useHudStore.getState().showToast(`${e.name} đã HỎNG! Sát thương còn 20%. Đổi vũ khí khác trong túi (I).`, 3500, 'danger')
         sfx.play('weaponBreak')
       }),
+      // P2-S4 timed craft/repair: nothing is spent unless the action completes.
+      runtime.events.on('action:started', () => sfx.play('workStart')),
+      runtime.events.on('action:rejected', (e) => useHudStore.getState().showToast(`${e.label}: ${ACTION_FAILURE_TEXT[e.reason]}.`, 2500, 'warn')),
+      runtime.events.on('action:cancelled', (e) => {
+        useHudStore.getState().showToast(`Đã hủy ${e.label.toLowerCase()} (${ACTION_CANCEL_TEXT[e.reason]}); không mất nguyên liệu.`, 2200, 'warn')
+        sfx.play('workCancel')
+      }),
+      runtime.events.on('action:failed', (e) => {
+        useHudStore.getState().showToast(`${e.label} không hoàn tất: ${ACTION_FAILURE_TEXT[e.reason]}; không mất nguyên liệu.`, 3000, 'warn')
+        sfx.play('workCancel')
+      }),
+      runtime.events.on('action:completed', (e) => {
+        const r = e.repair
+        const text = r
+          ? `Đã sửa ${getItemDef(r.itemId).name}: độ bền ${r.before} → ${r.after}/${r.max}.`
+          : `Đã chế tạo ${e.outputItemId ? getItemDef(e.outputItemId).name : ''}.`
+        useHudStore.getState().showToast(text, 2200)
+        sfx.play('workDone')
+      }),
+      runtime.events.on('item:reserved', (e) =>
+        useHudStore.getState().showToast(`${e.name} đang dùng cho "${e.label}". Hủy thao tác (X) trước.`, 2200, 'warn'),
+      ),
       runtime.input.onAction('debug', () => ui().toggleDebug()),
       runtime.events.on('player:died', () => ui().gameOver()),
       runtime.events.on('player:damaged', (e) => {

@@ -3,7 +3,11 @@ import { getItemDef, type ItemInstance } from '../game/entities/items'
 import { runtime } from '../game/core/runtime'
 import { countUsedSlots, type Inventory as InventoryData } from '../game/systems/inventory'
 import { conditionLevel, weaponHitDamage } from '../game/systems/weapons'
-import { useInventoryStore } from '../stores/inventoryStore'
+import { checkRecipe } from '../game/systems/crafting'
+import { repairRecipeFor } from '../game/entities/recipes'
+import { useInventoryStore, type ActionSnapshot } from '../stores/inventoryStore'
+import { RecipeRequirements } from './CraftingPanel'
+import { ACTION_FAILURE_TEXT } from './craftText'
 
 const LEVEL_TEXT = { ok: 'Tốt', low: 'Sắp hỏng (≤ 25%)', broken: 'HỎNG — sát thương còn 20%' } as const
 
@@ -104,26 +108,58 @@ export function SlotGrid({
   )
 }
 
-/** Selected bag item: stats plus Equip/Use, Store, Drop. Repair arrives with timed actions in S4. */
-function ItemDetail({ item, slot, equipped, looting }: { item: ItemInstance; slot: number; equipped: boolean; looting: boolean }) {
+/**
+ * Repair preview for a weapon (plan §7.2): condition actually gained (capped at max), materials
+ * lost, time, and what is missing. Checked on the UI snapshot; the runtime re-checks on start/commit.
+ */
+function RepairInfo({ item, bag, action }: { item: ItemInstance; bag: InventoryData; action: ActionSnapshot | null }) {
+  const recipe = repairRecipeFor(item.itemId)
+  if (!recipe || item.kind !== 'weapon') return null
+  const check = checkRecipe(bag, recipe, item.id)
+  const r = check.repair
+  const running = action?.targetId === item.id
+  return (
+    <div className="repair-box">
+      {r && (
+        <p className="stat-line">
+          {r.before >= r.max ? `Độ bền đã đầy (${r.max}/${r.max})` : `Sửa: độ bền ${r.before} → ${r.after}/${r.max} (+${r.after - r.before})`}
+        </p>
+      )}
+      <RecipeRequirements recipe={recipe} check={check} />
+      {running && <p className="recipe-running">Đang sửa…</p>}
+    </div>
+  )
+}
+
+/** Selected bag item: stats plus Equip/Use, Store, Drop and (weapons) Repair as a timed action. */
+function ItemDetail({ item, slot, equipped, looting, bag, action }: { item: ItemInstance; slot: number; equipped: boolean; looting: boolean; bag: InventoryData; action: ActionSnapshot | null }) {
   const [name, ...lines] = describeItem(item)
+  const def = getItemDef(item.itemId)
   const level = item.kind === 'weapon' ? conditionLevel(item.itemId, item.condition) : null
+  const recipe = item.kind === 'weapon' ? repairRecipeFor(item.itemId) : null
+  const repairCheck = recipe ? checkRecipe(bag, recipe, item.id) : null
+  const repairing = action?.targetId === item.id
+  const repairBlock = action && !repairing ? ACTION_FAILURE_TEXT.busy : repairCheck?.failure ? ACTION_FAILURE_TEXT[repairCheck.failure] : null
+  const consumable = def.kind === 'food' || def.kind === 'drink' || def.kind === 'medical'
   return (
     <div className="item-detail">
       <h4>
-        {getItemDef(item.itemId).icon} {name} {equipped && <small>(đang cầm)</small>}
+        {def.icon} {name} {equipped && <small>(đang cầm)</small>}
       </h4>
       {lines.map((line, i) => (
         <p key={i} className={item.kind !== 'weapon' ? undefined : i === 0 ? 'stat-line' : i === 1 ? `stat-line status-${level}` : undefined}>
           {line}
         </p>
       ))}
+      {def.kind === 'material' && <p>Vật liệu: dùng khi sửa vũ khí (thẻ vũ khí) hoặc chế tạo (bảng bên cạnh).</p>}
+      <RepairInfo item={item} bag={bag} action={action} />
       <div className="item-actions">
-        {item.kind === 'weapon' ? (
+        {item.kind === 'weapon' && (
           <button type="button" onClick={() => runtime.equipItem(equipped ? null : item.id)}>
             {equipped ? 'Bỏ trang bị' : 'Trang bị'}
           </button>
-        ) : (
+        )}
+        {consumable && (
           <button type="button" onClick={() => runtime.consumeItem(slot)}>
             Dùng
           </button>
@@ -136,12 +172,18 @@ function ItemDetail({ item, slot, equipped, looting }: { item: ItemInstance; slo
         <button type="button" onClick={() => runtime.dropItem(slot)}>
           Thả xuống
         </button>
-        {item.kind === 'weapon' && (
-          <button type="button" disabled title="Sửa chữa có ở Sprint P2-S4 (gỗ/kim loại vụn + băng keo)">
-            Sửa
-          </button>
-        )}
+        {recipe &&
+          (repairing ? (
+            <button type="button" onClick={() => runtime.cancelAction()}>
+              Hủy sửa (X)
+            </button>
+          ) : (
+            <button type="button" disabled={repairBlock !== null} title={repairBlock ? `Chưa sửa được: ${repairBlock}` : undefined} onClick={() => runtime.startRepair(item.id)}>
+              Sửa ({recipe.duration} s)
+            </button>
+          ))}
       </div>
+      {recipe && repairBlock && !repairing && <p className="recipe-reason">Chưa sửa được: {repairBlock}.</p>}
     </div>
   )
 }
@@ -155,6 +197,7 @@ export function InventoryPanel() {
   const bag = useInventoryStore((s) => s.bag)
   const container = useInventoryStore((s) => s.container)
   const equippedId = useInventoryStore((s) => s.weaponInstanceId)
+  const action = useInventoryStore((s) => s.action)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const used = countUsedSlots(bag)
   const looting = container !== null
@@ -185,7 +228,7 @@ export function InventoryPanel() {
         onContextMenu={(i) => runtime.activateItem(i)}
       />
       {selected ? (
-        <ItemDetail item={selected} slot={selectedSlot} equipped={selected.id === equippedId} looting={looting} />
+        <ItemDetail item={selected} slot={selectedSlot} equipped={selected.id === equippedId} looting={looting} bag={bag} action={action} />
       ) : (
         <p className="inv-hint">Đang cầm: {equipped ? getItemDef(equipped.itemId).name : 'Tay không (Space để đẩy)'}</p>
       )}

@@ -49,6 +49,8 @@ export interface PoseInput {
   /** Death fall progress 0..1, or −1 while alive. */
   dead: number
   armed: boolean
+  /** Seconds into a craft/repair (shared work pose for every timed action), or −1. */
+  work: number
 }
 
 export const WALK_REFERENCE_SPEED = 2
@@ -138,6 +140,16 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
       out.armR.y = swingYaw(p, input.hitAt)
       out.armL.x = -0.4
       out.torsoTwist = out.armR.y * 0.3
+    }
+    if (input.work >= 0 && input.swing < 0) {
+      // Shared work pose: lean over the job, left hand steadies it, right hand taps ~2.5 times/s.
+      const tap = Math.sin(input.work * Math.PI * 5)
+      out.armL.x = -0.95
+      out.armL.y = -0.25
+      out.armR.x = -1.05 - 0.35 * tap
+      out.armR.y = 0.2
+      out.bodyPitch += 0.28
+      out.headPitch += 0.4
     }
     if (input.shove >= 0) {
       const bump = keyframes(clamp01(input.shove), [[0, 0], [0.3, 1], [1, 0]])

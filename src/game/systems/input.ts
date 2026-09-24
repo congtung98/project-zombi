@@ -14,6 +14,7 @@ export type ActionName =
   | 'inventory'
   | 'pause'
   | 'debug'
+  | 'cancelAction'
 
 export const KEY_BINDINGS: Record<ActionName, string[]> = {
   forward: ['KeyW', 'ArrowUp'],
@@ -27,6 +28,7 @@ export const KEY_BINDINGS: Record<ActionName, string[]> = {
   inventory: ['KeyI'],
   pause: ['Escape'],
   debug: ['F3'],
+  cancelAction: ['KeyX'],
 }
 
 /** Phím cần chặn hành vi mặc định của trình duyệt (cuộn trang, ...). */

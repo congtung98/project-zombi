@@ -23,6 +23,13 @@ export interface HudWeapon {
 
 export type ToastTone = 'info' | 'warn' | 'danger'
 
+/** Progress of the running craft/repair (simulation time, so it stops while paused). */
+export interface HudAction {
+  label: string
+  progress: number
+  remaining: number
+}
+
 interface HudSnapshot {
   playerName: string
   health: number
@@ -53,6 +60,7 @@ interface HudSnapshot {
   inventoryOpen: boolean
   /** Vũ khí đang cầm (null = tay không), đọc từ instance trong túi. */
   weapon: HudWeapon | null
+  action: HudAction | null
 }
 
 interface HudState extends HudSnapshot {
@@ -94,6 +102,7 @@ export const useHudStore = create<HudState>((set) => ({
   bagSize: 12,
   inventoryOpen: false,
   weapon: null,
+  action: null,
   toast: null,
   toastTone: 'info',
   damageFlash: 0,
@@ -139,6 +148,9 @@ export const useHudStore = create<HudState>((set) => ({
       inventoryOpen: rt.inventoryOpen,
       weapon: w && def
         ? { name: def.name, icon: def.icon, condition: w.condition, maxCondition: def.maxCondition!, level: conditionLevel(w.itemId, w.condition) }
+        : null,
+      action: rt.action
+        ? { label: rt.action.label, progress: rt.action.elapsed / rt.action.duration, remaining: Math.max(0, rt.action.duration - rt.action.elapsed) }
         : null,
     })
   },

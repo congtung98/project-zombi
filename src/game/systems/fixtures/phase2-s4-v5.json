@@ -1,0 +1,568 @@
+{
+  "schemaVersion": 5,
+  "savedAt": 1790380800000,
+  "mapId": "neighborhood-50",
+  "worldSeed": 716193924,
+  "clock": {
+    "elapsed": 23.244200000286103,
+    "timeOfDay": 0.33874033333381015,
+    "day": 1
+  },
+  "player": {
+    "name": "Người sống sót",
+    "appearance": {
+      "preset": "balanced",
+      "hair": "short",
+      "skin": "tan",
+      "shirt": "blue",
+      "pants": "denim"
+    },
+    "position": {
+      "x": -12.479016304016113,
+      "y": 0.8988622426986694,
+      "z": -14.952958106994629
+    },
+    "facing": 0.9213028929249303,
+    "health": 90,
+    "stamina": 100,
+    "hunger": 98.06298333330955,
+    "thirst": 97.41731111107933,
+    "kills": 0,
+    "inventory": {
+      "id": "player",
+      "nextItemId": 4,
+      "slots": [
+        {
+          "id": "player:1",
+          "itemId": "wood_plank",
+          "kind": "stack",
+          "quantity": 2
+        },
+        {
+          "id": "player:2",
+          "itemId": "duct_tape",
+          "kind": "stack",
+          "quantity": 2
+        },
+        {
+          "id": "loot:716193924:ct-safehouse-toolbox:3",
+          "itemId": "scrap_metal",
+          "kind": "stack",
+          "quantity": 3
+        },
+        {
+          "id": "loot:716193924:ct-safehouse-closet:1",
+          "itemId": "baseball_bat",
+          "kind": "weapon",
+          "quantity": 1,
+          "condition": 29
+        },
+        {
+          "id": "player:3",
+          "itemId": "wooden_club",
+          "kind": "weapon",
+          "quantity": 1,
+          "condition": 40
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    "equipment": {
+      "weaponInstanceId": "player:3"
+    }
+  },
+  "doors": [
+    {
+      "id": "door-safehouse",
+      "state": "closed",
+      "hp": 120
+    },
+    {
+      "id": "door-store",
+      "state": "closed",
+      "hp": 120
+    },
+    {
+      "id": "door-house",
+      "state": "closed",
+      "hp": 120
+    }
+  ],
+  "containers": [
+    {
+      "id": "ct-safehouse-cabinet",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-safehouse-cabinet",
+        "nextItemId": 5,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-safehouse-cabinet:1",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 1
+          },
+          {
+            "id": "loot:716193924:ct-safehouse-cabinet:2",
+            "itemId": "canned_food",
+            "kind": "stack",
+            "quantity": 1
+          },
+          {
+            "id": "loot:716193924:ct-safehouse-cabinet:3",
+            "itemId": "bandage",
+            "kind": "stack",
+            "quantity": 1
+          },
+          {
+            "id": "loot:716193924:ct-safehouse-cabinet:4",
+            "itemId": "chips",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-safehouse-closet",
+      "opened": true,
+      "items": {
+        "id": "loot:716193924:ct-safehouse-closet",
+        "nextItemId": 2,
+        "slots": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-safehouse-toolbox",
+      "opened": true,
+      "items": {
+        "id": "loot:716193924:ct-safehouse-toolbox",
+        "nextItemId": 4,
+        "slots": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-1",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-store-shelf-1",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-store-shelf-1:1",
+            "itemId": "soda",
+            "kind": "stack",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-2",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-store-shelf-2",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-store-shelf-2:1",
+            "itemId": "canned_food",
+            "kind": "stack",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-3",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-store-shelf-3",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-store-shelf-3:1",
+            "itemId": "canned_food",
+            "kind": "stack",
+            "quantity": 3
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-fridge",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-store-fridge",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-store-fridge:1",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 2
+          },
+          {
+            "id": "loot:716193924:ct-store-fridge:2",
+            "itemId": "soda",
+            "kind": "stack",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-tools",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-store-tools",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-store-tools:1",
+            "itemId": "hammer",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 93
+          },
+          {
+            "id": "loot:716193924:ct-store-tools:2",
+            "itemId": "crowbar",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 114
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-hardware",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-store-hardware",
+        "nextItemId": 4,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-store-hardware:1",
+            "itemId": "nails",
+            "kind": "stack",
+            "quantity": 8
+          },
+          {
+            "id": "loot:716193924:ct-store-hardware:2",
+            "itemId": "wood_plank",
+            "kind": "stack",
+            "quantity": 3
+          },
+          {
+            "id": "loot:716193924:ct-store-hardware:3",
+            "itemId": "duct_tape",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-wardrobe",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-house-wardrobe",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-house-wardrobe:1",
+            "itemId": "bandage",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-kitchen",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-house-kitchen",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-house-kitchen:1",
+            "itemId": "canned_food",
+            "kind": "stack",
+            "quantity": 2
+          },
+          {
+            "id": "loot:716193924:ct-house-kitchen:2",
+            "itemId": "chips",
+            "kind": "stack",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-nightstand",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-house-nightstand",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-house-nightstand:1",
+            "itemId": "baseball_bat",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 54
+          },
+          {
+            "id": "loot:716193924:ct-house-nightstand:2",
+            "itemId": "chips",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-park-toolbox",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-park-toolbox",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-park-toolbox:1",
+            "itemId": "crowbar",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 79
+          },
+          {
+            "id": "loot:716193924:ct-park-toolbox:2",
+            "itemId": "hammer",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 69
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-scrap",
+      "opened": false,
+      "items": {
+        "id": "loot:716193924:ct-house-scrap",
+        "nextItemId": 4,
+        "slots": [
+          {
+            "id": "loot:716193924:ct-house-scrap:1",
+            "itemId": "scrap_metal",
+            "kind": "stack",
+            "quantity": 2
+          },
+          {
+            "id": "loot:716193924:ct-house-scrap:2",
+            "itemId": "wood_plank",
+            "kind": "stack",
+            "quantity": 4
+          },
+          {
+            "id": "loot:716193924:ct-house-scrap:3",
+            "itemId": "nails",
+            "kind": "stack",
+            "quantity": 5
+          },
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    }
+  ],
+  "zombies": [
+    {
+      "id": "zombie-2",
+      "position": {
+        "x": 4,
+        "y": 0.8988622426986694,
+        "z": 14
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-3",
+      "position": {
+        "x": 20,
+        "y": 0.8988622426986694,
+        "z": 0
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-4",
+      "position": {
+        "x": -2,
+        "y": 0.8988624215126038,
+        "z": -20
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-5",
+      "position": {
+        "x": 16,
+        "y": 0.8988622426986694,
+        "z": -5
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-6",
+      "position": {
+        "x": 22,
+        "y": 0.8988622426986694,
+        "z": 20
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-7",
+      "position": {
+        "x": -22,
+        "y": 0.8988622426986694,
+        "z": 0
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-8",
+      "position": {
+        "x": 8,
+        "y": 0.8988622426986694,
+        "z": 22
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    }
+  ],
+  "spawn": {
+    "nextZombieId": 9,
+    "timer": 1.7557999997138884,
+    "counter": 0
+  },
+  "cameraZoom": 28
+}

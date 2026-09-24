@@ -14,7 +14,8 @@ function ControlsHelp() {
       <li><kbd>Chuột trái</kbd> đánh về phía con trỏ</li>
       <li><kbd>Space</kbd> đẩy zombie ra xa</li>
       <li><kbd>E</kbd> tương tác cửa/tủ</li>
-      <li><kbd>I</kbd> túi đồ (click dùng/chuyển)</li>
+      <li><kbd>I</kbd> túi đồ (dùng/chuyển, sửa, chế tạo)</li>
+      <li><kbd>X</kbd> hủy sửa/chế tạo</li>
       <li><kbd>Con lăn</kbd> zoom camera</li>
       <li><kbd>Esc</kbd> tạm dừng · <kbd>F3</kbd> debug</li>
     </ul>
@@ -81,7 +82,7 @@ export function MainMenu() {
 
   return (
     <div className="overlay">
-      <div className="panel">
+      <div className={view === 'guide' ? 'panel panel-wide' : 'panel'}>
         {view === 'settings' && <SettingsPanel onBack={() => setView('main')} />}
         {view === 'guide' && <GuidePanel onBack={() => setView('main')} />}
         {view === 'main' && (
@@ -127,7 +128,7 @@ export function PauseMenu() {
 
   return (
     <div className="overlay overlay-dim">
-      <div className="panel">
+      <div className={view === 'guide' ? 'panel panel-wide' : 'panel'}>
         {view === 'settings' && <SettingsPanel onBack={() => setView('main')} />}
         {view === 'guide' && <GuidePanel onBack={() => setView('main')} />}
         {view === 'main' && (

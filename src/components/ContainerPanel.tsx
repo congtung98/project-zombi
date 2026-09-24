@@ -2,6 +2,7 @@ import { runtime } from '../game/core/runtime'
 import { isEmpty } from '../game/systems/inventory'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { SlotGrid } from './Inventory'
+import { CraftingPanel } from './CraftingPanel'
 
 /** Panel container đang mở: click ô = lấy; "Lấy tất cả" chỉ chuyển phần còn chỗ. */
 export function ContainerPanel() {
@@ -39,6 +40,7 @@ export function InventoryOverlay() {
     <div className="inv-overlay" onContextMenu={(e) => e.preventDefault()}>
       <InventoryPanelLazy />
       <ContainerPanel />
+      <CraftingPanel />
     </div>
   )
 }

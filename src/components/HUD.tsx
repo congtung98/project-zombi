@@ -1,4 +1,5 @@
 import { useHudStore } from '../stores/hudStore'
+import { runtime } from '../game/core/runtime'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useUiStore } from '../stores/uiStore'
 
@@ -67,6 +68,23 @@ export function HUD() {
         )}
       </div>
 
+      {hud.action && (
+        <div className="hud-work" role="status">
+          <div className="hud-work-label">
+            {hud.action.label} · còn {hud.action.remaining.toFixed(1)} s
+          </div>
+          <div className="hud-work-track">
+            <div className="hud-work-fill" style={{ width: `${Math.round(hud.action.progress * 100)}%` }} />
+          </div>
+          <div className="hud-work-hint">
+            Di chuyển, đánh hoặc trúng đòn sẽ hủy ·{' '}
+            <button type="button" onClick={() => runtime.cancelAction()}>
+              Hủy (X)
+            </button>
+          </div>
+        </div>
+      )}
+
       {hud.toast && <div className={`hud-toast hud-toast-${hud.toastTone}`}>{hud.toast}</div>}
 
       {hud.interactPrompt && (
@@ -76,7 +94,7 @@ export function HUD() {
       )}
 
       {showHints && (
-        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ · Esc tạm dừng · F3 debug</div>
+        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ/chế tạo · X hủy thao tác · Esc tạm dừng · F3 debug</div>
       )}
 
       {debug && (

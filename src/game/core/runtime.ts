@@ -20,6 +20,9 @@ import { createInventory } from '../systems/inventory'
 import { applyWeaponWear, meleeStats, weaponHitDamage } from '../systems/weapons'
 import { equipWeapon, equippedWeapon, reconcileEquipment } from '../systems/equipment'
 import { validateSaveGame } from '../systems/save'
+import { checkRecipe, commitRecipe, type CraftFailure } from '../systems/crafting'
+import { advanceAction, reservationBlocks, reservationFor, type ActionCancelReason, type TimedAction } from '../systems/timedAction'
+import { RECIPES, repairRecipeFor, type Recipe, type RecipeId } from '../entities/recipes'
 import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
@@ -32,6 +35,9 @@ interface PendingAttack {
   sourceId: EntityId
   damage: number
 }
+
+export type ActionStartFailure = CraftFailure | 'busy' | 'dead'
+export type ActionStartResult = { ok: true; id: number } | { ok: false; reason: ActionStartFailure }
 
 /**
  * Truy vấn vật lý do tầng render (Rapier) cung cấp. Simulation không import
@@ -93,6 +99,12 @@ export class GameRuntime {
   /** Đếm ngược autosave; khi hết, `autosaveDue` bật và game loop chụp snapshot ngay sau tick. */
   autosaveTimer = GAME_CONFIG.save.autosaveInterval
   autosaveDue = false
+  /**
+   * Timed craft/repair in progress (plan §7.1). Runtime only: never saved, so a snapshot taken
+   * mid-action holds the unconsumed materials, and load/New Game drop it.
+   */
+  action: TimedAction | null = null
+  private nextActionId = 1
 
   private playerBody: RapierRigidBody | null = null
   private zombieBodies = new Map<EntityId, RapierRigidBody>()
@@ -153,6 +165,7 @@ export class GameRuntime {
     this.spawnTimer = spawnInterval(this.clock.isNight)
     this.autosaveTimer = GAME_CONFIG.save.autosaveInterval
     this.autosaveDue = false
+    this.action = null
     for (const spawn of this.map.zombieSpawns) this.spawnZombie(spawn)
   }
 
@@ -303,6 +316,7 @@ export class GameRuntime {
     this.stepInteraction()
     const attacks = this.stepZombies(dt)
     this.stepCombat(attacks, dt)
+    this.stepAction(dt)
     this.stepSurvival(dt)
     this.stepSpawn(dt)
     this.clock.advance(dt)
@@ -384,6 +398,8 @@ export class GameRuntime {
       this.cameraBasis,
     )
     const moving = dir.x !== 0 || dir.z !== 0
+    // Walking away interrupts a craft/repair; nothing is consumed (plan §7.1 step 4).
+    if (moving && this.action) this.cancelAction('moved')
     const { speed } = resolvePlayerSpeed(player, this.input.isDown('run'), moving, dt)
 
     // Khi đang vung gậy, giữ hướng nhìn về con trỏ; chuyển động không xoay nhân vật.
@@ -495,6 +511,7 @@ export class GameRuntime {
   dropItem(slot: number): boolean {
     const item = this.player.inventory.slots[slot]
     if (!item || !this.player.alive || this.player.attackTimer >= 0) return false
+    if (this.isReserved(slot, item.quantity)) return false
     const id = `drop:${item.id}`
     // Reuse a previously emptied bag at this ID; never overwrite owned items.
     if (this.world.containers.get(id)?.items.slots.some(Boolean)) return false
@@ -558,6 +575,8 @@ export class GameRuntime {
 
   /** Dùng vật phẩm ở ô `slot`; chỉ trừ khi dùng thành công. */
   consumeItem(slot: number): UseItemResult {
+    const item = this.player.inventory.slots[slot]
+    if (item && this.isReserved(slot, 1)) return { ok: false, reason: 'not-usable', itemId: item.itemId }
     const result = consumeInventoryItem(this.player, slot)
     if (result.ok) {
       this.events.queue('item:used', { itemId: result.itemId, name: getItemDef(result.itemId).name, effect: result.effect })
@@ -581,7 +600,8 @@ export class GameRuntime {
   putIntoContainer(slot: number): TransferResult {
     const c = this.openContainer
     if (!c) return { moved: 0, remainder: 0 }
-    if (this.player.attackTimer >= 0) return { moved: 0, remainder: this.player.inventory.slots[slot]?.quantity ?? 0 }
+    const quantity = this.player.inventory.slots[slot]?.quantity ?? 0
+    if (this.player.attackTimer >= 0 || this.isReserved(slot, quantity)) return { moved: 0, remainder: quantity }
     const r = transferSlot(this.player.inventory, slot, c.items)
     reconcileEquipment(this.player.inventory, this.player.equipment)
     if (r.moved > 0) this.queueInventoryChanged()
@@ -595,6 +615,115 @@ export class GameRuntime {
     const r = transferAll(c.items, this.player.inventory)
     if (r.moved > 0) this.queueInventoryChanged()
     return r
+  }
+
+  // ----- Timed actions: craft/repair (plan §7). Started from UI, advanced and committed in tick -----
+
+  startCraft(id: RecipeId): ActionStartResult {
+    return this.startRecipe(RECIPES[id], null)
+  }
+
+  /** Repair one weapon instance with the recipe of its group (wood/metal). */
+  startRepair(targetId: string): ActionStartResult {
+    const target = this.player.inventory.slots.find((i) => i?.id === targetId)
+    const recipe = target ? repairRecipeFor(target.itemId) : null
+    if (!recipe) return this.rejectAction('Sửa', target ? 'not-repairable' : 'no-target')
+    return this.startRecipe(recipe, targetId)
+  }
+
+  /**
+   * Validate (alive, idle, not mid-swing, inputs/tools/space) and reserve; nothing is consumed
+   * until `completeAction`. Public so tests can run ad-hoc recipes (e.g. with tool wear).
+   */
+  startRecipe(recipe: Recipe, targetId: string | null): ActionStartResult {
+    const label = this.actionLabel(recipe, targetId)
+    if (!this.player.alive) return this.rejectAction(label, 'dead')
+    if (this.action || this.player.attackTimer >= 0) return this.rejectAction(label, 'busy')
+    const check = checkRecipe(this.player.inventory, recipe, targetId)
+    if (!check.ok) return this.rejectAction(label, check.failure!)
+    const toolIds = check.tools.map((t) => t.instanceId!)
+    const id = this.nextActionId++
+    this.action = { id, recipe, targetId, toolIds, label, duration: recipe.duration, elapsed: 0, reservation: reservationFor(recipe, targetId, check) }
+    this.events.queue('action:started', { id, kind: recipe.kind, label, duration: recipe.duration })
+    this.queueInventoryChanged()
+    return { ok: true, id }
+  }
+
+  /** Cancel releases the reservation; no input, fuel or tool condition is spent. */
+  cancelAction(reason: ActionCancelReason = 'cancelled'): boolean {
+    const action = this.action
+    if (!action) return false
+    this.action = null
+    this.events.queue('action:cancelled', { id: action.id, label: action.label, reason })
+    this.queueInventoryChanged()
+    return true
+  }
+
+  /**
+   * Commit action `id` once it has run its full duration. The action is cleared before the
+   * commit, so a repeated or stale completion is a no-op; the commit re-checks everything and
+   * changes the bag in one step inside the tick (snapshots only happen between ticks).
+   */
+  completeAction(id: number): boolean {
+    const action = this.action
+    if (!action || action.id !== id || action.elapsed < action.duration) return false
+    this.action = null
+    const { recipe, label } = action
+    const result = commitRecipe(this.player.inventory, recipe, action.targetId, action.toolIds)
+    if (!result.ok) {
+      this.events.queue('action:failed', { id, label, reason: result.failure })
+      this.queueInventoryChanged()
+      return false
+    }
+    reconcileEquipment(this.player.inventory, this.player.equipment)
+    for (const wear of result.toolWear) {
+      this.events.queue('weapon:worn', { id: wear.id, itemId: wear.itemId, condition: wear.condition })
+      if (wear.broke) this.events.queue('weapon:broken', { id: wear.id, itemId: wear.itemId, name: getItemDef(wear.itemId).name })
+    }
+    this.events.queue('action:completed', {
+      id,
+      kind: recipe.kind,
+      recipeId: recipe.id,
+      label,
+      outputItemId: recipe.kind === 'craft' ? recipe.output.itemId : null,
+      outputId: result.outputId,
+      repair: result.repair,
+    })
+    this.queueInventoryChanged()
+    return true
+  }
+
+  private stepAction(dt: number): void {
+    const action = this.action
+    if (!action) return
+    if (!this.player.alive) {
+      this.cancelAction('dead')
+      return
+    }
+    if (this.input.wasPressed('cancelAction')) {
+      this.cancelAction('cancelled')
+      return
+    }
+    if (advanceAction(action, dt)) this.completeAction(action.id)
+  }
+
+  private rejectAction(label: string, reason: ActionStartFailure): ActionStartResult {
+    this.events.queue('action:rejected', { label, reason })
+    return { ok: false, reason }
+  }
+
+  private actionLabel(recipe: Recipe, targetId: string | null): string {
+    if (recipe.kind === 'craft') return `Chế tạo ${getItemDef(recipe.output.itemId).name}`
+    const target = this.player.inventory.slots.find((i) => i?.id === targetId)
+    return target ? `Sửa ${getItemDef(target.itemId).name}` : recipe.name
+  }
+
+  /** Reserved materials/instances of the running action cannot leave the bag. */
+  private isReserved(slot: number, quantity: number): boolean {
+    if (!reservationBlocks(this.player.inventory, this.action?.reservation ?? null, slot, quantity)) return false
+    const item = this.player.inventory.slots[slot]!
+    this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.action!.label })
+    return true
   }
 
   private syncUiOpen(): void {
@@ -657,6 +786,8 @@ export class GameRuntime {
   private stepCombat(attacks: PendingAttack[], dt: number): void {
     const player = this.player
     if (player.alive && !this.uiOpen) {
+      // Attacking or shoving interrupts a craft/repair (the swing itself still happens).
+      if (this.action && (this.input.wasPressed('attack') || this.input.wasPressed('push'))) this.cancelAction('attacked')
       if (this.input.wasPressed('attack')) {
         const weapon = equippedWeapon(player.inventory, player.equipment)
         if (!weapon) this.events.queue('player:unarmed', {})
@@ -766,7 +897,11 @@ export class GameRuntime {
   private applyPlayerDamage(amount: number, sourceId: EntityId): void {
     if (!this.player.alive) return
     const died = damagePlayer(this.player, amount)
-    if (sourceId !== 'starvation') this.player.hurtTimer = PLAYER_HURT_TIME
+    if (sourceId !== 'starvation') {
+      this.player.hurtTimer = PLAYER_HURT_TIME
+      // Taking a blow interrupts work; slow starvation damage does not.
+      this.cancelAction('hit')
+    }
     this.events.queue('player:damaged', { amount, health: this.player.health, sourceId })
     if (died) this.events.queue('player:died', { sourceId })
   }

@@ -3,11 +3,12 @@ import legacyFixture from './fixtures/phase1-v1.json'
 import currentFixture from './fixtures/phase2-s1-v2.json'
 import s2Fixture from './fixtures/phase2-s2-v3.json'
 import s3Fixture from './fixtures/phase2-s3-v4.json'
+import s4Fixture from './fixtures/phase2-s4-v5.json'
 import { GameRuntime } from '../core/runtime'
 import { validateSaveGame } from './save'
 import { addItem, createInventory, totalQuantity, transferSlot } from './inventory'
 import { equippedWeapon, equipWeapon } from './equipment'
-import { CONTAINERS_ADDED_V3, NEIGHBORHOOD_MAP } from '../world/mapData'
+import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, NEIGHBORHOOD_MAP } from '../world/mapData'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME } from '../entities/appearance'
 
@@ -112,16 +113,68 @@ describe('v2 → v3 (P2-S2 melee containers)', () => {
   })
 })
 
+describe('v4 → v5 (P2-S4 material containers)', () => {
+  it('seeds the three material containers like New Game for the same seed; nothing else changes', () => {
+    const before = JSON.stringify(s3Fixture)
+    const { save, fromVersion } = migrate(s3Fixture)
+    expect(fromVersion).toBe(4)
+    expect(JSON.stringify(s3Fixture)).toBe(before)
+    const fresh = new GameRuntime()
+    fresh.newGame(s3Fixture.worldSeed)
+    for (const id of CONTAINERS_ADDED_V5) {
+      expect(s3Fixture.containers.some((c) => c.id === id)).toBe(false)
+      const added = save.containers.find((c) => c.id === id)!
+      expect(added).toEqual({ id, opened: false, items: fresh.world.containers.get(id)!.items })
+    }
+    expect({ ...save, schemaVersion: 4, containers: save.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id)) }).toEqual(s3Fixture)
+    // Map order first, then drops (matches createSnapshot), and idempotent.
+    const fixed = save.containers.filter((c) => !c.position).map((c) => c.id)
+    expect(fixed).toEqual(NEIGHBORHOOD_MAP.containers.map((c) => c.id))
+    expect(migrate(s3Fixture).save).toEqual(save)
+    expect(migrate(save)).toMatchObject({ migrated: false, save })
+  })
+
+  it('rejects a v5 save missing a material container and a v4 save that already has one', () => {
+    const { save } = migrate(s3Fixture)
+    const missing = structuredClone(save)
+    missing.containers = missing.containers.filter((c) => c.id !== 'ct-store-hardware')
+    expect(validateSaveGame(missing, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+    const early = structuredClone(s3Fixture) as unknown as SaveGame
+    early.containers.push(structuredClone(save.containers.find((c) => c.id === 'ct-store-hardware')!))
+    expect(validateSaveGame(early, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+  })
+
+  it('a migrated save can loot the starter kit and repair its crowbar; the result saves cleanly', () => {
+    const { save } = migrate(s3Fixture)
+    const rt = new GameRuntime()
+    rt.loadSnapshot(save)
+    rt.player.position = { x: -16.5, y: 0, z: -13 }
+    rt.interact(rt.interactables.find((i) => i.id === 'ct-safehouse-toolbox')!)
+    expect(rt.takeAll().moved).toBe(3)
+    rt.closeAllUi()
+    const crowbar = rt.player.inventory.slots.find((i) => i?.itemId === 'crowbar')!
+    expect(rt.startRepair(crowbar.id).ok).toBe(true)
+    for (let t = 0; t < 5.1; t += 1 / 60) rt.tick(1 / 60)
+    expect(rt.player.inventory.slots.find((i) => i?.id === crowbar.id)).toMatchObject({ condition: 115 })
+    expect(rt.player.inventory.slots.filter(Boolean).map((i) => i!.itemId).sort()).toEqual(['crowbar', 'wood_plank'])
+    const round = migrate(JSON.parse(JSON.stringify(rt.createSnapshot())))
+    expect(round.migrated).toBe(false)
+    rt.loadSnapshot(round.save)
+    expect(rt.player.equipment.weaponInstanceId).toBe(crowbar.id)
+  })
+})
+
 describe('P2-S2 browser fixture (v3)', () => {
-  it('v3 → v4 adds only the default name/appearance; everything else is the S2 save', () => {
+  it('v3 → v5 adds only the default name/appearance and the P2-S4 material containers; everything else is the S2 save', () => {
     const before = JSON.stringify(s2Fixture)
     const { save, migrated, fromVersion } = migrate(s2Fixture)
-    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 3, 4])
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 3, 5])
     expect(JSON.stringify(s2Fixture)).toBe(before)
     const { name, appearance, ...rest } = save.player
     expect([name, appearance]).toEqual([DEFAULT_PLAYER_NAME, DEFAULT_APPEARANCE])
     expect(rest).toEqual(s2Fixture.player)
-    expect({ ...save, player: rest, schemaVersion: 3 }).toEqual(s2Fixture)
+    const containers = save.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id))
+    expect({ ...save, player: rest, schemaVersion: 3, containers }).toEqual(s2Fixture)
     expect(migrate(s2Fixture).save).toEqual(save)
   })
 
@@ -142,9 +195,9 @@ describe('P2-S2 browser fixture (v3)', () => {
 })
 
 describe('P2-S3 browser fixture (v4)', () => {
-  it('loads without migration and keeps the chosen name/appearance through repeated round trips', () => {
-    const { save, migrated } = migrate(s3Fixture)
-    expect(migrated).toBe(false)
+  it('migrates to v5 and keeps the chosen name/appearance through repeated round trips', () => {
+    const { save, migrated, fromVersion } = migrate(s3Fixture)
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 4, 5])
     expect([save.player.name, save.player.appearance]).toEqual(['Trần Tùng', { preset: 'sturdy', hair: 'mohawk', skin: 'dark', shirt: 'red', pants: 'olive' }])
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
@@ -237,5 +290,25 @@ describe('instance ownership', () => {
     if (kind === 'duplicate-door') save.doors.push({ ...save.doors[0] })
     if (kind === 'capacity') save.player.inventory.slots.push(null)
     expect(validateSaveGame(save, mapId).ok).toBe(false)
+  })
+})
+
+describe('P2-S4 browser fixture (v5)', () => {
+  it('loads without migration: crafted club equipped, closet bat repaired then worn, materials and looted kit kept', () => {
+    const { save, migrated } = migrate(s4Fixture)
+    expect(migrated).toBe(false)
+    const rt = new GameRuntime()
+    rt.loadSnapshot(save)
+    for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect(equippedWeapon(rt.player.inventory, rt.player.equipment)).toMatchObject({ itemId: 'wooden_club', condition: 40 })
+    const bat = rt.player.inventory.slots.find((i) => i?.itemId === 'baseball_bat')!
+    expect(bat.id.includes('ct-safehouse-closet') && bat.kind === 'weapon' && bat.condition).toBe(29)
+    expect(rt.world.containers.get('ct-safehouse-toolbox')).toMatchObject({ opened: true })
+    expect(totalQuantity(rt.world.containers.get('ct-safehouse-toolbox')!.items)).toBe(0)
+    // The saved materials still pay for a repair after Continue.
+    expect(rt.startRepair(bat.id).ok).toBe(true)
+    for (let t = 0; t < 4.1; t += 1 / 60) rt.tick(1 / 60)
+    expect(rt.player.inventory.slots.find((i) => i?.id === bat.id)).toMatchObject({ condition: 59 })
   })
 })

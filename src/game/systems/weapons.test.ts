@@ -8,7 +8,7 @@ import { LOOT_TABLES } from '../world/lootTables'
 import { NEIGHBORHOOD_MAP } from '../world/mapData'
 import legacyFixture from './fixtures/phase1-v1.json'
 
-const WEAPONS: ItemId[] = ['baseball_bat', 'metal_pipe', 'crowbar', 'hammer']
+const WEAPONS: ItemId[] = ['baseball_bat', 'metal_pipe', 'crowbar', 'hammer', 'wooden_club']
 
 function weapon(itemId: ItemId, condition: number): WeaponInstance {
   const inv = createInventory(1, 't')
@@ -32,7 +32,12 @@ describe('melee definitions', () => {
     expect(meleeStats('baseball_bat')).toEqual({ damage, range, cooldown, stamina })
     const hp = GAME_CONFIG.zombie.health
     const hitsToKill = (id: ItemId) => Math.ceil(hp / meleeStats(id).damage)
-    expect(WEAPONS.map(hitsToKill)).toEqual([2, 2, 2, 3])
+    expect(WEAPONS.map(hitsToKill)).toEqual([2, 2, 2, 3, 3])
+    // The crafted club is a stopgap: weaker, shorter and far less durable than the bat.
+    expect(meleeStats('wooden_club').damage).toBeLessThan(meleeStats('baseball_bat').damage)
+    expect(meleeStats('wooden_club').range).toBeLessThan(meleeStats('baseball_bat').range)
+    expect(ITEMS.wooden_club.maxCondition).toBe(40)
+    expect(weaponHitDamage('wooden_club', 0)).toBe(4)
     // Heavier weapons are slower/costlier but last longer; the hammer is a tool first.
     expect(meleeStats('crowbar').cooldown).toBeGreaterThan(meleeStats('baseball_bat').cooldown)
     expect(ITEMS.crowbar.maxCondition!).toBeGreaterThan(ITEMS.metal_pipe.maxCondition!)

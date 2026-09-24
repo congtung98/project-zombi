@@ -13,10 +13,12 @@ export type Screen = 'menu' | 'create' | 'playing' | 'paused' | 'gameover'
 const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : 'slot-1'
 const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
 const DEFAULT_LOOK_NOTE = 'Nhân vật dùng tên và ngoại hình mặc định.'
+const MATERIALS_NOTE = 'Có 3 chỗ vật liệu mới (hộp đồ nghề nhà an toàn, kệ vật liệu cửa hàng, đống phế liệu sau nhà dân) để sửa/chế tạo.'
 const MIGRATION_TOAST: Record<number, string> = {
-  1: `Đã nâng cấp save Phase 1 và giữ bản sao v1. Gậy cũ ở túi hoặc túi đồ rơi dưới chân. ${NEW_CONTAINERS_NOTE} ${DEFAULT_LOOK_NOTE}`,
-  2: `Đã nâng cấp save và giữ bản sao v2. ${NEW_CONTAINERS_NOTE} ${DEFAULT_LOOK_NOTE}`,
-  3: `Đã nâng cấp save và giữ bản sao v3. ${DEFAULT_LOOK_NOTE}`,
+  1: `Đã nâng cấp save Phase 1 và giữ bản sao v1. Gậy cũ ở túi hoặc túi đồ rơi dưới chân. ${NEW_CONTAINERS_NOTE} ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE}`,
+  2: `Đã nâng cấp save và giữ bản sao v2. ${NEW_CONTAINERS_NOTE} ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE}`,
+  3: `Đã nâng cấp save và giữ bản sao v3. ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE}`,
+  4: `Đã nâng cấp save và giữ bản sao v4. ${MATERIALS_NOTE}`,
 }
 
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */

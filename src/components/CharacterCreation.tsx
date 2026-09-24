@@ -93,11 +93,18 @@ export function CharacterCreation() {
           <div className="creation-form">
             <label className="creation-row">
               <span className="creation-label">Tên</span>
+              {/* Uncontrolled on purpose: as a controlled input the production build dropped the first
+                  keystrokes while the preview canvases started (React wrote the stale value back).
+                  React never writes this DOM value; only an over-long name is trimmed here. */}
               <input
                 className="creation-name"
-                value={name}
+                defaultValue=""
                 placeholder={DEFAULT_PLAYER_NAME}
-                onChange={(e) => setName(Array.from(e.target.value).slice(0, MAX_NAME_LENGTH).join(''))}
+                onChange={(e) => {
+                  const chars = Array.from(e.target.value)
+                  if (chars.length > MAX_NAME_LENGTH) e.target.value = chars.slice(0, MAX_NAME_LENGTH).join('')
+                  setName(e.target.value)
+                }}
                 aria-describedby="name-hint"
               />
             </label>

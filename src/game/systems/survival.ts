@@ -3,7 +3,8 @@ import { getItemDef, type ItemEffect, type ItemId } from '../entities/items'
 import type { PlayerState } from '../entities/player'
 import { removeFromSlot } from './inventory'
 
-export type UseItemFailure = 'dead' | 'empty' | 'no-effect'
+/** `not-usable`: materials/equipment have no direct use (or the item is reserved by an action). */
+export type UseItemFailure = 'dead' | 'empty' | 'no-effect' | 'not-usable'
 
 export type UseItemResult =
   | { ok: true; itemId: ItemId; effect: ItemEffect }
@@ -35,6 +36,7 @@ export function consumeInventoryItem(player: PlayerState, slot: number, limits =
   if (!stack || stack.quantity <= 0) return { ok: false, reason: 'empty' }
   const def = getItemDef(stack.itemId)
   if (!player.alive) return { ok: false, reason: 'dead', itemId: def.id }
+  if (def.kind !== 'food' && def.kind !== 'drink' && def.kind !== 'medical') return { ok: false, reason: 'not-usable', itemId: def.id }
   if (!canBenefit(player, def.effect, limits)) return { ok: false, reason: 'no-effect', itemId: def.id }
   applyItemEffect(player, def.effect, limits)
   removeFromSlot(player.inventory, slot, 1)
