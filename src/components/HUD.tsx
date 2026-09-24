@@ -73,6 +73,7 @@ export function HUD() {
             Player: ({hud.playerX.toFixed(1)}, {hud.playerZ.toFixed(1)}) {hud.running ? 'RUN' : ''}
           </div>
           <div>Interact: {hud.interactPrompt ?? '-'}</div>
+          <div>Zombies: {hud.zombies.filter((z) => z.ai !== 'DEAD').length} sống / {hud.zombies.length}</div>
           {hud.zombies.map((z) => (
             <div key={z.id}>
               {z.id}: {z.ai} hp={z.health} d={z.distance.toFixed(1)}

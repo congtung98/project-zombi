@@ -11,8 +11,11 @@ import { facingTowards, resolveConeHits, startAttack, startPush, tickPlayerComba
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
 import { transferAll, transferSlot, type TransferResult } from '../systems/inventory'
-import { randomSeed } from '../systems/loot'
+import { createRng, hashSeed, randomSeed } from '../systems/loot'
+import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { getItemDef } from '../entities/items'
+import { cloneInventory } from '../systems/inventory'
+import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
 import { NavGrid } from '../world/navigation'
 import { createWorldState, type ContainerState, type WorldState } from '../world/worldState'
@@ -72,8 +75,15 @@ export class GameRuntime {
   inventoryOpen = false
   /** Container đang hiện panel; null khi không có. */
   openContainerId: string | null = null
-  /** Tăng mỗi ván mới; dùng làm key để remount scene và tạo lại physics body. */
+  /** Tăng mỗi ván mới hoặc mỗi lần load; dùng làm key để remount scene và tạo lại physics body. */
   sessionId = 0
+  /** Đếm ngược tới lần spawn kế tiếp (giây game). */
+  spawnTimer = 0
+  /** Số lần đã spawn; seed RNG spawn = hash(seed ván, counter) để tái lập sau load. */
+  spawnCounter = 0
+  /** Đếm ngược autosave; khi hết, `autosaveDue` bật và game loop chụp snapshot ngay sau tick. */
+  autosaveTimer = GAME_CONFIG.save.autosaveInterval
+  autosaveDue = false
 
   private playerBody: RapierRigidBody | null = null
   private zombieBodies = new Map<EntityId, RapierRigidBody>()
@@ -122,14 +132,119 @@ export class GameRuntime {
     this.zombieBodies.clear()
     this.playerBody = null
     this.nextZombieId = 1
+    this.spawnCounter = 0
+    this.spawnTimer = spawnInterval(this.clock.isNight)
+    this.autosaveTimer = GAME_CONFIG.save.autosaveInterval
+    this.autosaveDue = false
     for (const spawn of this.map.zombieSpawns) this.spawnZombie(spawn)
   }
 
   spawnZombie(position: Vec3): ZombieState {
     const id = `zombie-${this.nextZombieId++}`
+    return this.addZombie(id, position)
+  }
+
+  private addZombie(id: EntityId, position: Vec3): ZombieState {
     const zombie = createZombieState(id, position)
     this.zombies.set(id, zombie)
     return zombie
+  }
+
+  // ----- Save / load: snapshot ở ranh giới tick, dữ liệu thuần -----
+
+  /** Chụp toàn bộ simulation. Gọi giữa hai tick (game loop hoặc khi pause). */
+  createSnapshot(): SaveGame {
+    const p = this.player
+    const zombies: SaveGame['zombies'] = []
+    for (const z of this.zombies.values()) {
+      if (z.ai === 'DEAD') continue
+      zombies.push({
+        id: z.id,
+        position: { ...z.position },
+        facing: z.facing,
+        health: z.health,
+        ai: z.ai,
+        lastKnownTarget: z.lastKnownTarget ? { ...z.lastKnownTarget } : null,
+      })
+    }
+    return {
+      schemaVersion: SAVE_SCHEMA_VERSION,
+      savedAt: Date.now(),
+      mapId: this.map.id,
+      worldSeed: this.world.seed,
+      clock: { elapsed: this.clock.elapsed, timeOfDay: this.clock.timeOfDay, day: this.clock.day },
+      player: {
+        position: { ...p.position },
+        facing: p.facing,
+        health: p.health,
+        stamina: p.stamina,
+        hunger: p.hunger,
+        thirst: p.thirst,
+        kills: p.kills,
+        inventory: cloneInventory(p.inventory),
+      },
+      doors: Array.from(this.world.doors.values()).map((d) => ({ id: d.id, open: d.open })),
+      containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items) })),
+      zombies,
+      spawn: { nextZombieId: this.nextZombieId, timer: this.spawnTimer, counter: this.spawnCounter },
+      cameraZoom: this.cameraZoom,
+    }
+  }
+
+  /**
+   * Nạp bản lưu đã được `validateSaveGame` kiểm tra. Bắt đầu như ván mới với
+   * cùng seed rồi ghi đè: không tạo zombie từ điểm spawn (tránh nhân đôi), nội
+   * dung container lấy từ bản lưu (không gieo lại). Scene remount theo `sessionId`
+   * và đặt body tại vị trí đã lưu.
+   */
+  loadSnapshot(save: SaveGame): void {
+    this.newGame(save.worldSeed)
+    this.zombies.clear()
+    this.clock.restore(save.clock.elapsed, save.clock.timeOfDay, save.clock.day)
+    this.cameraZoom = Math.min(GAME_CONFIG.camera.zoomMax, Math.max(GAME_CONFIG.camera.zoomMin, save.cameraZoom))
+
+    const p = this.player
+    const lim = GAME_CONFIG.player
+    p.position = { ...save.player.position }
+    p.facing = save.player.facing
+    p.health = clamp(save.player.health, 0, lim.maxHealth)
+    p.stamina = clamp(save.player.stamina, 0, lim.maxStamina)
+    p.hunger = clamp(save.player.hunger, 0, lim.maxHunger)
+    p.thirst = clamp(save.player.thirst, 0, lim.maxThirst)
+    p.kills = save.player.kills
+    p.alive = p.health > 0
+    p.inventory = fitInventory(save.player.inventory, GAME_CONFIG.inventory.slots)
+
+    for (const d of save.doors) {
+      const door = this.world.doors.get(d.id)
+      if (!door) continue
+      door.open = d.open
+      this.nav.setDoorOpen(door.id, door.open)
+    }
+    for (const c of save.containers) {
+      const container = this.world.containers.get(c.id)
+      if (!container) continue
+      container.opened = c.opened
+      container.items = fitInventory(c.items, GAME_CONFIG.inventory.containerSlots)
+    }
+
+    for (const z of save.zombies) {
+      const zombie = this.addZombie(z.id, z.position)
+      zombie.facing = z.facing
+      zombie.health = clamp(z.health, 0, GAME_CONFIG.zombie.health)
+      zombie.ai = z.ai === 'DEAD' ? 'IDLE' : z.ai
+      zombie.lastKnownTarget = z.lastKnownTarget ? { ...z.lastKnownTarget } : null
+    }
+    this.nextZombieId = Math.max(save.spawn.nextZombieId, maxZombieNumber(this.zombies) + 1)
+    this.spawnTimer = Math.max(0, save.spawn.timer)
+    this.spawnCounter = save.spawn.counter
+  }
+
+  /** Game loop gọi ngay sau tick; true đúng một lần mỗi khi tới hạn autosave. */
+  consumeAutosave(): boolean {
+    if (!this.autosaveDue) return false
+    this.autosaveDue = false
+    return true
   }
 
   registerPlayerBody(body: RapierRigidBody | null): void {
@@ -160,9 +275,64 @@ export class GameRuntime {
     const attacks = this.stepZombies(dt)
     this.stepCombat(attacks, dt)
     this.stepSurvival(dt)
+    this.stepSpawn(dt)
     this.clock.advance(dt)
     this.events.flush()
     this.input.endFrame()
+
+    if (this.player.alive) {
+      this.autosaveTimer -= dt
+      if (this.autosaveTimer <= 0) {
+        this.autosaveTimer = GAME_CONFIG.save.autosaveInterval
+        this.autosaveDue = true
+      }
+    }
+  }
+
+  /**
+   * Dọn xác cũ và spawn có giới hạn: chỉ khi số zombie sống dưới `maxActive`,
+   * theo nhịp ngày/đêm, tại điểm đặt tay đủ xa người chơi (ưu tiên khuất tầm nhìn).
+   * Không spawn khi người chơi đã chết.
+   */
+  private stepSpawn(dt: number): void {
+    const cfg = GAME_CONFIG.spawn
+    let alive = 0
+    for (const z of this.zombies.values()) {
+      if (z.ai === 'DEAD') {
+        if (z.deadTimer >= cfg.corpseLifetime) this.removeZombie(z.id)
+      } else {
+        alive += 1
+      }
+    }
+    if (!this.player.alive) return
+
+    this.spawnTimer -= dt
+    if (this.spawnTimer > 0) return
+    this.spawnTimer = spawnInterval(this.clock.isNight)
+    if (alive >= cfg.maxActive) return
+
+    const aliveZombies: Vec3[] = []
+    for (const z of this.zombies.values()) if (z.ai !== 'DEAD') aliveZombies.push(z.position)
+    const playerEye = atHeight(this.player.position, EYE_HEIGHT)
+    const point = pickSpawnPoint(
+      this.map.zombieSpawns,
+      {
+        playerPos: this.player.position,
+        aliveZombies,
+        isHiddenFromPlayer: this.physics ? (pt) => this.physics!.isBlocked(playerEye, atHeight(pt, EYE_HEIGHT), []) : undefined,
+      },
+      createRng(hashSeed(this.world.seed, `spawn:${this.spawnCounter}`)),
+    )
+    this.spawnCounter += 1
+    if (!point) return
+    const zombie = this.spawnZombie(point)
+    this.events.queue('zombie:spawned', { id: zombie.id })
+  }
+
+  private removeZombie(id: EntityId): void {
+    this.zombies.delete(id)
+    this.zombieBodies.delete(id)
+    this.events.queue('zombie:removed', { id })
   }
 
   private stepPlayerMovement(dt: number): void {
@@ -497,6 +667,28 @@ export class GameRuntime {
 
 function atHeight(p: Vec3, y: number): Vec3 {
   return { x: p.x, y, z: p.z }
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v))
+}
+
+/** Đưa inventory đã lưu về đúng số ô hiện tại (thừa thì cắt, thiếu thì thêm ô trống); stack vượt giới hạn bị kẹp. */
+function fitInventory(saved: { slots: ({ itemId: string; quantity: number } | null)[] }, size: number) {
+  const inv = cloneInventory(saved as Parameters<typeof cloneInventory>[0])
+  for (const s of inv.slots) if (s) s.quantity = Math.min(s.quantity, getItemDef(s.itemId).stackLimit)
+  inv.slots = inv.slots.slice(0, size)
+  while (inv.slots.length < size) inv.slots.push(null)
+  return inv
+}
+
+function maxZombieNumber(zombies: Map<EntityId, ZombieState>): number {
+  let max = 0
+  for (const id of zombies.keys()) {
+    const n = Number(id.replace('zombie-', ''))
+    if (Number.isFinite(n) && n > max) max = n
+  }
+  return max
 }
 
 function buildInteractables(map: MapData): Interactable[] {

@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { runtime } from '../core/runtime'
+import { useWorldStore } from '../../stores/worldStore'
 import { BuildingView } from './BuildingView'
 import { CameraRig } from './CameraRig'
 import { ContainerView } from './ContainerView'
@@ -33,11 +34,12 @@ function InputBridge() {
 }
 
 /**
- * Scene được remount (key = sessionId) khi bắt đầu ván mới để mọi physics body
- * được tạo lại từ trạng thái runtime sạch.
+ * Scene được remount (key = sessionId) khi bắt đầu ván mới hoặc load để mọi
+ * physics body được tạo lại từ trạng thái runtime (vị trí đã lưu). Danh sách
+ * zombie là mirror trong worldStore (spawn/dọn xác thêm/bớt view).
  */
 export function Scene({ paused, debug }: SceneProps) {
-  const zombieIds = useMemo(() => Array.from(runtime.zombies.keys()), [])
+  const zombieIds = useWorldStore((s) => s.zombieIds)
   const map = runtime.map
 
   return (

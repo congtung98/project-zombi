@@ -14,7 +14,6 @@ export function GameCanvas() {
       gl={{ antialias: true }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <color attach="background" args={['#161a21']} />
       <Scene key={sessionId} paused={screen !== 'playing'} debug={debug} />
     </Canvas>
   )

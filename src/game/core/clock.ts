@@ -16,6 +16,13 @@ export class GameClock {
     this.day = 1
   }
 
+  /** Khôi phục từ bản lưu. */
+  restore(elapsed: number, timeOfDay: number, day: number): void {
+    this.elapsed = elapsed
+    this.timeOfDay = timeOfDay
+    this.day = day
+  }
+
   advance(dt: number): void {
     this.elapsed += dt
     this.timeOfDay += dt / this.dayLengthSec
@@ -26,7 +33,7 @@ export class GameClock {
   }
 
   get isNight(): boolean {
-    return this.timeOfDay < 0.22 || this.timeOfDay > 0.8
+    return this.timeOfDay < GAME_CONFIG.clock.nightEnd || this.timeOfDay > GAME_CONFIG.clock.nightStart
   }
 
   /** Chuỗi HH:MM để hiển thị. */

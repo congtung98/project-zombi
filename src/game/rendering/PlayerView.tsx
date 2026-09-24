@@ -21,7 +21,8 @@ export function PlayerView() {
   const bodyRef = useRef<RapierRigidBody>(null)
   const visualRef = useRef<Group>(null)
   const batPivotRef = useRef<Group>(null)
-  const spawn = runtime.map.playerSpawn
+  // Vị trí ban đầu lấy từ runtime (spawn khi ván mới, vị trí đã lưu khi load); scene remount theo sessionId.
+  const spawn = runtime.player.position
 
   useEffect(() => {
     runtime.registerPlayerBody(bodyRef.current)

@@ -126,6 +126,42 @@ export const GAME_CONFIG = {
     dayLengthSec: 600,
     /** Giờ bắt đầu ván mới (0..1, 0.3 ≈ 7h sáng). */
     startTimeOfDay: 0.3,
+    /** Ban đêm khi timeOfDay < nightEnd hoặc > nightStart (khớp `GameClock.isNight`). */
+    nightEnd: 0.22,
+    nightStart: 0.8,
+  },
+  lighting: {
+    /** Độ dài đoạn chuyển bình minh/hoàng hôn (đơn vị timeOfDay). */
+    twilight: 0.06,
+    dayAmbient: 0.55,
+    nightAmbient: 0.3,
+    dayHemisphere: 0.5,
+    nightHemisphere: 0.22,
+    daySun: 1.6,
+    nightSun: 0.3,
+    daySunColor: '#fff2dc',
+    nightSunColor: '#7d8fc4',
+    dayAmbientColor: '#ffffff',
+    nightAmbientColor: '#7c8cc0',
+    dayBackground: '#161a21',
+    nightBackground: '#070910',
+  },
+  spawn: {
+    /** Số zombie còn sống tối đa cùng lúc. */
+    maxActive: 10,
+    /** Khoảng cách giữa hai lần spawn (giây) ban ngày/ban đêm. */
+    intervalDay: 25,
+    intervalNight: 12,
+    /** Điểm spawn phải cách người chơi ít nhất chừng này. */
+    minDistance: 16,
+    /** Không spawn chồng lên zombie còn sống. */
+    minZombieGap: 2,
+    /** Xác zombie được dọn sau khoảng này để danh sách không phình. */
+    corpseLifetime: 20,
+  },
+  save: {
+    /** Tự động lưu mỗi chừng này giây game (ở ranh giới tick). */
+    autosaveInterval: 60,
   },
 }
 

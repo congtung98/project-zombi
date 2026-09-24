@@ -55,6 +55,8 @@ export function App() {
         if (e.sourceId === 'player') useHudStore.getState().showToast('Đã hạ một zombie.', 1500)
       }),
       runtime.events.on('door:toggled', (e) => useWorldStore.getState().setDoor(e.id, e.open)),
+      runtime.events.on('zombie:spawned', (e) => useWorldStore.getState().addZombie(e.id)),
+      runtime.events.on('zombie:removed', (e) => useWorldStore.getState().removeZombie(e.id)),
       runtime.events.on('container:opened', (e) => useWorldStore.getState().setContainerOpened(e.id)),
     ]
 

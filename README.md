@@ -1,7 +1,7 @@
 # Zombie Outbreak — Phase 1 (MVP)
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md`. Repo hiện ở **Sprint 4: survival, inventory, loot** (đã xong Sprint 1–3).
+`Zombie_Outbreak_Phase_1_MVP.md`. Repo hiện ở **Sprint 5: ngày đêm, spawn, lưu game** (đã xong Sprint 1–4).
 
 ## Chạy
 
@@ -23,7 +23,7 @@ npm run lint
 | Space | Đẩy zombie ra xa, không gây sát thương (cooldown và stamina riêng) |
 | E | Tương tác với cửa (mở/đóng) và container gần nhất trong tầm, ưu tiên hướng nhìn |
 | Con lăn chuột | Zoom camera trong giới hạn min/max |
-| Esc | Tạm dừng (dừng simulation, cooldown và đồng hồ) |
+| Esc | Tạm dừng (dừng simulation, cooldown và đồng hồ); menu pause có Lưu game / Lưu và về menu |
 | F3 | Overlay debug: FPS, vị trí, trạng thái zombie (và collider Rapier) |
 | I | Mở/đóng túi đồ 12 ô. Trong túi: click trái dùng vật phẩm; khi đang mở tủ: click trái cất vào tủ, chuột phải dùng. Trong panel tủ: click lấy, nút Lấy tất cả |
 | Esc (khi túi mở) | Đóng túi/tủ trước, nhấn lần nữa mới tạm dừng |
@@ -37,18 +37,19 @@ simulation để kiểm tra từ console hoặc kịch bản playtest tự độ
 src/
   app/                 App (điều hướng màn hình), GameCanvas
   game/
-    core/              config, clock, events, runtime (thứ tự tick)
+    core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, snapshot/load)
     entities/          player, zombie (state thuần), items (định nghĩa vật phẩm, ID ổn định)
     systems/           input, movement, ai (FSM + bám path), combat, survival (+ dùng vật phẩm), interaction,
-                       inventory (add/remove/transfer), loot (PRNG seed, bảng loot)  (+ unit test)
+                       inventory (add/remove/transfer), loot (PRNG seed, bảng loot), spawn (chọn điểm spawn),
+                       save (validate schema, tóm tắt), saveStorage (IndexedDB)  (+ unit test)
     world/             buildings (generator tường/cửa), mapData (khu phố 50×50), worldState (cửa/container + loot),
                        lootTables (bảng loot đặt tay), navigation (lưới A*, cửa mở/đóng)
     rendering/         Scene, CameraRig, CursorProbe, Ground, Roads, Walls, BuildingView, DoorView,
-                       ContainerView, PlayerView, ZombieView, Lights, OcclusionFader, PhysicsBridge, GameLoop
+                       ContainerView, PlayerView, ZombieView, Lights (+ daylight), OcclusionFader, PhysicsBridge, GameLoop
   components/          HUD, Menus (main/pause/game over), Inventory (túi 12 ô), ContainerPanel (panel tủ + overlay)
-  stores/              uiStore (màn hình), hudStore (snapshot HUD 10 Hz), worldStore (mirror cửa/container),
+  stores/              uiStore (màn hình, save/continue), hudStore (snapshot HUD 10 Hz), worldStore (mirror cửa/container/zombie),
                        inventoryStore (snapshot túi/tủ, cập nhật theo sự kiện)
-  types/               kiểu dữ liệu chia sẻ
+  types/               kiểu dữ liệu chia sẻ, save (schema bản lưu)
 ```
 
 Nguyên tắc:
@@ -126,5 +127,32 @@ Playtest headless Sprint 4: mở tủ nhà an toàn, lấy từng món và Lấy
 đúng chỉ số, dùng khi đầy không mất đồ, I/Esc đóng đúng thứ tự, đi xa tự đóng panel, mở lại không sinh
 thêm; không lỗi console.
 
-Tiếp theo (Sprint 5): clock/ánh sáng ngày đêm, spawn có giới hạn, snapshot schema và save/load IndexedDB,
-Continue. Inventory và loot đã ở dạng tuần tự hóa được (`PlayerState.inventory`, `WorldState.seed/containers`).
+Sprint 5 (xong):
+
+- **Ngày/đêm** (`Lights.tsx`, `daylight.ts`): ambient/hemisphere/sun và màu nền nội suy theo `clock.timeOfDay`
+  với đoạn chuyển mượt quanh bình minh/hoàng hôn (`config.lighting`, `config.clock.nightEnd/nightStart`).
+  Đọc trong `useFrame`, không qua React state. Ban đêm vẫn đủ sáng để chơi.
+- **Spawn có giới hạn** (`systems/spawn.ts`, `runtime.stepSpawn`): tối đa `spawn.maxActive` zombie sống,
+  nhịp ngày 25 s / đêm 12 s, chỉ tại điểm đặt tay cách người chơi ≥ 16 m, không chồng zombie sống, ưu tiên
+  điểm bị tường che (raycast). RNG spawn = hash(seed ván, bộ đếm) nên tái lập sau load. Xác được dọn sau 20 s.
+  Danh sách zombie là mirror trong `worldStore.zombieIds` để Scene thêm/gỡ view.
+- **Save/load** (`types/save.ts`, `systems/save.ts`, `systems/saveStorage.ts`): snapshot thuần
+  (`schemaVersion`, `savedAt`, `mapId`, `worldSeed`, clock, player + inventory, cửa, container + items, zombie
+  sống, bộ đếm spawn, zoom) chụp ở ranh giới tick (`runtime.createSnapshot`, ngay sau `tick` hoặc khi pause).
+  IndexedDB một slot, mỗi ghi là một transaction (nguyên tử), lỗi quota/chặn trả về thông báo rõ.
+  `validateSaveGame` từ chối schema khác phiên bản (báo "không tương thích"), bản đồ khác, dữ liệu hỏng/NaN/
+  item lạ/ID zombie trùng. `runtime.loadSnapshot` bắt đầu như ván mới cùng seed rồi ghi đè, không tạo zombie
+  từ điểm spawn và không gieo lại loot; Scene remount theo `sessionId` và đặt body ở vị trí đã lưu.
+- **Menu**: Continue bật khi có bản lưu hợp lệ (hiện ngày/giờ/máu/đã hạ); New Game khi đã có bản lưu hỏi
+  xác nhận và xóa slot. Pause: Lưu game, Lưu và về menu, Về menu (không lưu). Tự động lưu mỗi 60 s game.
+  Chết là hết ván: bản lưu bị xóa.
+- **Test:** 112 unit test (thêm spawn, validate schema, round-trip snapshot/load nhiều lần không nhân đôi,
+  dọn xác, autosave, daylight).
+
+Playtest headless Sprint 5: đổi giờ thấy đêm/ngày, giết một con thì con mới spawn cách ≥ 16 m, xác được dọn,
+lưu thủ công → reload trang → Continue khôi phục đúng vị trí, chỉ số, túi, cửa mở (đi được trong nav), tủ đã
+lấy, 8 zombie, seed; Continue lần hai không nhân đôi; autosave có toast; chết thì save bị xóa; bản lưu
+schemaVersion 99 bị báo không tương thích; New Game hỏi xác nhận rồi xóa slot; không lỗi console.
+
+Tiếp theo (Sprint 6): playtest 15–30 phút và cân bằng (loot, spawn, combat), audio/feedback, settings và hướng
+dẫn, đo FPS trên máy thật, build production và deploy, kiểm tra save/reload trên bản deploy.

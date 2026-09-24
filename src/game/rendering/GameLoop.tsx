@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { runtime } from '../core/runtime'
 import { useHudStore } from '../../stores/hudStore'
+import { useUiStore } from '../../stores/uiStore'
 
 interface GameLoopProps {
   paused: boolean
@@ -26,7 +27,11 @@ export function GameLoop({ paused }: GameLoopProps) {
       fpsTime.current = 0
     }
 
-    if (!paused) runtime.tick(delta)
+    if (!paused) {
+      runtime.tick(delta)
+      // Autosave ngay sau tick: snapshot ở ranh giới tick, không thấy trạng thái nửa chừng.
+      if (runtime.consumeAutosave()) void useUiStore.getState().saveGame('Đã tự động lưu.')
+    }
 
     hudTimer.current += delta
     if (hudTimer.current >= runtime.config.loop.hudSyncInterval) {

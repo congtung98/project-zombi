@@ -435,3 +435,24 @@ kbd {
 .hud-actions span.active {
   color: #f2c14e;
 }
+
+/* ---------- Save / menu ---------- */
+
+.save-info {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.save-warn {
+  color: #f2c14e;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.actions .save-warn {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
