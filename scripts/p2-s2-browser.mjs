@@ -4,8 +4,8 @@
 //               then  node scripts/p2-s2-browser.mjs --production
 // Playwright is not a project dependency: set PLAYWRIGHT_MODULE to a file:// URL of playwright/index.mjs
 // if it is not resolvable, and CHROMIUM_PATH to a Chromium executable if the bundled one is missing.
-// Dev mode also rewrites src/game/systems/fixtures/phase2-s2-v3.json from a real browser save.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+// Dev mode wrote the frozen S2 fixture (phase2-s2-v3.json) in P2-S2; since v4 it no longer rewrites it.
+import { mkdirSync, readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
 const production = process.argv.includes('--production')
@@ -33,9 +33,12 @@ async function inGame() {
   await page.waitForFunction(() => !document.querySelector('h1') && !document.body.innerText.includes('Đang tải…') && document.querySelector('.hud'), null, { timeout: 30000 })
   await page.waitForTimeout(400)
 }
+/** Since P2-S3: New Game → character creation → Bắt đầu (→ overwrite confirmation if a save exists). */
 async function newGame() {
   await page.getByRole('button', { name: 'New Game', exact: true }).click()
-  const confirm = page.getByRole('button', { name: 'Xóa bản lưu và bắt đầu ván mới' })
+  await hasText('Tạo nhân vật')
+  await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click()
+  const confirm = page.getByRole('button', { name: 'Xóa bản lưu và bắt đầu' })
   if (await confirm.isVisible().catch(() => false)) await confirm.click()
   await inGame()
 }
@@ -117,7 +120,7 @@ try {
     await shot('p2s2-prod-equipped')
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 3)
+    assert.equal(saved.schemaVersion, 4)
     const weapons = saved.player.inventory.slots.filter((i) => i?.kind === 'weapon')
     assert.equal(weapons.length, 1)
     assert.equal(saved.player.equipment.weaponInstanceId, weapons[0].id)
@@ -220,7 +223,7 @@ try {
     assert.equal(spare.dropped, true)
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 3)
+    assert.equal(saved.schemaVersion, 4)
     const equipped = saved.player.inventory.slots.find((i) => i?.id === saved.player.equipment.weaponInstanceId)
     assert.equal(equipped.condition, 0)
     assert.equal(saved.containers.find((c) => c.id === `drop:${spare.id}`).items.slots[0].condition, 33)
@@ -235,11 +238,9 @@ try {
     })
     assert.deepEqual(reloaded, { id: equipped.id, condition: 0 })
     log('save/reload', { equipped: `${equipped.itemId}@${equipped.condition}`, dropBag: 'metal_pipe@33' })
-    const fixture = { ...saved, savedAt: 1790294400000 }
-    writeFileSync('src/game/systems/fixtures/phase2-s2-v3.json', JSON.stringify(fixture, null, 2) + '\n')
 
-    // Migration through the real Continue flow: S1 v2 fixture and Phase 1 v1 fixture, each backed up.
-    for (const [file, version, note] of [['phase2-s1-v2.json', 2, 'giữ bản sao v2'], ['phase1-v1.json', 1, 'giữ bản sao v1']]) {
+    // Migration through the real Continue flow: S2 v3, S1 v2 and Phase 1 v1 fixtures, each backed up.
+    for (const [file, version, note] of [['phase2-s2-v3.json', 3, 'giữ bản sao v3'], ['phase2-s1-v2.json', 2, 'giữ bản sao v2'], ['phase1-v1.json', 1, 'giữ bản sao v1']]) {
       const original = JSON.parse(readFileSync(`src/game/systems/fixtures/${file}`, 'utf8'))
       await pause()
       await page.getByRole('button', { name: 'Về menu (không lưu)' }).click()
@@ -257,12 +258,12 @@ try {
       assert.match(await hud('.hud-toast'), new RegExp(note))
       const upgraded = await readSlot('slot-1')
       const backup = await readSlot(`slot-1.backup-v${version}`)
-      assert.equal(upgraded.schemaVersion, 3)
+      assert.equal(upgraded.schemaVersion, 4)
       assert.deepEqual(backup, original)
       const ids = upgraded.containers.map((c) => c.id)
       for (const id of ['ct-safehouse-closet', 'ct-store-tools', 'ct-house-nightstand', 'ct-park-toolbox']) assert.ok(ids.includes(id), id)
       const weapons = upgraded.player.inventory.slots.filter((i) => i?.kind === 'weapon').map((i) => i.condition).sort((a, b) => a - b)
-      log(`migration v${version} → v3`, { backup: `slot-1.backup-v${version}`, containers: ids.length, bagWeapons: weapons })
+      log(`migration v${version} → v4`, { backup: `slot-1.backup-v${version}`, containers: ids.length, bagWeapons: weapons })
     }
 
     // Lab: weapon kit and the unchanged door/physics checks still work next to the S2 UI.

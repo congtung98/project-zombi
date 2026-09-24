@@ -140,10 +140,11 @@ export class InputManager {
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
-    if (PREVENT_DEFAULT_CODES.has(e.code)) e.preventDefault()
-    if (e.repeat) return
+    // Text fields (character name) keep every key, including Space and arrows, and never drive the game.
     const target = e.target as HTMLElement | null
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+    if (PREVENT_DEFAULT_CODES.has(e.code)) e.preventDefault()
+    if (e.repeat) return
     this.press(e.code)
   }
 

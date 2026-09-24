@@ -2,14 +2,18 @@ import type { Inventory } from '../game/systems/inventory'
 import type { Vec3, ZombieAIState } from './index'
 import type { Equipment } from '../game/entities/items'
 import type { DoorState } from '../game/world/doors'
+import type { CharacterAppearance } from '../game/entities/appearance'
 
 /**
- * v1 (Phase 1) → v2 (item instances, door state) → v3 (P2-S2 melee containers). Older
- * versions migrate in memory; unknown versions are rejected without overwriting the original.
+ * v1 (Phase 1) → v2 (item instances, door state) → v3 (P2-S2 melee containers) → v4 (P2-S3
+ * name + appearance). Older versions migrate in memory; unknown versions are rejected without
+ * overwriting the original.
  */
-export const SAVE_SCHEMA_VERSION = 3
+export const SAVE_SCHEMA_VERSION = 4
 
 export interface SavedPlayer {
+  name: string
+  appearance: CharacterAppearance
   position: Vec3
   facing: number
   health: number
@@ -58,6 +62,7 @@ export interface SaveGame {
 
 /** Thông tin tóm tắt để hiện ở menu Continue. */
 export interface SaveSummary {
+  name: string
   savedAt: number
   day: number
   timeLabel: string

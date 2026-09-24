@@ -1,6 +1,7 @@
 // Start a fresh Vite process on 5173 and isolated headless Chrome with --remote-debugging-port=9223.
 // This script uses only that Chrome profile, never the user's normal browser data.
-// P2-S1 regression (migration/backup/door physics). Since P2-S2: schema v3, New Game is unarmed and
+// P2-S1 regression (migration/backup/door physics). Since P2-S3: schema v4 and New Game goes through
+// character creation; since P2-S2 New Game is unarmed and
 // the S1 fixture is frozen (no longer rewritten). BASE_URL overrides the dev/preview origin.
 // S2 weapon checks live in scripts/p2-s2-browser.mjs (Playwright).
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
@@ -70,7 +71,10 @@ try {
     await navigate(`${base ?? 'http://127.0.0.1:5199'}/?lab=doors`)
     assert.equal(await evaluate('typeof window.__runtime'), 'undefined')
     await click('New Game')
-    await click('Xóa bản lưu và bắt đầu ván mới')
+    await until("document.body.textContent.includes('Tạo nhân vật')")
+    await click('Bắt đầu')
+    await sleep(300)
+    await click('Xóa bản lưu và bắt đầu')
     await until("!document.querySelector('h1') && !document.body.textContent.includes('Đang tải…')")
     assert.equal(await evaluate("document.body.textContent.includes('Phòng thử cửa')"), false)
     await key('KeyI', 'i')
@@ -86,7 +90,7 @@ try {
       req.onsuccess = () => { const db=req.result; const tx=db.transaction('saves'); const read=tx.objectStore('saves').get('slot-1'); read.onsuccess=()=>resolve(read.result); tx.oncomplete=()=>db.close() }
       req.onerror=()=>reject(req.error)
     })`)
-    assert.equal(saved.schemaVersion, 3)
+    assert.equal(saved.schemaVersion, 4)
     assert.equal(saved.player.inventory.slots.filter((i) => i?.kind === 'weapon').length, 0)
     assert.equal(saved.player.equipment.weaponInstanceId, null)
     await navigate(`${base ?? 'http://127.0.0.1:5199'}/`)
@@ -149,7 +153,7 @@ try {
   })()`)
   assert.equal(result.ready, 'ready')
   assert.equal(result.unchangedOnPreview, true)
-  assert.equal(result.version, 3)
+  assert.equal(result.version, 4)
   assert.equal(result.backupMatches, true)
   assert.equal(result.saved, true)
   assert.deepEqual(result.conditions, [10, 70])
@@ -164,6 +168,8 @@ try {
   console.log('INDEXEDDB / MIGRATION', JSON.stringify(result))
   await navigate(`${base ?? 'http://127.0.0.1:5173'}/?lab=doors`)
   await evaluate("document.querySelectorAll('button').forEach(b => { if (b.textContent === 'New Game') b.click() })")
+  await until("document.body.textContent.includes('Tạo nhân vật')")
+  await evaluate("document.querySelectorAll('button').forEach(b => { if (b.textContent === 'Bắt đầu') b.click() })")
   await until("document.body.textContent.includes('Phòng thử cửa') && !document.body.textContent.includes('Đang tải…')")
   // Exercise the actual DoorView unmount/remount and PhysicsBridge raycast.
   const door = await evaluate(`(async () => {

@@ -1,7 +1,7 @@
 # Zombie Outbreak — Phase 2
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động) và **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng). Bản build production
+`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng) và **Sprint 3** (model/animation, tạo nhân vật). Bản build production
 nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
@@ -64,6 +64,7 @@ src/
                        lootTables (bảng loot đặt tay), navigation (lưới A*, cửa mở/đóng)
     rendering/         Scene, CameraRig, CursorProbe, Ground, Roads, Walls, BuildingView, DoorView,
                        ContainerView, PlayerView, ZombieView, Lights (+ daylight), OcclusionFader, PhysicsBridge, GameLoop
+      character/       rig dựng bằng code (khớp, weaponSocket), pose thuần (animation), model vũ khí, animator sau tick
   components/          HUD, Menus (main/pause/game over), Inventory (túi 12 ô), ContainerPanel (panel tủ + overlay)
   stores/              uiStore (màn hình, save/continue), hudStore (snapshot HUD 10 Hz), worldStore (mirror cửa/container/zombie),
                        inventoryStore (snapshot túi/tủ, cập nhật theo sự kiện)
@@ -88,6 +89,13 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Phase 2 — Sprint 3 (24/09/2026)
+
+- **Tạo nhân vật**: New Game → màn tạo nhân vật (tên ≤ 24 ký tự, 3 dáng, 3 kiểu tóc, 4 màu da/áo/quần, Ngẫu nhiên/Mặc định, preview 3D kéo để xoay) → Bắt đầu. Có save thì phải xác nhận ghi đè; "Quay lại" không xóa save. Ngoại hình không ảnh hưởng chỉ số.
+- **Model/animation**: một rig low-poly dựng bằng code cho player và zombie (không asset ngoài, không vấn đề giấy phép): idle, đi, chạy, vung, đẩy, trúng đòn, chết; zombie giơ tay đuổi, đập, mắt đỏ khi săn, biến thể theo ID. Vũ khí gắn ở `weaponSocket` tay phải. Damage vẫn do combat quyết định; tay quét qua chính diện đúng frame gây damage.
+- Save schema **v4** (tên + ngoại hình); save cũ nhận ngoại hình mặc định, backup `slot-1.backup-v3`. Sửa lỗi ô nhập không gõ được dấu cách.
+- Cùng cảnh 10 zombie: draw call 147 → 271 (bóng High) / 238 (Low), tam giác 6 180 → 3 180. **173 test**, Playwright dev + production. Chi tiết `docs/phase2-s3.md`.
 
 ### Phase 2 — Sprint 2 (24/09/2026)
 

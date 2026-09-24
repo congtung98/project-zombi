@@ -1,67 +1,91 @@
-import { useEffect, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier'
-import { Color, type Group, type Mesh, type MeshStandardMaterial } from 'three'
+import type { Group, Mesh } from 'three'
 import { runtime } from '../core/runtime'
+import { useSettingsStore } from '../../stores/settingsStore'
+import { computePose, createPose } from './character/pose'
+import { registerAnimator } from './character/animators'
+import { applyPose, buildCharacter, setCharacterGlow, shadowDetail, zombieLook } from './character/rig'
 import type { EntityId } from '../../types'
 
 const CFG = runtime.config.zombie
 const HALF_HEIGHT = (CFG.height - 2 * CFG.radius) / 2
 const FALL_DURATION = 0.45
-const HIT_FLASH = new Color('#ffffff')
-const NO_EMISSIVE = new Color('#000000')
-
-const STATE_COLORS: Record<string, string> = {
-  IDLE: '#6d8f3f',
-  CHASE: '#c9a227',
-  SEARCH: '#8f8a3f',
-  ATTACK: '#c93a2f',
-  DEAD: '#3a3a3a',
-}
+const STRIDE = 1.3
+/** Longest stagger (push) used to normalise the hit-reaction pose. */
+const MAX_STAGGER = Math.max(runtime.config.melee.stagger, runtime.config.push.stagger)
+/** Keep the slam pose briefly after the damage frame so the hit reads on screen (visual only). */
+const STRIKE_HOLD = 0.18
 
 interface ZombieViewProps {
   id: EntityId
 }
 
 /**
- * Zombie placeholder. Trạng thái đọc trực tiếp từ runtime trong useFrame:
- * màu theo FSM, nhấp nháy khi trúng đòn, thanh máu khi bị thương, ngã xuống
- * khi chết (runtime đã tắt body để xác không chặn đường).
+ * Zombie: same capsule collider as before; the rigged model (variant from the zombie ID) is
+ * posed from runtime state. Eyes glow while chasing/attacking, the model flashes on hits, the
+ * health bar shows once damaged and the body falls when dead (runtime already disabled it).
  */
 export function ZombieView({ id }: ZombieViewProps) {
   const bodyRef = useRef<RapierRigidBody>(null)
   const visualRef = useRef<Group>(null)
-  const materialRef = useRef<MeshStandardMaterial>(null)
   const healthBarRef = useRef<Group>(null)
   const healthFillRef = useRef<Mesh>(null)
+  const shadows = useSettingsStore((s) => s.shadows)
+  const rig = useMemo(() => buildCharacter(zombieLook(id), shadowDetail(shadows)), [id, shadows])
+  const pose = useRef(createPose())
   const zombie = runtime.zombies.get(id)
+  const anim = useRef({ gait: 0, time: (zombie?.id.length ?? 0) * 0.37, last: zombie ? { x: zombie.position.x, z: zombie.position.z } : { x: 0, z: 0 }, strike: 0, windup: -1 })
 
   useEffect(() => {
     runtime.registerZombieBody(id, bodyRef.current)
     return () => runtime.registerZombieBody(id, null)
   }, [id])
 
-  useFrame(() => {
+  useEffect(() => () => rig.dispose(), [rig])
+
+  // Posed after the tick by CharacterAnimator (same state as the simulation this frame).
+  useEffect(() => registerAnimator((delta) => {
     const z = runtime.zombies.get(id)
     const visual = visualRef.current
     if (!z || !visual) return
     visual.rotation.y = z.facing
+    const a = anim.current
+    a.time += delta
 
-    if (z.ai === 'DEAD') {
-      const t = Math.min(1, z.deadTimer / FALL_DURATION)
-      visual.rotation.x = (-Math.PI / 2) * t
-      visual.position.y = -(CFG.height / 2 - CFG.radius) * t
-    } else {
-      visual.rotation.x = 0
-      visual.position.y = 0
+    const dist = Math.hypot(z.position.x - a.last.x, z.position.z - a.last.z)
+    a.last = { x: z.position.x, z: z.position.z }
+    const step = dist < 1 && z.ai !== 'DEAD' ? dist : 0
+    a.gait = (a.gait + (step / STRIDE) * Math.PI * 2) % (Math.PI * 2)
+
+    // attackWindup counts down to the damage frame, then resets to −1: hold the slam briefly.
+    let attack = z.attackWindup >= 0 ? 1 - z.attackWindup / CFG.attackWindup : -1
+    if (z.attackWindup < 0 && a.windup >= 0 && a.windup < 0.12 && z.staggerTimer <= 0) a.strike = STRIKE_HOLD
+    a.windup = z.attackWindup
+    if (attack < 0 && a.strike > 0) {
+      a.strike = Math.max(0, a.strike - delta)
+      attack = 1
     }
 
-    const mat = materialRef.current
-    if (mat) {
-      mat.color.set(STATE_COLORS[z.ai] ?? STATE_COLORS.IDLE)
-      mat.emissive.copy(z.hitFlashTimer > 0 ? HIT_FLASH : NO_EMISSIVE)
-      mat.emissiveIntensity = z.hitFlashTimer > 0 ? 0.8 : 0
-    }
+    computePose(
+      {
+        kind: 'zombie',
+        time: a.time,
+        gaitPhase: a.gait,
+        speed: delta > 0 ? step / delta : 0,
+        swing: -1,
+        hitAt: 1,
+        shove: -1,
+        attack: z.ai === 'DEAD' ? -1 : attack,
+        hurt: z.ai === 'DEAD' ? 0 : z.staggerTimer / MAX_STAGGER,
+        dead: z.ai === 'DEAD' ? Math.min(1, z.deadTimer / FALL_DURATION) : -1,
+        armed: false,
+      },
+      pose.current,
+    )
+    applyPose(rig, pose.current)
+
+    setCharacterGlow(rig, z.hitFlashTimer > 0, z.ai === 'CHASE' || z.ai === 'ATTACK')
 
     const bar = healthBarRef.current
     if (bar) {
@@ -75,7 +99,7 @@ export function ZombieView({ id }: ZombieViewProps) {
         fill.position.x = -(1 - ratio) * 0.45
       }
     }
-  })
+  }), [rig, id])
 
   if (!zombie) return null
   const spawn = zombie.position
@@ -92,14 +116,9 @@ export function ZombieView({ id }: ZombieViewProps) {
     >
       <CapsuleCollider args={[HALF_HEIGHT, CFG.radius]} friction={0} mass={CFG.mass} />
       <group ref={visualRef}>
-        <mesh castShadow>
-          <capsuleGeometry args={[CFG.radius, CFG.height - 2 * CFG.radius, 4, 12]} />
-          <meshStandardMaterial ref={materialRef} color={STATE_COLORS.IDLE} />
-        </mesh>
-        <mesh position={[0, 0.45, CFG.radius + 0.05]}>
-          <boxGeometry args={[0.25, 0.2, 0.25]} />
-          <meshStandardMaterial color="#2b2b2b" />
-        </mesh>
+        <group position={[0, -CFG.height / 2, 0]}>
+          <primitive object={rig.root} />
+        </group>
         <group ref={healthBarRef} position={[0, CFG.height / 2 + 0.35, 0]} visible={false}>
           <mesh>
             <boxGeometry args={[0.94, 0.1, 0.06]} />

@@ -2,7 +2,8 @@ import type { RapierRigidBody } from '@react-three/rapier'
 import { GAME_CONFIG } from './config'
 import { GameClock } from './clock'
 import { EventBus, type GameEvents } from './events'
-import { createPlayerState, type PlayerState } from '../entities/player'
+import { createPlayerState, type CharacterProfile, type PlayerState } from '../entities/player'
+import { normalizeName } from '../entities/appearance'
 import { createZombieState, type ZombieState } from '../entities/zombie'
 import { InputManager } from '../systems/input'
 import { computeCameraBasis, computeMoveDirection, dampAngle, regenStamina, resolvePlayerSpeed } from '../systems/movement'
@@ -42,6 +43,8 @@ export interface PhysicsQuery {
 }
 
 const FACING_SMOOTHING = 14
+/** Duration of the player's hit-reaction pose (view only). */
+const PLAYER_HURT_TIME = 0.3
 /** Độ cao raycast tầm nhìn zombie: nhìn qua được hàng rào/thùng thấp, không qua tường/cửa. */
 const EYE_HEIGHT = 1.5
 /** Độ cao raycast kiểm tra tường chắn đòn gậy. */
@@ -118,8 +121,11 @@ export class GameRuntime {
     this.newGame()
   }
 
-  /** Ván mới với seed loot; loot mọi container được sinh ngay tại đây, một lần cho cả ván. */
-  newGame(seed: number = randomSeed()): void {
+  /**
+   * Ván mới với seed loot; loot mọi container được sinh ngay tại đây, một lần cho cả ván.
+   * `profile` comes from character creation (cosmetic only); omitted = default look.
+   */
+  newGame(seed: number = randomSeed(), profile?: CharacterProfile): void {
     this.sessionId += 1
     this.clock.reset()
     this.events.clear()
@@ -127,7 +133,7 @@ export class GameRuntime {
     this.cameraZoom = GAME_CONFIG.camera.zoomDefault
     // P2-S2: New Game starts unarmed (shove still works); melee is looted from containers.
     // Only the v1 save migration grants the Phase 1 bat.
-    this.player = createPlayerState(this.map.playerSpawn)
+    this.player = createPlayerState(this.map.playerSpawn, profile && { name: normalizeName(profile.name), appearance: profile.appearance })
     this.world = createWorldState(this.map, seed)
     this.interactables = buildInteractables(this.map)
     this.interactableById.clear()
@@ -185,6 +191,8 @@ export class GameRuntime {
       worldSeed: this.world.seed,
       clock: { elapsed: this.clock.elapsed, timeOfDay: this.clock.timeOfDay, day: this.clock.day },
       player: {
+        name: p.name,
+        appearance: { ...p.appearance },
         position: { ...p.position },
         facing: p.facing,
         health: p.health,
@@ -213,7 +221,7 @@ export class GameRuntime {
     const validation = validateSaveGame(save, this.map.id, this.map)
     if (!validation.ok) throw new Error(`Invalid save: ${validation.detail}`)
     save = validation.save
-    this.newGame(save.worldSeed)
+    this.newGame(save.worldSeed, { name: save.player.name, appearance: save.player.appearance })
     this.zombies.clear()
     this.clock.restore(save.clock.elapsed, save.clock.timeOfDay, save.clock.day)
     this.cameraZoom = Math.min(GAME_CONFIG.camera.zoomMax, Math.max(GAME_CONFIG.camera.zoomMin, save.cameraZoom))
@@ -749,6 +757,7 @@ export class GameRuntime {
   }
 
   private stepSurvival(dt: number): void {
+    this.player.hurtTimer = Math.max(0, this.player.hurtTimer - dt)
     regenStamina(this.player, dt)
     const starvation = tickSurvival(this.player, dt)
     if (starvation > 0) this.applyPlayerDamage(starvation, 'starvation')
@@ -757,6 +766,7 @@ export class GameRuntime {
   private applyPlayerDamage(amount: number, sourceId: EntityId): void {
     if (!this.player.alive) return
     const died = damagePlayer(this.player, amount)
+    if (sourceId !== 'starvation') this.player.hurtTimer = PLAYER_HURT_TIME
     this.events.queue('player:damaged', { amount, health: this.player.health, sourceId })
     if (died) this.events.queue('player:died', { sourceId })
   }

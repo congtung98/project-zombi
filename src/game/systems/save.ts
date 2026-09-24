@@ -5,6 +5,7 @@ import { CONTAINERS_ADDED_V3, NEIGHBORHOOD_MAP, type MapData } from '../world/ma
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
 import { GAME_CONFIG } from '../core/config'
+import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME, isAppearance, isValidName } from '../entities/appearance'
 import { SAVE_SCHEMA_VERSION, type SaveGame, type SaveSummary } from '../../types/save'
 import type { Vec3, ZombieAIState } from '../../types'
 
@@ -24,7 +25,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (typeof data.schemaVersion !== 'number') return corrupt('thiếu schemaVersion')
   const version = data.schemaVersion
   const legacy = version === 1
-  if (version !== 1 && version !== 2 && version !== SAVE_SCHEMA_VERSION) {
+  if (version !== 1 && version !== 2 && version !== 3 && version !== SAVE_SCHEMA_VERSION) {
     return { ok: false, reason: 'incompatible', detail: `schemaVersion ${data.schemaVersion}, cần ${SAVE_SCHEMA_VERSION}` }
   }
   if (typeof data.mapId !== 'string') return corrupt('thiếu mapId')
@@ -52,6 +53,8 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   ) {
     return corrupt('player')
   }
+  // v4+: name and appearance are option IDs only; unknown IDs are rejected, never guessed.
+  if (version >= 4 && (!isValidName(player.name) || !isAppearance(player.appearance))) return corrupt('player name/appearance')
 
   if (!Array.isArray(data.doors) || !data.doors.every((d) => isRecord(d) && typeof d.id === 'string' && (legacy
     ? typeof d.open === 'boolean'
@@ -140,6 +143,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   const weaponId = player.equipment.weaponInstanceId
   if (weaponId !== null && (typeof weaponId !== 'string' || !save.player.inventory.slots.some((i) => i?.id === weaponId && i.kind === 'weapon'))) return corrupt('equipment owner/reference')
   if (version === 2) return migrateV2(save, expectedMapId, knownMap)
+  if (version === 3) return migrateV3(save, expectedMapId, knownMap)
   return { ok: true, save, migrated: false, fromVersion: version }
 }
 
@@ -148,6 +152,7 @@ export function summarizeSave(save: SaveGame): SaveSummary {
   const h = Math.floor(totalMinutes / 60)
   const m = totalMinutes % 60
   return {
+    name: save.player.name,
     savedAt: save.savedAt,
     day: save.clock.day,
     timeLabel: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
@@ -229,7 +234,7 @@ function migratePhase1(data: Record<string, unknown>, mapId: string, map?: MapDa
  */
 function migrateV2(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
   const save = structuredClone(source)
-  save.schemaVersion = SAVE_SCHEMA_VERSION
+  save.schemaVersion = 3
   if (map) {
     const byId = new Map(save.containers.map((c) => [c.id, c]))
     const fixed = map.containers.map((def) => byId.get(def.id) ?? {
@@ -242,4 +247,13 @@ function migrateV2(source: SaveGame, mapId: string, map?: MapData): SaveValidati
   }
   const checked = validateSaveGame(save, mapId, map)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 2 } : checked
+}
+
+/** Pure v3 → v4: characters made before character creation get the default name and look. */
+function migrateV3(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = 4
+  save.player = { ...save.player, name: DEFAULT_PLAYER_NAME, appearance: { ...DEFAULT_APPEARANCE } }
+  const checked = validateSaveGame(save, mapId, map)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 3 } : checked
 }

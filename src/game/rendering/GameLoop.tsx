@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { runtime } from '../core/runtime'
 import { useHudStore } from '../../stores/hudStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -18,8 +18,17 @@ export function GameLoop({ paused }: GameLoopProps) {
   const fpsTime = useRef(0)
   const fps = useRef(0)
   const frames = useRef(0)
+  const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
 
   useFrame((_, delta) => {
+    // Dev only: last frame's renderer stats for scripts/p2-render-bench.mjs (not a GPU benchmark).
+    if (import.meta.env.DEV) {
+      const r = gl.info.render
+      const w = window as unknown as { __renderInfo: object; __scene: object }
+      w.__renderInfo = { calls: r.calls, triangles: r.triangles, fps: fps.current }
+      w.__scene = scene
+    }
     fpsFrames.current += 1
     fpsTime.current += delta
     if (fpsTime.current >= 0.5) {

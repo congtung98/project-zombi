@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 4,
+  "savedAt": 1790380800000,
+  "mapId": "neighborhood-50",
+  "worldSeed": 2337748122,
+  "clock": {
+    "elapsed": 6.278100000143049,
+    "timeOfDay": 0.3104635000002386,
+    "day": 1
+  },
+  "player": {
+    "name": "Trần Tùng",
+    "appearance": {
+      "preset": "sturdy",
+      "hair": "mohawk",
+      "skin": "dark",
+      "shirt": "red",
+      "pants": "olive"
+    },
+    "position": {
+      "x": -13,
+      "y": 0.8988622426986694,
+      "z": -13
+    },
+    "facing": 0,
+    "health": 100,
+    "stamina": 100,
+    "hunger": 99.47682499998804,
+    "thirst": 99.30243333331748,
+    "kills": 0,
+    "inventory": {
+      "id": "player",
+      "nextItemId": 2,
+      "slots": [
+        {
+          "id": "player:1",
+          "itemId": "crowbar",
+          "kind": "weapon",
+          "quantity": 1,
+          "condition": 90
+        },
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    "equipment": {
+      "weaponInstanceId": "player:1"
+    }
+  },
+  "doors": [
+    {
+      "id": "door-safehouse",
+      "state": "closed",
+      "hp": 120
+    },
+    {
+      "id": "door-store",
+      "state": "closed",
+      "hp": 120
+    },
+    {
+      "id": "door-house",
+      "state": "closed",
+      "hp": 120
+    }
+  ],
+  "containers": [
+    {
+      "id": "ct-safehouse-cabinet",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-safehouse-cabinet",
+        "nextItemId": 4,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-safehouse-cabinet:1",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 1
+          },
+          {
+            "id": "loot:2337748122:ct-safehouse-cabinet:2",
+            "itemId": "canned_food",
+            "kind": "stack",
+            "quantity": 1
+          },
+          {
+            "id": "loot:2337748122:ct-safehouse-cabinet:3",
+            "itemId": "bandage",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-safehouse-closet",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-safehouse-closet",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-safehouse-closet:1",
+            "itemId": "metal_pipe",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 95
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-1",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-store-shelf-1",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-store-shelf-1:1",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 2
+          },
+          {
+            "id": "loot:2337748122:ct-store-shelf-1:2",
+            "itemId": "soda",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-2",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-store-shelf-2",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-store-shelf-2:1",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-shelf-3",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-store-shelf-3",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-store-shelf-3:1",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 2
+          },
+          {
+            "id": "loot:2337748122:ct-store-shelf-3:2",
+            "itemId": "bandage",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-fridge",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-store-fridge",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-store-fridge:1",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-store-tools",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-store-tools",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-store-tools:1",
+            "itemId": "hammer",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 95
+          },
+          {
+            "id": "loot:2337748122:ct-store-tools:2",
+            "itemId": "metal_pipe",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 78
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-wardrobe",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-house-wardrobe",
+        "nextItemId": 2,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-house-wardrobe:1",
+            "itemId": "bandage",
+            "kind": "stack",
+            "quantity": 2
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-kitchen",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-house-kitchen",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-house-kitchen:1",
+            "itemId": "canned_food",
+            "kind": "stack",
+            "quantity": 1
+          },
+          {
+            "id": "loot:2337748122:ct-house-kitchen:2",
+            "itemId": "water",
+            "kind": "stack",
+            "quantity": 1
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-house-nightstand",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-house-nightstand",
+        "nextItemId": 1,
+        "slots": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "ct-park-toolbox",
+      "opened": false,
+      "items": {
+        "id": "loot:2337748122:ct-park-toolbox",
+        "nextItemId": 3,
+        "slots": [
+          {
+            "id": "loot:2337748122:ct-park-toolbox:1",
+            "itemId": "hammer",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 71
+          },
+          {
+            "id": "loot:2337748122:ct-park-toolbox:2",
+            "itemId": "metal_pipe",
+            "kind": "weapon",
+            "quantity": 1,
+            "condition": 42
+          },
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    }
+  ],
+  "zombies": [
+    {
+      "id": "zombie-2",
+      "position": {
+        "x": 4,
+        "y": 0.8988622426986694,
+        "z": 14
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-3",
+      "position": {
+        "x": 20,
+        "y": 0.8988622426986694,
+        "z": 0
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-4",
+      "position": {
+        "x": -2,
+        "y": 0.8988624215126038,
+        "z": -20
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-5",
+      "position": {
+        "x": 16,
+        "y": 0.8988622426986694,
+        "z": -5
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-6",
+      "position": {
+        "x": 22,
+        "y": 0.8988622426986694,
+        "z": 20
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-7",
+      "position": {
+        "x": -22,
+        "y": 0.8988622426986694,
+        "z": 0
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    },
+    {
+      "id": "zombie-8",
+      "position": {
+        "x": 8,
+        "y": 0.8988622426986694,
+        "z": 22
+      },
+      "facing": 0,
+      "health": 50,
+      "ai": "IDLE",
+      "lastKnownTarget": null
+    }
+  ],
+  "spawn": {
+    "nextZombieId": 9,
+    "timer": 18.721899999856937,
+    "counter": 0
+  },
+  "cameraZoom": 60
+}

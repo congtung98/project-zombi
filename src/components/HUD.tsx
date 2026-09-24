@@ -30,6 +30,7 @@ export function HUD() {
   return (
     <div className="hud">
       <div className="hud-stats">
+        <div className="hud-name">{hud.playerName}</div>
         <StatBar label="Máu" value={hud.health} max={hud.maxHealth} color="#d9453d" />
         <StatBar label="Thể lực" value={hud.stamina} max={hud.maxStamina} color="#e0b23a" />
         <StatBar label="Đói" value={hud.hunger} max={hud.maxHunger} color="#e0812f" />

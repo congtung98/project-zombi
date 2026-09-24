@@ -24,6 +24,7 @@ export interface HudWeapon {
 export type ToastTone = 'info' | 'warn' | 'danger'
 
 interface HudSnapshot {
+  playerName: string
   health: number
   maxHealth: number
   stamina: number
@@ -68,6 +69,7 @@ interface HudState extends HudSnapshot {
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 export const useHudStore = create<HudState>((set) => ({
+  playerName: '',
   health: 100,
   maxHealth: 100,
   stamina: 100,
@@ -111,6 +113,7 @@ export const useHudStore = create<HudState>((set) => ({
       })
     }
     set({
+      playerName: p.name,
       health: p.health,
       maxHealth: cfg.maxHealth,
       stamina: p.stamina,

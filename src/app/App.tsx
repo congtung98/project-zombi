@@ -4,6 +4,7 @@ import { GameCanvas } from './GameCanvas'
 import { HUD } from '../components/HUD'
 import { InventoryOverlay } from '../components/ContainerPanel'
 import { GameOverScreen, MainMenu, PauseMenu } from '../components/Menus'
+import { CharacterCreation } from '../components/CharacterCreation'
 import { runtime } from '../game/core/runtime'
 import { sfx } from '../game/audio/sfx'
 import type { ItemEffect } from '../game/entities/items'
@@ -133,6 +134,7 @@ export function App() {
       {screen === 'playing' && <InventoryOverlay />}
       {DOOR_LAB_ENABLED && screen === 'playing' && <Suspense fallback={null}><DoorLab /></Suspense>}
       {screen === 'menu' && <MainMenu />}
+      {screen === 'create' && <CharacterCreation />}
       {screen === 'paused' && <PauseMenu />}
       {screen === 'gameover' && <GameOverScreen />}
     </div>

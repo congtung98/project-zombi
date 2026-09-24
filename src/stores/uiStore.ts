@@ -3,17 +3,20 @@ import { runtime } from '../game/core/runtime'
 import { summarizeSave, validateSaveGame } from '../game/systems/save'
 import { commitMigratedSave, deleteSave, readSave, writeSave } from '../game/systems/saveStorage'
 import type { SaveSummary } from '../types/save'
+import type { CharacterProfile } from '../game/entities/player'
 import { sfx } from '../game/audio/sfx'
 import { useHudStore } from './hudStore'
 import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
 
-export type Screen = 'menu' | 'playing' | 'paused' | 'gameover'
+export type Screen = 'menu' | 'create' | 'playing' | 'paused' | 'gameover'
 const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : 'slot-1'
 const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
+const DEFAULT_LOOK_NOTE = 'Nhân vật dùng tên và ngoại hình mặc định.'
 const MIGRATION_TOAST: Record<number, string> = {
-  1: `Đã nâng cấp save Phase 1 và giữ bản sao v1. Gậy cũ ở túi hoặc túi đồ rơi dưới chân. ${NEW_CONTAINERS_NOTE}`,
-  2: `Đã nâng cấp save và giữ bản sao v2. ${NEW_CONTAINERS_NOTE}`,
+  1: `Đã nâng cấp save Phase 1 và giữ bản sao v1. Gậy cũ ở túi hoặc túi đồ rơi dưới chân. ${NEW_CONTAINERS_NOTE} ${DEFAULT_LOOK_NOTE}`,
+  2: `Đã nâng cấp save và giữ bản sao v2. ${NEW_CONTAINERS_NOTE} ${DEFAULT_LOOK_NOTE}`,
+  3: `Đã nâng cấp save và giữ bản sao v3. ${DEFAULT_LOOK_NOTE}`,
 }
 
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */
@@ -36,7 +39,13 @@ interface UiState {
   /** false cho tới khi game loop chạy frame đầu của phiên (che khung hình body chưa đặt đúng chỗ). */
   sceneReady: boolean
   markSceneReady: () => void
-  startNewGame: () => void
+  /** New Game → character creation. Nothing is deleted or created until the player confirms. */
+  openCharacterCreation: () => void
+  /** Back from character creation: the existing save is untouched. */
+  cancelCharacterCreation: () => void
+  /** Confirmed start: replaces the save slot (if any), then builds the world with this character. */
+  beginNewGame: (profile: CharacterProfile) => Promise<void>
+  startNewGame: (profile?: CharacterProfile) => void
   continueGame: () => Promise<void>
   refreshSaveSlot: () => Promise<void>
   /** Chụp snapshot ngay bây giờ (giữa hai tick) và ghi xuống IndexedDB. */
@@ -67,8 +76,27 @@ export const useUiStore = create<UiState>((set, get) => ({
     if (!get().sceneReady) set({ sceneReady: true })
   },
 
-  startNewGame: () => {
-    runtime.newGame()
+  openCharacterCreation: () => {
+    runtime.input.clear()
+    set({ screen: 'create' })
+    void get().refreshSaveSlot()
+  },
+
+  cancelCharacterCreation: () => {
+    set({ screen: 'menu' })
+    void get().refreshSaveSlot()
+  },
+
+  beginNewGame: async (profile) => {
+    if (get().busy) return
+    const slot = get().saveSlot.kind
+    // One slot: the old save is removed only now, after the player confirmed in creation.
+    if (slot === 'ready' || slot === 'incompatible' || slot === 'corrupt') await get().discardSave()
+    get().startNewGame(profile)
+  },
+
+  startNewGame: (profile) => {
+    runtime.newGame(undefined, profile)
     enterSession(set)
     if (runtime.map.containers.some((c) => c.id === 'ct-safehouse-closet')) {
       useHudStore.getState().showToast('Bạn đang tay không. Tủ quần áo trong nhà an toàn có vũ khí: lại gần, nhấn E, rồi trang bị trong túi.', 6000)

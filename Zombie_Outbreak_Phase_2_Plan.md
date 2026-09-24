@@ -495,12 +495,14 @@ Mỗi sprint kết thúc bằng một build chơi được và một ghi chú tr
 
 ### Sprint P2-S3 — Model và tạo nhân vật
 
-- [ ] Kiểm tra quyền dùng asset, rig, scale, bộ animation tối thiểu.
-- [ ] Gắn player/zombie model vào controller hiện có.
-- [ ] Chuẩn hóa socket và transform từng melee; đồng bộ hit timing.
-- [ ] Tạo appearance data, preset và UI preview; thêm Randomize/Reset.
-- [ ] Kết nối New Game/Back/Continue và lưu ngoại hình.
-- [ ] Chạy cùng số zombie/camera/settings như baseline Phase 1 để đo ảnh hưởng model.
+- [x] Kiểm tra quyền dùng asset, rig, scale, bộ animation tối thiểu.
+- [x] Gắn player/zombie model vào controller hiện có.
+- [x] Chuẩn hóa socket và transform từng melee; đồng bộ hit timing.
+- [x] Tạo appearance data, preset và UI preview; thêm Randomize/Reset.
+- [x] Kết nối New Game/Back/Continue và lưu ngoại hình.
+- [x] Chạy cùng số zombie/camera/settings như baseline Phase 1 để đo ảnh hưởng model.
+
+**Đã triển khai 24/09/2026.** Chi tiết: `docs/phase2-s3.md`. Rig low-poly dựng bằng code (không asset ngoài, không cần giấy phép), pose thuần chạy sau tick; save v4 (tên + ngoại hình). So cùng cảnh với bản S2: draw call 147 → 271 (High) / 238 (Low); FPS GPU thật chưa đo.
 
 **Nghiệm thu:** lựa chọn ngoại hình hiện đúng trong gameplay và save; không xóa save khi thoát màn tạo nhân vật; equip/unequip hiển thị đúng; animation chết không tiếp tục gây damage.
 

@@ -1,84 +1,41 @@
-import { useEffect, useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import type { Group } from 'three'
 import { runtime } from '../core/runtime'
 import { equippedWeapon } from '../systems/equipment'
-import type { ItemId } from '../entities/items'
+import { useSettingsStore } from '../../stores/settingsStore'
+import { computePose, createPose } from './character/pose'
+import { registerAnimator } from './character/animators'
+import { applyPose, buildCharacter, playerLook, shadowDetail } from './character/rig'
+import { buildWeaponModel, type WeaponModel } from './character/weaponModels'
 
 const CFG = runtime.config.player
 const MELEE = runtime.config.melee
+const PUSH = runtime.config.push
 const HALF_HEIGHT = (CFG.height - 2 * CFG.radius) / 2
-/** Góc nghỉ và biên độ vung của gậy (radian quanh trục Y của vai). */
-const BAT_REST_ANGLE = 0.9
-const BAT_SWING_ARC = 2.4
-
-interface HeldWeapon {
-  itemId: ItemId
-  broken: boolean
-}
-
-/** Placeholder meshes per weapon (P2-S2); the pivot is the right shoulder and the weapon points along +Z. */
-function WeaponModel({ itemId, broken }: HeldWeapon) {
-  // Broken weapons keep their shape but glow dull red so the state reads during combat.
-  const tint = broken ? { emissive: '#7a0d0d', emissiveIntensity: 0.6 } : {}
-  switch (itemId) {
-    case 'metal_pipe':
-      return (
-        <mesh castShadow position={[0, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.035, 0.035, 1, 8]} />
-          <meshStandardMaterial color="#8c9298" metalness={0.6} roughness={0.4} {...tint} />
-        </mesh>
-      )
-    case 'crowbar':
-      return (
-        <group>
-          <mesh castShadow position={[0, 0, 0.47]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.95, 6]} />
-            <meshStandardMaterial color="#7a1f1f" metalness={0.5} roughness={0.5} {...tint} />
-          </mesh>
-          <mesh castShadow position={[0.06, 0, 0.95]} rotation={[0, 0, 0]}>
-            <boxGeometry args={[0.14, 0.04, 0.05]} />
-            <meshStandardMaterial color="#7a1f1f" metalness={0.5} roughness={0.5} {...tint} />
-          </mesh>
-        </group>
-      )
-    case 'hammer':
-      return (
-        <group>
-          <mesh castShadow position={[0, 0, 0.3]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.025, 0.03, 0.6, 6]} />
-            <meshStandardMaterial color="#8a6a44" {...tint} />
-          </mesh>
-          <mesh castShadow position={[0, 0, 0.6]}>
-            <boxGeometry args={[0.24, 0.08, 0.08]} />
-            <meshStandardMaterial color="#555a60" metalness={0.6} roughness={0.4} {...tint} />
-          </mesh>
-        </group>
-      )
-    default:
-      return (
-        <mesh castShadow position={[0, 0, 0.55]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.05, 0.035, 1.1, 8]} />
-          <meshStandardMaterial color="#9a6b3c" {...tint} />
-        </mesh>
-      )
-  }
-}
+/** Metres per full gait cycle (two steps); the phase follows distance so feet do not slide. */
+const STRIDE = 1.5
+const SHOVE_TIME = 0.4
+const HURT_TIME = 0.3
+const DEATH_TIME = 0.6
 
 /**
- * Player placeholder: capsule dynamic có khóa xoay; simulation điều khiển vận
- * tốc, physics giải quyết va chạm với tường. Mesh con xoay theo hướng nhìn;
- * gậy vung theo `attackTimer` của runtime (không có state React).
+ * Player: dynamic capsule with locked rotation (unchanged collider for every preset); the rigged
+ * model is purely visual, built once per session from the saved appearance and posed each frame
+ * from runtime state. Damage timing stays in combat; the pose only mirrors `attackTimer`.
  */
 export function PlayerView() {
   const bodyRef = useRef<RapierRigidBody>(null)
   const visualRef = useRef<Group>(null)
-  const batPivotRef = useRef<Group>(null)
-  // Only the held weapon type/broken flag is React state; it changes rarely (equip, break, load).
-  const [held, setHeld] = useState<HeldWeapon | null>(null)
-  const heldKey = useRef('')
-  // Vị trí ban đầu lấy từ runtime (spawn khi ván mới, vị trí đã lưu khi load); scene remount theo sessionId.
+  const shadows = useSettingsStore((s) => s.shadows)
+  // Scene remounts per session, so the appearance read here is the one of this game/save.
+  const rig = useMemo(() => buildCharacter(playerLook(runtime.player.appearance), shadowDetail(shadows)), [shadows])
+  const weapon = useRef<{ key: string; model: WeaponModel | null }>({ key: '', model: null })
+  const pose = useRef(createPose())
+  const gait = useRef(0)
+  const last = useRef({ x: runtime.player.position.x, z: runtime.player.position.z })
+  const clock = useRef(0)
+  const deadTime = useRef(-1)
   const spawn = runtime.player.position
 
   useEffect(() => {
@@ -86,29 +43,61 @@ export function PlayerView() {
     return () => runtime.registerPlayerBody(null)
   }, [])
 
-  useFrame(() => {
+  useEffect(() => {
+    const held = weapon.current
+    return () => {
+      held.model?.dispose()
+      held.model = null
+      held.key = ''
+      rig.dispose()
+    }
+  }, [rig])
+
+  // Posed after the tick by CharacterAnimator (same state as the simulation this frame).
+  useEffect(() => registerAnimator((delta) => {
     const p = runtime.player
-    if (visualRef.current) visualRef.current.rotation.y = p.facing
-    const weapon = equippedWeapon(p.inventory, p.equipment)
-    const key = weapon ? `${weapon.itemId}:${weapon.condition <= 0}` : ''
-    if (key !== heldKey.current) {
-      heldKey.current = key
-      setHeld(weapon ? { itemId: weapon.itemId, broken: weapon.condition <= 0 } : null)
+    const visual = visualRef.current
+    if (!visual) return
+    visual.rotation.y = p.facing
+    clock.current += delta
+
+    const dist = Math.hypot(p.position.x - last.current.x, p.position.z - last.current.z)
+    last.current = { x: p.position.x, z: p.position.z }
+    // Ignore teleports (load/debug) so the gait does not spin.
+    const step = dist < 1 ? dist : 0
+    gait.current = (gait.current + (step / STRIDE) * Math.PI * 2) % (Math.PI * 2)
+    const speed = delta > 0 ? step / delta : 0
+
+    const held = equippedWeapon(p.inventory, p.equipment)
+    const key = held ? `${held.itemId}:${held.condition <= 0}` : ''
+    if (key !== weapon.current.key) {
+      weapon.current.model?.group.removeFromParent()
+      weapon.current.model?.dispose()
+      const model = held ? buildWeaponModel(held.itemId, held.condition <= 0, shadows === 'high') : null
+      if (model) rig.weaponSocket.add(model.group)
+      weapon.current = { key, model }
     }
-    const pivot = batPivotRef.current
-    if (!pivot) return
-    pivot.visible = weapon !== null
-    if (p.attackTimer < 0) {
-      pivot.rotation.y = BAT_REST_ANGLE
-      pivot.rotation.x = 0
-      return
-    }
-    // Vung từ phải sang trái quanh vai; ease-out để khung trúng đòn rơi ở giữa cú vung.
-    const t = Math.min(1, p.attackTimer / MELEE.swingDuration)
-    const eased = 1 - (1 - t) * (1 - t)
-    pivot.rotation.y = BAT_REST_ANGLE - BAT_SWING_ARC * eased
-    pivot.rotation.x = -0.35 * Math.sin(t * Math.PI)
-  })
+
+    deadTime.current = p.alive ? -1 : Math.max(0, deadTime.current) + delta
+    const shoveElapsed = PUSH.cooldown - p.pushCooldown
+    computePose(
+      {
+        kind: 'player',
+        time: clock.current,
+        gaitPhase: gait.current,
+        speed: p.alive ? speed : 0,
+        swing: p.attackTimer >= 0 ? p.attackTimer / MELEE.swingDuration : -1,
+        hitAt: MELEE.hitDelay / MELEE.swingDuration,
+        shove: p.pushCooldown > 0 && shoveElapsed < SHOVE_TIME ? shoveElapsed / SHOVE_TIME : -1,
+        attack: -1,
+        hurt: p.hurtTimer / HURT_TIME,
+        dead: deadTime.current >= 0 ? Math.min(1, deadTime.current / DEATH_TIME) : -1,
+        armed: held !== null,
+      },
+      pose.current,
+    )
+    applyPose(rig, pose.current)
+  }), [rig, shadows])
 
   return (
     <RigidBody
@@ -121,19 +110,10 @@ export function PlayerView() {
       position={[spawn.x, CFG.height / 2, spawn.z]}
     >
       <CapsuleCollider args={[HALF_HEIGHT, CFG.radius]} friction={0} mass={CFG.mass} />
+      {/* Feet on the ground: the body origin is the capsule centre. */}
       <group ref={visualRef}>
-        <mesh castShadow>
-          <capsuleGeometry args={[CFG.radius, CFG.height - 2 * CFG.radius, 4, 12]} />
-          <meshStandardMaterial color="#4a90d9" />
-        </mesh>
-        {/* Khối nhỏ phía trước để thấy hướng nhân vật đang nhìn. */}
-        <mesh position={[0, 0.45, CFG.radius + 0.05]}>
-          <boxGeometry args={[0.25, 0.2, 0.25]} />
-          <meshStandardMaterial color="#e8f0ff" />
-        </mesh>
-        {/* Vũ khí đang cầm: pivot ở vai phải, thân hướng ra trước; model theo equipment. */}
-        <group ref={batPivotRef} position={[CFG.radius + 0.1, 0.25, 0]} rotation={[0, BAT_REST_ANGLE, 0]}>
-          {held && <WeaponModel itemId={held.itemId} broken={held.broken} />}
+        <group position={[0, -CFG.height / 2, 0]}>
+          <primitive object={rig.root} />
         </group>
       </group>
     </RigidBody>

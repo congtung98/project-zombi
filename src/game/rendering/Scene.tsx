@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
+import { runAnimators } from './character/animators'
 import { Physics } from '@react-three/rapier'
 import { runtime } from '../core/runtime'
 import { useWorldStore } from '../../stores/worldStore'
@@ -30,6 +31,12 @@ function InputBridge() {
     runtime.input.attach(gl.domElement)
     return () => runtime.input.detach()
   }, [gl])
+  return null
+}
+
+/** Poses every character after the simulation tick (mounted after GameLoop). */
+function CharacterAnimator() {
+  useFrame((_, delta) => runAnimators(delta))
   return null
 }
 
@@ -76,6 +83,7 @@ export function Scene({ paused, debug }: SceneProps) {
       </Physics>
       <OcclusionFader />
       <GameLoop paused={paused} />
+      <CharacterAnimator />
     </>
   )
 }

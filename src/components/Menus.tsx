@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sfx } from '../game/audio/sfx'
 import { useUiStore } from '../stores/uiStore'
+import { useHudStore } from '../stores/hudStore'
 import { GuidePanel, SettingsPanel } from './Settings'
 
 type MenuView = 'main' | 'settings' | 'guide'
@@ -31,7 +32,7 @@ function SaveSlotInfo() {
     case 'ready':
       return (
         <p className="save-info">
-          Bản lưu: Ngày {slot.summary.day} · {slot.summary.timeLabel} · Máu {Math.round(slot.summary.health)} · Đã hạ {slot.summary.kills}
+          Bản lưu: <b>{slot.summary.name}</b> · Ngày {slot.summary.day} · {slot.summary.timeLabel} · Máu {Math.round(slot.summary.health)} · Đã hạ {slot.summary.kills}
           <br />
           <span className="muted">lưu lúc {formatSavedAt(slot.summary.savedAt)}</span>
         </p>
@@ -59,13 +60,11 @@ function SecondaryNav({ setView }: { setView: (v: MenuView) => void }) {
 }
 
 export function MainMenu() {
-  const startNewGame = useUiStore((s) => s.startNewGame)
+  const openCharacterCreation = useUiStore((s) => s.openCharacterCreation)
   const continueGame = useUiStore((s) => s.continueGame)
   const refreshSaveSlot = useUiStore((s) => s.refreshSaveSlot)
-  const discardSave = useUiStore((s) => s.discardSave)
   const slot = useUiStore((s) => s.saveSlot)
   const busy = useUiStore((s) => s.busy)
-  const [confirmNew, setConfirmNew] = useState(false)
   const [view, setView] = useState<MenuView>('main')
 
   useEffect(() => {
@@ -73,18 +72,11 @@ export function MainMenu() {
   }, [refreshSaveSlot])
 
   const hasSave = slot.kind === 'ready'
-  const hasAnyData = slot.kind === 'ready' || slot.kind === 'incompatible' || slot.kind === 'corrupt'
 
+  // New Game opens character creation; overwrite confirmation and deletion happen there.
   const onNewGame = () => {
     sfx.play('ui')
-    if (hasAnyData && !confirmNew) {
-      setConfirmNew(true)
-      return
-    }
-    setConfirmNew(false)
-    // Một slot: ván mới xóa bản lưu cũ ngay để Continue không trỏ về ván trước.
-    if (hasAnyData) void discardSave()
-    startNewGame()
+    openCharacterCreation()
   }
 
   return (
@@ -95,33 +87,23 @@ export function MainMenu() {
         {view === 'main' && (
           <>
             <h1>Zombie Outbreak</h1>
-            <p className="subtitle">Phase 2 · bản phát triển (vũ khí và độ bền)</p>
+            <p className="subtitle">Phase 2 · bản phát triển (nhân vật, vũ khí và độ bền)</p>
             <SaveSlotInfo />
-            {confirmNew ? (
-              <div className="actions">
-                <p className="save-warn">Bản lưu hiện tại sẽ bị xóa khi bắt đầu ván mới. Tiếp tục?</p>
-                <button onClick={onNewGame} disabled={busy}>
-                  Xóa bản lưu và bắt đầu ván mới
-                </button>
-                <button onClick={() => setConfirmNew(false)}>Hủy</button>
-              </div>
-            ) : (
-              <div className="actions">
-                <button onClick={onNewGame} disabled={busy}>
-                  New Game
-                </button>
-                <button
-                  onClick={() => {
-                    sfx.play('ui')
-                    void continueGame()
-                  }}
-                  disabled={!hasSave || busy}
-                  title={hasSave ? 'Tiếp tục ván đã lưu' : 'Chưa có bản lưu hợp lệ'}
-                >
-                  Continue
-                </button>
-              </div>
-            )}
+            <div className="actions">
+              <button onClick={onNewGame} disabled={busy}>
+                New Game
+              </button>
+              <button
+                onClick={() => {
+                  sfx.play('ui')
+                  void continueGame()
+                }}
+                disabled={!hasSave || busy}
+                title={hasSave ? 'Tiếp tục ván đã lưu' : 'Chưa có bản lưu hợp lệ'}
+              >
+                Continue
+              </button>
+            </div>
             <SecondaryNav setView={setView} />
             <ControlsHelp />
           </>
@@ -173,15 +155,16 @@ export function PauseMenu() {
 }
 
 export function GameOverScreen() {
-  const startNewGame = useUiStore((s) => s.startNewGame)
+  const openCharacterCreation = useUiStore((s) => s.openCharacterCreation)
   const toMenu = useUiStore((s) => s.toMenu)
+  const name = useHudStore((s) => s.playerName)
   return (
     <div className="overlay overlay-dim">
       <div className="panel">
-        <h2>Bạn đã chết</h2>
+        <h2>{name} đã gục ngã</h2>
         <p className="subtitle">Zombie đã hạ gục bạn. Bản lưu đã bị xóa. Thử lại?</p>
         <div className="actions">
-          <button onClick={startNewGame}>New Game</button>
+          <button onClick={openCharacterCreation}>New Game</button>
           <button onClick={toMenu}>Về menu chính</button>
         </div>
       </div>

@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest'
 import legacyFixture from './fixtures/phase1-v1.json'
 import currentFixture from './fixtures/phase2-s1-v2.json'
 import s2Fixture from './fixtures/phase2-s2-v3.json'
+import s3Fixture from './fixtures/phase2-s3-v4.json'
 import { GameRuntime } from '../core/runtime'
 import { validateSaveGame } from './save'
 import { addItem, createInventory, totalQuantity, transferSlot } from './inventory'
 import { equippedWeapon, equipWeapon } from './equipment'
 import { CONTAINERS_ADDED_V3, NEIGHBORHOOD_MAP } from '../world/mapData'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
+import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME } from '../entities/appearance'
 
 const mapId = NEIGHBORHOOD_MAP.id
 const migrate = (data: unknown) => {
@@ -111,9 +113,20 @@ describe('v2 → v3 (P2-S2 melee containers)', () => {
 })
 
 describe('P2-S2 browser fixture (v3)', () => {
-  it('loads without migration: broken equipped weapon, looted closet and a dropped pipe survive round trips', () => {
-    const { save, migrated } = migrate(s2Fixture)
-    expect(migrated).toBe(false)
+  it('v3 → v4 adds only the default name/appearance; everything else is the S2 save', () => {
+    const before = JSON.stringify(s2Fixture)
+    const { save, migrated, fromVersion } = migrate(s2Fixture)
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 3, 4])
+    expect(JSON.stringify(s2Fixture)).toBe(before)
+    const { name, appearance, ...rest } = save.player
+    expect([name, appearance]).toEqual([DEFAULT_PLAYER_NAME, DEFAULT_APPEARANCE])
+    expect(rest).toEqual(s2Fixture.player)
+    expect({ ...save, player: rest, schemaVersion: 3 }).toEqual(s2Fixture)
+    expect(migrate(s2Fixture).save).toEqual(save)
+  })
+
+  it('broken equipped weapon, looted closet and a dropped pipe survive round trips', () => {
+    const { save } = migrate(s2Fixture)
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
@@ -128,6 +141,18 @@ describe('P2-S2 browser fixture (v3)', () => {
   })
 })
 
+describe('P2-S3 browser fixture (v4)', () => {
+  it('loads without migration and keeps the chosen name/appearance through repeated round trips', () => {
+    const { save, migrated } = migrate(s3Fixture)
+    expect(migrated).toBe(false)
+    expect([save.player.name, save.player.appearance]).toEqual(['Trần Tùng', { preset: 'sturdy', hair: 'mohawk', skin: 'dark', shirt: 'red', pants: 'olive' }])
+    const rt = new GameRuntime()
+    rt.loadSnapshot(save)
+    for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+  })
+})
+
 describe('instance ownership', () => {
   it('migrates the browser-generated v2 (S1) fixture without condition reset or loot reroll', () => {
     const before = JSON.stringify(currentFixture)
@@ -135,7 +160,7 @@ describe('instance ownership', () => {
     expect([migrated, fromVersion]).toEqual([true, 2])
     expect(JSON.stringify(currentFixture)).toBe(before)
     for (const old of currentFixture.containers) expect(save.containers.find((c) => c.id === old.id)).toEqual(old)
-    expect(save.player).toEqual(currentFixture.player)
+    expect(save.player).toEqual({ ...currentFixture.player, name: DEFAULT_PLAYER_NAME, appearance: DEFAULT_APPEARANCE })
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     const again = rt.createSnapshot()
