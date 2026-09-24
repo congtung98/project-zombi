@@ -3,6 +3,7 @@ import { runtime } from '../game/core/runtime'
 import { summarizeSave, validateSaveGame } from '../game/systems/save'
 import { deleteSave, readSave, writeSave } from '../game/systems/saveStorage'
 import type { SaveSummary } from '../types/save'
+import { sfx } from '../game/audio/sfx'
 import { useHudStore } from './hudStore'
 import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
@@ -26,6 +27,9 @@ interface UiState {
   saveSlot: SaveSlotState
   /** Đang ghi/đọc IndexedDB; menu khóa nút để tránh thao tác chồng. */
   busy: boolean
+  /** false cho tới khi game loop chạy frame đầu của phiên (che khung hình body chưa đặt đúng chỗ). */
+  sceneReady: boolean
+  markSceneReady: () => void
   startNewGame: () => void
   continueGame: () => Promise<void>
   refreshSaveSlot: () => Promise<void>
@@ -43,7 +47,7 @@ interface UiState {
 function enterSession(set: (s: Partial<UiState>) => void): void {
   useWorldStore.getState().syncFromRuntime(runtime)
   useInventoryStore.getState().reset()
-  set({ screen: 'playing', sessionId: runtime.sessionId })
+  set({ screen: 'playing', sessionId: runtime.sessionId, sceneReady: false })
 }
 
 export const useUiStore = create<UiState>((set, get) => ({
@@ -52,6 +56,10 @@ export const useUiStore = create<UiState>((set, get) => ({
   debug: false,
   saveSlot: { kind: 'unknown' },
   busy: false,
+  sceneReady: false,
+  markSceneReady: () => {
+    if (!get().sceneReady) set({ sceneReady: true })
+  },
 
   startNewGame: () => {
     runtime.newGame()
@@ -107,6 +115,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       if (r.ok) {
         set({ saveSlot: { kind: 'ready', summary: summarizeSave(snapshot) } })
         useHudStore.getState().showToast(label, 1500)
+        sfx.play('save')
         return true
       }
       useHudStore.getState().showToast(`Không lưu được: ${r.error}`, 4000)

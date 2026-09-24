@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Color, type AmbientLight, type DirectionalLight, type HemisphereLight } from 'three'
 import { runtime } from '../core/runtime'
+import { useSettingsStore } from '../../stores/settingsStore'
 import { daylightAt } from './daylight'
 
 const L = runtime.config.lighting
@@ -23,6 +24,8 @@ export function Lights() {
   const hemiRef = useRef<HemisphereLight>(null)
   const sunRef = useRef<DirectionalLight>(null)
   const bgRef = useRef<Color>(null)
+  const shadows = useSettingsStore((s) => s.shadows)
+  const shadowMap = shadows === 'high' ? 2048 : 1024
 
   useFrame(() => {
     const d = daylightAt(runtime.clock.timeOfDay)
@@ -49,11 +52,11 @@ export function Lights() {
       <hemisphereLight ref={hemiRef} args={['#cfe3ff', '#3b4a2f', L.dayHemisphere]} />
       <directionalLight
         ref={sunRef}
-        castShadow
+        castShadow={shadows !== 'off'}
         position={[18, 32, 12]}
         intensity={L.daySun}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={shadowMap}
+        shadow-mapSize-height={shadowMap}
         shadow-camera-near={1}
         shadow-camera-far={120}
         shadow-camera-left={-36}

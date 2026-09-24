@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
+import { sfx } from '../game/audio/sfx'
 import { useUiStore } from '../stores/uiStore'
+import { GuidePanel, SettingsPanel } from './Settings'
+
+type MenuView = 'main' | 'settings' | 'guide'
 
 function ControlsHelp() {
   return (
@@ -45,6 +49,15 @@ function SaveSlotInfo() {
   }
 }
 
+function SecondaryNav({ setView }: { setView: (v: MenuView) => void }) {
+  return (
+    <div className="actions actions-row">
+      <button onClick={() => setView('guide')}>Hướng dẫn</button>
+      <button onClick={() => setView('settings')}>Cài đặt</button>
+    </div>
+  )
+}
+
 export function MainMenu() {
   const startNewGame = useUiStore((s) => s.startNewGame)
   const continueGame = useUiStore((s) => s.continueGame)
@@ -53,6 +66,7 @@ export function MainMenu() {
   const slot = useUiStore((s) => s.saveSlot)
   const busy = useUiStore((s) => s.busy)
   const [confirmNew, setConfirmNew] = useState(false)
+  const [view, setView] = useState<MenuView>('main')
 
   useEffect(() => {
     void refreshSaveSlot()
@@ -62,6 +76,7 @@ export function MainMenu() {
   const hasAnyData = slot.kind === 'ready' || slot.kind === 'incompatible' || slot.kind === 'corrupt'
 
   const onNewGame = () => {
+    sfx.play('ui')
     if (hasAnyData && !confirmNew) {
       setConfirmNew(true)
       return
@@ -75,28 +90,42 @@ export function MainMenu() {
   return (
     <div className="overlay">
       <div className="panel">
-        <h1>Zombie Outbreak</h1>
-        <p className="subtitle">Phase 1 · Sprint 5: ngày đêm, spawn, lưu game</p>
-        <SaveSlotInfo />
-        {confirmNew ? (
-          <div className="actions">
-            <p className="save-warn">Bản lưu hiện tại sẽ bị xóa khi bắt đầu ván mới. Tiếp tục?</p>
-            <button onClick={onNewGame} disabled={busy}>
-              Xóa bản lưu và bắt đầu ván mới
-            </button>
-            <button onClick={() => setConfirmNew(false)}>Hủy</button>
-          </div>
-        ) : (
-          <div className="actions">
-            <button onClick={onNewGame} disabled={busy}>
-              New Game
-            </button>
-            <button onClick={() => void continueGame()} disabled={!hasSave || busy} title={hasSave ? 'Tiếp tục ván đã lưu' : 'Chưa có bản lưu hợp lệ'}>
-              Continue
-            </button>
-          </div>
+        {view === 'settings' && <SettingsPanel onBack={() => setView('main')} />}
+        {view === 'guide' && <GuidePanel onBack={() => setView('main')} />}
+        {view === 'main' && (
+          <>
+            <h1>Zombie Outbreak</h1>
+            <p className="subtitle">Phase 1 MVP · bản phát hành thử</p>
+            <SaveSlotInfo />
+            {confirmNew ? (
+              <div className="actions">
+                <p className="save-warn">Bản lưu hiện tại sẽ bị xóa khi bắt đầu ván mới. Tiếp tục?</p>
+                <button onClick={onNewGame} disabled={busy}>
+                  Xóa bản lưu và bắt đầu ván mới
+                </button>
+                <button onClick={() => setConfirmNew(false)}>Hủy</button>
+              </div>
+            ) : (
+              <div className="actions">
+                <button onClick={onNewGame} disabled={busy}>
+                  New Game
+                </button>
+                <button
+                  onClick={() => {
+                    sfx.play('ui')
+                    void continueGame()
+                  }}
+                  disabled={!hasSave || busy}
+                  title={hasSave ? 'Tiếp tục ván đã lưu' : 'Chưa có bản lưu hợp lệ'}
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+            <SecondaryNav setView={setView} />
+            <ControlsHelp />
+          </>
         )}
-        <ControlsHelp />
       </div>
     </div>
   )
@@ -107,6 +136,7 @@ export function PauseMenu() {
   const toMenu = useUiStore((s) => s.toMenu)
   const saveGame = useUiStore((s) => s.saveGame)
   const busy = useUiStore((s) => s.busy)
+  const [view, setView] = useState<MenuView>('main')
 
   const saveAndMenu = async () => {
     const ok = await saveGame('Đã lưu game.')
@@ -116,21 +146,27 @@ export function PauseMenu() {
   return (
     <div className="overlay overlay-dim">
       <div className="panel">
-        <h2>Tạm dừng</h2>
-        <div className="actions">
-          <button onClick={resume}>Tiếp tục</button>
-          <button onClick={() => void saveGame()} disabled={busy}>
-            Lưu game
-          </button>
-          <button onClick={() => void saveAndMenu()} disabled={busy}>
-            Lưu và về menu
-          </button>
-          <button onClick={toMenu} title="Tiến trình từ lần lưu gần nhất sẽ mất">
-            Về menu (không lưu)
-          </button>
-        </div>
-        <p className="save-info muted">Game tự động lưu mỗi phút khi đang chơi.</p>
-        <ControlsHelp />
+        {view === 'settings' && <SettingsPanel onBack={() => setView('main')} />}
+        {view === 'guide' && <GuidePanel onBack={() => setView('main')} />}
+        {view === 'main' && (
+          <>
+            <h2>Tạm dừng</h2>
+            <div className="actions">
+              <button onClick={resume}>Tiếp tục</button>
+              <button onClick={() => void saveGame()} disabled={busy}>
+                Lưu game
+              </button>
+              <button onClick={() => void saveAndMenu()} disabled={busy}>
+                Lưu và về menu
+              </button>
+              <button onClick={toMenu} title="Tiến trình từ lần lưu gần nhất sẽ mất">
+                Về menu (không lưu)
+              </button>
+            </div>
+            <SecondaryNav setView={setView} />
+            <p className="save-info muted">Game tự động lưu mỗi phút khi đang chơi.</p>
+          </>
+        )}
       </div>
     </div>
   )

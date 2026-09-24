@@ -4,7 +4,9 @@ import { HUD } from '../components/HUD'
 import { InventoryOverlay } from '../components/ContainerPanel'
 import { GameOverScreen, MainMenu, PauseMenu } from '../components/Menus'
 import { runtime } from '../game/core/runtime'
+import { sfx } from '../game/audio/sfx'
 import type { ItemEffect } from '../game/entities/items'
+import { getItemDef } from '../game/entities/items'
 import { useHudStore } from '../stores/hudStore'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { useUiStore } from '../stores/uiStore'
@@ -26,8 +28,11 @@ function describeEffect(effect: ItemEffect): string {
   return parts.join(', ')
 }
 
+const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal' } as const
+
 export function App() {
   const screen = useUiStore((s) => s.screen)
+  const sceneReady = useUiStore((s) => s.sceneReady)
 
   useEffect(() => {
     const ui = () => useUiStore.getState()
@@ -58,7 +63,28 @@ export function App() {
       runtime.events.on('zombie:spawned', (e) => useWorldStore.getState().addZombie(e.id)),
       runtime.events.on('zombie:removed', (e) => useWorldStore.getState().removeZombie(e.id)),
       runtime.events.on('container:opened', (e) => useWorldStore.getState().setContainerOpened(e.id)),
+
+      // Âm thanh tổng hợp (không asset ngoài); mỗi sự kiện một hiệu ứng ngắn.
+      runtime.events.on('player:attacked', (e) => sfx.play(e.hitIds.length > 0 ? 'hit' : 'swing')),
+      runtime.events.on('player:pushed', () => sfx.play('push')),
+      runtime.events.on('zombie:damaged', () => sfx.play('zombieHurt')),
+      runtime.events.on('zombie:died', () => sfx.play('zombieDie')),
+      runtime.events.on('zombie:stateChanged', (e) => {
+        if (e.to === 'CHASE' && e.from === 'IDLE') sfx.play('zombieAlert')
+      }),
+      runtime.events.on('player:damaged', (e) => {
+        if (e.sourceId !== 'starvation') sfx.play('playerHurt')
+      }),
+      runtime.events.on('door:toggled', () => sfx.play('door')),
+      runtime.events.on('container:opened', () => sfx.play('container')),
+      runtime.events.on('item:used', (e) => sfx.play(ITEM_SFX[getItemDef(e.itemId).kind])),
+      runtime.events.on('inventory:changed', () => sfx.play('pickup')),
     ]
+
+    // Trình duyệt chỉ cho phát âm thanh sau tương tác người dùng.
+    const unlock = () => sfx.unlock()
+    window.addEventListener('pointerdown', unlock)
+    window.addEventListener('keydown', unlock)
 
     // Tab mất focus/ẩn: tự tạm dừng để không kẹt phím và không mô phỏng khi không nhìn thấy.
     const pauseIfPlaying = () => {
@@ -72,6 +98,8 @@ export function App() {
 
     return () => {
       for (const off of offs) off()
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
       window.removeEventListener('blur', pauseIfPlaying)
       document.removeEventListener('visibilitychange', onVisibility)
     }
@@ -81,6 +109,11 @@ export function App() {
     <div className="app">
       <GameCanvas />
       {(screen === 'playing' || screen === 'paused') && <HUD />}
+      {screen === 'playing' && !sceneReady && (
+        <div className="overlay overlay-dim">
+          <div className="loading">Đang tải…</div>
+        </div>
+      )}
       {screen === 'playing' && <InventoryOverlay />}
       {screen === 'menu' && <MainMenu />}
       {screen === 'paused' && <PauseMenu />}

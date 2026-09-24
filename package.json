@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy:check": "npm test && npm run build && vite preview --port 4173 --strictPort"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
@@ -31,9 +32,9 @@
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
   },
-  "description": "Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong `Zombie_Outbreak_Phase_1_MVP.md`. Repo hiện ở **Sprint 1: nền tảng và prototype**.",
+  "description": "Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt (Phase 1 MVP). Kế hoạch chi tiết trong Zombie_Outbreak_Phase_1_MVP.md.",
   "main": "index.js",
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "UNLICENSED"
 }

@@ -41,7 +41,7 @@ export const GAME_CONFIG = {
   },
   zombie: {
     health: 50,
-    speed: 2,
+    speed: 2.3,
     detectRange: 10,
     attackRange: 1.5,
     damage: 10,
@@ -53,7 +53,7 @@ export const GAME_CONFIG = {
     /** Khi đang đuổi, zombie giữ mục tiêu ở tầm xa hơn tầm phát hiện ban đầu. */
     chaseRange: 14,
     /** Thời gian vung tay trước khi gây sát thương; người chơi có thể né. */
-    attackWindup: 0.4,
+    attackWindup: 0.3,
     /** Thời gian tối đa đi tới vị trí cuối thấy người chơi trước khi bỏ cuộc. */
     searchTimeout: 8,
     /** Tách zombie khỏi nhau để không chồng lên một điểm. */
@@ -82,10 +82,10 @@ export const GAME_CONFIG = {
   melee: {
     damage: 25,
     range: 2,
-    cooldown: 0.8,
-    stamina: 10,
+    cooldown: 1,
+    stamina: 12,
     /** Quãng đường zombie bị đẩy lùi khi trúng gậy. */
-    knockback: 1.5,
+    knockback: 1,
     /** Thời điểm gây sát thương tính từ lúc bắt đầu vung. */
     hitDelay: 0.15,
     /** Thời gian animation vung gậy. */
@@ -93,15 +93,16 @@ export const GAME_CONFIG = {
     /** Nửa góc hình quạt trúng đòn (độ) tính từ hướng nhìn. */
     halfAngleDeg: 60,
     /** Zombie trúng gậy đứng khựng trong khoảng này. */
-    stagger: 0.35,
+    stagger: 0.2,
   },
   push: {
     range: 1.8,
-    cooldown: 1.2,
-    stamina: 15,
-    knockback: 3,
+    /** Đẩy là công cụ thoát thân, không phải khóa nhóm: cooldown dài và tốn thể lực. */
+    cooldown: 2,
+    stamina: 20,
+    knockback: 2.5,
     halfAngleDeg: 75,
-    stagger: 0.6,
+    stagger: 0.45,
   },
   inventory: {
     /** Số ô túi người chơi (kế hoạch: 12 ô). */

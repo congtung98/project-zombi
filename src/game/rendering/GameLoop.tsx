@@ -17,6 +17,7 @@ export function GameLoop({ paused }: GameLoopProps) {
   const fpsFrames = useRef(0)
   const fpsTime = useRef(0)
   const fps = useRef(0)
+  const frames = useRef(0)
 
   useFrame((_, delta) => {
     fpsFrames.current += 1
@@ -29,6 +30,10 @@ export function GameLoop({ paused }: GameLoopProps) {
 
     if (!paused) {
       runtime.tick(delta)
+      if (frames.current < 2) {
+        frames.current += 1
+        if (frames.current === 2) useUiStore.getState().markSceneReady()
+      }
       // Autosave ngay sau tick: snapshot ở ranh giới tick, không thấy trạng thái nửa chừng.
       if (runtime.consumeAutosave()) void useUiStore.getState().saveGame('Đã tự động lưu.')
     }

@@ -1,4 +1,5 @@
 import { useHudStore } from '../stores/hudStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { useUiStore } from '../stores/uiStore'
 
 interface StatBarProps {
@@ -24,6 +25,7 @@ function StatBar({ label, value, max, color }: StatBarProps) {
 export function HUD() {
   const hud = useHudStore()
   const debug = useUiStore((s) => s.debug)
+  const showHints = useSettingsStore((s) => s.showHints)
 
   return (
     <div className="hud">
@@ -64,7 +66,9 @@ export function HUD() {
         </div>
       )}
 
-      <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ · Esc tạm dừng · F3 debug</div>
+      {showHints && (
+        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ · Esc tạm dừng · F3 debug</div>
+      )}
 
       {debug && (
         <div className="hud-debug">

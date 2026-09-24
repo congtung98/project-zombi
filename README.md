@@ -1,7 +1,8 @@
 # Zombie Outbreak — Phase 1 (MVP)
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md`. Repo hiện ở **Sprint 5: ngày đêm, spawn, lưu game** (đã xong Sprint 1–4).
+`Zombie_Outbreak_Phase_1_MVP.md`. Repo đã hoàn thành **Sprint 6: hoàn thiện và phát hành** (Phase 1 MVP, đã xong Sprint 1–6). Bản build production
+nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
 
@@ -9,9 +10,26 @@ Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế
 npm install
 npm run dev        # http://localhost:5173
 npm test           # unit test (Vitest) cho luật game cốt lõi
-npm run build      # tsc -b && vite build
+npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
+npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
 ```
+
+## Phát hành
+
+- **Build tĩnh:** `npm run build` tạo `dist/` với `base: './'`, nên có thể copy lên bất kỳ host tĩnh nào (GitHub
+  Pages, Netlify, Cloudflare Pages, nginx). Chunk lớn nhất là `rapier` (~2,2 MB, gzip ~840 kB) vì WASM của
+  `@dimforge/rapier3d-compat` được nhúng; `three` ~740 kB (gzip ~190 kB); mã game ~85 kB.
+- **GitHub Pages:** push lên `master` sẽ chạy `.github/workflows/deploy.yml` (npm ci → test → build → deploy).
+  Trước lần đầu, bật *Settings → Pages → Source: GitHub Actions* trên repo. URL sẽ là
+  `https://<user>.github.io/project-zombi/`. Có thể chạy tay bằng *Actions → Deploy to GitHub Pages → Run workflow*.
+- **Kiểm tra sau deploy:** mở URL, New Game, chơi vài phút, Esc → Lưu game, tải lại trang, Continue phải khôi phục
+  đúng giờ/vị trí/túi. Save nằm trong IndexedDB của origin đó (đổi domain = mất save).
+- **Cài đặt** (menu chính hoặc pause → Cài đặt, lưu trong localStorage): âm lượng/tắt tiếng, bóng đổ Tắt/Thấp/Cao,
+  giới hạn pixel ratio 1×/1.5×/2×, gợi ý phím trên HUD. Máy GPU tích hợp nên chọn bóng Thấp hoặc Tắt và 1×.
+- **Đo FPS:** F3 hiện FPS và số zombie. Kết quả headless SwiftShader trên máy dev: ~27 FPS ở 1280×800 với bóng Thấp
+  (không đại diện GPU thật). Chưa có số đo trên laptop GPU tích hợp thật; cần ghi thiết bị, trình duyệt, độ phân giải,
+  số zombie khi đo (kế hoạch §7).
 
 ## Điều khiển
 
@@ -154,5 +172,29 @@ lưu thủ công → reload trang → Continue khôi phục đúng vị trí, ch
 lấy, 8 zombie, seed; Continue lần hai không nhân đôi; autosave có toast; chết thì save bị xóa; bản lưu
 schemaVersion 99 bị báo không tương thích; New Game hỏi xác nhận rồi xóa slot; không lỗi console.
 
-Tiếp theo (Sprint 6): playtest 15–30 phút và cân bằng (loot, spawn, combat), audio/feedback, settings và hướng
-dẫn, đo FPS trên máy thật, build production và deploy, kiểm tra save/reload trên bản deploy.
+Sprint 6 (xong):
+
+- **Playtest tự động 30 phút** (`src/game/core/soak.test.ts`): bot đi loot 7 tủ theo lộ trình, mở cửa, đánh/đẩy,
+  ăn uống; body giả bám lưới điều hướng. Kiểm tra bất biến (ID duy nhất, ≤ `maxActive` zombie sống, snapshot mỗi
+  phút hợp lệ và load lại cho cùng snapshot) và in `SOAK REPORT`. Lần chạy đầu cho thấy bot **không bao giờ bị
+  trúng đòn** (gậy + đẩy khóa cả nhóm) → chỉnh `config.ts`: gậy cooldown 0,8 → 1,0 s, knockback 1,5 → 1,0 m,
+  khựng 0,35 → 0,2 s, thể lực 10 → 12; đẩy cooldown 1,2 → 2,0 s, thể lực 15 → 20, knockback 3 → 2,5 m; zombie tốc
+  độ 2 → 2,3, wind-up 0,4 → 0,3 s. Sau chỉnh: 30 phút sống sót, 11 kill, trúng 60 sát thương, máu thấp nhất 40,
+  dùng 4 nước/3 đồ hộp/1 băng, còn dư đồ y tế.
+- **Âm thanh** (`src/game/audio/sfx.ts`): tổng hợp bằng Web Audio (oscillator + noise + envelope), không asset
+  ngoài: vung/trúng gậy, đẩy, zombie đau/chết/phát hiện, người chơi trúng đòn, cửa, tủ, ăn/uống/băng, nhặt đồ,
+  lưu, UI. Mở khóa AudioContext ở pointerdown/keydown đầu tiên; giới hạn spam theo từng hiệu ứng.
+- **Cài đặt và hướng dẫn** (`src/components/Settings.tsx`, `stores/settingsStore.ts`): panel Cài đặt và Hướng
+  dẫn (mục tiêu + điều khiển) trong menu chính và pause; đổi bóng/pixel ratio remount Canvas.
+- **Hoàn thiện:** overlay "Đang tải…" tới khi scene tick 2 frame (che khung hình body chưa đặt chỗ khi load);
+  tách chunk build (`advancedChunks`: rapier/three/r3f/react/vendor), `base: './'`; workflow GitHub Pages;
+  `renderer powerPreference: high-performance`.
+- **Test:** 113 unit test.
+
+Playtest bản production (`vite preview`, headless): tải 9 asset < 1 s, không `window.__runtime`, Hướng dẫn/Cài đặt
+mở và lưu localStorage, New Game → HUD, F3 hiện FPS, chơi 20 s, Lưu và về menu → reload → Continue đúng giờ,
+autosave ghi đè slot sau 60 s; không lỗi console (chỉ 2 cảnh báo deprecated từ thư viện).
+
+**Trạng thái Phase 1:** mọi mục phạm vi bắt buộc đã chạy cùng nhau trong bản build. Còn thiếu để đóng MVP:
+deploy thực tế (cần bật GitHub Pages và push) và **đo FPS + playtest thủ công trên máy thật** để xác nhận mốc
+~60 FPS và cảm nhận cân bằng.
