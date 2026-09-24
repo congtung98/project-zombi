@@ -129,11 +129,16 @@ export const NEIGHBORHOOD_MAP: MapData = {
   id: 'neighborhood-50',
   size: SIZE,
   playerSpawn: { x: -13, y: 0, z: -13 },
+  /** Điểm spawn đặt tay: ngoài nhà an toàn, đủ xa điểm xuất phát, rải quanh cửa hàng, nhà dân và công viên. */
   zombieSpawns: [
     { x: -14, y: 0, z: 13 },
     { x: 4, y: 0, z: 14 },
     { x: 20, y: 0, z: 0 },
     { x: -2, y: 0, z: -20 },
+    { x: 16, y: 0, z: -5 },
+    { x: 22, y: 0, z: 20 },
+    { x: -22, y: 0, z: 0 },
+    { x: 8, y: 0, z: 22 },
   ],
   buildings: BUILDINGS,
   walls: [...boundaryWalls, ...BUILDINGS.flatMap(generateBuildingWalls), ...obstacles],

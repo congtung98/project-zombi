@@ -11,4 +11,5 @@ export interface Vec2 {
 
 export type EntityId = string
 
-export type ZombieAIState = 'IDLE' | 'CHASE' | 'ATTACK' | 'DEAD'
+/** SEARCH: mất dấu người chơi, đi tới vị trí cuối cùng còn thấy. */
+export type ZombieAIState = 'IDLE' | 'CHASE' | 'SEARCH' | 'ATTACK' | 'DEAD'

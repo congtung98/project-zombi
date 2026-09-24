@@ -50,16 +50,58 @@ export const GAME_CONFIG = {
     detectInterval: 0.2,
     /** Thời gian mất mục tiêu trước khi quay lại IDLE. */
     loseTargetDelay: 3,
+    /** Khi đang đuổi, zombie giữ mục tiêu ở tầm xa hơn tầm phát hiện ban đầu. */
+    chaseRange: 14,
+    /** Thời gian vung tay trước khi gây sát thương; người chơi có thể né. */
+    attackWindup: 0.4,
+    /** Thời gian tối đa đi tới vị trí cuối thấy người chơi trước khi bỏ cuộc. */
+    searchTimeout: 8,
+    /** Tách zombie khỏi nhau để không chồng lên một điểm. */
+    separationRadius: 1.1,
+    separationSpeed: 1.2,
+    /** Vận tốc knockback giảm theo exp(-damping·t); quãng đường = tốc độ ban đầu / damping. */
+    knockbackDamping: 8,
     radius: 0.4,
     height: 1.8,
     mass: 60,
+  },
+  nav: {
+    /** Kích thước ô lưới điều hướng (đơn vị thế giới). */
+    cellSize: 0.5,
+    /** Bán kính tác nhân dùng để nới rộng vật cản khi dựng lưới. */
+    agentRadius: 0.4,
+    /** Khoảng cách tối thiểu giữa hai lần tìm đường cho cùng một zombie. */
+    repathInterval: 0.4,
+    /** Mục tiêu dịch xa hơn ngưỡng này thì mới tìm đường lại. */
+    repathTargetDelta: 0.75,
+    /** Coi như đã tới waypoint khi cách dưới ngưỡng này. */
+    waypointReachDist: 0.35,
+    /** Không tiến được trong khoảng này thì buộc tìm đường lại. */
+    stuckTime: 1,
   },
   melee: {
     damage: 25,
     range: 2,
     cooldown: 0.8,
     stamina: 10,
+    /** Quãng đường zombie bị đẩy lùi khi trúng gậy. */
     knockback: 1.5,
+    /** Thời điểm gây sát thương tính từ lúc bắt đầu vung. */
+    hitDelay: 0.15,
+    /** Thời gian animation vung gậy. */
+    swingDuration: 0.35,
+    /** Nửa góc hình quạt trúng đòn (độ) tính từ hướng nhìn. */
+    halfAngleDeg: 60,
+    /** Zombie trúng gậy đứng khựng trong khoảng này. */
+    stagger: 0.35,
+  },
+  push: {
+    range: 1.8,
+    cooldown: 1.2,
+    stamina: 15,
+    knockback: 3,
+    halfAngleDeg: 75,
+    stagger: 0.6,
   },
   camera: {
     /** Vị trí camera so với nhân vật; hướng nhìn isometric. */

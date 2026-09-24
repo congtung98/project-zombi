@@ -4,6 +4,11 @@ export type GameEvents = {
   'player:damaged': { amount: number; health: number; sourceId: EntityId }
   'player:died': { sourceId: EntityId }
   'zombie:stateChanged': { id: EntityId; from: ZombieAIState; to: ZombieAIState }
+  'zombie:damaged': { id: EntityId; amount: number; health: number }
+  'zombie:died': { id: EntityId; sourceId: EntityId }
+  /** Người chơi vung gậy; `hitIds` là các zombie trúng đòn (có thể rỗng). */
+  'player:attacked': { hitIds: EntityId[] }
+  'player:pushed': { hitIds: EntityId[] }
   'door:toggled': { id: string; open: boolean }
   'container:opened': { id: string; name: string; firstTime: boolean }
 }

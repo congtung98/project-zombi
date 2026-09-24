@@ -34,7 +34,8 @@ export function BuildingView({ building }: BuildingViewProps) {
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial color={building.floorColor} />
       </mesh>
-      <mesh ref={roofRef} castShadow position={[x, building.height + ROOF_THICKNESS / 2, z]}>
+      {/* Mái cũng là vật che: khi người chơi đứng ngoài, sát tường phía trên màn hình, mái nằm giữa camera và nhân vật. */}
+      <mesh ref={roofRef} castShadow position={[x, building.height + ROOF_THICKNESS / 2, z]} userData={{ occluder: true }}>
         <boxGeometry args={[w + ROOF_OVERHANG * 2, ROOF_THICKNESS, d + ROOF_OVERHANG * 2]} />
         <meshStandardMaterial color={building.roofColor} />
       </mesh>

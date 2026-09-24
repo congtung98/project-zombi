@@ -16,6 +16,12 @@ export function App() {
       runtime.input.onAction('pause', () => ui().togglePause()),
       runtime.input.onAction('debug', () => ui().toggleDebug()),
       runtime.events.on('player:died', () => ui().gameOver()),
+      runtime.events.on('player:damaged', (e) => {
+        if (e.sourceId !== 'starvation') useHudStore.getState().flashDamage()
+      }),
+      runtime.events.on('zombie:died', (e) => {
+        if (e.sourceId === 'player') useHudStore.getState().showToast('Đã hạ một zombie.', 1500)
+      }),
       runtime.events.on('door:toggled', (e) => useWorldStore.getState().setDoor(e.id, e.open)),
       runtime.events.on('container:opened', (e) => {
         useWorldStore.getState().setContainerOpened(e.id)

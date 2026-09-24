@@ -151,3 +151,137 @@ describe('GameRuntime interaction', () => {
     expect(rt.currentInteractable).toBeNull()
   })
 })
+
+/** Body giả: tích phân vận tốc mà simulation đặt, thay cho Rapier trong test. */
+function fakeBody(x: number, z: number) {
+  const pos = { x, y: 0.9, z }
+  let vel = { x: 0, y: 0, z: 0 }
+  let enabled = true
+  const body = {
+    translation: () => ({ ...pos }),
+    linvel: () => ({ ...vel }),
+    setLinvel: (v: { x: number; y: number; z: number }) => {
+      vel = { ...v }
+    },
+    setEnabled: (e: boolean) => {
+      enabled = e
+    },
+    isEnabled: () => enabled,
+    step: (dt: number) => {
+      if (!enabled) return
+      pos.x += vel.x * dt
+      pos.z += vel.z * dt
+    },
+  }
+  return body
+}
+
+type FakeBody = ReturnType<typeof fakeBody>
+const asRigidBody = (b: FakeBody) => b as unknown as Parameters<GameRuntime['registerPlayerBody']>[0]
+
+describe('GameRuntime combat', () => {
+  const DT = 1 / 60
+  const melee = GAME_CONFIG.melee
+
+  function swing(rt: GameRuntime) {
+    rt.input.simulateKey('Mouse0', true)
+    rt.tick(DT)
+    rt.input.simulateKey('Mouse0', false)
+    for (let t = 0; t < melee.hitDelay + DT; t += DT) rt.tick(DT)
+  }
+
+  it('a swing toward a zombie damages it once, knocks it back, and a second swing kills it', () => {
+    const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
+    const zombie = Array.from(rt.zombies.values())[0]
+    const damaged: number[] = []
+    const died: string[] = []
+    rt.events.on('zombie:damaged', (e) => damaged.push(e.health))
+    rt.events.on('zombie:died', (e) => died.push(e.sourceId))
+    rt.player.facing = Math.PI / 2 // nhìn về +X
+
+    swing(rt)
+    expect(zombie.health).toBe(GAME_CONFIG.zombie.health - melee.damage)
+    expect(damaged).toEqual([GAME_CONFIG.zombie.health - melee.damage])
+    expect(zombie.staggerTimer).toBeGreaterThan(0)
+    expect(zombie.knockback.x).toBeGreaterThan(0) // bị đẩy ra xa (+X)
+    expect(rt.player.stamina).toBeLessThan(GAME_CONFIG.player.maxStamina)
+
+    // Giữ chuột không tạo đòn mới; hết cooldown mới vung tiếp.
+    for (let t = 0; t < melee.cooldown; t += DT) rt.tick(DT)
+    swing(rt)
+    expect(zombie.ai).toBe('DEAD')
+    expect(died).toEqual(['player'])
+    expect(rt.player.kills).toBe(1)
+
+    // Zombie chết không còn gây sát thương.
+    const health = rt.player.health
+    for (let t = 0; t < 5; t += DT) rt.tick(DT)
+    expect(rt.player.health).toBe(health)
+  })
+
+  it('does not hit a zombie behind the player or one behind a wall', () => {
+    const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
+    const zombie = Array.from(rt.zombies.values())[0]
+    rt.player.facing = -Math.PI / 2 // quay lưng về zombie
+    swing(rt)
+    expect(zombie.health).toBe(GAME_CONFIG.zombie.health)
+
+    rt.player.facing = Math.PI / 2
+    rt.registerPhysicsQuery({ isBlocked: () => true })
+    for (let t = 0; t < melee.cooldown; t += DT) rt.tick(DT)
+    swing(rt)
+    expect(zombie.health).toBe(GAME_CONFIG.zombie.health)
+  })
+
+  it('Space pushes a zombie back without damage and cancels its attack', () => {
+    const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
+    const zombie = Array.from(rt.zombies.values())[0]
+    rt.player.facing = Math.PI / 2
+    rt.tick(DT)
+    rt.tick(DT)
+    expect(zombie.ai).toBe('ATTACK')
+    let pushed: string[] | null = null
+    rt.events.on('player:pushed', (e) => (pushed = e.hitIds))
+    rt.input.simulateKey('Space', true)
+    rt.tick(DT)
+    expect(pushed).toEqual([zombie.id])
+    expect(zombie.health).toBe(GAME_CONFIG.zombie.health)
+    expect(zombie.staggerTimer).toBeGreaterThan(0)
+    expect(zombie.attackWindup).toBe(-1)
+    expect(rt.player.pushCooldown).toBeGreaterThan(0)
+  })
+
+  it('a zombie outside a closed hut waits, then walks through the opened door and attacks', () => {
+    const rt = new GameRuntime(makeMap([{ x: 0, y: 0, z: 8 }]))
+    // Tường chắn tầm nhìn xấp xỉ bằng lưới điều hướng (thay cho raycast Rapier).
+    rt.registerPhysicsQuery({ isBlocked: (a, b) => !rt.nav.hasLineOfWalk(a, b) })
+    rt.player.position = { x: 0, y: 0.9, z: -1 }
+    const playerBody = fakeBody(0, -1)
+    const zombieBody = fakeBody(0, 8)
+    rt.registerPlayerBody(asRigidBody(playerBody))
+    rt.registerZombieBody('zombie-1', asRigidBody(zombieBody))
+    const zombie = rt.zombies.get('zombie-1')!
+
+    const step = (seconds: number) => {
+      for (let t = 0; t < seconds; t += DT) {
+        playerBody.step(DT)
+        zombieBody.step(DT)
+        rt.tick(DT)
+      }
+    }
+    // Người chơi đứng yên (không giữ phím) → body người chơi vận tốc 0.
+    step(2)
+    expect(zombie.ai).toBe('IDLE')
+    expect(zombieBody.translation().z).toBeCloseTo(8, 1)
+
+    const door = rt.interactables.find((i) => i.id === 'door-hut')!
+    rt.interact(door)
+    let damaged = 0
+    rt.events.on('player:damaged', () => (damaged += 1))
+    step(12)
+    // Zombie đã vào trong nhà và tới sát người chơi, gây sát thương.
+    expect(zombieBody.translation().z).toBeLessThan(2)
+    expect(zombie.ai).toBe('ATTACK')
+    expect(damaged).toBeGreaterThan(0)
+  })
+})

@@ -34,11 +34,23 @@ export function HUD() {
         <StatBar label="Khát" value={hud.thirst} max={hud.maxThirst} color="#3f9fd9" />
       </div>
 
+      {hud.damageFlash > 0 && <div key={hud.damageFlash} className="hud-damage-flash" />}
+
       <div className="hud-clock">
         <div className="hud-day">Ngày {hud.day}</div>
         <div className="hud-time">
           {hud.timeLabel} {hud.isNight ? '🌙' : '☀️'}
         </div>
+        <div className="hud-kills">Đã hạ: {hud.kills}</div>
+      </div>
+
+      <div className="hud-actions">
+        <span className={hud.attackCooldown > 0 ? 'cooling' : ''}>
+          <kbd>Chuột trái</kbd> Đánh
+        </span>
+        <span className={hud.pushCooldown > 0 ? 'cooling' : ''}>
+          <kbd>Space</kbd> Đẩy
+        </span>
       </div>
 
       {hud.toast && <div className="hud-toast">{hud.toast}</div>}
@@ -49,7 +61,7 @@ export function HUD() {
         </div>
       )}
 
-      <div className="hud-hint">WASD di chuyển · Shift chạy · E tương tác · Con lăn zoom · Esc tạm dừng · F3 debug</div>
+      <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · Esc tạm dừng · F3 debug</div>
 
       {debug && (
         <div className="hud-debug">

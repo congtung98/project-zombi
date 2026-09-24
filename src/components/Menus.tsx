@@ -5,8 +5,8 @@ function ControlsHelp() {
     <ul className="controls">
       <li><kbd>W A S D</kbd> di chuyển</li>
       <li><kbd>Shift</kbd> chạy (tiêu thể lực)</li>
-      <li><kbd>Chuột trái</kbd> đánh (Sprint 3)</li>
-      <li><kbd>Space</kbd> đẩy (Sprint 3)</li>
+      <li><kbd>Chuột trái</kbd> đánh về phía con trỏ</li>
+      <li><kbd>Space</kbd> đẩy zombie ra xa</li>
       <li><kbd>E</kbd> tương tác cửa/tủ</li>
       <li><kbd>I</kbd> inventory (Sprint 4)</li>
       <li><kbd>Con lăn</kbd> zoom camera</li>
@@ -21,7 +21,7 @@ export function MainMenu() {
     <div className="overlay">
       <div className="panel">
         <h1>Zombie Outbreak</h1>
-        <p className="subtitle">Phase 1 · Sprint 1 prototype</p>
+        <p className="subtitle">Phase 1 · Sprint 3: AI và chiến đấu</p>
         <div className="actions">
           <button onClick={startNewGame}>New Game</button>
           <button disabled title="Lưu/tải game được làm ở Sprint 5">

@@ -5,6 +5,7 @@ import { runtime } from '../core/runtime'
 import { BuildingView } from './BuildingView'
 import { CameraRig } from './CameraRig'
 import { ContainerView } from './ContainerView'
+import { CursorProbe } from './CursorProbe'
 import { DoorView } from './DoorView'
 import { GameLoop } from './GameLoop'
 import { Ground } from './Ground'
@@ -44,6 +45,7 @@ export function Scene({ paused, debug }: SceneProps) {
       <InputBridge />
       <Lights />
       <CameraRig />
+      <CursorProbe />
       <Roads />
       {map.buildings.map((b) => (
         <BuildingView key={b.id} building={b} />

@@ -28,13 +28,20 @@ interface HudSnapshot {
   zombies: ZombieHudInfo[]
   /** Nội dung prompt tương tác, ví dụ "Mở Cửa nhà an toàn". */
   interactPrompt: string | null
+  kills: number
+  /** Cooldown gậy còn lại (giây), để HUD báo sẵn sàng. */
+  attackCooldown: number
+  pushCooldown: number
 }
 
 interface HudState extends HudSnapshot {
   toast: string | null
+  /** Tăng mỗi lần người chơi trúng đòn; HUD dùng làm key để chạy lại hiệu ứng lóe đỏ. */
+  damageFlash: number
   /** Chụp snapshot từ runtime theo nhịp chậm (không phải mỗi frame). */
   sync: (rt: GameRuntime, fps: number) => void
   showToast: (text: string, durationMs?: number) => void
+  flashDamage: () => void
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -57,7 +64,11 @@ export const useHudStore = create<HudState>((set) => ({
   playerZ: 0,
   zombies: [],
   interactPrompt: null,
+  kills: 0,
+  attackCooldown: 0,
+  pushCooldown: 0,
   toast: null,
+  damageFlash: 0,
 
   sync: (rt, fps) => {
     const p = rt.player
@@ -89,8 +100,13 @@ export const useHudStore = create<HudState>((set) => ({
       playerZ: p.position.z,
       zombies,
       interactPrompt: rt.interactPrompt,
+      kills: p.kills,
+      attackCooldown: p.attackCooldown,
+      pushCooldown: p.pushCooldown,
     })
   },
+
+  flashDamage: () => set((s) => ({ damageFlash: s.damageFlash + 1 })),
 
   showToast: (text, durationMs = 2500) => {
     if (toastTimer) clearTimeout(toastTimer)
