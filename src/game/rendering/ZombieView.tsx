@@ -5,7 +5,7 @@ import { runtime } from '../core/runtime'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { computePose, createPose } from './character/pose'
 import { registerAnimator } from './character/animators'
-import { applyPose, buildCharacter, setCharacterGlow, shadowDetail, zombieLook } from './character/rig'
+import { applyPose, buildCharacter, setCharacterGlow, setCharacterOpacity, shadowDetail, zombieLook } from './character/rig'
 import { advanceMeasuredGait, createMeasuredGait } from './character/gait'
 import { dampAngle } from '../systems/movement'
 import type { EntityId } from '../../types'
@@ -30,6 +30,8 @@ interface ZombieViewProps {
  * Zombie: same capsule collider as before; the rigged model (variant from the zombie ID) is
  * posed from runtime state. Eyes glow while chasing/attacking, the model flashes on hits, the
  * health bar shows once damaged and the body falls when dead (runtime already disabled it).
+ * Drawn only as the player vision allows (`runtime.vision` opacity: fade in/out, hidden = not drawn,
+ * no shadow); the body, collider and AI are untouched by it.
  */
 export function ZombieView({ id }: ZombieViewProps) {
   const bodyRef = useRef<RapierRigidBody>(null)
@@ -70,6 +72,12 @@ export function ZombieView({ id }: ZombieViewProps) {
       attack = 1
     }
 
+    // Player vision decides what is drawn; a hidden zombie skips posing (gait/timers above keep going).
+    const opacity = runtime.vision.opacity(id)
+    visual.visible = opacity > 0.01
+    if (!visual.visible) return
+    setCharacterOpacity(rig, opacity)
+
     computePose(
       {
         kind: 'zombie',
@@ -94,7 +102,7 @@ export function ZombieView({ id }: ZombieViewProps) {
 
     const bar = healthBarRef.current
     if (bar) {
-      bar.visible = z.ai !== 'DEAD' && z.health < CFG.health
+      bar.visible = z.ai !== 'DEAD' && z.health < CFG.health && opacity > 0.5
       // Thanh máu luôn quay về camera isometric (bỏ xoay của mesh cha).
       bar.rotation.y = -a.facing
       const fill = healthFillRef.current
@@ -120,7 +128,7 @@ export function ZombieView({ id }: ZombieViewProps) {
       position={[spawn.x, CFG.height / 2, spawn.z]}
     >
       <CapsuleCollider args={[HALF_HEIGHT, CFG.radius]} friction={0} mass={CFG.mass} />
-      <group ref={visualRef}>
+      <group ref={visualRef} visible={false}>
         <group position={[0, -CFG.height / 2, 0]}>
           <primitive object={rig.root} />
         </group>

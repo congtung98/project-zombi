@@ -101,6 +101,7 @@ export function App() {
         useHudStore.getState().showToast(`${e.name} đang dùng cho "${e.label}". Hủy thao tác (X) trước.`, 2200, 'warn'),
       ),
       runtime.input.onAction('debug', () => ui().toggleDebug()),
+      runtime.input.onAction('visionDebug', () => ui().toggleVisionDebug()),
       runtime.events.on('player:died', () => ui().gameOver()),
       runtime.events.on('player:damaged', (e) => {
         if (e.sourceId !== 'starvation') useHudStore.getState().flashDamage()

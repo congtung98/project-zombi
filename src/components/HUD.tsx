@@ -94,7 +94,7 @@ export function HUD() {
       )}
 
       {showHints && (
-        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ/chế tạo · X hủy thao tác · Esc tạm dừng · F3 debug</div>
+        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ/chế tạo · X hủy thao tác · Esc tạm dừng · F3 debug · F4 tầm nhìn</div>
       )}
 
       {debug && (
@@ -105,6 +105,9 @@ export function HUD() {
           </div>
           <div>Interact: {hud.interactPrompt ?? '-'}</div>
           <div>Tiếng bước chân: {hud.noise > 0 ? `${hud.noise} m` : 'im lặng'} · Di cư sau {hud.hordeTimer.toFixed(0)}s</div>
+          <div>
+            Tầm nhìn: thấy {hud.visionStats.visible} · ứng viên {hud.visionStats.candidates} · raycast {hud.visionStats.raycasts} (F4 vẽ)
+          </div>
           <div>Zombies: {hud.zombies.filter((z) => z.ai !== 'DEAD').length} sống / {hud.zombies.length}</div>
           {hud.zombies.map((z) => (
             <div key={z.id}>
@@ -112,6 +115,7 @@ export function HUD() {
               {z.zone ? ` ${z.zone.replace('zone-', '')}` : ''}
               {z.memory ? ` nhớ(${z.memory})` : ''}
               {z.door ? ` cửa=${z.door}` : ''}
+              {` nhìn=${z.vision}`}
             </div>
           ))}
         </div>

@@ -7,6 +7,7 @@ export function GameCanvas() {
   const sessionId = useUiStore((s) => s.sessionId)
   const screen = useUiStore((s) => s.screen)
   const debug = useUiStore((s) => s.debug)
+  const visionDebug = useUiStore((s) => s.visionDebug)
   const shadows = useSettingsStore((s) => s.shadows)
   const maxPixelRatio = useSettingsStore((s) => s.maxPixelRatio)
 
@@ -16,10 +17,11 @@ export function GameCanvas() {
       key={`${shadows}-${maxPixelRatio}`}
       shadows={shadows === 'off' ? false : shadows === 'low' ? 'basic' : 'percentage'}
       dpr={[1, maxPixelRatio]}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      // Stencil buffer for the player vision mask (visible fan cuts the darkness layer).
+      gl={{ antialias: true, powerPreference: 'high-performance', stencil: true }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <Scene key={sessionId} paused={screen !== 'playing'} debug={debug} />
+      <Scene key={sessionId} paused={screen !== 'playing'} debug={debug} visionDebug={visionDebug} />
     </Canvas>
   )
 }

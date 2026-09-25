@@ -1,7 +1,7 @@
 # Zombie Outbreak — Phase 2
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng), **Sprint 3** (model/animation, tạo nhân vật), **Sprint 4** (hành động có thời gian, sửa vũ khí, chế tạo) và **Sprint 5** (zombie nghe tiếng bước chân, lang thang/di cư theo đàn, phá cửa). Bản build production
+`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng), **Sprint 3** (model/animation, tạo nhân vật), **Sprint 4** (hành động có thời gian, sửa vũ khí, chế tạo) , **Sprint 5** (zombie nghe tiếng bước chân, lang thang/di cư theo đàn, phá cửa) và sprint bổ sung **tầm nhìn người chơi** (chỉ thấy zombie trong hình quạt/không bị che). Bản build production
 nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
@@ -43,6 +43,7 @@ npm run lint
 | Con lăn chuột | Zoom camera trong giới hạn min/max |
 | Esc | Tạm dừng (dừng simulation, cooldown và đồng hồ); menu pause có Lưu game / Lưu và về menu |
 | F3 | Overlay debug: FPS, vị trí, trạng thái zombie (và collider Rapier) |
+| F4 | Debug tầm nhìn người chơi: vòng tầm nhìn/gần, hình quạt, tia LOS xanh/đỏ, nhãn trạng thái trên zombie (`?vision=debug` bật sẵn) |
 | I | Mở/đóng túi 12 ô. Click trái chọn món → thẻ chi tiết (damage, độ bền, trạng thái) với Trang bị/Dùng, Cất vào tủ, Thả xuống. Chuột phải dùng/trang bị nhanh; Shift+trái cất nhanh khi mở tủ. Panel tủ: click lấy hoặc Lấy tất cả. Đồ thả tạo túi đồ rơi, E để nhặt lại |
 | I → click vũ khí → Sửa | Sửa vũ khí (đồ gỗ: 1 ván + 1 băng keo, +30; đồ kim loại: 1 kim loại vụn + 1 băng keo, +25), mất 4–5 s. Bảng **Chế tạo** cạnh túi: gậy gỗ tự chế (2 ván + 1 băng keo) |
 | X | Hủy sửa/chế tạo đang làm (di chuyển, đánh, đẩy hoặc bị trúng đòn cũng hủy; không mất nguyên liệu) |
@@ -98,6 +99,13 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Phase 2 — Sprint bổ sung: tầm nhìn người chơi (25/09/2026)
+
+- Camera vẫn thấy cả khu vực, nhưng zombie chỉ được vẽ khi **nhân vật thấy nó**: trong 2,5 m quanh người (cả sau lưng), hoặc trong hình quạt 110° / 20 m theo **hướng nhân vật quay**, và không bị tường, tủ cao hay cửa đóng che (hàng rào, thùng, xe thấp không che). Hiện/ẩn có fade 0,2 s và giữ thêm 0,15 s chống nhấp nháy.
+- **Không đổi AI**: zombie bị ẩn vẫn lang thang, đuổi, đánh, đập cửa (test so simulation có/không có vision giống hệt; soak không đổi).
+- Mặt đất ngoài tầm nhìn tối đi (stencil; tắt được trong Cài đặt). F4 vẽ debug; F3 thêm thống kê tầm nhìn. Config `playerVision` trong `config.ts`. Save không đổi (v6).
+- **288 test**; Playwright dev + production (`scripts/p2-vision-browser.mjs`). Chi tiết `docs/phase2-vision.md`.
 
 ### Phase 2 — Sprint 5 (24/09/2026)
 

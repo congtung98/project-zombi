@@ -207,3 +207,18 @@ export function setCharacterGlow(rig: CharacterRig, flash: boolean, eyesGlow: bo
   m.eyes.emissive.copy(eyesGlow ? EYE_GLOW : NO_EMISSIVE)
   m.eyes.emissiveIntensity = eyesGlow ? 1.4 : 0
 }
+
+/**
+ * Per-instance opacity for the player-vision fade. Materials only switch to transparent while
+ * fading (depth writes stay on so inner faces of the box parts never show through).
+ */
+export function setCharacterOpacity(rig: CharacterRig, opacity: number): void {
+  const fading = opacity < 0.999
+  for (const m of Object.values(rig.materials)) {
+    if (m.transparent !== fading) {
+      m.transparent = fading
+      m.needsUpdate = true
+    }
+    m.opacity = fading ? opacity : 1
+  }
+}

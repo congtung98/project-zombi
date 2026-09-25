@@ -10,6 +10,9 @@ import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
 
 export type Screen = 'menu' | 'create' | 'playing' | 'paused' | 'gameover'
+/** DEBUG_PLAYER_VISION: config flag or `?vision=debug` starts the session with the vision debug drawn. */
+const DEBUG_PLAYER_VISION =
+  runtime.config.playerVision.debug || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('vision') === 'debug')
 const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : 'slot-1'
 const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
 const DEFAULT_LOOK_NOTE = 'Nhân vật dùng tên và ngoại hình mặc định.'
@@ -37,6 +40,8 @@ interface UiState {
   /** Đồng bộ với runtime.sessionId để remount scene khi bắt đầu ván mới hoặc load. */
   sessionId: number
   debug: boolean
+  /** Player vision debug drawing (F4; `?vision=debug` or `playerVision.debug` start with it on). */
+  visionDebug: boolean
   saveSlot: SaveSlotState
   /** Đang ghi/đọc IndexedDB; menu khóa nút để tránh thao tác chồng. */
   busy: boolean
@@ -61,6 +66,7 @@ interface UiState {
   gameOver: () => void
   toMenu: () => void
   toggleDebug: () => void
+  toggleVisionDebug: () => void
 }
 
 function enterSession(set: (s: Partial<UiState>) => void): void {
@@ -73,6 +79,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   screen: 'menu',
   sessionId: runtime.sessionId,
   debug: false,
+  visionDebug: DEBUG_PLAYER_VISION,
   saveSlot: { kind: 'unknown' },
   busy: false,
   sceneReady: false,
@@ -217,4 +224,5 @@ export const useUiStore = create<UiState>((set, get) => ({
   },
 
   toggleDebug: () => set((s) => ({ debug: !s.debug })),
+  toggleVisionDebug: () => set((s) => ({ visionDebug: !s.visionDebug })),
 }))

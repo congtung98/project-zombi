@@ -32,6 +32,8 @@ import { isInsideBuilding } from '../world/buildings'
 import { createWorldState, type ContainerState, type WorldState } from '../world/worldState'
 import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
+import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOccluders'
+import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
 
 interface PendingAttack {
   sourceId: EntityId
@@ -68,7 +70,7 @@ const SWING_HEIGHT = 1.2
  * tiếp trong game loop, UI chỉ nhận snapshot theo nhịp chậm (hudStore).
  *
  * Thứ tự một tick: input → chuyển động/physics → tương tác → AI → combat →
- * survival/clock → phát sự kiện → (render/UI tự đọc ở frame kế tiếp).
+ * survival/clock → tầm nhìn người chơi (chỉ cho render) → phát sự kiện → (render/UI tự đọc ở frame kế tiếp).
  */
 export class GameRuntime {
   readonly config = GAME_CONFIG
@@ -127,6 +129,13 @@ export class GameRuntime {
   private physics: PhysicsQuery | null = null
   private nextZombieId = 1
   private readonly zombieAIContext: ZombieAIContext
+  /** Walls, tall furniture and closed doors that block the player's sight (door state read live). */
+  readonly visionOccluders: VisionOccluderSet
+  /**
+   * What the player character can see (render only: fade/hide zombies, debug, mask). Runs last in
+   * the tick and never feeds the AI; hidden zombies keep wandering, chasing and bashing doors.
+   */
+  readonly vision: PlayerVisionSystem
 
   constructor(map: MapData = NEIGHBORHOOD_MAP) {
     this.map = map
@@ -135,6 +144,11 @@ export class GameRuntime {
     this.interactableById = new Map(this.interactables.map((i) => [i.id, i]))
     this.player = createPlayerState(map.playerSpawn)
     this.world = createWorldState(map, 0)
+    this.visionOccluders = buildVisionOccluders(map, (id) => this.world.doors.get(id)?.state, GAME_CONFIG.playerVision.occluderMinHeight)
+    this.vision = new PlayerVisionSystem(GAME_CONFIG.playerVision, {
+      getNearbyEntities: (center, radius) => this.getNearbyZombies(center, radius),
+      hasLineOfSight: (from, to) => this.visionOccluders.firstBlocker(from, to) === null,
+    })
 
     // Zombie chỉ phát hiện và gây sát thương khi không có tường/cửa đóng giữa nó và người chơi;
     // đường đi lấy từ lưới điều hướng (đi vòng tường, qua cửa mở).
@@ -196,6 +210,7 @@ export class GameRuntime {
     this.hordeTimer = GAME_CONFIG.horde.intervalMin
     this.hordeCounter = 0
     this.doorSlots.clear()
+    this.vision.clear()
     this.aiRng = createRng(hashSeed(seed, 'ai'))
     for (const spawn of this.map.zombieSpawns) this.spawnZombie(spawn)
   }
@@ -370,6 +385,8 @@ export class GameRuntime {
     this.stepSurvival(dt)
     this.stepSpawn(dt)
     this.stepHorde(dt)
+    // Player vision last: reads final positions this tick, writes only render-facing state.
+    this.vision.update(dt, this.player)
     this.clock.advance(dt)
     this.events.flush()
     this.input.endFrame()
@@ -425,9 +442,20 @@ export class GameRuntime {
     this.events.queue('zombie:spawned', { id: zombie.id })
   }
 
+  /**
+   * Zombies around a point for the player vision broad phase. A plain loop today; swap in a spatial
+   * hash here when zombie counts grow (the vision system only sees this function).
+   */
+  *getNearbyZombies(center: Vec3, radius: number): Iterable<VisionTarget> {
+    for (const z of this.zombies.values()) {
+      if (Math.abs(z.position.x - center.x) <= radius && Math.abs(z.position.z - center.z) <= radius) yield z
+    }
+  }
+
   private removeZombie(id: EntityId): void {
     this.zombies.delete(id)
     this.zombieBodies.delete(id)
+    this.vision.forget(id)
     this.events.queue('zombie:removed', { id })
   }
 

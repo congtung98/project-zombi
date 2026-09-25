@@ -130,6 +130,43 @@ export const GAME_CONFIG = {
     /** Retry sooner when no zone had a group this time. */
     retryDelay: 20,
   },
+  /**
+   * Player vision (sprint "tầm nhìn"): what the player character can see, separate from the camera
+   * and from zombie perception. Only affects how zombies are drawn; AI never reads it.
+   * Heights are absolute (the map is flat, ground at y = 0).
+   */
+  playerVision: {
+    /** Zombies this close are noticed in any direction (behind the back), still not through walls. */
+    nearDetectionRadius: 2.5,
+    /** true = the near radius also sees through walls/closed doors (Project Zomboid "sense"). */
+    nearDetectionThroughWalls: false,
+    visionDistance: 20,
+    /** Full cone angle (degrees) around the character's facing, not the camera. */
+    fieldOfView: 110,
+    playerEyeHeight: 1.6,
+    zombieTargetHeight: 1.2,
+    /** Seconds for a full fade in/out (opacity 0 ↔ 1). */
+    visibilityFadeDuration: 0.2,
+    /** Keep a zombie shown this long after losing sight (visual smoothing, not AI memory). */
+    visibilityGracePeriod: 0.15,
+    /** Milliseconds between two visibility passes (≈ 20 passes/s); fading runs every frame. */
+    visionUpdateInterval: 50,
+    /** LOS raycasts per pass; with more candidates the stalest ones are re-checked first. */
+    maxRaycastsPerUpdate: 48,
+    /** Walls/furniture whose top reaches this height block sight (fences, crates, cars and beds do not). */
+    occluderMinHeight: 1.5,
+    /** Ground darkening outside the visible area (VisionMask); also a player setting. */
+    mask: {
+      /** Rays over the field of view (behind the player a coarser 10° step is used). */
+      coneRays: 72,
+      backStepDeg: 10,
+      /** Darkness just outside the visible area, and far away (towards `visionDistance` and beyond). */
+      outsideOpacity: 0.42,
+      farOpacity: 0.72,
+    },
+    /** Debug drawing (DEBUG_PLAYER_VISION); F4 toggles it in game, `?vision=debug` starts with it on. */
+    debug: false,
+  },
   nav: {
     /** Kích thước ô lưới điều hướng (đơn vị thế giới). */
     cellSize: 0.5,
@@ -244,3 +281,6 @@ export const GAME_CONFIG = {
 }
 
 export type GameConfig = typeof GAME_CONFIG
+
+export const PLAYER_VISION_CONFIG = GAME_CONFIG.playerVision
+export type PlayerVisionConfig = typeof PLAYER_VISION_CONFIG

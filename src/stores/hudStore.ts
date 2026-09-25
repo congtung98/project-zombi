@@ -15,6 +15,8 @@ export interface ZombieHudInfo {
   zone: string | null
   memory: string | null
   door: string | null
+  /** Player vision state (F3): reason and whether it is drawn. */
+  vision: string
 }
 
 export interface HudWeapon {
@@ -55,6 +57,8 @@ interface HudSnapshot {
   /** F3: footstep noise radius and seconds to the next horde migration. */
   noise: number
   hordeTimer: number
+  /** F3: player vision pass stats (visible / candidates / raycasts last pass). */
+  visionStats: { visible: number; candidates: number; raycasts: number }
   /** Nội dung prompt tương tác, ví dụ "Mở Cửa nhà an toàn". */
   interactPrompt: string | null
   kills: number
@@ -103,6 +107,7 @@ export const useHudStore = create<HudState>((set) => ({
   zombies: [],
   noise: 0,
   hordeTimer: 0,
+  visionStats: { visible: 0, candidates: 0, raycasts: 0 },
   interactPrompt: null,
   kills: 0,
   attackCooldown: 0,
@@ -131,6 +136,7 @@ export const useHudStore = create<HudState>((set) => ({
         zone: z.zoneId,
         memory: z.lastKnownTarget ? `${z.memorySource === 'noise' ? 'nghe' : 'thấy'} ${z.memoryAge.toFixed(0)}s` : null,
         door: z.structureTargetId,
+        vision: rt.vision.get(z.id)?.reason ?? '-',
       })
     }
     set({
@@ -153,6 +159,7 @@ export const useHudStore = create<HudState>((set) => ({
       zombies,
       noise: rt.playerNoise,
       hordeTimer: rt.hordeTimer,
+      visionStats: { visible: rt.vision.stats.visible, candidates: rt.vision.stats.candidates, raycasts: rt.vision.stats.raycasts },
       interactPrompt: rt.interactPrompt,
       kills: p.kills,
       attackCooldown: p.attackCooldown,

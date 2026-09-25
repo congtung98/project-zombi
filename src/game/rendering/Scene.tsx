@@ -14,6 +14,9 @@ import { Ground } from './Ground'
 import { Lights } from './Lights'
 import { OcclusionFader } from './OcclusionFader'
 import { PhysicsBridge } from './PhysicsBridge'
+import { PlayerVisionDebug } from './PlayerVisionDebug'
+import { VisionMask } from './VisionMask'
+import { useSettingsStore } from '../../stores/settingsStore'
 import { PlayerView } from './PlayerView'
 import { Roads } from './Roads'
 import { Walls } from './Walls'
@@ -22,6 +25,7 @@ import { ZombieView } from './ZombieView'
 interface SceneProps {
   paused: boolean
   debug: boolean
+  visionDebug: boolean
 }
 
 /** Gắn input manager vào canvas của R3F. */
@@ -45,8 +49,9 @@ function CharacterAnimator() {
  * physics body được tạo lại từ trạng thái runtime (vị trí đã lưu). Danh sách
  * zombie là mirror trong worldStore (spawn/dọn xác thêm/bớt view).
  */
-export function Scene({ paused, debug }: SceneProps) {
+export function Scene({ paused, debug, visionDebug }: SceneProps) {
   const zombieIds = useWorldStore((s) => s.zombieIds)
+  const visionMask = useSettingsStore((s) => s.visionMask)
   const drops = useWorldStore((s) => s.drops)
   const map = runtime.map
 
@@ -82,6 +87,8 @@ export function Scene({ paused, debug }: SceneProps) {
         ))}
       </Physics>
       <OcclusionFader />
+      {visionMask && <VisionMask />}
+      {visionDebug && <PlayerVisionDebug />}
       <GameLoop paused={paused} />
       <CharacterAnimator />
     </>

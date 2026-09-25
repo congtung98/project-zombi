@@ -1,0 +1,104 @@
+# Sprint bổ sung trước P2-S6 — Tầm nhìn người chơi
+
+Ngày: 25/09/2026. Yêu cầu: `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` (chủ dự án). Mốc trước sprint: `1f81571` (S5 đã commit). Không đổi save schema (vẫn v6), không đổi AI/combat/balance.
+
+## Mục tiêu và nguyên tắc
+
+- Camera isometric vẫn thấy cả bản đồ quanh nhân vật, nhưng **zombie chỉ được vẽ khi nhân vật thật sự thấy nó**: trong bán kính rất gần (mọi hướng), hoặc trong hình quạt phía trước **theo hướng nhân vật** (không theo camera), trong tầm và không bị vật chắn.
+- **Không ảnh hưởng AI**: hệ thống chạy sau mọi bước simulation, chỉ ghi trạng thái hiển thị riêng (`runtime.vision`), không ghi vào `ZombieState`. Zombie ẩn vẫn lang thang, di cư, đuổi, đánh, đập cửa. Tầm nhìn người chơi và cảm nhận zombie (`systems/ai.ts`) là hai hệ thống tách biệt, không dùng chung code.
+
+## Kiến trúc
+
+```text
+runtime.tick: input → di chuyển → tương tác → AI → combat → đòn vào cửa → action → sinh tồn → spawn → di cư
+              → PlayerVisionSystem.update(dt, player)   ← mới, chỉ đọc vị trí/hướng, chỉ ghi runtime.vision
+              → events
+render:       ZombieView đọc runtime.vision.opacity(id) → visible/opacity vật liệu
+              VisionMask (lớp tối mặt đất), PlayerVisionDebug (F4)
+```
+
+| File | Vai trò |
+|---|---|
+| `src/game/core/config.ts` → `playerVision` (`PLAYER_VISION_CONFIG`) | Mọi con số của hệ thống, không hardcode ở nơi khác |
+| `src/game/world/visionOccluders.ts` | `VisionOccluder`/`VisionOccluderSet`: danh sách vật chắn tầm nhìn riêng (AABB), slab test 3D, cửa sổ/rèm |
+| `src/game/systems/playerVision.ts` | `PlayerVisionSystem` + hàm thuần `isInsideVisionCone`, `classifyVisibility`, `updateVisibility`, `updateVisibilityFade` |
+| `src/game/systems/visionMask.ts` | `computeVisibilityOutline`: đa giác vùng thấy được cho lớp tối |
+| `src/game/core/runtime.ts` | Dựng occluder + vision, `getNearbyZombies`, gọi vision cuối tick, xóa trạng thái khi dọn xác/ván mới/load |
+| `src/game/rendering/ZombieView.tsx`, `character/rig.ts` (`setCharacterOpacity`) | Áp opacity; ẩn hẳn thì không vẽ, không đổ bóng, bỏ qua tính pose |
+| `src/game/rendering/VisionMask.tsx` | Lớp tối bằng stencil (Canvas bật `stencil: true`) |
+| `src/game/rendering/PlayerVisionDebug.tsx` | Vòng tầm nhìn, vòng gần, hai cạnh hình quạt, tia LOS xanh/đỏ, nhãn trạng thái trên zombie |
+| `stores/uiStore.ts`, `systems/input.ts`, `app/App.tsx` | F4 bật/tắt debug; `?vision=debug` hoặc `playerVision.debug` bật sẵn |
+| `stores/settingsStore.ts`, `components/Settings.tsx` | Cài đặt "Vùng tối ngoài tầm nhìn" (mặc định bật); hướng dẫn trong game cập nhật |
+| `stores/hudStore.ts`, `components/HUD.tsx` | F3: số zombie thấy/ứng viên/raycast của lượt gần nhất, `nhìn=<lý do>` từng zombie |
+
+## Thuật toán (mỗi lượt, 20 lượt/s)
+
+1. **Ứng viên**: `getNearbyZombies(vị trí, visionDistance)` (lọc hình vuông quanh người chơi; hiện là vòng lặp, sau này thay bằng spatial hash mà không sửa hệ thống). Zombie không được trả về → `OUT_OF_RANGE`.
+2. **Khoảng cách** > 20 m → `OUT_OF_RANGE`, không raycast.
+3. **Gần** ≤ 2,5 m → bỏ qua hình quạt (sau lưng vẫn thấy) nhưng **vẫn cần LOS** → `NEAR_DETECTION` hoặc `BLOCKED`.
+4. **Hình quạt** 110° quanh `player.facing` (forward = (sin f, cos f), đúng quy ước runtime), so tích vô hướng với cos(55°), không `acos`. Ngoài → `OUTSIDE_FOV`, không raycast.
+5. **LOS**: tia từ mắt (y = 1,6 m) tới giữa thân zombie (y = 1,2 m) chỉ qua `visionOccluders` → `VISIBLE` hoặc `BLOCKED`.
+6. **Ngân sách**: tối đa 48 raycast/lượt; nhiều ứng viên hơn thì làm mới kết quả cũ nhất trước (chưa từng raycast đi đầu), số còn lại giữ kết quả lượt trước.
+7. **Làm mượt** (mỗi tick, theo dt thật): thấy → hiện ngay; mất dấu → vẫn hiện thêm **0,15 s** (chống nhấp nháy, không phải trí nhớ AI) rồi mờ dần; opacity đi 0 ↔ 1 trong **0,2 s**. Zombie mới spawn bắt đầu opacity 0 nên không "bật" ra.
+
+Nhịp lượt giữ phần dư thời gian nên đúng 20 lượt/s ở 30/60/144 Hz; lượt đầu chạy ngay tick đầu. Quay 180° (hướng nhân vật lọc 14/s) → zombie sau lưng hiện trong ≤ 50 ms + fade.
+
+### Vật chắn (`buildVisionOccluders`)
+
+- **Chặn**: mọi khối tường có **đỉnh ≥ 1,5 m** (tường nhà 3 m, lanh tô trên cửa, biên map 2 m, cột 2 m), tủ/kệ cao (kệ 1,6 m, tủ lạnh, tủ quần áo), **lá cửa khi đóng**.
+- **Không chặn**: hàng rào 1 m, thùng, xe hỏng 1,4 m, giường, quầy, tủ thấp, túi đồ rơi, cỏ/lưới/đường. Tia ở 1,2–1,6 m nên đi dưới lanh tô: nhìn qua khung cửa mở được.
+- **Cửa**: occluder cửa đọc `world.doors` **lúc truy vấn** (`isBlocking`) → mở/đóng/vỡ không dựng lại gì, không cần đồng bộ sự kiện. Cửa mở hoặc vỡ không chặn.
+- **Cửa sổ** (chưa có trong game): `createWindowOccluder(id, min, max, isCurtainClosed)` — kính không chặn, rèm đóng chặn. `VisionOccluderSet.add/remove` cho vật chắn động sau này (barricade S6, vách S7) mà không sửa `PlayerVisionSystem`.
+- Không dùng Rapier: vật cản vật lý khác vật cản tầm nhìn (hàng rào chặn đi nhưng không che), và simulation phải test được không cần WASM. Raycast Rapier của AI/spawn không đổi.
+
+### Lớp tối (VisionMask)
+
+- Đa giác vùng thấy: 73 tia trong hình quạt tới 20 m + tia 10°/lần phía sau tới bán kính gần 2,5 m, mỗi tia cắt ở vật chắn đầu tiên (ngang ở 1,4 m). Tính lại mỗi frame (~0,05 ms).
+- Render: quạt tam giác ghi stencil = 1 (không ghi màu), rồi một mặt phẳng tối phủ map (y = 0,04, trên sàn/đường) chỉ vẽ nơi stencil ≠ 1. Độ tối 0,42 ngay ngoài vùng thấy, tăng dần tới 0,72 ở xa (từ 10 m tới 20 m và xa hơn). Tường/đồ vật đứng trên mặt phẳng nên giữ ánh sáng; chỉ mặt đất tối đi.
+- Tắt được trong Cài đặt; tắt thì zombie vẫn chỉ hiện khi thấy. Thêm 2 draw call.
+
+## Config (`GAME_CONFIG.playerVision`)
+
+| Khóa | Giá trị | Ghi chú |
+|---|---|---|
+| `nearDetectionRadius` | 2,5 m | Mọi hướng |
+| `nearDetectionThroughWalls` | false | true = cảm nhận xuyên tường kiểu PZ |
+| `visionDistance` | 20 m | |
+| `fieldOfView` | 110° | Toàn góc |
+| `playerEyeHeight` / `zombieTargetHeight` | 1,6 / 1,2 m | Tuyệt đối (mặt đất y = 0) |
+| `visibilityFadeDuration` | 0,2 s | |
+| `visibilityGracePeriod` | 0,15 s | |
+| `visionUpdateInterval` | 50 ms | ≈ 20 lượt/s |
+| `maxRaycastsPerUpdate` | 48 | Ngân sách xoay vòng |
+| `occluderMinHeight` | 1,5 m | Đỉnh khối |
+| `mask.coneRays` / `mask.backStepDeg` | 72 / 10° | |
+| `mask.outsideOpacity` / `mask.farOpacity` | 0,42 / 0,72 | |
+| `debug` | false | DEBUG_PLAYER_VISION |
+
+## Quyết định lệch khỏi yêu cầu
+
+- **Bán kính gần vẫn cần LOS** (yêu cầu mẫu trả `true` ngay). Nếu không, zombie đứng sát bên kia cửa đóng/tường sẽ hiện ra, trái với "door đóng → hidden" và "sau wall → hidden" cũng trong yêu cầu. Muốn cảm nhận xuyên tường: `nearDetectionThroughWalls: true`.
+- **Hướng nhìn lấy từ `player.facing`** (góc yaw của simulation) chứ không từ quaternion mesh: cùng một nguồn với combat, không phụ thuộc render.
+- **Fade chạy trong tick** (theo dt simulation), renderer chỉ đọc: pause thì fade dừng theo, không có React state mỗi frame.
+- Xác zombie theo cùng luật (xác sau lưng không vẽ).
+
+## Kiểm chứng
+
+- **288 test** (29 file; trước 266). Mới: `systems/playerVision.test.ts` (18: hình quạt theo hướng nhân vật; thứ tự khoảng cách → gần → quạt → LOS; tia từ mắt; không raycast ngoài tầm/ngoài quạt; 18–21 lượt/s; quay 180° hiện trong một lượt và fade; grace rồi fade out; nhấp nháy ngắn hơn grace không ẩn; ngân sách 48 và mọi zombie đều được kiểm; debug ray chỉ khi bật; occluder map khu phố đúng danh sách chặn/không chặn; trong nhà: cửa đóng ẩn, mở/vỡ hiện, tường ẩn, sát cửa đóng vẫn ẩn; hàng rào thấp không chặn; cửa sổ/rèm; đường viền mask cắt ở cửa/tường; hiệu năng), `core/vision.test.ts` (4: zombie đuổi từ sau lưng bị ẩn > 1 s trong khi CHASE, hiện khi vào bán kính gần; mở/đóng cửa đổi tầm nhìn, cùng instance occluder; **simulation giống hệt khi tắt vision** — 40 s map khu phố, cùng seed, so vị trí/trạng thái mọi zombie; dọn xác/ván mới/load xóa trạng thái).
+- **Hiệu năng** (Node, máy dev): 500 zombie quanh người chơi trên map khu phố, 35 occluder: **0,095 ms/lượt** (48 raycast); đường viền mask 0,047 ms. FPS GPU thật chưa đo.
+- **Soak** không đổi so với S5 (vision không ghi vào simulation): shelter sống 30', 4 kill, 30 damage, cửa nhà an toàn vỡ ở giây 61, 12 lần di cư; patrol chết ở 853 s, 30 kill.
+- `npm run build`, `npm run lint` sạch.
+- **Playwright + Chrome 153** (`scripts/p2-vision-browser.mjs`, không ghi fixture):
+  - Dev: người chơi ngoài trời quay +Z: zombie trước 8 m `VISIBLE` (vẽ, opacity 1), sau 8 m `OUTSIDE_FOV` (không vẽ), sát lưng 1,8 m `NEAR_DETECTION` (vẽ); **phím thật W+D** quay về −Z → zombie sau hiện, zombie trước ẩn; trong nhà an toàn đi tới cửa bằng phím: cửa đóng → zombie ngoài `BLOCKED` không vẽ, **E mở** → `VISIBLE`, zombie thấy người chơi và CHASE, **E đóng** → ẩn nhưng vẫn `ATTACK_STRUCTURE` (HP cửa 110); tắt/bật lớp tối trong Settings; F4 hiện nhãn. PASS.
+  - Production: không `__runtime`; F3 có dòng "Tầm nhìn" và `nhìn=` từng zombie; F4 bật 8 nhãn, tắt sạch; không lỗi console. PASS.
+  - Hồi quy production `p2-s5-browser.mjs`, `p2-s4-browser.mjs`: PASS. Không chạy lại `p2-s5` dev (nó ghi đè fixture v6; schema không đổi).
+  - Ảnh (không track): `node_modules/.tmp/vision-front-debug.png`, `vision-turned.png`, `vision-door-open.png`, `vision-prod-debug.png`.
+
+## Giới hạn
+
+- Lớp tối chỉ làm tối **mặt đất**; tường, mái, xe, thùng ngoài tầm nhìn vẫn sáng. Chưa có "đã khám phá" (vùng chưa từng thấy tối hơn): hiện dùng độ tối tăng theo khoảng cách. Mép vùng sáng cứng (stencil), có răng cưa nhỏ ở góc tường xa (bước tia ~1,5°).
+- Một tia LOS tới giữa thân: zombie ló nửa người ở mép tường có thể chưa hiện; grace 0,15 s làm mượt.
+- Tầm nhìn không giảm ban đêm (chưa yêu cầu); có thể nối `visionDistance` với đồng hồ sau.
+- Tiếng động (zombie gào, đập cửa) vẫn nghe mọi nơi như trước: người chơi biết có zombie dù không thấy — chủ ý.
+- Không có spatial hash (8–12 zombie hiện tại); `getNearbyZombies` là điểm thay thế. Occluder lọc bằng hộp bao của tia, duyệt tuyến tính (35 khối).
+- Debug nhãn dùng DOM (`Html` của drei), chỉ để debug.
