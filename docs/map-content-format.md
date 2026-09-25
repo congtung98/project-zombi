@@ -60,7 +60,7 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 
 ## 6. Tài liệu JSON
 
-**world.json**: `schemaVersion, worldId, name, contentVersion, chunkSize, coordinateSystem, playArea { size }, boundary { height, thickness } | null, chunkBounds { minCx, maxCx, minCz, maxCz }` (tính cả biên), `chunks [{ chunkId, cx, cz, path }]`, `prefabs [{ prefabId, contentVersion, path }]`, `playerSpawn` (ID spawn), `gameplay? { maxActiveZombies? }`, `retiredIds? [string]` (M3).
+**world.json**: `schemaVersion, worldId, name, contentVersion, chunkSize, coordinateSystem, playArea { size }, boundary { height, thickness } | null, chunkBounds { minCx, maxCx, minCz, maxCz }` (tính cả biên), `chunks [{ chunkId, cx, cz, path }]`, `prefabs [{ prefabId, contentVersion, path }]`, `playerSpawn` (ID spawn), `gameplay? { maxActiveZombies? }`, `retiredIds? [string]` (M3), `generator? { name, version, seed, params, catalog }` (M6: truy vết world sinh tự động; `map:generate` dùng để phát hiện sửa tay).
 
 **Prefab**: `schemaVersion, prefabId` (vd. `building/store`), `contentVersion, name, pivot {x,y,z}, footprint {minX,minZ,maxX,maxZ}`, `building? { height, wallThickness, wallColor, roofColor, floorColor }` (có thì là nhà: sàn, mái, ánh sáng), `objects[]`, `rooms[]`. Các object phân biệt bằng `kind`:
 
@@ -92,7 +92,7 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - **Lỗi** (chặn nạp/export): `unsupported-schema`, `schema`, `not-finite`, `out-of-range`, `invalid-rect`, `invalid-id`, `invalid-path`, `missing-file`, `duplicate-id`, `manifest-mismatch`, `version-mismatch`, `unknown-kind`, `unknown-prefab`, `unknown-loot-table`, `rooms-need-building`, `chunk-outside-bounds`, `owner-mismatch`, `missing-external-ref`, `stale-external-ref`, `missing-player-spawn`, `spawn-outside-play-area`, `spawn-blocked` (spawn cách một collider thấp dưới 0,4 m), `retired-id-reused`.
 - `checkWorldDocuments` là bản không ném lỗi của `loadWorldDocuments` (editor dùng cho bảng Validate và bản nháp).
 - **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu chồng nhau, sẽ nhấp nháy) — hai cái sau từ M4.
-- Chưa kiểm tra (để M6): khả năng đi tới được và nav bị tách vùng, collider chồng nhau, zone quá dày.
+- **Kiểm tra sâu** (M6, `src/map/analysis.ts`, cảnh báo): `interaction-unreachable`, `spawn-unreachable`, `spawn-indoors`, `zone-unreachable`, `start-not-walkable`, `collider-overlap`, `container-outside-room`. Dùng NavGrid/interactable/LOS của game nên chạy trong editor, test và `npm run map:check -- --deep` (qua Vite), không trong validator Node thuần. Chưa có: zone quá dày.
 
 ## 8. Save
 
@@ -108,5 +108,6 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - `npm run map:check [thư-mục-world…]`: kiểm tra content trên đĩa. Cần Node ≥ 22.18 vì dùng TypeScript stripping có sẵn; các module `src/map/*` import bằng đuôi `.ts` để chạy trực tiếp.
 - `node scripts/map-tools/import-legacy.ts <legacy-map.json> <world-dir> --world-id … --name …`: chuyển một `MapData` viết tay thành prefab + chunk + bảng ID. Khu phố được sinh bằng lệnh này từ `legacy-v7-map.json`, và test khóa lại rằng file đã commit đúng là output của lệnh, chừng nào `contentVersion` còn là 1.
 - `npm run map:unpack -- <pack.json> [--out <dir>] [--force]`: ghi content pack của editor vào `content/maps/<worldId>/` sau khi validate; cần `--force` để ghi đè; file dữ liệu không đổi thì không ghi lại; file thừa trên đĩa chỉ được báo. `npm run map:pack -- <world-dir> [out.json]` làm chiều ngược lại.
-- Content pack (`<worldId>.mappack.json`): `{ format: "zombie-outbreak/map-pack", formatVersion: 1, worldId, files: { <đường dẫn tương đối>: <JSON> } }`, thứ tự ổn định, không chứa trạng thái editor. Chi tiết editor: `docs/map-editor-m3.md`, `docs/map-editor-m4.md`, `docs/map-editor-m5.md`.
+- Content pack (`<worldId>.mappack.json`): `{ format: "zombie-outbreak/map-pack", formatVersion: 1, worldId, files: { <đường dẫn tương đối>: <JSON> } }`, thứ tự ổn định, không chứa trạng thái editor. Chi tiết editor: `docs/map-editor-m3.md` … `docs/map-editor-m6.md`, hướng dẫn `docs/map-editor-guide.md`.
+- `npm run map:generate -- --seed <n> --blocks <X>x<Z> [--world-id …] [--out …] [--pack …] [--force] [--dry]` (M6): generator thị trấn tất định `src/map/tools/generator.ts`; không ghi đè world đã sửa tay. `npm run map:check -- --deep`: thêm kiểm tra sâu. Hướng dẫn: `docs/map-editor-guide.md`.
 - `src/map/tools/tileWorld.ts`: generator ghép ô N × N rồi phân lại vào lưới chunk; map stress `?stress=N` (chỉ dev) dùng nó. Bundle production không chứa generator và importer.

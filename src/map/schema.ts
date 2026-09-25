@@ -69,6 +69,21 @@ export interface WorldDocument {
    * save holding state for a deleted object cannot attach it to a new, unrelated one (editor M3).
    */
   retiredIds?: string[]
+  /**
+   * Provenance of a generated world (M6): generator name/version, seed and parameters. Traceability
+   * only: the files are the content; `map:generate` uses it to detect hand edits before overwriting.
+   */
+  generator?: GeneratorInfo
+}
+
+export interface GeneratorInfo {
+  name: string
+  version: number
+  seed: number
+  /** Generator parameters (plain JSON), e.g. `{ "blocksX": 2, "blocksZ": 2 }`. */
+  params: Record<string, number | string>
+  /** Prefab library the output was built from, e.g. `neighborhood-50@1`. */
+  catalog: string
 }
 
 export interface BuildingProps {

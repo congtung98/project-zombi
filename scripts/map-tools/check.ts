@@ -1,13 +1,17 @@
 // Validate map content on disk (schema, IDs, ownership references, spawns, loot tables).
 // Usage: node scripts/map-tools/check.ts [world-dir ...]   (default: every folder in content/maps)
 // Exit code 1 when any world has errors. Requires Node ≥ 22.18 (built-in TypeScript stripping).
+// `--deep` then runs the deep checks (M6, through Vite: scripts/map-tools/deep-check.mjs).
+import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { LOOT_TABLES } from '../../src/game/world/lootTables.ts'
 import { loadWorldDocuments, MapContentError, type ValidationIssue } from '../../src/map/validate.ts'
 
 const root = 'content/maps'
-const dirs = process.argv.slice(2).length ? process.argv.slice(2) : readdirSync(root).map((d) => join(root, d)).filter((d) => existsSync(join(d, 'world.json')))
+const deep = process.argv.includes('--deep')
+const args = process.argv.slice(2).filter((a) => a !== '--deep')
+const dirs = args.length ? args : readdirSync(root).map((d) => join(root, d)).filter((d) => existsSync(join(d, 'world.json')))
 let failed = false
 for (const dir of dirs) {
   let issues: ValidationIssue[]
@@ -23,5 +27,12 @@ for (const dir of dirs) {
     issues = e.issues
   }
   for (const i of issues) console.log(`  ${i.severity.toUpperCase()} ${i.code} ${i.path}${i.entityId ? ` [${i.entityId}]` : ''}: ${i.message}`)
+}
+if (deep && !failed) {
+  try {
+    execFileSync(process.execPath, ['scripts/map-tools/deep-check.mjs', ...dirs], { stdio: 'inherit' })
+  } catch {
+    failed = true
+  }
 }
 process.exit(failed ? 1 : 0)

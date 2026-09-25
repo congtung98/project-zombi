@@ -5,6 +5,9 @@ import type { ValidationIssue } from '../map/validate'
 import { type CommandResult } from '../map/editor/commands'
 import { blankDocument, findRecord, resolvedRecords, statefulEntityIds, type MapDocument } from '../map/editor/document'
 import { usedLocalIds } from '../map/editor/prefabCommands'
+import { playPointProblem, playtestFiles } from '../map/editor/playtest'
+import { deepCheck } from '../map/analysis'
+import { generateTown } from '../map/tools/generator'
 import { defaultLayers, isEditable, LAYERS, layerOf, type LayerId, type LayerState, type LayerStates } from '../map/editor/layers'
 import { documentFromFiles, exportPack, parsePack, validateDocument } from '../map/editor/pack'
 import { applyCommand, initialEditState, redo, undo, type EditState } from '../map/editor/session'
@@ -20,7 +23,18 @@ export const OPTS = { lootTables: REGISTERED_LOOT_TABLES }
 export const SNAP_STEPS = [1, 0.5, 0.25, 0] as const
 export const DEFAULT_WORLD = 'neighborhood-50'
 
-export type Tool = 'select' | 'place' | 'chunk'
+export type Tool = 'select' | 'place' | 'chunk' | 'play'
+
+/** A running Play From Here session (M6): the snapshot sent to the playtest frame. */
+export interface Playtest {
+  files: Record<string, unknown>
+  spawn: XZ
+  timeOfDay: number
+  worldName: string
+  /** Messages from the frame (started / error). */
+  state: 'loading' | 'started' | 'error'
+  error?: string
+}
 
 /** What the place tool puts down: a prefab instance or a palette record (M4). */
 export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record'; presetId: string } | { kind: 'prefabItem'; presetId: string }
@@ -69,6 +83,11 @@ interface EditorStore {
   showReach: boolean
   /** Prefab a dialog acts on (duplicate). */
   dialogPrefab: string | null
+  /** Start hour of a playtest (0..24). */
+  playHour: number
+  playtest: Playtest | null
+  /** Last deep check (M6) and the document it ran on (stale once the document changes). */
+  deep: { doc: MapDocument; issues: ValidationIssue[]; ms: number } | null
   snapStep: number
   view: 'top' | 'iso'
   preview: Preview | null
@@ -91,7 +110,13 @@ interface EditorStore {
   setTool(tool: Tool, place?: PlaceItem | null): void
   rotatePlacement(turns: number): void
   setLayer(id: LayerId, patch: Partial<LayerState>): void
-  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee' | 'prefabTab' | 'prefabView' | 'showReach' | 'dialogPrefab'>>): void
+  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee' | 'prefabTab' | 'prefabView' | 'showReach' | 'dialogPrefab' | 'playHour'>>): void
+  /** Play From Here: snapshot the document and open the playtest frame (never touches saves or drafts). */
+  startPlaytest(spawn: XZ): boolean
+  stopPlaytest(): void
+  /** Deep checks (reachability, interaction reach, overlaps) through the game's own systems. */
+  runDeepCheck(): void
+  setPlaytestState(state: Playtest['state'], error?: string): void
   enterPrefab(prefabId: string): void
   exitPrefab(): void
   requestFocus(rect?: Rect | null): void
@@ -99,7 +124,7 @@ interface EditorStore {
 
   openBundled(worldId: string): boolean
   openPack(text: string, source: string, allowContentErrors: boolean): boolean
-  newWorld(worldId: string, name: string): boolean
+  newWorld(worldId: string, name: string, generate?: { seed: number; blocksX: number; blocksZ: number }): boolean
   saveDraft(): Promise<void>
   exportFile(): { name: string; text: string } | null
   refreshDrafts(): Promise<void>
@@ -182,6 +207,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   prefabView: 0,
   showReach: true,
   dialogPrefab: null,
+  playHour: 9,
+  playtest: null,
+  deep: null,
   snapStep: 0.5,
   view: 'top',
   preview: null,
@@ -285,6 +313,48 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     set(patch)
   },
 
+  startPlaytest(spawn) {
+    const { edit, issues } = get()
+    if (!edit) return false
+    const errors = issues.filter((i) => i.severity === 'error')
+    if (errors.length) {
+      set({ showIssues: true, status: { text: `Chơi thử bị chặn: ${errors.length} lỗi (xem bảng Validate)`, kind: 'error' } })
+      return false
+    }
+    const problem = playPointProblem(edit.doc, spawn)
+    if (problem) {
+      set({ status: { text: `Không bắt đầu được: ${problem}`, kind: 'error' } })
+      return false
+    }
+    set({
+      playtest: { files: playtestFiles(edit.doc), spawn, timeOfDay: get().playHour / 24, worldName: edit.doc.world.name, state: 'loading' },
+      tool: 'select',
+      preview: null,
+      status: { text: `Chơi thử từ (${spawn.x}, ${spawn.z}) — save chỉ trong bộ nhớ, document không đổi`, kind: 'info' },
+    })
+    return true
+  },
+
+  runDeepCheck() {
+    const { edit, issues } = get()
+    if (!edit) return
+    if (issues.some((i) => i.severity === 'error')) {
+      set({ showIssues: true, status: { text: 'Sửa lỗi Validate trước khi kiểm tra sâu', kind: 'error' } })
+      return
+    }
+    const r = deepCheck(edit.doc)
+    set({ deep: { doc: edit.doc, issues: r.issues, ms: r.ms }, showIssues: true, status: { text: `Kiểm tra sâu: ${r.issues.length} cảnh báo (${r.ms.toFixed(0)} ms)`, kind: 'info' } })
+  },
+
+  stopPlaytest() {
+    set({ playtest: null, status: { text: 'Đã về editor (document, vùng chọn và camera giữ nguyên)', kind: 'info' } })
+  },
+
+  setPlaytestState(state, error) {
+    const pt = get().playtest
+    if (pt) set({ playtest: { ...pt, state, ...(error ? { error } : {}) } })
+  },
+
   enterPrefab(prefabId) {
     const { edit } = get()
     if (!edit?.doc.prefabs.has(prefabId)) return
@@ -344,20 +414,29 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     return true
   },
 
-  newWorld(worldId, name) {
+  newWorld(worldId, name, generate) {
     const lib = documentFromFiles(bundledWorldFiles(DEFAULT_WORLD), OPTS)
     if (!lib.ok) {
       get().reject('Không nạp được thư viện prefab', lib.error, lib.issues)
       return false
     }
     const prefabs = lib.doc.world.prefabs.map((entry) => ({ entry, doc: lib.doc.prefabs.get(entry.prefabId)! }))
-    const doc = blankDocument({ worldId, name, prefabs })
+    let doc: MapDocument
+    if (generate) {
+      // Offline generator (M6): same code and output as `npm run map:generate`.
+      try {
+        doc = generateTown({ worldId, name, ...generate }, { id: `${lib.doc.world.worldId}@${lib.doc.world.contentVersion}`, prefabs }, OPTS)
+      } catch (e) {
+        get().reject('Generator lỗi', e instanceof Error ? e.message : String(e), [])
+        return false
+      }
+    } else doc = blankDocument({ worldId, name, prefabs })
     const issues = validateDocument(doc, OPTS)
     if (issues.some((i) => i.severity === 'error')) {
       get().reject('World mới không hợp lệ', issues[0].message, issues)
       return false
     }
-    get().openDocument(doc, 'world mới')
+    get().openDocument(doc, generate ? `generator seed ${generate.seed}` : 'world mới')
     // Never published: no save can hold its IDs yet, so no contentVersion warning.
     set({ savedDoc: null, baseline: null, issues: issuesFor(doc, null) })
     return true

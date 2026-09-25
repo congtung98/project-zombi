@@ -4,6 +4,7 @@ import { cancel, deleteSelection, duplicateSelection, nudge, rotateSelection, se
 import { Inspector } from './Inspector'
 import { DuplicatePrefabDialog, IssuesPanel, NewDialog, NewPrefabDialog, OpenDialog, Palette, StatusBar, TopBar } from './Panels'
 import { Viewport } from './Viewport'
+import { PlaytestOverlay } from './Playtest'
 
 /** Hotkeys act on the editor only; typing in an input/select/textarea is never intercepted. */
 function isTyping(e: KeyboardEvent): boolean {
@@ -14,6 +15,8 @@ function isTyping(e: KeyboardEvent): boolean {
 function onKey(e: KeyboardEvent): void {
   if (isTyping(e)) return
   const s = useEditorStore.getState()
+  // The playtest frame has its own keyboard; the editor underneath stays still.
+  if (s.playtest) return
   if (s.dialog) {
     if (e.key === 'Escape') s.set({ dialog: null })
     return
@@ -90,6 +93,7 @@ export function EditorApp() {
       <NewDialog />
       <NewPrefabDialog />
       <DuplicatePrefabDialog />
+      <PlaytestOverlay />
       <input
         ref={file}
         type="file"

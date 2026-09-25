@@ -19,6 +19,20 @@ export const LEGACY_BACKUP_SLOT = backupSlotFor(SAVE_SLOT, 1)
 
 export type StorageResult<T = void> = { ok: true; value: T } | { ok: false; error: string }
 
+/**
+ * Editor playtest (map editor M6): saves live in this map only and vanish with the page, so a
+ * test session can never read or write the player's IndexedDB (not even open the database).
+ */
+let memory: Map<string, unknown> | null = null
+
+export function enableMemorySaveStorage(): void {
+  memory ??= new Map()
+}
+
+export function isMemorySaveStorage(): boolean {
+  return memory !== null
+}
+
 function hasIndexedDb(): boolean {
   return typeof indexedDB !== 'undefined'
 }
@@ -65,16 +79,25 @@ async function withStore<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore
   }
 }
 
-export function writeSave(save: SaveGame, slot = SAVE_SLOT): Promise<StorageResult<IDBValidKey>> {
+export async function writeSave(save: SaveGame, slot = SAVE_SLOT): Promise<StorageResult<IDBValidKey>> {
+  if (memory) {
+    memory.set(slot, structuredClone(save))
+    return { ok: true, value: slot }
+  }
   return withStore('readwrite', (s) => s.put(save, slot))
 }
 
 /** Trả về dữ liệu thô (chưa kiểm tra); `undefined` nếu chưa có bản lưu. */
-export function readSave(slot = SAVE_SLOT): Promise<StorageResult<unknown>> {
+export async function readSave(slot = SAVE_SLOT): Promise<StorageResult<unknown>> {
+  if (memory) return { ok: true, value: structuredClone(memory.get(slot)) }
   return withStore<unknown>('readonly', (s) => s.get(slot))
 }
 
-export function deleteSave(slot = SAVE_SLOT): Promise<StorageResult<undefined>> {
+export async function deleteSave(slot = SAVE_SLOT): Promise<StorageResult<undefined>> {
+  if (memory) {
+    memory.delete(slot)
+    return { ok: true, value: undefined }
+  }
   return withStore('readwrite', (s) => s.delete(slot))
 }
 
@@ -82,6 +105,10 @@ export function deleteSave(slot = SAVE_SLOT): Promise<StorageResult<undefined>> 
 export async function commitMigratedSave(original: unknown, save: SaveGame, slot = SAVE_SLOT): Promise<StorageResult> {
   const validated = validateSaveGame(save, save.mapId)
   if (!validated.ok || validated.migrated) return { ok: false, error: 'Dữ liệu migration không hợp lệ; giữ nguyên bản gốc.' }
+  if (memory) {
+    memory.set(slot, structuredClone(save))
+    return { ok: true, value: undefined }
+  }
   if (!hasIndexedDb()) return { ok: false, error: 'Trình duyệt không hỗ trợ IndexedDB.' }
   const fromVersion = typeof original === 'object' && original !== null ? (original as { schemaVersion?: unknown }).schemaVersion : undefined
   if (typeof fromVersion !== 'number') return { ok: false, error: 'Bản gốc không có schemaVersion; giữ nguyên.' }

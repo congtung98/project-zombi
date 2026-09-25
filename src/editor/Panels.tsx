@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { bundledWorldIds } from '../map/content'
 import { fittedPlayAreaSize, updateWorld } from '../map/editor/commands'
-import { chunkStatuses, instancesOf, prefabItemAtPath, recordAtPath, recordForEntity } from '../map/editor/document'
+import { chunkStatuses, instancesOf, prefabItemAtPath, recordAtPath, recordForEntity, resolvedRecords } from '../map/editor/document'
 import { createPrefab, deletePrefab, duplicatePrefab } from '../map/editor/prefabCommands'
 import { PREFAB_PRESETS } from '../map/editor/prefabPresets'
 import { LAYERS } from '../map/editor/layers'
@@ -10,6 +10,7 @@ import { SLUG } from '../map/transform'
 import { deleteDraft } from './drafts'
 import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab, type PrefabTab } from './editorStore'
 import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
+import { PrefabThumbnail } from './Thumbnail'
 
 const confirmDiscard = () => !isDirty(useEditorStore.getState()) || window.confirm('Document có thay đổi chưa lưu. Bỏ các thay đổi đó?')
 
@@ -47,14 +48,17 @@ function PrefabList() {
           const modified = savedDoc?.prefabs.get(p.prefabId) !== p
           return (
             <li key={p.prefabId}>
-              <button className={active ? 'active' : ''} onClick={() => setTool(active ? 'select' : 'place', active ? null : { kind: 'prefab', prefabId: p.prefabId })} data-prefab={p.prefabId}>
-                <strong>
-                  {p.name}
-                  {modified ? ' ●' : ''}
-                </strong>
-                <small>
-                  {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m · {uses} instance
-                </small>
+              <button className={`with-thumb${active ? ' active' : ''}`} onClick={() => setTool(active ? 'select' : 'place', active ? null : { kind: 'prefab', prefabId: p.prefabId })} data-prefab={p.prefabId}>
+                <PrefabThumbnail prefab={p} />
+                <span>
+                  <strong>
+                    {p.name}
+                    {modified ? ' ●' : ''}
+                  </strong>
+                  <small>
+                    {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m · {uses} instance
+                  </small>
+                </span>
               </button>
               <div className="row tight">
                 <button onClick={() => store().enterPrefab(p.prefabId)} data-edit-prefab={p.prefabId} title="Sửa prefab gốc (mọi instance đổi theo)">
@@ -292,6 +296,43 @@ export function Palette() {
   )
 }
 
+/** Play From Here (M6): pick a start point in the viewport, or start at the world's player spawn. */
+function PlayControls() {
+  const edit = useEditorStore((s) => s.edit)
+  const tool = useEditorStore((s) => s.tool)
+  const prefabMode = useEditorStore((s) => s.prefabMode)
+  const playHour = useEditorStore((s) => s.playHour)
+  const store = useEditorStore.getState
+  const disabled = !edit || !!prefabMode
+  const title = prefabMode ? 'Về world trước (chơi thử chạy cả world)' : ''
+  const fromSpawn = () => {
+    const s = store()
+    if (!s.edit) return
+    const r = resolvedRecords(s.edit.doc).find((x) => x.id === s.edit!.doc.world.playerSpawn)
+    const p = r?.parts.playerSpawns?.[0]?.position
+    if (p) s.startPlaytest({ x: p.x, z: p.z })
+  }
+  return (
+    <>
+      <button className={tool === 'play' ? 'active' : ''} disabled={disabled} title={title || 'Click một điểm trong viewport để bắt đầu ở đó'} onClick={() => store().setTool(tool === 'play' ? 'select' : 'play')} data-play-here>
+        ▶ Chơi từ đây
+      </button>
+      <button disabled={disabled} title={title} onClick={fromSpawn} data-play-spawn>
+        ▶ Từ spawn
+      </button>
+      <label title="Giờ bắt đầu (kiểm tra ngày/đêm, đèn)">
+        <select value={playHour} onChange={(e) => store().set({ playHour: Number(e.target.value) })} data-play-hour>
+          {[6, 9, 12, 18, 21, 0].map((h) => (
+            <option key={h} value={h}>
+              {String(h).padStart(2, '0')}:00
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  )
+}
+
 export function TopBar({ onImport }: { onImport: () => void }) {
   const edit = useEditorStore((s) => s.edit)
   const savedDoc = useEditorStore((s) => s.savedDoc)
@@ -354,6 +395,8 @@ export function TopBar({ onImport }: { onImport: () => void }) {
         {view === 'top' ? 'Nhìn: trên xuống' : 'Nhìn: isometric'}
       </button>
       <span className="sep" />
+      <PlayControls />
+      <span className="sep" />
       <button className={errors ? 'bad' : warnings ? 'warn' : 'good'} onClick={() => store().set({ showIssues: !showIssues })}>
         Validate: {errors} lỗi, {warnings} cảnh báo
       </button>
@@ -366,6 +409,7 @@ export function IssuesPanel() {
   const issues = useEditorStore((s) => s.issues)
   const rejected = useEditorStore((s) => s.rejected)
   const edit = useEditorStore((s) => s.edit)
+  const deep = useEditorStore((s) => s.deep)
   if (!show) return null
   const pick = (entityId: string | undefined, path: string) => {
     const s = useEditorStore.getState()
@@ -391,7 +435,12 @@ export function IssuesPanel() {
     <section className="issues">
       <header>
         <strong>Validate</strong>
-        <button onClick={() => useEditorStore.setState({ showIssues: false, rejected: null })}>Đóng</button>
+        <span>
+          <button onClick={() => useEditorStore.getState().runDeepCheck()} data-deep-check title="Đi tới được (mọi cửa mở), tầm tương tác + tầm nhìn, collider chồng, tủ ngoài phòng, spawn trong nhà — dùng chính NavGrid/tương tác của game">
+            Kiểm tra sâu
+          </button>{' '}
+          <button onClick={() => useEditorStore.setState({ showIssues: false, rejected: null })}>Đóng</button>
+        </span>
       </header>
       {rejected && (
         <div className="rejected">
@@ -401,6 +450,15 @@ export function IssuesPanel() {
       )}
       {edit && issues.length === 0 && <p className="good">Không có lỗi hay cảnh báo.</p>}
       <IssueList issues={issues} onPick={pick} />
+      {deep && (
+        <div className="deep" data-deep-results>
+          <strong>
+            Kiểm tra sâu{deep.doc !== edit?.doc ? ' (cũ — document đã đổi, chạy lại)' : ''}: {deep.issues.length} cảnh báo, {deep.ms.toFixed(0)} ms
+          </strong>
+          {deep.issues.length === 0 && <p className="good">Mọi điểm tương tác, spawn và zone đều đi tới được; không có collider chồng.</p>}
+          <IssueList issues={deep.issues} onPick={pick} />
+        </div>
+      )}
     </section>
   )
 }
@@ -432,7 +490,7 @@ export function StatusBar() {
         {status?.text ?? ''}
       </span>
       <span>
-        {tool === 'place' && place ? `${placeLabel(place)}${place.kind === 'prefab' ? ` (${placeTurns * 90}°)` : ''}` : tool === 'chunk' ? 'Công cụ chunk' : `Chọn: ${selection}`}
+        {tool === 'place' && place ? `${placeLabel(place)}${place.kind === 'prefab' ? ` (${placeTurns * 90}°)` : ''}` : tool === 'chunk' ? 'Công cụ chunk' : tool === 'play' ? 'Chơi thử: click điểm xuất phát (Esc hủy)' : `Chọn: ${selection}`}
         {cursor ? ` · (${cursor.x.toFixed(2)}, ${cursor.z.toFixed(2)}) ${chunk}` : ''}
       </span>
     </footer>
@@ -488,17 +546,47 @@ export function NewDialog() {
   const dialog = useEditorStore((s) => s.dialog)
   const [worldId, setWorldId] = useState('new-world')
   const [name, setName] = useState('World mới')
+  const [mode, setMode] = useState<'blank' | 'generate'>('blank')
+  const [seed, setSeed] = useState('1')
+  const [blocks, setBlocks] = useState('2x2')
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (dialog === 'new') input.current?.focus()
   }, [dialog])
   if (dialog !== 'new') return null
-  const valid = SLUG.test(worldId) && name.trim().length > 0
+  const valid = SLUG.test(worldId) && name.trim().length > 0 && (mode === 'blank' || Number.isInteger(Number(seed)))
   return (
     <div className="modal" role="dialog">
       <div className="box">
         <h3>World mới</h3>
-        <p className="hint">2 × 2 chunk 32 m quanh gốc tọa độ, hàng rào, spawn người chơi + 1 spawn zombie; thư viện prefab lấy từ neighborhood-50.</p>
+        <label className="field">
+          <span>Kiểu</span>
+          <select value={mode} onChange={(e) => setMode(e.target.value as 'blank' | 'generate')} data-new-mode>
+            <option value="blank">Trống</option>
+            <option value="generate">Sinh bằng generator</option>
+          </select>
+        </label>
+        {mode === 'blank' ? (
+          <p className="hint">2 × 2 chunk 32 m quanh gốc tọa độ, hàng rào, spawn người chơi + 1 spawn zombie; thư viện prefab lấy từ neighborhood-50.</p>
+        ) : (
+          <>
+            <p className="hint">Thị trấn lưới: đường quanh mỗi khối, 4 lô/khối với prefab của neighborhood-50 quay cửa ra đường, hàng rào, thùng, đống phế liệu, xe, zone chữ nhật + spawn zombie mỗi khối. Cùng seed → cùng kết quả (giống npm run map:generate).</p>
+            <label className="field">
+              <span>Seed</span>
+              <input type="number" value={seed} onChange={(e) => setSeed(e.target.value)} data-gen-seed />
+            </label>
+            <label className="field">
+              <span>Khối</span>
+              <select value={blocks} onChange={(e) => setBlocks(e.target.value)} data-gen-blocks>
+                {['1x1', '2x1', '2x2', '3x2', '3x3', '4x4'].map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
         <label className="field">
           <span>worldId</span>
           <input ref={input} value={worldId} onChange={(e) => setWorldId(e.target.value)} />
@@ -509,7 +597,13 @@ export function NewDialog() {
         </label>
         {!SLUG.test(worldId) && <p className="error">worldId: chữ thường, số, gạch nối.</p>}
         <div className="row">
-          <button disabled={!valid} onClick={() => useEditorStore.getState().newWorld(worldId, name.trim())}>
+          <button
+            disabled={!valid}
+            onClick={() => {
+              const [bx, bz] = blocks.split('x').map(Number)
+              useEditorStore.getState().newWorld(worldId, name.trim(), mode === 'generate' ? { seed: Number(seed), blocksX: bx, blocksZ: bz } : undefined)
+            }}
+          >
             Tạo
           </button>
           <button onClick={() => useEditorStore.getState().set({ dialog: null })}>Hủy</button>

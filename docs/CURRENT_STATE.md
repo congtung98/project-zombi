@@ -1,10 +1,23 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **map editor M5 (prefab editor)** sau M4 (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, **docs/map-editor-m5.md**.
+> Cập nhật: **2026-09-25**, hoàn thành **map editor M6 (công cụ sản xuất)** — kế hoạch map editor M1–M6 xong (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M5 — prefab editor (mới nhất, chưa commit — chi tiết docs/map-editor-m5.md)
+## 0. Map editor M6 — công cụ sản xuất (mới nhất, chưa commit — chi tiết docs/map-editor-m6.md)
+
+Save không đổi (v8), content khu phố không đổi, schema map vẫn v1 (thêm tùy chọn `world.generator`). Kế hoạch map editor M1–M6 đã xong.
+
+- **Play From Here**: `playtest.html` + `src/playtest/` (iframe; `protocol.ts` postMessage cùng origin). Trang playtest: `loadWorld` bản chụp → lỗi thì hiện, không fallback → `enableMemorySaveStorage()` → `setPlaytestSession` (`game/world/playtest.ts`) → mới `import()` App/runtime. `runtime.initialMap()` ưu tiên phiên playtest; `uiStore` slot `slot-playtest`. Editor: `store.startPlaytest/stopPlaytest`, tool `play`, `PlaytestOverlay`, `src/map/editor/playtest.ts` (`playPointProblem` dùng `blockingSolid` của validator, `playtestFiles`). Có trong `build:editor`.
+- **Kiểm tra sâu** `src/map/analysis.ts` (`deepCheck`): dựng `GameRuntime`, mở mọi cửa; cảnh báo interaction-unreachable / spawn-unreachable / spawn-indoors / zone-unreachable / start-not-walkable / collider-overlap / container-outside-room. Editor: nút trong bảng Validate. CLI: `map:check -- --deep` → `scripts/map-tools/deep-check.mjs` (Vite `ssrLoadModule`).
+- **Generator** `src/map/tools/generator.ts` (`town-grid` v1, Node-runnable): lưới khối 28 m + đường 4 m, 4 lô/khối, prefab xoay cửa ra đường, props, zone chữ nhật/khối, spawn kiểm tra collider; validate hoặc ném lỗi. CLI `npm run map:generate` (`scripts/map-tools/generate.ts`): `--pack/--out/--force/--dry`, từ chối ghi đè world sửa tay (sinh lại từ `world.generator` và so file). Editor: Mới → Sinh bằng generator (= CLI từng byte).
+- Thumbnail SVG prefab (`src/editor/Thumbnail.tsx`); hướng dẫn `docs/map-editor-guide.md`; benchmark `PERF_SCENARIOS=1 npx vitest run src/map/editor/editor.perf.test.ts`.
+- **Kiểm chứng**: 461 test (+10 skip; mới `production.test.ts` 9, `src/playtest/playtest.test.ts` 1); tsc/oxlint/build/build:editor/map:check (+ --deep)/check:bundle (marker M6) sạch; Playwright `scripts/m6-editor-browser.mjs` PASS; playtest trên build production editor (vite preview) OK; hồi quy dev p2-s5, p2-s2 (migrate save thật), m3/m4/m5 PASS.
+- **Giới hạn**: viewport editor vẽ mỗi hộp một mesh (4×4: 1 495 draw call, ~35 ms/khung SwiftShader, chỉ khi vẽ lại); vùng chơi tâm gốc; chưa có zone-quá-dày, cây cối, migration nội dung save.
+
+Commit message gợi ý: **feat(editor): production tools M6 (play from here with in-memory saves, deep checks through game systems, deterministic town generator + CLI, prefab thumbnails, guide and perf report)**
+
+## 0-M5. Map editor M5 — prefab editor (đã commit c187992 — chi tiết docs/map-editor-m5.md)
 
 Save không đổi (v8), content khu phố không đổi, schema map vẫn v1 (thêm tùy chọn `wallRun`, `retiredLocalIds`). Thứ tự: M3 → M4 → **M5** → M6 (công cụ sản xuất).
 
@@ -14,8 +27,6 @@ Save không đổi (v8), content khu phố không đổi, schema map vẫn v1 (t
 - **Save**: `statefulEntityIds` (cửa, container, cửa sổ, đèn, zone) = đúng thứ save so khớp. Sửa giữ tập này → save cũ nạp và giữ trạng thái (có test). Cảnh báo `content-changed-same-version` nay chỉ bật khi tập này đổi mà world giữ contentVersion; xóa/đổi tên mục có trạng thái khi prefab có instance → hỏi xác nhận.
 - **Kiểm chứng**: 451 test (+9 skip; mới `src/map/editor/prefab.test.ts` 17, gồm nhà dựng bằng lệnh chạy trong `GameRuntime` ở 4 góc xoay và save giữ trạng thái sau sửa tương thích); tsc/oxlint/build/build:editor/map:check/check:bundle (marker M5) sạch; Playwright `scripts/m5-editor-browser.mjs` PASS (prefab mới bằng GUI → 4 góc xoay → export → unpack → chơi `?world=`); hồi quy m3/m4 editor, game dev p2-s5 PASS.
 - **Chưa làm**: tay cầm đổi kích thước, polygon room/nhiều tầng, vị trí đèn `at`, migration nội dung cho save; M6 (Play From Here, kiểm tra collider/đi tới, generator, thumbnail, hướng dẫn quy trình).
-
-Commit message gợi ý: **feat(editor): prefab editor M5 (source prefab mode, wall runs with auto openings, doors/windows snapping, rooms and lamps, rotation preview, retired local IDs, save-compatible edits)**
 
 ## 0-M4. Map editor M4 — world authoring (đã commit 0a8f50c — chi tiết docs/map-editor-m4.md)
 
@@ -62,7 +73,7 @@ Kế hoạch: `docs/Map_Editor_Implementation_Plan.md`. Thứ tự đã chốt v
 - **Tương đương**: test so từng thực thể với map cũ; soak trùng từng số R2 khi cùng thứ tự + khóa loot cũ. Mốc soak lúc đó (thứ tự chunk, loot seed theo ID mới, LOS giả): shelter 1800 s/3 kill/10 dmg, patrol 970 s/42 kill (R3b thay bằng mốc LOS thật).
 - **Kiểm chứng**: 380 test pass (+9 skip), tsc/oxlint/build sạch, `npm run map:check` OK; Playwright dev S2 (migrate v7/v3/v2/v1 → v8 qua Continue), S3, S4, S5, vision, lighting và production S5/vision/lighting/S4 PASS. Fixture `phase2-light-v7.json` nay đóng băng (script không ghi nữa).
 - **Sửa nội dung**: sửa JSON trong `content/maps/…` rồi `npm run map:check`; đổi bố cục khu phố = tăng `contentVersion` (test tương đương/importer tự bỏ qua khi khác 1) và viết migrate nếu trạng thái đã lưu bị ảnh hưởng.
-- Sau M1–M2 là R3b (mục 0a), rồi M3 (mục 0).
+- Sau M1–M2 là R3b (mục 0a), rồi M3 (mục 0-M3).
 
 ## 0c. Refactor kiến trúc R0–R2 (đã commit 8637897 — chi tiết docs/refactor-r0-r2.md)
 
@@ -80,7 +91,7 @@ Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak
 
 Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S5** (đã commit, S5 = 1f81571) và **sprint bổ sung tầm nhìn người chơi** (zombie chỉ vẽ khi nhân vật thấy; debug F4; save vẫn v6; sau playtest đã **bỏ lớp tối mặt đất** — tầm nhìn không được đụng ánh sáng). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0c, commit 8637897), **map content M1–M2** (mục 0b, save v8), R3b (mục 0a), map editor M3 (mục 0-M3), M4 (mục 0-M4) và **M5** (mục 0). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
+Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0c, commit 8637897), **map content M1–M2** (mục 0b, save v8), R3b (mục 0a), map editor M3 (mục 0-M3), M4 (mục 0-M4), M5 (mục 0-M5) và **M6** (mục 0). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
 
 | Sprint | Trạng thái |
 |---|---|
@@ -94,8 +105,8 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 | R3b (LOS simulation, batch + collider theo chunk, nav HPA*) | Đã commit (09112e2) |
 | M3 map editor MVP | Đã commit (08a3559) |
 | M4 world authoring | Đã commit (0a8f50c) |
-| M5 prefab editor | Xong, chưa commit (docs/map-editor-m5.md) |
-| M6 công cụ sản xuất | Tiếp theo (thứ tự đã chốt) |
+| M5 prefab editor | Đã commit (c187992) |
+| M6 công cụ sản xuất | Xong, chưa commit (docs/map-editor-m6.md) — kế hoạch map editor hoàn tất |
 | P2-S6 Barricade/tool/fuel | Tạm dừng (sau R0–R2); dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |

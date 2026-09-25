@@ -13,9 +13,11 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3–M5): npm run dev rồi mở http://localhost:5173/editor.html
+# Map editor (M3–M6): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/
+npm run map:check -- --deep                  # validate + kiểm tra sâu (đi tới được, tầm tương tác, collider chồng)
+npm run map:generate -- --seed 42 --blocks 2x2   # thị trấn sinh tự động (tất định) → content/maps/gen-42/
 ```
 
 ## Phát hành
@@ -65,13 +67,14 @@ simulation để kiểm tra từ console hoặc kịch bản playtest tự độ
 
 ```text
 content/maps/<world>/  nội dung map: world.json, prefabs/, chunks/ (32 m), migrations/ (docs/map-content-format.md)
-scripts/map-tools/     check.ts (npm run map:check), import-legacy.ts, pack.ts / unpack.ts (content pack của editor)
-editor.html            entry riêng của map editor
+scripts/map-tools/     check.ts (npm run map:check [--deep]), deep-check.mjs, generate.ts, import-legacy.ts, pack.ts / unpack.ts
+editor.html, playtest.html  entry riêng của map editor và trang chơi thử (chỉ trong bản build editor)
 src/
   map/                 schema, transform (xoay/chunk/ID), validate, resolve (JSON → MapData), loader (ChunkLifecycle),
-                       content (nạp JSON đi kèm bundle), tools/ (importLegacy, tileWorld),
+                       content (nạp JSON đi kèm bundle), analysis (kiểm tra sâu), tools/ (importLegacy, tileWorld, generator),
                        editor/ (document bất biến, lệnh world + prefab, lịch sử undo/redo, content pack, preset palette, layer — thuần TS)
-  editor/              UI map editor (React + R3F): viewport, palette theo tab, chunk/layer, chế độ sửa prefab, inspector, validate, nháp IndexedDB riêng
+  editor/              UI map editor (React + R3F): viewport, palette theo tab, chunk/layer, chế độ sửa prefab, inspector, validate, nháp IndexedDB riêng, chơi thử
+  playtest/            trang chơi thử: nhận bản chụp từ editor, game thật với save trong bộ nhớ
   app/                 App (điều hướng màn hình), GameCanvas
   game/
     core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, di cư, đòn vào cửa, snapshot/load)
@@ -116,6 +119,12 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M6: công cụ sản xuất (25/09/2026)
+
+- **Play From Here**: ▶ Chơi từ đây (click điểm) / Từ spawn, chọn giờ; game thật trong khung phủ lên editor, chạy trên bản đang sửa; save chỉ trong bộ nhớ (không mở IndexedDB của game), map/nháp không đổi, về editor giữ nguyên mọi thứ.
+- **Kiểm tra sâu** bằng NavGrid/tương tác/LOS của game (đi tới được, tầm tương tác, spawn/zone bị cô lập, spawn trong nhà, collider chồng, tủ ngoài phòng) trong editor và `map:check -- --deep`.
+- **Generator** thị trấn tất định (editor: Mới → Sinh bằng generator; CLI `map:generate`), không ghi đè world sửa tay; thumbnail prefab; hướng dẫn `docs/map-editor-guide.md`; báo cáo hiệu năng. Save không đổi (v8). Chi tiết `docs/map-editor-m6.md`.
 
 ### Map editor M5: prefab editor (25/09/2026)
 

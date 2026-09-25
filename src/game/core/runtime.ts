@@ -34,6 +34,7 @@ import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
 import { STRESS_TILES, buildStressMap } from '../world/stressMap'
 import { DEV_WORLD_ID, loadDevWorld } from '../world/devWorld'
+import { playtestSession } from '../world/playtest'
 import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOccluders'
 import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
 import { BuildingLightingSystem, buildLightingBuildings, outdoorLightLevel } from '../lighting/buildingLighting'
@@ -1533,8 +1534,13 @@ function buildInteractables(map: MapData): Interactable[] {
   return list
 }
 
-/** Dev labs pick another map; the production build folds this to the neighbourhood (no generator in the bundle). */
+/**
+ * Editor playtest first (its page sets the map before loading the game, dev and editor build);
+ * dev labs pick another map; the production game folds this to the neighbourhood.
+ */
 function initialMap(): MapData {
+  const playtest = playtestSession()
+  if (playtest) return playtest.map
   if (!import.meta.env.DEV) return NEIGHBORHOOD_MAP
   if (DOOR_LAB_ENABLED) return DOOR_LAB_MAP
   if (STRESS_TILES) return buildStressMap(STRESS_TILES)

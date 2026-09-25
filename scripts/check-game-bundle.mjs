@@ -13,6 +13,9 @@ const MARKERS = [
   ['editor palette presets (M4)', 'surface/asphalt'],
   ['editor layers (M4)', 'Tường / vật cản'],
   ['prefab editor presets (M5)', 'structure/wall-run'],
+  ['playtest page (M6)', 'zombie-outbreak/playtest'],
+  ['town generator (M6)', 'town-grid'],
+  ['deep checks (M6)', 'interaction-unreachable'],
   ['tile generator', 'extraZombieSpawns'],
   ['legacy importer', 'is not a quarter turn'],
 ]

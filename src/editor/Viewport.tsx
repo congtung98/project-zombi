@@ -276,6 +276,10 @@ function Controls() {
       if (e.button !== 0) return
       const s = store()
       if (!s.edit) return
+      if (s.tool === 'play') {
+        s.startPlaytest(snapPoint(g))
+        return
+      }
       if (s.tool === 'chunk') {
         chunkClick(g)
         return

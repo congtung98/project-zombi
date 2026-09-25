@@ -15,6 +15,7 @@
     "map:check": "node scripts/map-tools/check.ts",
     "map:pack": "node scripts/map-tools/pack.ts",
     "map:unpack": "node scripts/map-tools/unpack.ts",
+    "map:generate": "node scripts/map-tools/generate.ts",
     "deploy:check": "npm test && npm run build && vite preview --port 4173 --strictPort"
   },
   "dependencies": {

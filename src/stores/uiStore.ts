@@ -7,6 +7,7 @@ import type { CharacterProfile } from '../game/entities/player'
 import { sfx } from '../game/audio/sfx'
 import { STRESS_MAP_PREFIX } from '../game/world/stressMap'
 import { NEIGHBORHOOD_MAP } from '../game/world/mapData'
+import { playtestSession } from '../game/world/playtest'
 import { useHudStore } from './hudStore'
 import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
@@ -26,6 +27,8 @@ const PERF_HUD = typeof window !== 'undefined' && new URLSearchParams(window.loc
  * bundled worlds (`?world=<id>`, editor output) each use their own slot.
  */
 function activeSaveSlot(mapId: string): string {
+  // Editor playtest: its own slot, in memory only (`enableMemorySaveStorage`), even for the neighbourhood.
+  if (playtestSession()) return 'slot-playtest'
   if (mapId === NEIGHBORHOOD_MAP.id) return 'slot-1'
   if (mapId === 'door-lab') return 'slot-lab'
   if (mapId.startsWith(STRESS_MAP_PREFIX)) return 'slot-stress'

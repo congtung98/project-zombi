@@ -54,9 +54,9 @@ type Obj = Record<string, unknown>
 
 const COLOR = /^#[0-9a-f]{6}$/i
 /** Player/zombie body radius used by the blocked-spawn check. */
-const SPAWN_CLEARANCE = 0.4
+export const SPAWN_CLEARANCE = 0.4
 /** Boxes starting this high are overhead (lintels, headers): nobody collides with them. */
-const OVERHEAD_BOTTOM = 1.6
+export const OVERHEAD_BOTTOM = 1.6
 
 class Checker {
   readonly issues: ValidationIssue[] = []
@@ -156,6 +156,18 @@ function relativePath(c: Checker, v: unknown, path: string): void {
   }
 }
 
+type Solid = { id: string; position: { x: number; y: number; z: number }; size: readonly number[] }
+
+/** Boxes a body can collide with (walls, props, containers below `OVERHEAD_BOTTOM`). */
+export function lowSolids(records: readonly ResolvedRecord[]): Solid[] {
+  return records.flatMap((r) => [...(r.parts.walls ?? []), ...(r.parts.containers ?? [])]).filter((b) => b.position.y - b.size[1] / 2 < OVERHEAD_BOTTOM)
+}
+
+/** First solid a body of radius `SPAWN_CLEARANCE` standing at `p` would overlap (spawns, playtest start). */
+export function blockingSolid(solids: readonly Solid[], p: { x: number; z: number }): Solid | undefined {
+  return solids.find((b) => Math.abs(p.x - b.position.x) < b.size[0] / 2 + SPAWN_CLEARANCE && Math.abs(p.z - b.position.z) < b.size[2] / 2 + SPAWN_CLEARANCE)
+}
+
 /** `world.json` on its own (chunk/prefab files are checked by `validateContent`). */
 export function validateWorldDocument(doc: unknown, file = 'world.json'): ValidationIssue[] {
   const c = new Checker(file)
@@ -211,6 +223,14 @@ export function validateWorldDocument(doc: unknown, file = 'world.json'): Valida
   }
   if (doc.gameplay !== undefined && c.obj(doc.gameplay, '/gameplay') && doc.gameplay.maxActiveZombies !== undefined) {
     c.num(doc.gameplay.maxActiveZombies, '/gameplay/maxActiveZombies', { int: true, min: 0 })
+  }
+  if (doc.generator !== undefined && c.obj(doc.generator, '/generator')) {
+    const g = doc.generator
+    c.str(g.name, '/generator/name')
+    c.num(g.version, '/generator/version', { int: true, min: 1 })
+    c.num(g.seed, '/generator/seed', { int: true })
+    c.obj(g.params, '/generator/params')
+    c.str(g.catalog, '/generator/catalog')
   }
   if (doc.retiredIds !== undefined && c.arr(doc.retiredIds, '/retiredIds')) {
     const seen = new Set<string>()
@@ -497,7 +517,7 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
   }
 
   const half = world.playArea.size / 2
-  const solids = records.flatMap((r) => [...(r.parts.walls ?? []), ...(r.parts.containers ?? [])]).filter((b) => b.position.y - b.size[1] / 2 < OVERHEAD_BOTTOM)
+  const solids = lowSolids(records)
   let player = false
   for (const r of records) {
     if (r.category !== 'spawns') continue
@@ -505,7 +525,7 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
     const path = `${chunkPath(r.ownerChunkId)}#/spawns/${r.order[2]}`
     if (r.id === world.playerSpawn) player = !!r.parts.playerSpawns?.length
     if (Math.abs(p.x) > half || Math.abs(p.z) > half) add('error', 'spawn-outside-play-area', path, `spawn (${p.x}, ${p.z}) is outside the play area`, r.id)
-    const blocker = solids.find((b) => Math.abs(p.x - b.position.x) < b.size[0] / 2 + SPAWN_CLEARANCE && Math.abs(p.z - b.position.z) < b.size[2] / 2 + SPAWN_CLEARANCE)
+    const blocker = blockingSolid(solids, p)
     if (blocker) add('error', 'spawn-blocked', path, `spawn (${p.x}, ${p.z}) is inside ${blocker.id}`, r.id)
   }
   if (!player) add('error', 'missing-player-spawn', 'world.json#/playerSpawn', `${world.playerSpawn} is not a player spawn of this world`)
