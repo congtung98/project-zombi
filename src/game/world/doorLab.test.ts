@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import RAPIER from '@dimforge/rapier3d-compat'
-import { DOOR_LAB_MAP } from './doorLab'
+import { DOOR_LAB_MAP, DOOR_LAB_ROOM } from './doorLab'
 import { NavGrid } from './navigation'
 import { GAME_CONFIG } from '../core/config'
 import { doorLeafTransform, type DoorStatus } from './doors'
@@ -33,7 +33,7 @@ describe('dynamic door spike', () => {
   })
 
   it('chooses a door on the route, not the nearer unrelated door; prefers an already open alternative', () => {
-    const targetRoom = structuredClone(DOOR_LAB_MAP.buildings[0])
+    const targetRoom = structuredClone(DOOR_LAB_ROOM)
     targetRoom.doors.push({ id: 'back-door', name: 'Back', side: 'N', offset: 0, width: 1.4 })
     const unrelated: BuildingDef = { ...structuredClone(targetRoom), id: 'unrelated', center: { x: 5, z: 7 }, size: { w: 4, d: 4 }, doors: [{ id: 'near-door', name: 'Near', side: 'W', offset: 0, width: 1.4 }] }
     const map = { ...DOOR_LAB_MAP, size: 30, buildings: [targetRoom, unrelated], walls: [...generateBuildingWalls(targetRoom), ...generateBuildingWalls(unrelated)], doors: [...generateDoorPlacements(targetRoom), ...generateDoorPlacements(unrelated)] }
@@ -52,7 +52,7 @@ describe('dynamic door spike', () => {
   })
 
   it('finds a chain through multiple closed portals, and refuses a room with no portal', () => {
-    const first = DOOR_LAB_MAP.buildings[0]
+    const first = DOOR_LAB_ROOM
     const second: BuildingDef = { ...structuredClone(first), id: 'second', center: { x: 0, z: -8 }, doors: [{ id: 'second-door', name: 'Second', side: 'S', offset: 0, width: 1.4 }] }
     const map = { ...DOOR_LAB_MAP, size: 30, buildings: [first, second], walls: [...generateBuildingWalls(first), ...generateBuildingWalls(second)], doors: [...generateDoorPlacements(first), ...generateDoorPlacements(second)] }
     const nav = new NavGrid(map, GAME_CONFIG.nav)

@@ -14,7 +14,7 @@ describe('dev stress map (R0)', () => {
     expect(map.buildings).toHaveLength(NEIGHBORHOOD_MAP.buildings.length * 16)
     expect(map.zombieSpawns).toHaveLength(160)
     expect(map.maxActiveZombies).toBe(160)
-    expect(map.walls.filter((w) => w.id.startsWith('bound-'))).toHaveLength(4)
+    expect(map.walls.filter((w) => w.id.startsWith('world/boundary-'))).toHaveLength(4)
     expect(mapRooms(map)).toHaveLength(mapRooms(NEIGHBORHOOD_MAP).length * 16)
     expect(mapWindows(map)).toHaveLength(mapWindows(NEIGHBORHOOD_MAP).length * 16)
   })

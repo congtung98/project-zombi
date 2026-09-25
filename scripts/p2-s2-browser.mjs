@@ -120,11 +120,11 @@ try {
     await shot('p2s2-prod-equipped')
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 7)
+    assert.equal(saved.schemaVersion, 8)
     const weapons = saved.player.inventory.slots.filter((i) => i?.kind === 'weapon')
     assert.equal(weapons.length, 1)
     assert.equal(saved.player.equipment.weaponInstanceId, weapons[0].id)
-    const closet = saved.containers.find((c) => c.id === 'ct-safehouse-closet')
+    const closet = saved.containers.find((c) => c.id === 'c-1_-1/safehouse/closet')
     assert.equal(closet.opened, true)
     assert.equal(closet.items.slots.filter(Boolean).length, 0)
     await page.reload()
@@ -222,7 +222,7 @@ try {
     assert.equal(spare.dropped, true)
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 7)
+    assert.equal(saved.schemaVersion, 8)
     const equipped = saved.player.inventory.slots.find((i) => i?.id === saved.player.equipment.weaponInstanceId)
     assert.equal(equipped.condition, 0)
     assert.equal(saved.containers.find((c) => c.id === `drop:${spare.id}`).items.slots[0].condition, 33)
@@ -238,8 +238,8 @@ try {
     assert.deepEqual(reloaded, { id: equipped.id, condition: 0 })
     log('save/reload', { equipped: `${equipped.itemId}@${equipped.condition}`, dropBag: 'metal_pipe@33' })
 
-    // Migration through the real Continue flow: S2 v3, S1 v2 and Phase 1 v1 fixtures, each backed up.
-    for (const [file, version, note] of [['phase2-s2-v3.json', 3, 'giữ bản sao v3'], ['phase2-s1-v2.json', 2, 'giữ bản sao v2'], ['phase1-v1.json', 1, 'giữ bản sao v1']]) {
+    // Migration through the real Continue flow: lighting v7, S2 v3, S1 v2 and Phase 1 v1 fixtures, each backed up.
+    for (const [file, version, note] of [['phase2-light-v7.json', 7, 'giữ bản sao v7'], ['phase2-s2-v3.json', 3, 'giữ bản sao v3'], ['phase2-s1-v2.json', 2, 'giữ bản sao v2'], ['phase1-v1.json', 1, 'giữ bản sao v1']]) {
       const original = JSON.parse(readFileSync(`src/game/systems/fixtures/${file}`, 'utf8'))
       await pause()
       await page.getByRole('button', { name: 'Về menu (không lưu)' }).click()
@@ -257,12 +257,12 @@ try {
       assert.match(await hud('.hud-toast'), new RegExp(note))
       const upgraded = await readSlot('slot-1')
       const backup = await readSlot(`slot-1.backup-v${version}`)
-      assert.equal(upgraded.schemaVersion, 7)
+      assert.equal(upgraded.schemaVersion, 8)
       assert.deepEqual(backup, original)
       const ids = upgraded.containers.map((c) => c.id)
-      for (const id of ['ct-safehouse-closet', 'ct-store-tools', 'ct-house-nightstand', 'ct-park-toolbox']) assert.ok(ids.includes(id), id)
+      for (const id of ['c-1_-1/safehouse/closet', 'c0_-1/store/tools', 'c0_0/house/nightstand', 'c-1_0/objects/park-toolbox']) assert.ok(ids.includes(id), id)
       const weapons = upgraded.player.inventory.slots.filter((i) => i?.kind === 'weapon').map((i) => i.condition).sort((a, b) => a - b)
-      log(`migration v${version} → v5`, { backup: `slot-1.backup-v${version}`, containers: ids.length, bagWeapons: weapons })
+      log(`migration v${version} → v8`, { backup: `slot-1.backup-v${version}`, containers: ids.length, bagWeapons: weapons })
     }
 
     // Lab: weapon kit and the unchanged door/physics checks still work next to the S2 UI.

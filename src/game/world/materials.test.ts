@@ -5,10 +5,15 @@ import { countItem, type Inventory } from '../systems/inventory'
 import { generateContainerLoot } from '../systems/loot'
 import { INTERACT_RANGE } from '../systems/interaction'
 import { LOOT_TABLES } from './lootTables'
-import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, NEIGHBORHOOD_MAP } from './mapData'
+import { NEIGHBORHOOD_MAP } from './mapData'
+import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, legacyContentFor } from './legacyContent'
 import { NavGrid } from './navigation'
 import { isInsideBuilding } from './buildings'
 
+// The P2-S2/P2-S4 container sets hold legacy IDs; the map uses stable content IDs.
+const LEGACY_IDS = legacyContentFor(NEIGHBORHOOD_MAP)!.ids.containers
+const ADDED_V3 = new Set([...CONTAINERS_ADDED_V3].map((id) => LEGACY_IDS[id]))
+const ADDED_V5 = new Set([...CONTAINERS_ADDED_V5].map((id) => LEGACY_IDS[id]))
 const MATERIALS: ItemId[] = ['wood_plank', 'scrap_metal', 'duct_tape', 'nails']
 const seeds = Array.from({ length: 400 }, (_, i) => (i * 2654435761) >>> 0)
 const byId = new Map(NEIGHBORHOOD_MAP.containers.map((c) => [c.id, c]))
@@ -19,14 +24,14 @@ describe('P2-S4 material loot', () => {
     const tape: number[] = []
     const wood: number[] = []
     for (const seed of seeds) {
-      const kit = loot('ct-safehouse-toolbox', seed)
+      const kit = loot('c-1_-1/safehouse/toolbox', seed)
       expect([countItem(kit, 'wood_plank'), countItem(kit, 'duct_tape'), countItem(kit, 'scrap_metal')]).toEqual([1, 1, 1])
-      const shelf = loot('ct-store-hardware', seed)
+      const shelf = loot('c0_-1/store/hardware', seed)
       expect(countItem(shelf, 'nails')).toBeGreaterThanOrEqual(6)
       expect(countItem(shelf, 'nails')).toBeLessThanOrEqual(12)
       expect(countItem(shelf, 'wood_plank')).toBeGreaterThanOrEqual(1)
       expect(countItem(shelf, 'duct_tape')).toBeGreaterThanOrEqual(1)
-      const pile = loot('ct-house-scrap', seed)
+      const pile = loot('c0_0/objects/house-scrap', seed)
       expect(countItem(pile, 'scrap_metal')).toBeGreaterThanOrEqual(1)
       const all = [kit, shelf, pile]
       tape.push(all.reduce((n, inv) => n + countItem(inv, 'duct_tape'), 0))
@@ -43,7 +48,7 @@ describe('P2-S4 material loot', () => {
   it('Phase 1 and P2-S2 containers never roll materials (their tables are unchanged)', () => {
     for (const seed of seeds.slice(0, 100)) {
       for (const c of NEIGHBORHOOD_MAP.containers) {
-        if (CONTAINERS_ADDED_V5.has(c.id)) continue
+        if (ADDED_V5.has(c.id)) continue
         for (const m of MATERIALS) expect(countItem(loot(c.id, seed), m)).toBe(0)
       }
     }
@@ -75,24 +80,24 @@ describe('P2-S4 container placement', () => {
   }
 
   it('new containers do not overlap walls, obstacles or other containers', () => {
-    for (const id of CONTAINERS_ADDED_V5) {
+    for (const id of ADDED_V5) {
       const c = byId.get(id)!
       const me = box(c.position, c.size)
       for (const w of NEIGHBORHOOD_MAP.walls) expect(overlaps(me, box(w.position, w.size)), `${id} vs ${w.id}`).toBe(false)
       for (const o of NEIGHBORHOOD_MAP.containers) if (o.id !== id) expect(overlaps(me, box(o.position, o.size)), `${id} vs ${o.id}`).toBe(false)
     }
     const inside = (id: string, building: string) => isInsideBuilding(NEIGHBORHOOD_MAP.buildings.find((b) => b.id === building)!, byId.get(id)!.position.x, byId.get(id)!.position.z)
-    expect(inside('ct-safehouse-toolbox', 'safehouse')).toBe(true)
-    expect(inside('ct-store-hardware', 'store')).toBe(true)
+    expect(inside('c-1_-1/safehouse/toolbox', 'c-1_-1/safehouse')).toBe(true)
+    expect(inside('c0_-1/store/hardware', 'c0_-1/store')).toBe(true)
     expect(NEIGHBORHOOD_MAP.buildings.some((b) => isInsideBuilding(b, 20.5, 12, 0.5))).toBe(false)
-    expect([...CONTAINERS_ADDED_V5].some((id) => CONTAINERS_ADDED_V3.has(id))).toBe(false)
+    expect([...ADDED_V5].some((id) => ADDED_V3.has(id))).toBe(false)
   })
 
   it('each new container has a reachable standing spot in interaction range with no wall in between', () => {
     const nav = new NavGrid(NEIGHBORHOOD_MAP, GAME_CONFIG.nav)
     for (const d of NEIGHBORHOOD_MAP.doors) nav.setDoorState(d.id, 'open')
     const r = GAME_CONFIG.player.radius
-    for (const id of CONTAINERS_ADDED_V5) {
+    for (const id of ADDED_V5) {
       const c = byId.get(id)!
       const radius = Math.max(c.size[0], c.size[2]) / 2 + 0.3 // same as runtime buildInteractables
       const me = box(c.position, c.size)

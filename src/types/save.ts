@@ -9,11 +9,12 @@ import type { MemorySource } from '../game/entities/zombie'
  * v1 (Phase 1) → v2 (item instances, door state) → v3 (P2-S2 melee containers) → v4 (P2-S3
  * name + appearance) → v5 (P2-S4 material containers; crafted items are ordinary instances) → v6
  * (P2-S5 zombie perception memory, wander/migration zones, door siege target, horde director) → v7
- * (building lighting: curtains, lamps, grid power; the house bedroom door).
+ * (building lighting: curtains, lamps, grid power; the house bedroom door) → v8 (map content:
+ * stable content IDs such as `c-1_-1/safehouse/door`, plus the content revision).
  * Older versions migrate in memory; unknown versions are rejected without overwriting the
  * original. Timed actions (craft/repair in progress) and derived room light are never saved.
  */
-export const SAVE_SCHEMA_VERSION = 7
+export const SAVE_SCHEMA_VERSION = 8
 
 export interface SavedPlayer {
   name: string
@@ -61,6 +62,8 @@ export interface SaveGame {
   schemaVersion: number
   savedAt: number
   mapId: string
+  /** v8: content revision of the world (`world.json` contentVersion; 0 for hand-made maps). */
+  contentVersion: number
   worldSeed: number
   clock: { elapsed: number; timeOfDay: number; day: number }
   player: SavedPlayer

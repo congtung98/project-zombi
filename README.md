@@ -61,7 +61,11 @@ simulation để kiểm tra từ console hoặc kịch bản playtest tự độ
 ## Cấu trúc mã
 
 ```text
+content/maps/<world>/  nội dung map: world.json, prefabs/, chunks/ (32 m), migrations/ (docs/map-content-format.md)
+scripts/map-tools/     check.ts (npm run map:check), import-legacy.ts
 src/
+  map/                 schema, transform (xoay/chunk/ID), validate, resolve (JSON → MapData), loader (ChunkLifecycle),
+                       content (nạp JSON đi kèm bundle), tools/ (importLegacy, tileWorld)
   app/                 App (điều hướng màn hình), GameCanvas
   game/
     core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, di cư, đòn vào cửa, snapshot/load)
@@ -71,7 +75,8 @@ src/
                        inventory (add/remove/transfer), loot (PRNG seed, bảng loot), spawn (chọn điểm spawn),
                        save (validate schema, tóm tắt), saveStorage (IndexedDB), crafting (kiểm tra/commit
                        recipe), timedAction (reservation, tiến độ)  (+ unit test)
-    world/             buildings (generator tường/cửa), mapData (khu phố 50×50), worldState (cửa/container + loot),
+    world/             buildings (kiểu + generator nhà tham số cho door lab/test), mapData (kiểu MapData + nạp khu phố từ
+                       content), legacyContent (map cũ đóng băng cho save v1–v7), worldState (cửa/container + loot),
                        lootTables (bảng loot đặt tay), navigation (lưới A*, cửa mở/đóng/vỡ, vùng liên thông, chọn cửa phá)
     rendering/         Scene, CameraRig, CursorProbe, Ground, Roads, Walls, BuildingView, DoorView,
                        ContainerView, PlayerView, ZombieView, Lights (+ daylight), OcclusionFader, PhysicsBridge, GameLoop
@@ -96,11 +101,17 @@ Nguyên tắc:
 - **Điều hướng không dùng physics.** `NavGrid` dựng một lần từ map data (ô 0,5 m, vật cản nới theo bán kính
   tác nhân); trạng thái cửa chỉ đổi các ô trong khung cửa và vùng cánh cửa mở. AI nhận `findPath`/`hasLineOfWalk`
   qua context nên test được bằng hàm giả.
-- **ID ổn định.** Tường, cửa, container đều có ID cố định trong map data; `worldState` giữ trạng thái
-  mở/đóng để Sprint 5 lưu lại.
+- **Map là dữ liệu.** Khu phố nằm trong `content/maps/neighborhood-50/` (prefab + chunk JSON); `src/map/` kiểm tra
+  và resolve thành `MapData`. Mọi thực thể có ID ổn định `<chunk>/<instance>/<localId>` (ví dụ `c-1_-1/safehouse/door`);
+  `worldState` và save (v8) giữ trạng thái theo ID này.
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map content M1–M2 / R3a (25/09/2026)
+
+- Khu phố chuyển thành 3 prefab + 4 chunk 32 m + manifest; validator dùng chung (runtime, test, `npm run map:check`); `ChunkLifecycle` đếm tham chiếu cho thứ vượt biên chunk. Bố cục và gameplay giữ nguyên (test so từng thực thể với map cũ).
+- Save **v8**: ID ổn định + `contentVersion`; save cũ migrate qua map cũ đóng băng, giữ `slot-1.backup-v7`. Chi tiết `docs/map-editor-m1-m2.md`.
 
 ### Phase 2 — Sprint bổ sung: ánh sáng trong nhà (25/09/2026)
 

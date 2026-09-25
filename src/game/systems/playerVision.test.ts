@@ -202,10 +202,10 @@ describe('vision occluders (walls, doors, windows)', () => {
   it('the neighbourhood map: tall walls/furniture/doors block, fences, crates, cars and beds do not', () => {
     const set = buildVisionOccluders(NEIGHBORHOOD_MAP, () => 'closed', CFG.occluderMinHeight)
     const ids = new Set(set.all.map((o) => o.id))
-    for (const id of ['bound-n', 'safehouse-S-0', 'safehouse-S-lintel', 'pillar-1', 'ct-store-shelf-1', 'ct-house-wardrobe', 'ct-store-fridge', 'door-safehouse', 'door-store', 'door-house']) {
+    for (const id of ['world/boundary-n', 'c-1_-1/safehouse/wall-s-0', 'c-1_-1/safehouse/wall-s-lintel', 'c0_0/objects/pillar-1', 'c0_-1/store/shelf-1', 'c0_0/house/wardrobe', 'c0_-1/store/fridge', 'c-1_-1/safehouse/door', 'c0_-1/store/door', 'c0_0/house/door']) {
       expect(ids.has(id), id).toBe(true)
     }
-    for (const id of ['fence-park-n', 'crate-1', 'car-1', 'house-bed', 'store-counter', 'ct-safehouse-cabinet', 'ct-park-toolbox']) {
+    for (const id of ['c-1_0/objects/fence-park-n', 'c-1_0/objects/crate-1', 'c0_-1/objects/car-1', 'c0_0/house/bed', 'c0_-1/store/counter', 'c-1_-1/safehouse/cabinet', 'c-1_0/objects/park-toolbox']) {
       expect(ids.has(id), id).toBe(false)
     }
   })

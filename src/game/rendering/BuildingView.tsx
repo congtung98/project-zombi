@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { Mesh } from 'three'
-import type { BuildingDef } from '../world/buildings'
+import type { BuildingInfo } from '../world/buildings'
 import { runtime } from '../core/runtime'
 import { occluderRef } from './occlusionRegistry'
 import { sharedBox, sharedPlane, sharedStandardMaterial } from './sharedResources'
@@ -16,7 +16,7 @@ const roofs = new Map<string, Mesh>()
 let roofsVersion = 0
 
 interface BuildingViewProps {
-  building: BuildingDef
+  building: BuildingInfo
 }
 
 /**

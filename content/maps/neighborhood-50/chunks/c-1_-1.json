@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_-1",
+  "cx": -1,
+  "cz": -1,
+  "instances": [
+    {
+      "instanceId": "c-1_-1/safehouse",
+      "prefabId": "building/safehouse",
+      "position": { "x": 18, "y": 0, "z": 18 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [
+    {
+      "zoneId": "c-1_-1/zones/west",
+      "kind": "zombiePopulation",
+      "name": "Đường phía tây",
+      "shape": "circle",
+      "center": { "x": 11, "z": 29 },
+      "radius": 3.5
+    },
+    {
+      "zoneId": "c-1_-1/zones/north",
+      "kind": "zombiePopulation",
+      "name": "Bãi đất phía bắc",
+      "shape": "circle",
+      "center": { "x": 30, "z": 13 },
+      "radius": 3.5
+    },
+    {
+      "zoneId": "c-1_-1/zones/cross",
+      "kind": "zombiePopulation",
+      "name": "Ngã tư",
+      "shape": "circle",
+      "center": { "x": 31, "z": 31 },
+      "radius": 4
+    }
+  ],
+  "spawns": [
+    { "spawnId": "c-1_-1/spawns/player-start", "kind": "player", "position": { "x": 19, "z": 19 } },
+    { "spawnId": "c-1_-1/spawns/zombie-4", "kind": "zombie", "position": { "x": 30, "z": 12 } }
+  ],
+  "externalRefs": [{ "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" }, { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" }]
+}

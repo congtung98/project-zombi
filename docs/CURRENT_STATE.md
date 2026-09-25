@@ -1,12 +1,27 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **refactor kiến trúc R0–R2** (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, **docs/refactor-r0-r2.md** và docs/map-format-note.md.
+> Cập nhật: **2026-09-25**, hoàn thành **map content M1–M2 (R3a)** sau refactor R0–R2 (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, **docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Refactor kiến trúc R0–R2 (mới nhất, chưa commit — chi tiết docs/refactor-r0-r2.md)
+## 0. Map content M1–M2 = R3a (mới nhất, chưa commit — chi tiết docs/map-editor-m1-m2.md)
 
-Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak.md` (dựa trên `game-architecture-refactor-plan.md`). Không streaming/ảo hóa/worker/floating origin/chunk persistence. **Save vẫn v7.**
+Kế hoạch: `docs/Map_Editor_Implementation_Plan.md`. Thứ tự đã chốt với chủ dự án: **R3a (M1+M2) → R3b (hiệu năng theo chunk) → M3+ (editor GUI)**.
+
+- **Nội dung là dữ liệu**: `content/maps/neighborhood-50/` (world.json, 3 prefab `building/*`, 4 chunk 32 m `c-1_-1 c0_-1 c-1_0 c0_0`, `migrations/legacy-v7-map.json` + `legacy-v7-ids.json`). Định dạng/quy ước: `docs/map-content-format.md`.
+- **Mã**: `src/map/` (schema, transform, validate, resolve, loader `ChunkLifecycle`, content, format; tools `importLegacy`, `tileWorld`); `NEIGHBORHOOD_MAP = loadBundledWorld('neighborhood-50').map` (không còn BuildingDef viết tay); `MapData.buildings: BuildingInfo[]`; hằng `*_ADDED_Vn` chuyển sang `world/legacyContent.ts` (chỉ cho save cũ). `?stress=N` sinh bằng `tileWorld` qua cùng pipeline; production không chứa generator.
+- **ID ổn định**: `c-1_-1/safehouse/door`, `c0_-1/store/shelf-1`, `c-1_0/objects/park-toolbox`, `c0_0/zones/south`, `world/boundary-n`… (đoạn chunk là định danh bất biến). **Mọi test/script mới phải dùng ID này.**
+- **Save v8** (+ `contentVersion`): v1–v7 migrate qua map cũ đóng băng rồi đổi tên ID (backup `slot-1.backup-v7`); ID inventory/item không đổi.
+- **Tương đương**: test so từng thực thể với map cũ; soak trùng từng số R2 khi cùng thứ tự + khóa loot cũ. **Mốc soak mới** (thứ tự chunk, loot seed theo ID mới): shelter 1800 s/3 kill/10 dmg, patrol 970 s/42 kill.
+- **Kiểm chứng**: 380 test pass (+9 skip), tsc/oxlint/build sạch, `npm run map:check` OK; Playwright dev S2 (migrate v7/v3/v2/v1 → v8 qua Continue), S3, S4, S5, vision, lighting và production S5/vision/lighting/S4 PASS. Fixture `phase2-light-v7.json` nay đóng băng (script không ghi nữa).
+- **Sửa nội dung**: sửa JSON trong `content/maps/…` rồi `npm run map:check`; đổi bố cục khu phố = tăng `contentVersion` (test tương đương/importer tự bỏ qua khi khác 1) và viết migrate nếu trạng thái đã lưu bị ảnh hưởng.
+- **Bước tiếp**: R3b — gộp hình học tĩnh/instancing theo chunk, nav theo chunk + portal, LOS zombie phía simulation, nối `ChunkLifecycle` với register/unregister collider/occluder/nav. Sau đó M3 (editor MVP, entry riêng).
+
+Commit message gợi ý: **feat(map): data-driven map content (prefab + chunk JSON, stable IDs, validator, chunk lifecycle) and save v8**
+
+## 0b. Refactor kiến trúc R0–R2 (đã commit 8637897 — chi tiết docs/refactor-r0-r2.md)
+
+Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak.md` (dựa trên `game-architecture-refactor-plan.md`). Không streaming/ảo hóa/worker/floating origin/chunk persistence. Save vẫn v7 (M2 nâng lên v8).
 
 - **R0**: `runtime.perf` (`core/perf.ts`), HUD **F7** / `?perf=1` (`components/PerfHud.tsx`, `rendering/PerfProbe.tsx`: frame, CPU/frame, draw call), map stress **`?stress=N`** (dev, `world/stressMap.ts`, slot `slot-stress`), benchmark `PERF_SCENARIOS=1 npx vitest run src/game/core/perf.scenarios.test.ts --reporter=verbose`, trình duyệt `scripts/r0-perf-browser.mjs [label] --gpu`.
 - **R1** (không đổi hành vi, soak trùng từng số): `core/spatialHash.ts` (kết quả theo thứ tự chèn); `runtime.zombieIndex` (separation, cận chiến, tầm nhìn), index occluder, interactable, công trình (`runtime.buildingAt`, `RoofController`); A* dùng lại buffer (stamp); không còn `scene.traverse` ở hot path: vá shader trong nhà trên `MeshStandardMaterial.prototype` (`installIndoorShading`), `occlusionRegistry` + `occluderRef`; material/geometry dùng chung (`rendering/sharedResources.ts`); giới hạn phòng shader `buildingLighting.maxShaderRooms` (map nhiều phòng tải 16 phòng gần nhất).
@@ -14,15 +29,13 @@ Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak
 - **Kết quả** (map stress, 160 zombie): tick Node 1,29 → 0,056 ms; bão A* tệ nhất 595 → 9,8 ms; trình duyệt (Intel UHD 730) 53,6 → ~74 FPS, CPU/frame 17,5 → ~10,5 ms, body zombie 160 → ~8. Draw call chưa giảm (việc của R3).
 - **Hành vi đổi (R2)**: người chơi không đẩy được zombie (kinematic); zombie va chạm thật với người chơi/nhau/tủ; soak patrol 719 → **655 s** (shelter vẫn đạt cổng: 30', 4 kill, 30 dmg). Test dùng body giả chỉ còn cho người chơi.
 - **Kiểm chứng**: 359 test pass (+ 9 skip benchmark), tsc/oxlint/build sạch; trình duyệt dev s2/s3/s4/s5/vision/lighting và production s5/vision/lighting/s4 PASS (fixture lighting ghi lại đã khôi phục).
-- **Bước tiếp**: R3 (chunk ownership, gộp hình học tĩnh, nav theo chunk + portal, LOS zombie phía simulation, định dạng map prefab + layout JSON) hoặc quay lại P2-S6/S7. Barricade/vách mới đăng ký vào `StaticColliderRegistry`, `VisionOccluderSet` và nav.
-
-Commit message gợi ý (hoặc tách theo 8 nhóm ở docs/refactor-r0-r2.md §6): **refactor(arch): R0 perf HUD + stress map, R1 spatial hash and traversal cleanup, R2 simulation-owned zombies with AI scheduler and path queue**
+- Barricade/vách mới (P2-S6/S7) đăng ký vào `StaticColliderRegistry`, `VisionOccluderSet` và nav; nội dung tĩnh của chúng nên là object trong prefab/chunk.
 
 ## 1. Trạng thái hiện tại
 
 Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S5** (đã commit, S5 = 1f81571) và **sprint bổ sung tầm nhìn người chơi** (zombie chỉ vẽ khi nhân vật thấy; debug F4; save vẫn v6; sau playtest đã **bỏ lớp tối mặt đất** — tầm nhìn không được đụng ánh sáng). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
+Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0b, commit 8637897) và **map content M1–M2** (mục 0, save v8). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
 
 | Sprint | Trạng thái |
 |---|---|
@@ -31,7 +44,9 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 | P2-S5 Perception/lang thang/di cư/phá cửa | Xong, đã commit (1f81571) |
 | Bổ sung: tầm nhìn người chơi | Đã commit (c4f9728, 1fc531d, 5f38d8d) |
 | Bổ sung: ánh sáng trong nhà | Đã commit (38a1469) |
-| Refactor R0–R2 (hiệu năng/kiến trúc) | Xong, chưa commit (docs/refactor-r0-r2.md) |
+| Refactor R0–R2 (hiệu năng/kiến trúc) | Đã commit (8637897) |
+| Map content M1–M2 = R3a (prefab + chunk JSON, save v8) | Xong, chưa commit (docs/map-editor-m1-m2.md) |
+| R3b (hiệu năng theo chunk) → M3–M6 editor | Chưa làm (thứ tự đã chốt) |
 | P2-S6 Barricade/tool/fuel | Tạm dừng (sau R0–R2); dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
@@ -42,7 +57,7 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 - `runtime.lighting`; `setLamp/setCurtain/setElectricity` (+ sự kiện `light:changed/curtain:changed/power:changed`), `setDoorState` đánh dấu bẩn; cập nhật trước tầm nhìn cuối tick. Không đọc facing/vision (test chặn).
 - Map (ID mới): cửa sổ `win-*` (bệ/dầm là tường, kính là `WindowView` + collider `…:pane`), phòng `room-*`, đèn `lamp-*` + công tắc; nhà dân có vách `house-partition` + cửa `door-house-bedroom` (ban đầu mở, `DoorPlacement.initialState`). Kính chặn nav như tường.
 - Hiển thị: `rendering/indoorShading.ts` patch mọi `MeshStandardMaterial` tại chỗ (`onBeforeCompile`, key chung): fragment trong phòng dưới trần = màu × shade phòng (0,06…0,85) × hướng mặt + emissive; ngoài giữ nguyên. `IndoorLighting.tsx` cập nhật uniform theo revision. Tương tác E: công tắc (`light`), rèm (`window`, tầm 0,3 m). F6 debug, F3 dòng Ánh sáng.
-- Save v7 `lighting {curtains, lamps, electricity}`; migrate v6 → v7 thêm cửa phòng ngủ (mở), mặc định rèm mở/đèn tắt/có điện, đẩy entity khỏi vách mới. Fixture `phase2-light-v7.json` (script lighting dev ghi); `phase2-s5-v6.json` đóng băng.
+- Save v7 `lighting {curtains, lamps, electricity}`; migrate v6 → v7 thêm cửa phòng ngủ (mở), mặc định rèm mở/đèn tắt/có điện, đẩy entity khỏi vách mới. Fixture `phase2-light-v7.json` và `phase2-s5-v6.json` đều đóng băng (từ save v8 script không ghi nữa).
 
 ## 2. Sprint tầm nhìn đã bàn giao (chi tiết docs/phase2-vision.md)
 
@@ -103,7 +118,7 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 1. Barricade trên `DoorState` (gỗ 1–3 ván, kim loại); `stepStructureHits` trừ barricade trước, phần dư vào cửa (plan §9.3). Cửa barricade không mở được.
 2. Action nhắm cửa: `startRecipe` với `worldTargetId = doorId` (hook đã có), kiểm tra khoảng cách tới cửa, cooldown 3 s sau lần cửa trúng đòn.
 3. Items `metal_sheet`, `welding_torch` (fuel), `welder_mask`, `fuel_canister`; refuel là recipe có thời gian. Búa đã là tool (`isUsableTool`).
-4. Save v7 cho barricade/fuel; migrate v6 → v7; fixture mới; giữ `phase2-s5-v6.json` đóng băng (script S5 đang ghi đè nó — tắt ghi khi đổi schema).
+4. Save v9 cho barricade/fuel; migrate v8 → v9; fixture mới (các fixture cũ giữ đóng băng); barricade tĩnh là object trong prefab/chunk, ID theo `docs/map-content-format.md`.
 5. Cân bằng thời gian trụ cửa với 1–2 zombie; soak shelter hiện mất cửa ở giây 61 — cân nhắc cho bot gia cố/sửa cửa khi có S6/S7.
 
 ## 6. Giới hạn và việc còn lại

@@ -1,0 +1,1885 @@
+{
+  "id": "neighborhood-50",
+  "size": 50,
+  "playerSpawn": {
+    "x": -13,
+    "y": 0,
+    "z": -13
+  },
+  "zombieSpawns": [
+    {
+      "x": -14,
+      "y": 0,
+      "z": 13
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 14
+    },
+    {
+      "x": 20,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "x": -2,
+      "y": 0,
+      "z": -20
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": -5
+    },
+    {
+      "x": 22,
+      "y": 0,
+      "z": 20
+    },
+    {
+      "x": -22,
+      "y": 0,
+      "z": 0
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 22
+    }
+  ],
+  "zombieZones": [
+    {
+      "id": "zone-park",
+      "name": "Công viên",
+      "center": {
+        "x": -15,
+        "y": 0,
+        "z": 13
+      },
+      "radius": 5
+    },
+    {
+      "id": "zone-west",
+      "name": "Đường phía tây",
+      "center": {
+        "x": -21,
+        "y": 0,
+        "z": -3
+      },
+      "radius": 3.5
+    },
+    {
+      "id": "zone-north",
+      "name": "Bãi đất phía bắc",
+      "center": {
+        "x": -2,
+        "y": 0,
+        "z": -19
+      },
+      "radius": 3.5
+    },
+    {
+      "id": "zone-store",
+      "name": "Sân cửa hàng",
+      "center": {
+        "x": 14,
+        "y": 0,
+        "z": -5
+      },
+      "radius": 3.5
+    },
+    {
+      "id": "zone-east",
+      "name": "Đường phía đông",
+      "center": {
+        "x": 21,
+        "y": 0,
+        "z": 2
+      },
+      "radius": 3
+    },
+    {
+      "id": "zone-cross",
+      "name": "Ngã tư",
+      "center": {
+        "x": -1,
+        "y": 0,
+        "z": -1
+      },
+      "radius": 4
+    },
+    {
+      "id": "zone-south",
+      "name": "Phố phía nam",
+      "center": {
+        "x": 4,
+        "y": 0,
+        "z": 17
+      },
+      "radius": 4
+    },
+    {
+      "id": "zone-yard",
+      "name": "Sân sau nhà dân",
+      "center": {
+        "x": 20,
+        "y": 0,
+        "z": 20
+      },
+      "radius": 3.5
+    }
+  ],
+  "buildings": [
+    {
+      "id": "safehouse",
+      "name": "Nhà an toàn",
+      "center": {
+        "x": -14,
+        "z": -14
+      },
+      "size": {
+        "w": 8,
+        "d": 8
+      },
+      "height": 3,
+      "wallThickness": 0.3,
+      "wallColor": "#b9a78a",
+      "roofColor": "#6b4f3a",
+      "floorColor": "#7d6b55",
+      "doors": [
+        {
+          "id": "door-safehouse",
+          "name": "Cửa nhà an toàn",
+          "side": "S",
+          "offset": 1,
+          "width": 1.4
+        }
+      ],
+      "windows": [
+        {
+          "id": "win-safehouse-n",
+          "name": "Cửa sổ phía bắc nhà an toàn",
+          "side": "N",
+          "offset": 2,
+          "width": 1.2
+        },
+        {
+          "id": "win-safehouse-e",
+          "name": "Cửa sổ phía đông nhà an toàn",
+          "side": "E",
+          "offset": 2.2,
+          "width": 1.2
+        }
+      ],
+      "rooms": [
+        {
+          "id": "room-safehouse",
+          "name": "Nhà an toàn",
+          "bounds": {
+            "minX": -18,
+            "maxX": -10,
+            "minZ": -18,
+            "maxZ": -10
+          },
+          "lamp": {
+            "id": "lamp-safehouse",
+            "name": "Đèn nhà an toàn",
+            "intensity": 0.8,
+            "color": "#ffd9a0",
+            "requiresElectricity": true,
+            "switchAt": {
+              "x": -14.3,
+              "z": -10.25
+            }
+          }
+        }
+      ],
+      "containers": [
+        {
+          "id": "ct-safehouse-cabinet",
+          "name": "Tủ đồ nhà an toàn",
+          "position": {
+            "x": -17,
+            "y": 0.5,
+            "z": -17.4
+          },
+          "size": [
+            1.2,
+            1,
+            0.6
+          ],
+          "color": "#8b5e3c",
+          "loot": "safehouse-cabinet"
+        },
+        {
+          "id": "ct-safehouse-closet",
+          "name": "Tủ quần áo nhà an toàn",
+          "position": {
+            "x": -10.5,
+            "y": 0.9,
+            "z": -15.5
+          },
+          "size": [
+            0.6,
+            1.8,
+            1.4
+          ],
+          "color": "#6d4c35",
+          "loot": "safehouse-closet"
+        },
+        {
+          "id": "ct-safehouse-toolbox",
+          "name": "Hộp đồ nghề nhà an toàn",
+          "position": {
+            "x": -17.5,
+            "y": 0.3,
+            "z": -13
+          },
+          "size": [
+            0.5,
+            0.6,
+            0.9
+          ],
+          "color": "#4f6d7a",
+          "loot": "safehouse-toolbox"
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "name": "Cửa hàng tiện lợi",
+      "center": {
+        "x": 13,
+        "z": -13
+      },
+      "size": {
+        "w": 12,
+        "d": 8
+      },
+      "height": 3,
+      "wallThickness": 0.3,
+      "wallColor": "#8f9aa8",
+      "roofColor": "#4d5561",
+      "floorColor": "#9aa0a6",
+      "doors": [
+        {
+          "id": "door-store",
+          "name": "Cửa cửa hàng",
+          "side": "S",
+          "offset": -3,
+          "width": 1.6
+        }
+      ],
+      "windows": [
+        {
+          "id": "win-store-s1",
+          "name": "Tủ kính cửa hàng",
+          "side": "S",
+          "offset": 1,
+          "width": 1.6
+        },
+        {
+          "id": "win-store-s2",
+          "name": "Tủ kính cửa hàng (góc)",
+          "side": "S",
+          "offset": 4,
+          "width": 1.6
+        }
+      ],
+      "rooms": [
+        {
+          "id": "room-store",
+          "name": "Cửa hàng tiện lợi",
+          "bounds": {
+            "minX": 7,
+            "maxX": 19,
+            "minZ": -17,
+            "maxZ": -9
+          },
+          "lamp": {
+            "id": "lamp-store",
+            "name": "Đèn cửa hàng",
+            "intensity": 0.9,
+            "color": "#e8f2ff",
+            "requiresElectricity": true,
+            "switchAt": {
+              "x": 8.6,
+              "z": -9.25
+            }
+          }
+        }
+      ],
+      "containers": [
+        {
+          "id": "ct-store-shelf-1",
+          "name": "Kệ hàng 1",
+          "position": {
+            "x": 9,
+            "y": 0.8,
+            "z": -16.4
+          },
+          "size": [
+            2,
+            1.6,
+            0.6
+          ],
+          "color": "#5b6b7a",
+          "loot": "store-shelf"
+        },
+        {
+          "id": "ct-store-shelf-2",
+          "name": "Kệ hàng 2",
+          "position": {
+            "x": 13,
+            "y": 0.8,
+            "z": -16.4
+          },
+          "size": [
+            2,
+            1.6,
+            0.6
+          ],
+          "color": "#5b6b7a",
+          "loot": "store-shelf"
+        },
+        {
+          "id": "ct-store-shelf-3",
+          "name": "Kệ hàng 3",
+          "position": {
+            "x": 17,
+            "y": 0.8,
+            "z": -16.4
+          },
+          "size": [
+            2,
+            1.6,
+            0.6
+          ],
+          "color": "#5b6b7a",
+          "loot": "store-shelf"
+        },
+        {
+          "id": "ct-store-fridge",
+          "name": "Tủ lạnh",
+          "position": {
+            "x": 18.3,
+            "y": 0.9,
+            "z": -11
+          },
+          "size": [
+            0.8,
+            1.8,
+            0.8
+          ],
+          "color": "#d8dee6",
+          "loot": "store-fridge"
+        },
+        {
+          "id": "ct-store-tools",
+          "name": "Kệ dụng cụ",
+          "position": {
+            "x": 7.5,
+            "y": 0.8,
+            "z": -12.5
+          },
+          "size": [
+            0.6,
+            1.6,
+            2
+          ],
+          "color": "#7a5f3a",
+          "loot": "tool-shelf"
+        },
+        {
+          "id": "ct-store-hardware",
+          "name": "Kệ vật liệu",
+          "position": {
+            "x": 18.45,
+            "y": 0.8,
+            "z": -14.3
+          },
+          "size": [
+            0.6,
+            1.6,
+            1.8
+          ],
+          "color": "#8a6a3a",
+          "loot": "hardware-shelf"
+        }
+      ]
+    },
+    {
+      "id": "house",
+      "name": "Nhà dân",
+      "center": {
+        "x": 13,
+        "z": 12
+      },
+      "size": {
+        "w": 9,
+        "d": 7
+      },
+      "height": 3,
+      "wallThickness": 0.3,
+      "wallColor": "#c4a484",
+      "roofColor": "#7a3f2f",
+      "floorColor": "#8a7560",
+      "doors": [
+        {
+          "id": "door-house",
+          "name": "Cửa nhà dân",
+          "side": "N",
+          "offset": -2,
+          "width": 1.4
+        }
+      ],
+      "partitions": [
+        {
+          "id": "house-partition",
+          "axis": "z",
+          "at": 14,
+          "from": 8.5,
+          "to": 15.5,
+          "door": {
+            "id": "door-house-bedroom",
+            "name": "Cửa phòng ngủ",
+            "at": 13,
+            "width": 1.4,
+            "openSide": -1,
+            "initialState": "open"
+          }
+        }
+      ],
+      "windows": [
+        {
+          "id": "win-house-n",
+          "name": "Cửa sổ phòng khách",
+          "side": "N",
+          "offset": 0,
+          "width": 1.2
+        },
+        {
+          "id": "win-house-w",
+          "name": "Cửa sổ phía tây phòng khách",
+          "side": "W",
+          "offset": -0.5,
+          "width": 1.2
+        }
+      ],
+      "rooms": [
+        {
+          "id": "room-house-living",
+          "name": "Phòng khách",
+          "bounds": {
+            "minX": 8.5,
+            "maxX": 14,
+            "minZ": 8.5,
+            "maxZ": 15.5
+          },
+          "lamp": {
+            "id": "lamp-house-living",
+            "name": "Đèn phòng khách",
+            "intensity": 0.8,
+            "color": "#ffd9a0",
+            "requiresElectricity": true,
+            "switchAt": {
+              "x": 12.05,
+              "z": 8.75
+            }
+          }
+        },
+        {
+          "id": "room-house-bedroom",
+          "name": "Phòng ngủ",
+          "bounds": {
+            "minX": 14,
+            "maxX": 17.5,
+            "minZ": 8.5,
+            "maxZ": 15.5
+          },
+          "lamp": {
+            "id": "lamp-house-bedroom",
+            "name": "Đèn phòng ngủ",
+            "intensity": 0.7,
+            "color": "#ffd9a0",
+            "requiresElectricity": true,
+            "switchAt": {
+              "x": 14.25,
+              "z": 14.3
+            }
+          }
+        }
+      ],
+      "containers": [
+        {
+          "id": "ct-house-wardrobe",
+          "name": "Tủ quần áo",
+          "position": {
+            "x": 16.5,
+            "y": 1,
+            "z": 14.9
+          },
+          "size": [
+            1.6,
+            2,
+            0.6
+          ],
+          "color": "#6d4c35",
+          "loot": "house-wardrobe"
+        },
+        {
+          "id": "ct-house-kitchen",
+          "name": "Tủ bếp",
+          "position": {
+            "x": 9.6,
+            "y": 0.5,
+            "z": 14.9
+          },
+          "size": [
+            1.4,
+            1,
+            0.6
+          ],
+          "color": "#9c7a5a",
+          "loot": "house-kitchen"
+        },
+        {
+          "id": "ct-house-nightstand",
+          "name": "Tủ đầu giường",
+          "position": {
+            "x": 17.05,
+            "y": 0.35,
+            "z": 12
+          },
+          "size": [
+            0.5,
+            0.7,
+            0.5
+          ],
+          "color": "#7b5a44",
+          "loot": "house-nightstand"
+        }
+      ]
+    }
+  ],
+  "walls": [
+    {
+      "id": "bound-n",
+      "position": {
+        "x": 0,
+        "y": 1,
+        "z": -25.5
+      },
+      "size": [
+        52,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "bound-s",
+      "position": {
+        "x": 0,
+        "y": 1,
+        "z": 25.5
+      },
+      "size": [
+        52,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "bound-w",
+      "position": {
+        "x": -25.5,
+        "y": 1,
+        "z": 0
+      },
+      "size": [
+        1,
+        2,
+        52
+      ]
+    },
+    {
+      "id": "bound-e",
+      "position": {
+        "x": 25.5,
+        "y": 1,
+        "z": 0
+      },
+      "size": [
+        1,
+        2,
+        52
+      ]
+    },
+    {
+      "id": "win-safehouse-n-sill",
+      "position": {
+        "x": -12,
+        "y": 0.45,
+        "z": -18
+      },
+      "size": [
+        1.2,
+        0.9,
+        0.3
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "win-safehouse-n-header",
+      "position": {
+        "x": -12,
+        "y": 2.55,
+        "z": -18
+      },
+      "size": [
+        1.2,
+        0.8999999999999999,
+        0.3
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-N-0",
+      "position": {
+        "x": -15.3,
+        "y": 1.5,
+        "z": -18
+      },
+      "size": [
+        5.4,
+        3,
+        0.3
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-N-1",
+      "position": {
+        "x": -10.7,
+        "y": 1.5,
+        "z": -18
+      },
+      "size": [
+        1.4000000000000004,
+        3,
+        0.3
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-S-lintel",
+      "position": {
+        "x": -13,
+        "y": 2.6,
+        "z": -10
+      },
+      "size": [
+        1.4,
+        0.7999999999999998,
+        0.3
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-S-0",
+      "position": {
+        "x": -15.85,
+        "y": 1.5,
+        "z": -10
+      },
+      "size": [
+        4.300000000000001,
+        3,
+        0.3
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-S-1",
+      "position": {
+        "x": -11.15,
+        "y": 1.5,
+        "z": -10
+      },
+      "size": [
+        2.3000000000000007,
+        3,
+        0.3
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-W-0",
+      "position": {
+        "x": -18,
+        "y": 1.5,
+        "z": -14
+      },
+      "size": [
+        0.3,
+        3,
+        7.700000000000001
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "win-safehouse-e-sill",
+      "position": {
+        "x": -10,
+        "y": 0.45,
+        "z": -11.8
+      },
+      "size": [
+        0.3,
+        0.9,
+        1.2
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "win-safehouse-e-header",
+      "position": {
+        "x": -10,
+        "y": 2.55,
+        "z": -11.8
+      },
+      "size": [
+        0.3,
+        0.8999999999999999,
+        1.2
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-E-0",
+      "position": {
+        "x": -10,
+        "y": 1.5,
+        "z": -15.125
+      },
+      "size": [
+        0.3,
+        3,
+        5.450000000000001
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "safehouse-E-1",
+      "position": {
+        "x": -10,
+        "y": 1.5,
+        "z": -10.675
+      },
+      "size": [
+        0.3,
+        3,
+        1.0500000000000007
+      ],
+      "color": "#b9a78a"
+    },
+    {
+      "id": "store-N-0",
+      "position": {
+        "x": 13,
+        "y": 1.5,
+        "z": -17
+      },
+      "size": [
+        12,
+        3,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "store-S-lintel",
+      "position": {
+        "x": 10,
+        "y": 2.6,
+        "z": -9
+      },
+      "size": [
+        1.6,
+        0.7999999999999998,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "win-store-s1-sill",
+      "position": {
+        "x": 14,
+        "y": 0.45,
+        "z": -9
+      },
+      "size": [
+        1.6,
+        0.9,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "win-store-s1-header",
+      "position": {
+        "x": 14,
+        "y": 2.55,
+        "z": -9
+      },
+      "size": [
+        1.6,
+        0.8999999999999999,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "win-store-s2-sill",
+      "position": {
+        "x": 17,
+        "y": 0.45,
+        "z": -9
+      },
+      "size": [
+        1.6,
+        0.9,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "win-store-s2-header",
+      "position": {
+        "x": 17,
+        "y": 2.55,
+        "z": -9
+      },
+      "size": [
+        1.6,
+        0.8999999999999999,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "store-S-0",
+      "position": {
+        "x": 8.1,
+        "y": 1.5,
+        "z": -9
+      },
+      "size": [
+        2.1999999999999993,
+        3,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "store-S-1",
+      "position": {
+        "x": 12,
+        "y": 1.5,
+        "z": -9
+      },
+      "size": [
+        2.3999999999999986,
+        3,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "store-S-2",
+      "position": {
+        "x": 15.5,
+        "y": 1.5,
+        "z": -9
+      },
+      "size": [
+        1.3999999999999986,
+        3,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "store-S-3",
+      "position": {
+        "x": 18.4,
+        "y": 1.5,
+        "z": -9
+      },
+      "size": [
+        1.1999999999999993,
+        3,
+        0.3
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "store-W-0",
+      "position": {
+        "x": 7,
+        "y": 1.5,
+        "z": -13
+      },
+      "size": [
+        0.3,
+        3,
+        7.700000000000001
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "store-E-0",
+      "position": {
+        "x": 19,
+        "y": 1.5,
+        "z": -13
+      },
+      "size": [
+        0.3,
+        3,
+        7.700000000000001
+      ],
+      "color": "#8f9aa8"
+    },
+    {
+      "id": "house-N-lintel",
+      "position": {
+        "x": 11,
+        "y": 2.6,
+        "z": 8.5
+      },
+      "size": [
+        1.4,
+        0.7999999999999998,
+        0.3
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "win-house-n-sill",
+      "position": {
+        "x": 13,
+        "y": 0.45,
+        "z": 8.5
+      },
+      "size": [
+        1.2,
+        0.9,
+        0.3
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "win-house-n-header",
+      "position": {
+        "x": 13,
+        "y": 2.55,
+        "z": 8.5
+      },
+      "size": [
+        1.2,
+        0.8999999999999999,
+        0.3
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-N-0",
+      "position": {
+        "x": 9.4,
+        "y": 1.5,
+        "z": 8.5
+      },
+      "size": [
+        1.8000000000000007,
+        3,
+        0.3
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-N-1",
+      "position": {
+        "x": 12.05,
+        "y": 1.5,
+        "z": 8.5
+      },
+      "size": [
+        0.7000000000000011,
+        3,
+        0.3
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-N-2",
+      "position": {
+        "x": 15.55,
+        "y": 1.5,
+        "z": 8.5
+      },
+      "size": [
+        3.9000000000000004,
+        3,
+        0.3
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-S-0",
+      "position": {
+        "x": 13,
+        "y": 1.5,
+        "z": 15.5
+      },
+      "size": [
+        9,
+        3,
+        0.3
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "win-house-w-sill",
+      "position": {
+        "x": 8.5,
+        "y": 0.45,
+        "z": 11.5
+      },
+      "size": [
+        0.3,
+        0.9,
+        1.2
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "win-house-w-header",
+      "position": {
+        "x": 8.5,
+        "y": 2.55,
+        "z": 11.5
+      },
+      "size": [
+        0.3,
+        0.8999999999999999,
+        1.2
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-W-0",
+      "position": {
+        "x": 8.5,
+        "y": 1.5,
+        "z": 9.775
+      },
+      "size": [
+        0.3,
+        3,
+        2.25
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-W-1",
+      "position": {
+        "x": 8.5,
+        "y": 1.5,
+        "z": 13.725
+      },
+      "size": [
+        0.3,
+        3,
+        3.25
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-E-0",
+      "position": {
+        "x": 17.5,
+        "y": 1.5,
+        "z": 12
+      },
+      "size": [
+        0.3,
+        3,
+        6.699999999999999
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-partition-lintel",
+      "position": {
+        "x": 14,
+        "y": 2.6,
+        "z": 13
+      },
+      "size": [
+        0.3,
+        0.7999999999999998,
+        1.4
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-partition-0",
+      "position": {
+        "x": 14,
+        "y": 1.5,
+        "z": 10.475000000000001
+      },
+      "size": [
+        0.3,
+        3,
+        3.6500000000000004
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "house-partition-1",
+      "position": {
+        "x": 14,
+        "y": 1.5,
+        "z": 14.524999999999999
+      },
+      "size": [
+        0.3,
+        3,
+        1.6500000000000004
+      ],
+      "color": "#c4a484"
+    },
+    {
+      "id": "fence-park-n",
+      "position": {
+        "x": -14.5,
+        "y": 0.5,
+        "z": 6
+      },
+      "size": [
+        15,
+        1,
+        0.15
+      ],
+      "color": "#7a6a55"
+    },
+    {
+      "id": "fence-park-e",
+      "position": {
+        "x": -7,
+        "y": 0.5,
+        "z": 13
+      },
+      "size": [
+        0.15,
+        1,
+        8
+      ],
+      "color": "#7a6a55"
+    },
+    {
+      "id": "fence-park-s",
+      "position": {
+        "x": -14.5,
+        "y": 0.5,
+        "z": 20
+      },
+      "size": [
+        15,
+        1,
+        0.15
+      ],
+      "color": "#7a6a55"
+    },
+    {
+      "id": "car-1",
+      "position": {
+        "x": 4,
+        "y": 0.7,
+        "z": -1
+      },
+      "size": [
+        4,
+        1.4,
+        2
+      ],
+      "color": "#7a3b3b"
+    },
+    {
+      "id": "store-counter",
+      "position": {
+        "x": 14,
+        "y": 0.5,
+        "z": -11
+      },
+      "size": [
+        4,
+        1,
+        0.8
+      ],
+      "color": "#6a7480"
+    },
+    {
+      "id": "house-bed",
+      "position": {
+        "x": 15.5,
+        "y": 0.3,
+        "z": 10.5
+      },
+      "size": [
+        2,
+        0.6,
+        1.6
+      ],
+      "color": "#8c4a5a"
+    },
+    {
+      "id": "crate-1",
+      "position": {
+        "x": -20,
+        "y": 0.5,
+        "z": 10
+      },
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "color": "#a67c52"
+    },
+    {
+      "id": "crate-2",
+      "position": {
+        "x": -19,
+        "y": 0.5,
+        "z": 11
+      },
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "color": "#a67c52"
+    },
+    {
+      "id": "crate-3",
+      "position": {
+        "x": 21,
+        "y": 0.5,
+        "z": -20
+      },
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "color": "#a67c52"
+    },
+    {
+      "id": "pillar-1",
+      "position": {
+        "x": 2,
+        "y": 1,
+        "z": 20
+      },
+      "size": [
+        1.2,
+        2,
+        1.2
+      ],
+      "color": "#6f6a63"
+    },
+    {
+      "id": "pillar-2",
+      "position": {
+        "x": 5,
+        "y": 1,
+        "z": 20
+      },
+      "size": [
+        1.2,
+        2,
+        1.2
+      ],
+      "color": "#6f6a63"
+    }
+  ],
+  "doors": [
+    {
+      "id": "door-safehouse",
+      "name": "Cửa nhà an toàn",
+      "buildingId": "safehouse",
+      "width": 1.4,
+      "height": 2.2,
+      "center": {
+        "x": -13,
+        "y": 0,
+        "z": -10
+      },
+      "hinge": {
+        "x": -13.7,
+        "y": 0,
+        "z": -10
+      },
+      "closedAngle": 0,
+      "openAngle": 1.5707963267948966
+    },
+    {
+      "id": "door-store",
+      "name": "Cửa cửa hàng",
+      "buildingId": "store",
+      "width": 1.6,
+      "height": 2.2,
+      "center": {
+        "x": 10,
+        "y": 0,
+        "z": -9
+      },
+      "hinge": {
+        "x": 9.2,
+        "y": 0,
+        "z": -9
+      },
+      "closedAngle": 0,
+      "openAngle": 1.5707963267948966
+    },
+    {
+      "id": "door-house",
+      "name": "Cửa nhà dân",
+      "buildingId": "house",
+      "width": 1.4,
+      "height": 2.2,
+      "center": {
+        "x": 11,
+        "y": 0,
+        "z": 8.5
+      },
+      "hinge": {
+        "x": 10.3,
+        "y": 0,
+        "z": 8.5
+      },
+      "closedAngle": 0,
+      "openAngle": -1.5707963267948966
+    },
+    {
+      "id": "door-house-bedroom",
+      "name": "Cửa phòng ngủ",
+      "buildingId": "house",
+      "width": 1.4,
+      "height": 2.2,
+      "center": {
+        "x": 14,
+        "y": 0,
+        "z": 13
+      },
+      "hinge": {
+        "x": 14,
+        "y": 0,
+        "z": 12.3
+      },
+      "closedAngle": -1.5707963267948966,
+      "openAngle": 3.141592653589793,
+      "initialState": "open"
+    }
+  ],
+  "containers": [
+    {
+      "id": "ct-safehouse-cabinet",
+      "name": "Tủ đồ nhà an toàn",
+      "position": {
+        "x": -17,
+        "y": 0.5,
+        "z": -17.4
+      },
+      "size": [
+        1.2,
+        1,
+        0.6
+      ],
+      "color": "#8b5e3c",
+      "loot": "safehouse-cabinet"
+    },
+    {
+      "id": "ct-safehouse-closet",
+      "name": "Tủ quần áo nhà an toàn",
+      "position": {
+        "x": -10.5,
+        "y": 0.9,
+        "z": -15.5
+      },
+      "size": [
+        0.6,
+        1.8,
+        1.4
+      ],
+      "color": "#6d4c35",
+      "loot": "safehouse-closet"
+    },
+    {
+      "id": "ct-safehouse-toolbox",
+      "name": "Hộp đồ nghề nhà an toàn",
+      "position": {
+        "x": -17.5,
+        "y": 0.3,
+        "z": -13
+      },
+      "size": [
+        0.5,
+        0.6,
+        0.9
+      ],
+      "color": "#4f6d7a",
+      "loot": "safehouse-toolbox"
+    },
+    {
+      "id": "ct-store-shelf-1",
+      "name": "Kệ hàng 1",
+      "position": {
+        "x": 9,
+        "y": 0.8,
+        "z": -16.4
+      },
+      "size": [
+        2,
+        1.6,
+        0.6
+      ],
+      "color": "#5b6b7a",
+      "loot": "store-shelf"
+    },
+    {
+      "id": "ct-store-shelf-2",
+      "name": "Kệ hàng 2",
+      "position": {
+        "x": 13,
+        "y": 0.8,
+        "z": -16.4
+      },
+      "size": [
+        2,
+        1.6,
+        0.6
+      ],
+      "color": "#5b6b7a",
+      "loot": "store-shelf"
+    },
+    {
+      "id": "ct-store-shelf-3",
+      "name": "Kệ hàng 3",
+      "position": {
+        "x": 17,
+        "y": 0.8,
+        "z": -16.4
+      },
+      "size": [
+        2,
+        1.6,
+        0.6
+      ],
+      "color": "#5b6b7a",
+      "loot": "store-shelf"
+    },
+    {
+      "id": "ct-store-fridge",
+      "name": "Tủ lạnh",
+      "position": {
+        "x": 18.3,
+        "y": 0.9,
+        "z": -11
+      },
+      "size": [
+        0.8,
+        1.8,
+        0.8
+      ],
+      "color": "#d8dee6",
+      "loot": "store-fridge"
+    },
+    {
+      "id": "ct-store-tools",
+      "name": "Kệ dụng cụ",
+      "position": {
+        "x": 7.5,
+        "y": 0.8,
+        "z": -12.5
+      },
+      "size": [
+        0.6,
+        1.6,
+        2
+      ],
+      "color": "#7a5f3a",
+      "loot": "tool-shelf"
+    },
+    {
+      "id": "ct-store-hardware",
+      "name": "Kệ vật liệu",
+      "position": {
+        "x": 18.45,
+        "y": 0.8,
+        "z": -14.3
+      },
+      "size": [
+        0.6,
+        1.6,
+        1.8
+      ],
+      "color": "#8a6a3a",
+      "loot": "hardware-shelf"
+    },
+    {
+      "id": "ct-house-wardrobe",
+      "name": "Tủ quần áo",
+      "position": {
+        "x": 16.5,
+        "y": 1,
+        "z": 14.9
+      },
+      "size": [
+        1.6,
+        2,
+        0.6
+      ],
+      "color": "#6d4c35",
+      "loot": "house-wardrobe"
+    },
+    {
+      "id": "ct-house-kitchen",
+      "name": "Tủ bếp",
+      "position": {
+        "x": 9.6,
+        "y": 0.5,
+        "z": 14.9
+      },
+      "size": [
+        1.4,
+        1,
+        0.6
+      ],
+      "color": "#9c7a5a",
+      "loot": "house-kitchen"
+    },
+    {
+      "id": "ct-house-nightstand",
+      "name": "Tủ đầu giường",
+      "position": {
+        "x": 17.05,
+        "y": 0.35,
+        "z": 12
+      },
+      "size": [
+        0.5,
+        0.7,
+        0.5
+      ],
+      "color": "#7b5a44",
+      "loot": "house-nightstand"
+    },
+    {
+      "id": "ct-park-toolbox",
+      "name": "Thùng dụng cụ công viên",
+      "position": {
+        "x": -21.5,
+        "y": 0.35,
+        "z": 12.5
+      },
+      "size": [
+        0.9,
+        0.7,
+        0.5
+      ],
+      "color": "#b0472f",
+      "loot": "park-toolbox"
+    },
+    {
+      "id": "ct-house-scrap",
+      "name": "Đống phế liệu sau nhà",
+      "position": {
+        "x": 20.5,
+        "y": 0.4,
+        "z": 12
+      },
+      "size": [
+        1.4,
+        0.8,
+        1
+      ],
+      "color": "#6b6f73",
+      "loot": "scrap-pile"
+    }
+  ],
+  "roads": [
+    {
+      "id": "road-ew",
+      "position": {
+        "x": 0,
+        "z": -1
+      },
+      "size": [
+        50,
+        4
+      ],
+      "color": "#3a3a3f"
+    },
+    {
+      "id": "road-ns",
+      "position": {
+        "x": -1,
+        "z": 0
+      },
+      "size": [
+        4,
+        50
+      ],
+      "color": "#3a3a3f"
+    }
+  ],
+  "windows": [
+    {
+      "id": "win-safehouse-n",
+      "name": "Cửa sổ phía bắc nhà an toàn",
+      "buildingId": "safehouse",
+      "center": {
+        "x": -12,
+        "y": 1.5,
+        "z": -18
+      },
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "alongX": true,
+      "thickness": 0.3,
+      "inward": {
+        "x": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "win-safehouse-e",
+      "name": "Cửa sổ phía đông nhà an toàn",
+      "buildingId": "safehouse",
+      "center": {
+        "x": -10,
+        "y": 1.5,
+        "z": -11.8
+      },
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "alongX": false,
+      "thickness": 0.3,
+      "inward": {
+        "x": -1,
+        "z": 0
+      }
+    },
+    {
+      "id": "win-store-s1",
+      "name": "Tủ kính cửa hàng",
+      "buildingId": "store",
+      "center": {
+        "x": 14,
+        "y": 1.5,
+        "z": -9
+      },
+      "width": 1.6,
+      "sill": 0.9,
+      "head": 2.1,
+      "alongX": true,
+      "thickness": 0.3,
+      "inward": {
+        "x": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "win-store-s2",
+      "name": "Tủ kính cửa hàng (góc)",
+      "buildingId": "store",
+      "center": {
+        "x": 17,
+        "y": 1.5,
+        "z": -9
+      },
+      "width": 1.6,
+      "sill": 0.9,
+      "head": 2.1,
+      "alongX": true,
+      "thickness": 0.3,
+      "inward": {
+        "x": 0,
+        "z": -1
+      }
+    },
+    {
+      "id": "win-house-n",
+      "name": "Cửa sổ phòng khách",
+      "buildingId": "house",
+      "center": {
+        "x": 13,
+        "y": 1.5,
+        "z": 8.5
+      },
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "alongX": true,
+      "thickness": 0.3,
+      "inward": {
+        "x": 0,
+        "z": 1
+      }
+    },
+    {
+      "id": "win-house-w",
+      "name": "Cửa sổ phía tây phòng khách",
+      "buildingId": "house",
+      "center": {
+        "x": 8.5,
+        "y": 1.5,
+        "z": 11.5
+      },
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "alongX": false,
+      "thickness": 0.3,
+      "inward": {
+        "x": 1,
+        "z": 0
+      }
+    }
+  ],
+  "rooms": [
+    {
+      "id": "room-safehouse",
+      "name": "Nhà an toàn",
+      "buildingId": "safehouse",
+      "bounds": {
+        "minX": -18,
+        "maxX": -10,
+        "minZ": -18,
+        "maxZ": -10
+      },
+      "height": 3,
+      "lamp": {
+        "id": "lamp-safehouse",
+        "name": "Đèn nhà an toàn",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": {
+          "x": -14.3,
+          "z": -10.25
+        },
+        "roomId": "room-safehouse",
+        "position": {
+          "x": -14,
+          "y": 2.92,
+          "z": -14
+        }
+      }
+    },
+    {
+      "id": "room-store",
+      "name": "Cửa hàng tiện lợi",
+      "buildingId": "store",
+      "bounds": {
+        "minX": 7,
+        "maxX": 19,
+        "minZ": -17,
+        "maxZ": -9
+      },
+      "height": 3,
+      "lamp": {
+        "id": "lamp-store",
+        "name": "Đèn cửa hàng",
+        "intensity": 0.9,
+        "color": "#e8f2ff",
+        "requiresElectricity": true,
+        "switchAt": {
+          "x": 8.6,
+          "z": -9.25
+        },
+        "roomId": "room-store",
+        "position": {
+          "x": 13,
+          "y": 2.92,
+          "z": -13
+        }
+      }
+    },
+    {
+      "id": "room-house-living",
+      "name": "Phòng khách",
+      "buildingId": "house",
+      "bounds": {
+        "minX": 8.5,
+        "maxX": 14,
+        "minZ": 8.5,
+        "maxZ": 15.5
+      },
+      "height": 3,
+      "lamp": {
+        "id": "lamp-house-living",
+        "name": "Đèn phòng khách",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": {
+          "x": 12.05,
+          "z": 8.75
+        },
+        "roomId": "room-house-living",
+        "position": {
+          "x": 11.25,
+          "y": 2.92,
+          "z": 12
+        }
+      }
+    },
+    {
+      "id": "room-house-bedroom",
+      "name": "Phòng ngủ",
+      "buildingId": "house",
+      "bounds": {
+        "minX": 14,
+        "maxX": 17.5,
+        "minZ": 8.5,
+        "maxZ": 15.5
+      },
+      "height": 3,
+      "lamp": {
+        "id": "lamp-house-bedroom",
+        "name": "Đèn phòng ngủ",
+        "intensity": 0.7,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": {
+          "x": 14.25,
+          "z": 14.3
+        },
+        "roomId": "room-house-bedroom",
+        "position": {
+          "x": 15.75,
+          "y": 2.92,
+          "z": 12
+        }
+      }
+    }
+  ]
+}

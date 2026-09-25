@@ -194,9 +194,9 @@ function runSoak(policy: 'shelter' | 'patrol') {
 
     // Lộ trình loot: nhà an toàn (vũ khí khởi đầu trước) → cửa hàng → nhà dân → công viên, rồi lặp tuần tra.
     const route = [
-      'ct-safehouse-closet', 'ct-safehouse-cabinet',
-      'ct-store-shelf-1', 'ct-store-shelf-2', 'ct-store-shelf-3', 'ct-store-fridge', 'ct-store-tools',
-      'ct-house-kitchen', 'ct-house-wardrobe', 'ct-house-nightstand', 'ct-park-toolbox',
+      'c-1_-1/safehouse/closet', 'c-1_-1/safehouse/cabinet',
+      'c0_-1/store/shelf-1', 'c0_-1/store/shelf-2', 'c0_-1/store/shelf-3', 'c0_-1/store/fridge', 'c0_-1/store/tools',
+      'c0_0/house/kitchen', 'c0_0/house/wardrobe', 'c0_0/house/nightstand', 'c-1_0/objects/park-toolbox',
     ]
     const looted = new Set<string>()
     const skipped: string[] = []
@@ -252,7 +252,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
     pickGoal()
 
     const dist = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.z - b.z)
-    const safehouse = map.buildings.find((b) => b.id === 'safehouse')!
+    const safehouse = map.buildings.find((b) => b.id === 'c-1_-1/safehouse')!
     const insideSafehouse = (q: Vec3) =>
       Math.abs(q.x - safehouse.center.x) < safehouse.size.w / 2 - 0.3 && Math.abs(q.z - safehouse.center.z) < safehouse.size.d / 2 - 0.3
     let mouseHeld = false
@@ -308,7 +308,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       const zombieInside = Array.from(rt.zombies.values()).some((z) => z.ai !== 'DEAD' && insideSafehouse(z.position))
       if (target?.kind === 'door' && !fighting) {
         const state = rt.world.doors.get(target.id)?.state
-        if (sheltering && state === 'open' && target.id === 'door-safehouse' && !zombieInside) rt.interact(target)
+        if (sheltering && state === 'open' && target.id === 'c-1_-1/safehouse/door' && !zombieInside) rt.interact(target)
         else if (!sheltering && state === 'closed') rt.interact(target)
       }
 

@@ -91,7 +91,7 @@ try {
     // Zombies rest then wander around their zones; the F3 list shows state and zone.
     await page.waitForFunction(() => /WANDER/.test(document.querySelector('.hud-debug')?.textContent ?? ''), null, { timeout: 20000 })
     const list = await debugText()
-    assert.match(list, /zombie-\d+: (IDLE|WANDER)[^\n]* (south|east|north|store|yard|west|park)/)
+    assert.match(list, /zombie-\d+: (IDLE|WANDER)[^\n]*[ /](south|east|north|store|yard|west|park)/)
     await page.waitForTimeout(300)
     const silent = (await debugText()).match(/Tiếng bước chân: ([^·]+)/)[1].trim()
     const walking = await holdAndRead(['KeyW'])
@@ -102,7 +102,7 @@ try {
     await page.keyboard.press('F3')
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 7)
+    assert.equal(saved.schemaVersion, 8)
     assert.ok(saved.horde && Number.isFinite(saved.horde.timer))
     assert.ok(saved.zombies.every((z) => typeof z.zoneId === 'string' && 'memoryAge' in z && z.structureTargetId === null))
     const moved = saved.zombies.filter((z) => ![[-14, 13], [4, 14], [20, 0], [-2, -20], [16, -5], [22, 20], [-22, 0], [8, 22]].some(([x, zz]) => Math.hypot(z.position.x - x, z.position.z - zz) < 0.3))
@@ -113,7 +113,7 @@ try {
     await continueGame()
     await page.waitForTimeout(1500)
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    log('PASS production', 'wandering + zones in F3, footstep radius walk/run/silent, save v7 → reload → Continue; no __runtime')
+    log('PASS production', 'wandering + zones in F3, footstep radius walk/run/silent, save → reload → Continue; no __runtime')
   } else {
     await page.evaluate(async () => {
       const { runtime } = await import('/src/game/core/runtime.ts')
@@ -158,7 +158,7 @@ try {
     })
     await page.waitForTimeout(600)
     const zombieState = () => rt(() => { const z = window.__runtime.zombies.get(window.__siegeZombie); return { ai: z.ai, x: +z.position.x.toFixed(2), z: +z.position.z.toFixed(2), door: z.structureTargetId, mem: z.memorySource } })
-    const door = () => rt(() => ({ ...window.__runtime.world.doors.get('door-safehouse') }))
+    const door = () => rt(() => ({ ...window.__runtime.world.doors.get('c-1_-1/safehouse/door') }))
     // Walk to the door (S+A = straight towards +Z on screen axes), open it with E.
     await page.keyboard.down('KeyS'); await page.keyboard.down('KeyA')
     await page.waitForFunction(() => document.querySelector('.hud-prompt')?.textContent.includes('Mở Cửa nhà an toàn'), null, { timeout: 5000 })
@@ -167,9 +167,9 @@ try {
     await page.waitForFunction(() => window.__runtime.zombies.get(window.__siegeZombie).ai === 'CHASE', null, { timeout: 6000 })
     log('seen through the doorway', await zombieState())
     await page.keyboard.press('KeyE') // close it in its face
-    await page.waitForFunction(() => window.__runtime.world.doors.get('door-safehouse').state === 'closed', null, { timeout: 2000 })
+    await page.waitForFunction(() => window.__runtime.world.doors.get('c-1_-1/safehouse/door').state === 'closed', null, { timeout: 2000 })
     await page.waitForFunction(() => window.__runtime.zombies.get(window.__siegeZombie).ai === 'ATTACK_STRUCTURE', null, { timeout: 15000 })
-    await page.waitForFunction(() => window.__runtime.world.doors.get('door-safehouse').hp <= 80, null, { timeout: 8000 })
+    await page.waitForFunction(() => window.__runtime.world.doors.get('c-1_-1/safehouse/door').hp <= 80, null, { timeout: 8000 })
     const mid = await door()
     const prompt = await page.locator('.hud-prompt').innerText().catch(() => '')
     log('siege', { zombie: await zombieState(), door: mid, prompt, health: await rt(() => window.__runtime.player.health) })
@@ -186,9 +186,9 @@ try {
     await saveToMenu()
     const saved = await readSlot('slot-1')
     const sz = saved.zombies.find((z) => z.ai !== 'DEAD' && z.structureTargetId)
-    assert.equal(saved.schemaVersion, 7)
-    assert.ok(sz && sz.ai === 'ATTACK_STRUCTURE' && sz.structureTargetId === 'door-safehouse' && sz.memorySource === 'sight')
-    const savedDoor = saved.doors.find((d) => d.id === 'door-safehouse')
+    assert.equal(saved.schemaVersion, 8)
+    assert.ok(sz && sz.ai === 'ATTACK_STRUCTURE' && sz.structureTargetId === 'c-1_-1/safehouse/door' && sz.memorySource === 'sight')
+    const savedDoor = saved.doors.find((d) => d.id === 'c-1_-1/safehouse/door')
     assert.ok(savedDoor.state === 'closed' && savedDoor.hp < 120 && savedDoor.hp > 0)
     // Save schema v7 (building lighting): phase2-s5-v6.json is frozen; this script no longer writes it.
     await page.reload()
@@ -200,7 +200,7 @@ try {
     await rt(() => { window.__siegeZombie = Array.from(window.__runtime.zombies.values()).find((z) => z.structureTargetId).id })
 
     // 5) The door breaks: leaf/collider gone (raycast passes), nav open, zombie comes in and attacks.
-    await page.waitForFunction(() => window.__runtime.world.doors.get('door-safehouse').state === 'destroyed', null, { timeout: 30000 })
+    await page.waitForFunction(() => window.__runtime.world.doors.get('c-1_-1/safehouse/door').state === 'destroyed', null, { timeout: 30000 })
     await hasText('đã bị zombie phá vỡ', 3000)
     const through = await rt(() => window.__runtime.physics.isBlocked({ x: -13, y: 1.5, z: -8.5 }, { x: -13, y: 1.5, z: -11.5 }, []))
     assert.equal(through, false, 'no invisible collider left in the frame')

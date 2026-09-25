@@ -104,13 +104,13 @@ describe('room graph solver', () => {
 describe('building lighting acceptance (neighbourhood map)', () => {
   it('graph: windows and doors find their rooms (bedroom door joins living ↔ bedroom, front door joins outdoors)', () => {
     const { rt } = world()
-    const house = Array.from(rt.lighting.allBuildings()).find((b) => b.id === 'house')!
-    expect(house.windows.map((w) => [w.id, w.roomId])).toEqual([['win-house-n', 'room-house-living'], ['win-house-w', 'room-house-living']])
+    const house = Array.from(rt.lighting.allBuildings()).find((b) => b.id === 'c0_0/house')!
+    expect(house.windows.map((w) => [w.id, w.roomId])).toEqual([['c0_0/house/win-n', 'c0_0/house/room-living'], ['c0_0/house/win-w', 'c0_0/house/room-living']])
     expect(house.edges).toEqual(expect.arrayContaining([
-      { doorId: 'door-house', a: OUTDOOR, b: 'room-house-living' },
-      { doorId: 'door-house-bedroom', a: 'room-house-living', b: 'room-house-bedroom' },
+      { doorId: 'c0_0/house/door', a: OUTDOOR, b: 'c0_0/house/room-living' },
+      { doorId: 'c0_0/house/door-bedroom', a: 'c0_0/house/room-living', b: 'c0_0/house/room-bedroom' },
     ]))
-    expect(house.lamps.map((l) => l.id)).toEqual(['lamp-house-living', 'lamp-house-bedroom'])
+    expect(house.lamps.map((l) => l.id)).toEqual(['c0_0/house/lamp-living', 'c0_0/house/lamp-bedroom'])
   })
 
   it('1 · outdoor daylight: ≈ 1 at noon outside, whatever the facing', () => {
@@ -125,48 +125,48 @@ describe('building lighting acceptance (neighbourhood map)', () => {
 
   it('2 · a room with windows is lit (> 0.5) at noon', () => {
     const { light } = world()
-    expect(light('room-house-living').finalLightLevel).toBeGreaterThan(0.5)
-    expect(light('room-safehouse').finalLightLevel).toBeGreaterThan(0.5)
-    expect(light('room-store').finalLightLevel).toBeGreaterThan(0.5)
+    expect(light('c0_0/house/room-living').finalLightLevel).toBeGreaterThan(0.5)
+    expect(light('c-1_-1/safehouse/room').finalLightLevel).toBeGreaterThan(0.5)
+    expect(light('c0_-1/store/room').finalLightLevel).toBeGreaterThan(0.5)
   })
 
   it('3 · back room (no window, door open) is darker than the window room', () => {
     const { light } = world()
-    expect(light('room-house-bedroom').finalLightLevel).toBeLessThan(light('room-house-living').finalLightLevel)
-    expect(light('room-house-bedroom').propagatedLight).toBeGreaterThan(0.2)
+    expect(light('c0_0/house/room-bedroom').finalLightLevel).toBeLessThan(light('c0_0/house/room-living').finalLightLevel)
+    expect(light('c0_0/house/room-bedroom').propagatedLight).toBeGreaterThan(0.2)
   })
 
   it('4 · closing the bedroom door drops it significantly; opening restores it', () => {
     const { rt, light } = world()
-    const open = light('room-house-bedroom').finalLightLevel
-    rt.setDoorState('door-house-bedroom', 'closed')
+    const open = light('c0_0/house/room-bedroom').finalLightLevel
+    rt.setDoorState('c0_0/house/door-bedroom', 'closed')
     rt.tick(1 / 60)
-    const closed = light('room-house-bedroom').finalLightLevel
+    const closed = light('c0_0/house/room-bedroom').finalLightLevel
     expect(closed).toBeLessThan(open * 0.3)
-    expect(light('room-house-living').finalLightLevel).toBeCloseTo(light('room-house-living').finalLightLevel) // living unaffected
-    rt.setDoorState('door-house-bedroom', 'open')
+    expect(light('c0_0/house/room-living').finalLightLevel).toBeCloseTo(light('c0_0/house/room-living').finalLightLevel) // living unaffected
+    rt.setDoorState('c0_0/house/door-bedroom', 'open')
     rt.tick(1 / 60)
-    expect(light('room-house-bedroom').finalLightLevel).toBeCloseTo(open)
+    expect(light('c0_0/house/room-bedroom').finalLightLevel).toBeCloseTo(open)
   })
 
   it('5 · night, windowless bedroom: dark with the lamp off, clearly lit with it on', () => {
     const { rt, light } = world(MIDNIGHT)
-    expect(light('room-house-bedroom').finalLightLevel).toBeLessThan(0.1)
-    rt.setLamp('lamp-house-bedroom', true)
+    expect(light('c0_0/house/room-bedroom').finalLightLevel).toBeLessThan(0.1)
+    rt.setLamp('c0_0/house/lamp-bedroom', true)
     rt.tick(1 / 60)
-    expect(light('room-house-bedroom').artificialLight).toBeCloseTo(0.7)
-    expect(light('room-house-bedroom').finalLightLevel).toBeGreaterThan(0.6)
+    expect(light('c0_0/house/room-bedroom').artificialLight).toBeCloseTo(0.7)
+    expect(light('c0_0/house/room-bedroom').finalLightLevel).toBeGreaterThan(0.6)
   })
 
   it('6 · no electricity: a switched-on electric lamp gives nothing', () => {
     const { rt, light } = world(MIDNIGHT)
-    rt.setLamp('lamp-house-bedroom', true)
+    rt.setLamp('c0_0/house/lamp-bedroom', true)
     rt.setElectricity(false)
     rt.tick(1 / 60)
-    expect(light('room-house-bedroom').artificialLight).toBe(0)
+    expect(light('c0_0/house/room-bedroom').artificialLight).toBe(0)
     rt.setElectricity(true)
     rt.tick(1 / 60)
-    expect(light('room-house-bedroom').artificialLight).toBeCloseTo(0.7)
+    expect(light('c0_0/house/room-bedroom').artificialLight).toBeCloseTo(0.7)
   })
 
   it('7 · turning the player 360° never changes room light nor triggers a recomputation', () => {
@@ -190,23 +190,23 @@ describe('building lighting acceptance (neighbourhood map)', () => {
     rt.player.position = { x: 12.5, y: 0.9, z: 10.5 }
     rt.player.facing = Math.PI // looking −Z, the zombie is behind (+Z), 4.3 m away
     for (let i = 0; i < 6; i++) rt.tick(1 / 60)
-    const bright = light('room-house-living').finalLightLevel
+    const bright = light('c0_0/house/room-living').finalLightLevel
     expect(bright).toBeGreaterThan(0.5)
     expect(rt.vision.get(zombie.id)!.reason).toBe('OUTSIDE_FOV')
     rt.player.facing = Math.atan2(10 - 12.5, 14 - 10.5)
     for (let i = 0; i < 6; i++) rt.tick(1 / 60)
     expect(rt.vision.isVisible(zombie.id)).toBe(true)
-    expect(light('room-house-living').finalLightLevel).toBe(bright)
+    expect(light('c0_0/house/room-living').finalLightLevel).toBe(bright)
   })
 
   it('9 · 12:00 → 20:00: window rooms darken gradually, the back room reaches the floor first, lamps stay', () => {
     const { rt, light } = world(at(12))
-    rt.setLamp('lamp-store', true)
+    rt.setLamp('c0_-1/store/lamp', true)
     const samples: { living: number; bedroom: number; lampArt: number }[] = []
     for (let h = 12; h <= 20; h += 0.25) {
       rt.clock.restore(rt.clock.elapsed, at(h), 1)
       rt.tick(1 / 60)
-      samples.push({ living: light('room-house-living').finalLightLevel, bedroom: light('room-house-bedroom').finalLightLevel, lampArt: light('room-store').artificialLight })
+      samples.push({ living: light('c0_0/house/room-living').finalLightLevel, bedroom: light('c0_0/house/room-bedroom').finalLightLevel, lampArt: light('c0_-1/store/room').artificialLight })
     }
     for (let i = 1; i < samples.length; i++) {
       expect(samples[i].living).toBeLessThanOrEqual(samples[i - 1].living + 1e-9)
@@ -222,11 +222,11 @@ describe('building lighting acceptance (neighbourhood map)', () => {
 
   it('10 · closing a curtain lowers direct daylight but not to zero; it also blocks the player’s sight', () => {
     const { rt, light } = world()
-    const open = light('room-safehouse').directOutdoorLight
-    rt.setCurtain('win-safehouse-n', true)
-    rt.setCurtain('win-safehouse-e', true)
+    const open = light('c-1_-1/safehouse/room').directOutdoorLight
+    rt.setCurtain('c-1_-1/safehouse/win-n', true)
+    rt.setCurtain('c-1_-1/safehouse/win-e', true)
     rt.tick(1 / 60)
-    const closed = light('room-safehouse').directOutdoorLight
+    const closed = light('c-1_-1/safehouse/room').directOutdoorLight
     expect(closed).toBeLessThan(open * 0.3)
     expect(closed).toBeGreaterThan(0)
     // Vision: from inside, a zombie outside the north window is seen through the glass, not through the curtain.
@@ -234,7 +234,7 @@ describe('building lighting acceptance (neighbourhood map)', () => {
     const outside = { x: -12, y: 0, z: -22 }
     const los = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => rt.visionOccluders.firstBlocker(a, b) === null
     expect(classifyVisibility(observer, outside, GAME_CONFIG.playerVision, los)).toBe('BLOCKED_BY_OCCLUDER')
-    rt.setCurtain('win-safehouse-n', false)
+    rt.setCurtain('c-1_-1/safehouse/win-n', false)
     expect(classifyVisibility(observer, outside, GAME_CONFIG.playerVision, los)).toBe('VISIBLE')
   })
 })
@@ -245,7 +245,7 @@ describe('event driven updates and world interaction', () => {
     const base = rt.lighting.stats.recalculations
     for (let i = 0; i < 120; i++) rt.tick(1 / 60) // 2 s at noon: outdoor level constant
     expect(rt.lighting.stats.recalculations).toBe(base)
-    rt.setLamp('lamp-safehouse', true)
+    rt.setLamp('c-1_-1/safehouse/lamp', true)
     rt.tick(1 / 60)
     expect(rt.lighting.stats.recalculations).toBe(base + 1) // only the safehouse
     const sys = new BuildingLightingSystem(CFG, inputs(), [])
@@ -259,8 +259,8 @@ describe('event driven updates and world interaction', () => {
 
   it('light at a position: the room level indoors, the outdoor level outside', () => {
     const { rt, light } = world(NOON)
-    expect(rt.lighting.getLightAtPosition({ x: 16, y: 0.9, z: 13 })).toBe(light('room-house-bedroom').finalLightLevel)
-    expect(rt.lighting.getRoomAtPosition({ x: 11, y: 0.9, z: 12 })!.id).toBe('room-house-living')
+    expect(rt.lighting.getLightAtPosition({ x: 16, y: 0.9, z: 13 })).toBe(light('c0_0/house/room-bedroom').finalLightLevel)
+    expect(rt.lighting.getRoomAtPosition({ x: 11, y: 0.9, z: 12 })!.id).toBe('c0_0/house/room-living')
     expect(rt.lighting.getRoomAtPosition({ x: 0, y: 0.9, z: 0 })).toBeNull()
   })
 
@@ -268,28 +268,28 @@ describe('event driven updates and world interaction', () => {
     const { rt } = world(NOON)
     // Physics stand-in for this scene: only the safehouse north wall line (z = −18, glass included) blocks.
     rt.registerPhysicsQuery({ isBlocked: (a, b) => (a.z < -18) !== (b.z < -18) })
-    const sw = rt.interactables.find((i) => i.id === 'lamp-house-living')!
+    const sw = rt.interactables.find((i) => i.id === 'c0_0/house/lamp-living')!
     rt.interact(sw)
-    expect(rt.world.lamps.get('lamp-house-living')).toBe(true)
-    const curtain = rt.interactables.find((i) => i.id === 'win-safehouse-n')!
+    expect(rt.world.lamps.get('c0_0/house/lamp-living')).toBe(true)
+    const curtain = rt.interactables.find((i) => i.id === 'c-1_-1/safehouse/win-n')!
     expect(curtain.kind).toBe('window')
     // Inside, in front of the window, facing it.
     rt.player.position = { x: -12, y: 0.9, z: -16.9 }
     rt.player.facing = Math.PI
     rt.tick(1 / 60)
-    expect(rt.currentInteractable?.id).toBe('win-safehouse-n')
+    expect(rt.currentInteractable?.id).toBe('c-1_-1/safehouse/win-n')
     expect(rt.interactPrompt).toBe('Kéo rèm Cửa sổ phía bắc nhà an toàn')
     // Outside the same window: the glass (nav/physics blocker) is in the way.
     rt.player.position = { x: -12, y: 0.9, z: -18.8 }
     rt.player.facing = 0
     rt.tick(1 / 60)
-    expect(rt.currentInteractable?.id).not.toBe('win-safehouse-n')
+    expect(rt.currentInteractable?.id).not.toBe('c-1_-1/safehouse/win-n')
   })
 
   it('window glass blocks walking like the wall it replaces; the bedroom door starts open', () => {
     const { rt } = world(NOON)
     expect(rt.nav.isWalkable(-12, -18)).toBe(false)
-    expect(rt.world.doors.get('door-house-bedroom')!.state).toBe('open')
+    expect(rt.world.doors.get('c0_0/house/door-bedroom')!.state).toBe('open')
     expect(rt.nav.findPath({ x: 11, y: 0, z: 10 }, { x: 16.5, y: 0, z: 14 })).not.toBeNull()
   })
 })

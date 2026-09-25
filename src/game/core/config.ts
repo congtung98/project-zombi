@@ -3,9 +3,6 @@
  * Phase 1 và sẽ được chỉnh sau playtest. Quy ước 1 đơn vị thế giới ≈ 1 mét.
  */
 export const GAME_CONFIG = {
-  world: {
-    size: 50,
-  },
   loop: {
     /** Giới hạn delta time (giây) sau khi tab mất focus / khựng hình. */
     maxDelta: 0.1,

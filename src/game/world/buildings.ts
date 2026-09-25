@@ -98,7 +98,8 @@ export interface RoomDef {
   lamp?: LampDef
 }
 
-export interface BuildingDef {
+/** Resolved building: footprint and looks (what floor/roof, indoor tests, nav and lighting use). */
+export interface BuildingInfo {
   id: string
   name: string
   center: { x: number; z: number }
@@ -108,6 +109,13 @@ export interface BuildingDef {
   wallColor: string
   roofColor: string
   floorColor: string
+}
+
+/**
+ * Parametric rectangular building (door lab, test maps, legacy import): walls, doors, windows
+ * and rooms are generated from sides and offsets. Content maps use prefab documents instead.
+ */
+export interface BuildingDef extends BuildingInfo {
   doors: DoorDef[]
   containers: ContainerDef[]
   windows?: WindowDef[]
@@ -380,7 +388,7 @@ function partitionDoor(b: BuildingDef, p: PartitionDef, door: NonNullable<Partit
   return { id: door.id, name: door.name, buildingId: b.id, width: door.width, height: DOOR_HEIGHT, center, hinge, closedAngle, openAngle, initialState: door.initialState }
 }
 
-export function isInsideBuilding(b: BuildingDef, x: number, z: number, margin = 0): boolean {
+export function isInsideBuilding(b: BuildingInfo, x: number, z: number, margin = 0): boolean {
   const hw = b.size.w / 2 + margin
   const hd = b.size.d / 2 + margin
   return Math.abs(x - b.center.x) <= hw && Math.abs(z - b.center.z) <= hd

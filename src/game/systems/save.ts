@@ -1,7 +1,8 @@
 import { ITEMS, type ItemId } from '../entities/items'
 import { addItem, createInventory, type Inventory } from './inventory'
 import { DOOR_MAX_HP } from '../world/doors'
-import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, NEIGHBORHOOD_MAP, WALL_PREFIXES_ADDED_V7, mapRooms, mapWindows, type MapData } from '../world/mapData'
+import { NEIGHBORHOOD_MAP, mapRooms, mapWindows, type MapData } from '../world/mapData'
+import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, WALL_PREFIXES_ADDED_V7, legacyContentFor, type LegacyContent } from '../world/legacyContent'
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
 import { nearestZone } from './horde'
@@ -21,15 +22,20 @@ const AI_STATES_V1: ReadonlySet<string> = new Set(V1_STATES)
 const AI_STATES_V6: ReadonlySet<string> = new Set<ZombieAIState>([...V1_STATES, 'WANDER', 'MIGRATE', 'APPROACH_STRUCTURE', 'ATTACK_STRUCTURE'])
 const SIEGE_STATES: ReadonlySet<string> = new Set(['APPROACH_STRUCTURE', 'ATTACK_STRUCTURE'])
 
+/** First save schema that uses stable content IDs (map content, docs/map-content-format.md). */
+const CONTENT_IDS_VERSION = 8
+
 /**
  * Validate current snapshots or migrate v1, without mutating input. Reject invalid
  * ownership, capacity and unknown schemas before the runtime or storage changes.
+ * `map` is the current map; saves older than v8 of a world that became data-driven are checked
+ * and migrated against its frozen legacy map, then renamed to stable IDs (v7 → v8).
  */
 export function validateSaveGame(data: unknown, expectedMapId: string, map?: MapData): SaveValidation {
   if (!isRecord(data)) return corrupt('không phải object')
   if (typeof data.schemaVersion !== 'number') return corrupt('thiếu schemaVersion')
   const version = data.schemaVersion
-  const legacy = version === 1
+  const legacyV1 = version === 1
   if (!Number.isInteger(version) || version < 1 || version > SAVE_SCHEMA_VERSION) {
     return { ok: false, reason: 'incompatible', detail: `schemaVersion ${data.schemaVersion}, cần ${SAVE_SCHEMA_VERSION}` }
   }
@@ -54,14 +60,14 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     !isFiniteNumber(player.hunger) ||
     !isFiniteNumber(player.thirst) ||
     !isFiniteNumber(player.kills) ||
-    !(legacy ? isLegacyInventory(player.inventory) : isInventory(player.inventory))
+    !(legacyV1 ? isLegacyInventory(player.inventory) : isInventory(player.inventory))
   ) {
     return corrupt('player')
   }
   // v4+: name and appearance are option IDs only; unknown IDs are rejected, never guessed.
   if (version >= 4 && (!isValidName(player.name) || !isAppearance(player.appearance))) return corrupt('player name/appearance')
 
-  if (!Array.isArray(data.doors) || !data.doors.every((d) => isRecord(d) && typeof d.id === 'string' && (legacy
+  if (!Array.isArray(data.doors) || !data.doors.every((d) => isRecord(d) && typeof d.id === 'string' && (legacyV1
     ? typeof d.open === 'boolean'
     : ['open', 'closed', 'destroyed'].includes(String(d.state)) && isFiniteNumber(d.hp) && d.hp >= 0 && d.hp <= DOOR_MAX_HP && (d.state === 'destroyed' ? d.hp === 0 : d.hp > 0)))) {
     return corrupt('doors')
@@ -69,7 +75,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (
     !Array.isArray(data.containers) ||
     !data.containers.every((c) => isRecord(c) && typeof c.id === 'string' && typeof c.opened === 'boolean' &&
-      (legacy ? isLegacyInventory(c.items) : isInventory(c.items)) && (c.position === undefined || !legacy && isVec3(c.position)))
+      (legacyV1 ? isLegacyInventory(c.items) : isInventory(c.items)) && (c.position === undefined || !legacyV1 && isVec3(c.position)))
   ) {
     return corrupt('containers')
   }
@@ -95,6 +101,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     if (!isRecord(horde) || !isFiniteNumber(horde.timer) || horde.timer < 0 || !Number.isSafeInteger(horde.counter) || Number(horde.counter) < 0) return corrupt('horde')
   }
   if (version >= 7 && !isLighting(data.lighting)) return corrupt('lighting')
+  if (version >= CONTENT_IDS_VERSION && (!Number.isSafeInteger(data.contentVersion) || Number(data.contentVersion) < 0)) return corrupt('contentVersion')
   const spawn = data.spawn
   if (!isRecord(spawn) || !isFiniteNumber(spawn.nextZombieId) || !isFiniteNumber(spawn.timer) || !isFiniteNumber(spawn.counter)) {
     return corrupt('spawn')
@@ -113,7 +120,13 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
       ids.add(entry.id)
     }
   }
-  const knownMap = map ?? (expectedMapId === NEIGHBORHOOD_MAP.id ? NEIGHBORHOOD_MAP : undefined)
+  const current = map ?? (expectedMapId === NEIGHBORHOOD_MAP.id ? NEIGHBORHOOD_MAP : undefined)
+  const legacy = current && version < CONTENT_IDS_VERSION ? legacyContentFor(current) : undefined
+  const knownMap = legacy ? legacy.map : current
+  if (current && version >= CONTENT_IDS_VERSION && data.contentVersion !== (current.contentVersion ?? 0)) {
+    // No content migrations exist yet: a save of another content revision cannot be mapped.
+    return { ok: false, reason: 'incompatible', detail: `contentVersion ${String(data.contentVersion)}, cần ${current.contentVersion ?? 0}` }
+  }
   const containers = data.containers as unknown as SaveGame['containers']
   if ((player.inventory as Inventory).slots.length !== GAME_CONFIG.inventory.slots) return corrupt('player inventory capacity')
   if (knownMap) {
@@ -143,12 +156,12 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     for (const c of containers) {
       if (newerThanSave(c.id)) return corrupt('container newer than schema')
       const fixed = knownMap.containers.some((d) => d.id === c.id)
-      if (fixed ? c.position !== undefined : legacy || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
+      if (fixed ? c.position !== undefined : legacyV1 || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
       if (c.items.slots.length !== (fixed ? GAME_CONFIG.inventory.containerSlots : 1)) return corrupt('container capacity')
       if (c.position && (Math.abs(c.position.x) > knownMap.size / 2 || Math.abs(c.position.z) > knownMap.size / 2)) return corrupt('drop outside map')
     }
   }
-  if (legacy) return migratePhase1(data, expectedMapId, knownMap)
+  if (legacyV1) return migratePhase1(data, expectedMapId, current)
   const save = data as unknown as SaveGame
   const owners = new Set<string>()
   const inventoryIds = new Set<string>()
@@ -171,11 +184,12 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (!isRecord(player.equipment)) return corrupt('equipment')
   const weaponId = player.equipment.weaponInstanceId
   if (weaponId !== null && (typeof weaponId !== 'string' || !save.player.inventory.slots.some((i) => i?.id === weaponId && i.kind === 'weapon'))) return corrupt('equipment owner/reference')
-  if (version === 2) return migrateV2(save, expectedMapId, knownMap)
-  if (version === 3) return migrateV3(save, expectedMapId, knownMap)
-  if (version === 4) return migrateV4(save, expectedMapId, knownMap)
-  if (version === 5) return migrateV5(save, expectedMapId, knownMap)
-  if (version === 6) return migrateV6(save, expectedMapId, knownMap)
+  if (version === 2) return migrateV2(save, expectedMapId, current, knownMap)
+  if (version === 3) return migrateV3(save, expectedMapId, current)
+  if (version === 4) return migrateV4(save, expectedMapId, current, knownMap)
+  if (version === 5) return migrateV5(save, expectedMapId, current, knownMap)
+  if (version === 6) return migrateV6(save, expectedMapId, current, knownMap)
+  if (version === 7) return migrateV7(save, expectedMapId, current, legacy)
   return { ok: true, save, migrated: false, fromVersion: version }
 }
 
@@ -257,7 +271,7 @@ function isLegacyInventory(v: unknown): boolean {
 }
 
 /** Pure deterministic v1 → v2. Original data is never mutated; storage owns backup/commit. */
-function migratePhase1(data: Record<string, unknown>, mapId: string, map?: MapData): SaveValidation {
+function migratePhase1(data: Record<string, unknown>, mapId: string, current?: MapData): SaveValidation {
   const save = structuredClone(data) as unknown as SaveGame
   const convert = (old: Inventory, id: string): Inventory => {
     const inv = createInventory(old.slots.length, id)
@@ -280,7 +294,7 @@ function migratePhase1(data: Record<string, unknown>, mapId: string, map?: MapDa
     save.containers.push({ id: 'drop:legacy-bat', opened: false, position: { ...save.player.position, y: 0 }, items })
   }
   // Continue through v2 → v3 with the same validator, so both steps are checked.
-  const checked = validateSaveGame(save, mapId, map)
+  const checked = validateSaveGame(save, mapId, current)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 1 } : checked
 }
 
@@ -304,20 +318,20 @@ function seedAddedContainers(save: SaveGame, added: ReadonlySet<string>, map?: M
 }
 
 /** Pure deterministic v2 → v3: seed the P2-S2 melee containers once. */
-function migrateV2(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+function migrateV2(source: SaveGame, mapId: string, current?: MapData, map?: MapData): SaveValidation {
   const save = structuredClone(source)
   save.schemaVersion = 3
   seedAddedContainers(save, CONTAINERS_ADDED_V3, map)
-  const checked = validateSaveGame(save, mapId, map)
+  const checked = validateSaveGame(save, mapId, current)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 2 } : checked
 }
 
 /** Pure v3 → v4: characters made before character creation get the default name and look. */
-function migrateV3(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+function migrateV3(source: SaveGame, mapId: string, current?: MapData): SaveValidation {
   const save = structuredClone(source)
   save.schemaVersion = 4
   save.player = { ...save.player, name: DEFAULT_PLAYER_NAME, appearance: { ...DEFAULT_APPEARANCE } }
-  const checked = validateSaveGame(save, mapId, map)
+  const checked = validateSaveGame(save, mapId, current)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 3 } : checked
 }
 
@@ -325,11 +339,11 @@ function migrateV3(source: SaveGame, mapId: string, map?: MapData): SaveValidati
  * Pure v4 → v5 (P2-S4): seed the three material containers once, like v2 → v3. Nothing else
  * changes; timed actions are never saved, so there is no action state to convert.
  */
-function migrateV4(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+function migrateV4(source: SaveGame, mapId: string, current?: MapData, map?: MapData): SaveValidation {
   const save = structuredClone(source)
   save.schemaVersion = 5
   seedAddedContainers(save, CONTAINERS_ADDED_V5, map)
-  const checked = validateSaveGame(save, mapId, map)
+  const checked = validateSaveGame(save, mapId, current)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 4 } : checked
 }
 
@@ -338,7 +352,7 @@ function migrateV4(source: SaveGame, mapId: string, map?: MapData): SaveValidati
  * fresh sighting, each zombie joins the zone nearest to it, no door siege is in progress and the
  * horde director starts its first countdown. Items, doors and containers are untouched.
  */
-function migrateV5(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+function migrateV5(source: SaveGame, mapId: string, current?: MapData, map?: MapData): SaveValidation {
   const save = structuredClone(source)
   save.schemaVersion = 6
   save.zombies = save.zombies.map((z) => ({
@@ -349,7 +363,7 @@ function migrateV5(source: SaveGame, mapId: string, map?: MapData): SaveValidati
     structureTargetId: null,
   }))
   save.horde = { timer: GAME_CONFIG.horde.intervalMin, counter: 0 }
-  const checked = validateSaveGame(save, mapId, map)
+  const checked = validateSaveGame(save, mapId, current)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 5 } : checked
 }
 
@@ -379,7 +393,7 @@ function outOfAddedWalls(p: Vec3, map: MapData): Vec3 {
  * open, lamps off, the grid powered; a player or zombie standing where the new partition is gets
  * moved beside it. Everything else is untouched.
  */
-function migrateV6(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+function migrateV6(source: SaveGame, mapId: string, current?: MapData, map?: MapData): SaveValidation {
   const save = structuredClone(source)
   save.schemaVersion = 7
   if (map) {
@@ -396,6 +410,46 @@ function migrateV6(source: SaveGame, mapId: string, map?: MapData): SaveValidati
     lamps: map ? mapRooms(map).flatMap((r) => (r.lamp ? [{ id: r.lamp.id, on: false }] : [])) : [],
     electricity: true,
   }
-  const checked = validateSaveGame(save, mapId, map)
+  const checked = validateSaveGame(save, mapId, current)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 6 } : checked
+}
+
+/** Entries in the order of `order` (how the runtime snapshots them); unknown IDs (drops) after, kept in order. */
+function inMapOrder<T extends { id: string }>(list: T[], order: readonly { id: string }[]): T[] {
+  const rank = new Map(order.map((o, i) => [o.id, i]))
+  const at = (id: string) => rank.get(id) ?? Number.MAX_SAFE_INTEGER
+  return list.map((x, i) => ({ x, i })).sort((a, b) => at(a.x.id) - at(b.x.id) || a.i - b.i).map(({ x }) => x)
+}
+
+/**
+ * Pure v7 → v8 (map content): the save records the content revision, and on a world whose IDs
+ * changed (the neighbourhood) every stored map ID is renamed through the legacy table: doors,
+ * map containers, curtains (windows), lamps, zombie zones and siege doors. Dropped bags keep
+ * their `drop:` IDs; inventory and item IDs never change. Lists follow the current map order
+ * (like `createSnapshot`). An ID missing from the table is left as is, so the v8
+ * validation rejects the save (the original stays in storage) instead of dropping that state.
+ */
+function migrateV7(source: SaveGame, mapId: string, current?: MapData, legacy?: LegacyContent): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = 8
+  save.contentVersion = current?.contentVersion ?? 0
+  if (current && legacy) {
+    const { ids } = legacy
+    const rename = (table: Record<string, string>, id: string) => table[id] ?? id
+    save.doors = inMapOrder(save.doors.map((d) => ({ ...d, id: rename(ids.doors, d.id) })), current.doors)
+    const renamed = save.containers.map((c) => (c.id.startsWith('drop:') ? c : { ...c, id: rename(ids.containers, c.id) }))
+    save.containers = inMapOrder(renamed, current.containers)
+    save.lighting = {
+      ...save.lighting,
+      curtains: inMapOrder(save.lighting.curtains.map((c) => ({ ...c, id: rename(ids.windows, c.id) })), mapWindows(current)),
+      lamps: inMapOrder(save.lighting.lamps.map((l) => ({ ...l, id: rename(ids.lamps, l.id) })), mapRooms(current).flatMap((r) => (r.lamp ? [r.lamp] : []))),
+    }
+    save.zombies = save.zombies.map((z) => ({
+      ...z,
+      zoneId: z.zoneId === null ? null : rename(ids.zones, z.zoneId),
+      structureTargetId: z.structureTargetId === null ? null : rename(ids.doors, z.structureTargetId),
+    }))
+  }
+  const checked = validateSaveGame(save, mapId, current)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 7 } : checked
 }

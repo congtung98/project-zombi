@@ -95,7 +95,7 @@ describe('world loot on the neighborhood map', () => {
   it('the safe house always holds water, food and a bandage (no unwinnable start)', () => {
     for (let seed = 1; seed <= 40; seed++) {
       const w = createWorldState(NEIGHBORHOOD_MAP, seed * 7919)
-      const cabinet = w.containers.get('ct-safehouse-cabinet')!.items
+      const cabinet = w.containers.get('c-1_-1/safehouse/cabinet')!.items
       expect(countItem(cabinet, 'water')).toBeGreaterThanOrEqual(1)
       expect(countItem(cabinet, 'canned_food')).toBeGreaterThanOrEqual(1)
       expect(countItem(cabinet, 'bandage')).toBeGreaterThanOrEqual(1)

@@ -6,6 +6,7 @@ import { applyWeaponWear, conditionLevel, isUsableTool, meleeStats, weaponHitDam
 import { generateContainerLoot } from './loot'
 import { LOOT_TABLES } from '../world/lootTables'
 import { NEIGHBORHOOD_MAP } from '../world/mapData'
+import { legacyContentFor } from '../world/legacyContent'
 import legacyFixture from './fixtures/phase1-v1.json'
 
 const WEAPONS: ItemId[] = ['baseball_bat', 'metal_pipe', 'crowbar', 'hammer', 'wooden_club']
@@ -108,14 +109,14 @@ describe('melee loot distribution', () => {
     const starters = new Set<string>()
     const conditions = new Set<number>()
     for (const seed of seeds) {
-      const closet = loot('safehouse-closet', seed, 'ct-safehouse-closet').slots.filter(Boolean)
+      const closet = loot('safehouse-closet', seed, 'c-1_-1/safehouse/closet').slots.filter(Boolean)
       expect(closet).toHaveLength(1)
       const w = closet[0] as WeaponInstance
       expect(['baseball_bat', 'metal_pipe']).toContain(w.itemId)
       expect(w.condition).toBeGreaterThanOrEqual(Math.ceil(ITEMS[w.itemId].maxCondition! * 0.6))
       starters.add(w.itemId)
       conditions.add(w.condition)
-      const hammer = loot('tool-shelf', seed, 'ct-store-tools').slots.find((i) => i?.itemId === 'hammer')
+      const hammer = loot('tool-shelf', seed, 'c0_-1/store/tools').slots.find((i) => i?.itemId === 'hammer')
       expect(isUsableTool(hammer, 'hammer')).toBe(true)
     }
     expect(starters).toEqual(new Set(['baseball_bat', 'metal_pipe']))
@@ -143,10 +144,12 @@ describe('melee loot distribution', () => {
 
   it('Phase 1 tables still roll exactly what the Phase 1 runtime generated for the fixture seed', () => {
     // phase1-v1.json was exported before any Phase 2 change; only the first cabinet was looted.
+    // Rolled under the container's ID at the time (legacy); the map now names it by content ID.
     const byId = new Map(NEIGHBORHOOD_MAP.containers.map((c) => [c.id, c]))
+    const stable = legacyContentFor(NEIGHBORHOOD_MAP)!.ids.containers
     for (const old of legacyFixture.containers.filter((c) => !c.opened)) {
-      const def = byId.get(old.id)!
-      const now = loot(def.loot!, legacyFixture.worldSeed, def.id)
+      const def = byId.get(stable[old.id])!
+      const now = loot(def.loot!, legacyFixture.worldSeed, old.id)
       expect(now.slots.map((s) => (s ? { itemId: s.itemId, quantity: s.quantity } : null))).toEqual(old.items.slots)
     }
   })

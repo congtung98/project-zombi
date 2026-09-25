@@ -306,9 +306,9 @@ try {
     await page.waitForFunction((id) => window.__runtime.zombies.get(id).ai === 'CHASE', doorZombie, { timeout: 6000 })
     await page.keyboard.press('KeyE')
     await page.waitForFunction((id) => window.__runtime.zombies.get(id).ai === 'ATTACK_STRUCTURE', doorZombie, { timeout: 15000 })
-    await page.waitForFunction(() => window.__runtime.world.doors.get('door-safehouse').hp < 120, null, { timeout: 8000 })
+    await page.waitForFunction(() => window.__runtime.world.doors.get('c-1_-1/safehouse/door').hp < 120, null, { timeout: 8000 })
     const bashing = await drawn(doorZombie)
-    log('hidden but bashing', { ...bashing, doorHp: await rt(() => window.__runtime.world.doors.get('door-safehouse').hp) })
+    log('hidden but bashing', { ...bashing, doorHp: await rt(() => window.__runtime.world.doors.get('c-1_-1/safehouse/door').hp) })
     assert.deepEqual([bashing.ai, bashing.drawn], ['ATTACK_STRUCTURE', false])
 
     assert.equal(errors.length, 0, JSON.stringify(errors))

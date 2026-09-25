@@ -123,7 +123,7 @@ async function runScenario(label: string, map: MapData, mode: Mode, extraZombies
   let leg = 0
   // Pathing: the player hops between the safehouse (door open) and the yard every 4 s; every zombie
   // is told where the player is once a second, so they keep requesting paths around the walls.
-  const safehouseDoor = map.doors.find((d) => d.id.endsWith('door-safehouse'))
+  const safehouseDoor = map.doors.find((d) => d.id.endsWith('c-1_-1/safehouse/door'))
   if (mode === 'pathing' && safehouseDoor) rt.setDoorState(safehouseDoor.id, 'open')
   const hops: Vec3[] = [{ ...start }, { x: start.x + 6, y: 0, z: start.z + 9 }]
 

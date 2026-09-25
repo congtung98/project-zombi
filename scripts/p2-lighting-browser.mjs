@@ -2,12 +2,12 @@
 // brightness of indoor floor patches (projected with the scene camera) in the house: living room
 // (windows) vs bedroom (back room), bedroom door closed/open, night lamp off/on, player turning 4
 // ways (room brightness must not follow the facing), outdoor ground unaffected by indoor changes;
-// real E presses on a wall switch and a curtain; save v7 → reload → Continue keeps lamp/curtain.
+// real E presses on a wall switch and a curtain; save → reload → Continue keeps lamp/curtain.
 //   Dev:        BASE_URL=http://127.0.0.1:5174 node scripts/p2-lighting-browser.mjs
 //   Production: BASE_URL=http://127.0.0.1:5199 node scripts/p2-lighting-browser.mjs --production
 // Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
-// Dev mode writes src/game/systems/fixtures/phase2-light-v7.json (lamp on, curtain drawn).
-import { mkdirSync, writeFileSync } from 'node:fs'
+// Wrote src/game/systems/fixtures/phase2-light-v7.json until save v8; that fixture is now frozen.
+import { mkdirSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
 const production = process.argv.includes('--production')
@@ -101,8 +101,8 @@ try {
     await button('Lưu và về menu').click()
     await menu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 7)
-    assert.equal(saved.lighting.lamps.find((l) => l.id === 'lamp-safehouse').on, true)
+    assert.equal(saved.schemaVersion, 8)
+    assert.equal(saved.lighting.lamps.find((l) => l.id === 'c-1_-1/safehouse/lamp').on, true)
     await page.waitForTimeout(500)
     assert.equal(errors.length, 0, JSON.stringify(errors))
     log('PASS production', { line, labels, savedLamp: true })
@@ -173,7 +173,7 @@ try {
     const measure = async (label) => {
       await page.waitForTimeout(450) // uniform easing
       const [living, bedroom, outside] = await patches([LIVING, BEDROOM, OUTSIDE])
-      const row = { living, bedroom, outside, livingLight: await light('room-house-living'), bedroomLight: await light('room-house-bedroom') }
+      const row = { living, bedroom, outside, livingLight: await light('c0_0/house/room-living'), bedroomLight: await light('c0_0/house/room-bedroom') }
       log(label, row)
       return row
     }
@@ -183,11 +183,11 @@ try {
     const noon = await measure('noon, door open')
     await shot('lighting-noon')
     assert.ok(noon.livingLight.f > 0.5 && noon.living > noon.bedroom + 5, 'living (windows) brighter than bedroom')
-    await rt(() => window.__runtime.setDoorState('door-house-bedroom', 'closed'))
+    await rt(() => window.__runtime.setDoorState('c0_0/house/door-bedroom', 'closed'))
     const shut = await measure('noon, bedroom door closed')
     assert.ok(shut.bedroom < noon.bedroom - 5 && shut.bedroomLight.f < noon.bedroomLight.f * 0.3, 'closing the door darkens the bedroom')
     assert.ok(Math.abs(shut.outside - noon.outside) < 1.5 && Math.abs(shut.living - noon.living) < 1.5, 'living and outdoors unchanged')
-    await rt(() => window.__runtime.setDoorState('door-house-bedroom', 'open'))
+    await rt(() => window.__runtime.setDoorState('c0_0/house/door-bedroom', 'open'))
     await page.waitForTimeout(300) // the reopened door is solved on the next tick
 
     // 2) Turning 4 ways: room brightness and lighting revision never change.
@@ -206,7 +206,7 @@ try {
     // 3) Night: bedroom lamp off → dark, on → clearly lit; outdoors stays at night level.
     await place(11.2, 9.6, 0, 0.0)
     const nightOff = await measure('midnight, lamps off')
-    await rt(() => window.__runtime.setLamp('lamp-house-bedroom', true))
+    await rt(() => window.__runtime.setLamp('c0_0/house/lamp-bedroom', true))
     const nightOn = await measure('midnight, bedroom lamp on')
     await shot('lighting-night-lamp')
     assert.ok(nightOn.bedroom > nightOff.bedroom + 15, 'lamp lights the room')
@@ -215,20 +215,20 @@ try {
     const noPower = await measure('midnight, lamp on, no power')
     assert.ok(noPower.bedroomLight.a === 0 && noPower.bedroom < nightOn.bedroom - 15, 'no power, no lamp')
     await rt(() => window.__runtime.setElectricity(true))
-    await rt(() => window.__runtime.setLamp('lamp-house-bedroom', false))
+    await rt(() => window.__runtime.setLamp('c0_0/house/lamp-bedroom', false))
 
     // 4) Real E presses: living room switch (inside by the front door), safehouse north curtain.
     await place(12.05, 9.4, Math.PI, 0.5)
     await page.waitForFunction(() => document.querySelector('.hud-prompt')?.textContent.includes('Bật Đèn phòng khách'), null, { timeout: 5000 })
     await page.keyboard.press('KeyE')
-    await page.waitForFunction(() => window.__runtime.world.lamps.get('lamp-house-living') === true, null, { timeout: 2000 })
+    await page.waitForFunction(() => window.__runtime.world.lamps.get('c0_0/house/lamp-living') === true, null, { timeout: 2000 })
     await place(-12, -16.9, Math.PI, 0.5)
-    const before = await light('room-safehouse')
+    const before = await light('c-1_-1/safehouse/room')
     await page.waitForFunction(() => document.querySelector('.hud-prompt')?.textContent.includes('Kéo rèm Cửa sổ phía bắc nhà an toàn'), null, { timeout: 5000 })
     await page.keyboard.press('KeyE')
-    await page.waitForFunction(() => window.__runtime.world.curtains.get('win-safehouse-n') === true, null, { timeout: 2000 })
+    await page.waitForFunction(() => window.__runtime.world.curtains.get('c-1_-1/safehouse/win-n') === true, null, { timeout: 2000 })
     await page.waitForTimeout(300)
-    const after = await light('room-safehouse')
+    const after = await light('c-1_-1/safehouse/room')
     log('curtain drawn (E)', { before, after })
     assert.ok(after.d < before.d && after.d > 0)
     await shot('lighting-curtain')
@@ -243,21 +243,20 @@ try {
     await button('Lưu và về menu').click()
     await menu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 7)
-    assert.equal(saved.lighting.lamps.find((l) => l.id === 'lamp-house-living').on, true)
-    assert.equal(saved.lighting.curtains.find((c) => c.id === 'win-safehouse-n').closed, true)
-    assert.equal(saved.doors.find((d) => d.id === 'door-house-bedroom').state, 'open')
-    writeFileSync('src/game/systems/fixtures/phase2-light-v7.json', JSON.stringify({ ...saved, savedAt: 1790553600000 }, null, 2) + '\n')
+    assert.equal(saved.schemaVersion, 8)
+    assert.equal(saved.lighting.lamps.find((l) => l.id === 'c0_0/house/lamp-living').on, true)
+    assert.equal(saved.lighting.curtains.find((c) => c.id === 'c-1_-1/safehouse/win-n').closed, true)
+    assert.equal(saved.doors.find((d) => d.id === 'c0_0/house/door-bedroom').state, 'open')
     await page.reload()
     await menu()
     await page.waitForFunction(() => Array.from(document.querySelectorAll('button')).some((b) => b.textContent.trim() === 'Continue' && !b.disabled), null, { timeout: 15000 })
     await button('Continue').click()
     await inGame()
-    const restored = await rt(() => ({ lamp: window.__runtime.world.lamps.get('lamp-house-living'), curtain: window.__runtime.world.curtains.get('win-safehouse-n'), living: window.__runtime.lighting.getRoomLight('room-house-living').artificialLight }))
+    const restored = await rt(() => ({ lamp: window.__runtime.world.lamps.get('c0_0/house/lamp-living'), curtain: window.__runtime.world.curtains.get('c-1_-1/safehouse/win-n'), living: window.__runtime.lighting.getRoomLight('c0_0/house/room-living').artificialLight }))
     log('after Continue', restored)
     assert.deepEqual(restored, { lamp: true, curtain: true, living: 0.8 })
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    log('PASS dev', 'window vs back room, door closed/open, 4-way turn, night lamp/power, E switch + curtain, save v7/Continue, fixture written')
+    log('PASS dev', 'window vs back room, door closed/open, 4-way turn, night lamp/power, E switch + curtain, save/Continue')
   }
 } catch (e) {
   await shot(production ? 'lighting-prod-fail' : 'lighting-dev-fail').catch(() => undefined)

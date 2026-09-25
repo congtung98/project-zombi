@@ -2,6 +2,8 @@
 
 Ngày: 25/09/2026 (refactor R0–R2). Không triển khai gì ngoài map stress lặp ô (`world/stressMap.ts`, chỉ dev).
 
+> **Đã triển khai** ở map content M1–M2 (R3a): định dạng chính thức nằm ở `docs/map-content-format.md`, báo cáo ở `docs/map-editor-m1-m2.md`. Phần dưới đây là ghi chú lịch sử lúc đề xuất.
+
 ## Hiện trạng
 
 - Map là **hằng số TypeScript** trong `world/mapData.ts`: `BuildingDef` (tâm, kích thước, cửa, cửa sổ, vách, phòng, đèn, container), vật cản, đường, điểm spawn, vùng zombie. Hàm sinh (`generateBuildingWalls`, `generateDoorPlacements`, `generateWindowPlacements`, `generateRooms`) tạo ra tường/cửa/cửa sổ/phòng lúc nạp module.

@@ -33,6 +33,7 @@ const MIGRATION_TOAST: Record<number, string> = {
   4: `Đã nâng cấp save và giữ bản sao v4. ${MATERIALS_NOTE} ${ZOMBIE_AI_NOTE} ${LIGHTING_NOTE}`,
   5: `Đã nâng cấp save và giữ bản sao v5. ${ZOMBIE_AI_NOTE} ${LIGHTING_NOTE}`,
   6: `Đã nâng cấp save và giữ bản sao v6. ${LIGHTING_NOTE}`,
+  7: 'Đã nâng cấp save sang dữ liệu map mới (ID ổn định) và giữ bản sao v7.',
 }
 
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */
@@ -126,7 +127,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   startNewGame: (profile) => {
     runtime.newGame(undefined, profile)
     enterSession(set)
-    if (runtime.map.containers.some((c) => c.id === 'ct-safehouse-closet')) {
+    if (runtime.map.containers.some((c) => c.id === 'c-1_-1/safehouse/closet')) {
       useHudStore.getState().showToast('Bạn đang tay không. Tủ quần áo trong nhà an toàn có vũ khí: lại gần, nhấn E, rồi trang bị trong túi.', 6000)
     }
   },

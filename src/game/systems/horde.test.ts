@@ -89,8 +89,8 @@ describe('nav regions and door slots', () => {
     const outside = { x: -13, y: 0, z: -7 }
     expect(g.componentAt(inside.x, inside.z)).not.toBe(g.componentAt(outside.x, outside.z))
     expect(g.findPath(outside, inside)).toBeNull()
-    expect(g.findDoorRoute(outside, inside)?.doorId).toBe('door-safehouse')
-    g.setDoorState('door-safehouse', 'destroyed')
+    expect(g.findDoorRoute(outside, inside)?.doorId).toBe('c-1_-1/safehouse/door')
+    g.setDoorState('c-1_-1/safehouse/door', 'destroyed')
     expect(g.componentAt(inside.x, inside.z)).toBe(g.componentAt(outside.x, outside.z))
     expect(g.findDoorRoute(outside, inside)).toMatchObject({ doorId: null, side: -1 })
   })

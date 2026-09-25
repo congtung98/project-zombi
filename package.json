@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "map:check": "node scripts/map-tools/check.ts",
     "deploy:check": "npm test && npm run build && vite preview --port 4173 --strictPort"
   },
   "dependencies": {

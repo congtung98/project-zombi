@@ -143,9 +143,9 @@ describe('NavGrid', () => {
     for (let i = 0; i < 60; i++) {
       const a = point()
       const b = point()
-      if (i % 20 === 10) shared.setDoorOpen('door-safehouse', i % 40 === 10)
+      if (i % 20 === 10) shared.setDoorOpen('c-1_-1/safehouse/door', i % 40 === 10)
       const fresh = new NavGrid(NEIGHBORHOOD_MAP, GAME_CONFIG.nav)
-      fresh.setDoorOpen('door-safehouse', shared.doorState('door-safehouse') === 'open')
+      fresh.setDoorOpen('c-1_-1/safehouse/door', shared.doorState('c-1_-1/safehouse/door') === 'open')
       expect(shared.findPath(a, b)).toEqual(fresh.findPath(a, b))
     }
     expect(shared.searches).toBeGreaterThan(10)

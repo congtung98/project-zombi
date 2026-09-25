@@ -43,7 +43,7 @@ import { AIScheduler, type ScheduledUpdate } from '../systems/aiScheduler'
 import { PathfindingQueue } from '../world/pathfindingQueue'
 import { StaticColliderRegistry, registerMapColliders } from '../world/staticColliders'
 import { moveZombie, pushOutOfCircle, resolveStatic, type Circle, type MoveEnv } from '../systems/zombieMovement'
-import type { BuildingDef } from '../world/buildings'
+import type { BuildingInfo } from '../world/buildings'
 
 interface PendingAttack {
   sourceId: EntityId
@@ -177,7 +177,7 @@ export class GameRuntime {
    */
   readonly zombieIndex = new SpatialHash<ZombieState>(ZOMBIE_CELL)
   private readonly interactableIndex = new SpatialHash<Interactable>(INTERACTABLE_CELL)
-  private readonly buildingIndex = new SpatialHash<BuildingDef>(BUILDING_CELL)
+  private readonly buildingIndex = new SpatialHash<BuildingInfo>(BUILDING_CELL)
   /** Largest interactable radius: the interaction query reaches `INTERACT_RANGE` + this. */
   private maxInteractRadius = 0
   private readonly nearbyScratch: ZombieState[] = []
@@ -380,6 +380,7 @@ export class GameRuntime {
       schemaVersion: SAVE_SCHEMA_VERSION,
       savedAt: Date.now(),
       mapId: this.map.id,
+      contentVersion: this.map.contentVersion ?? 0,
       worldSeed: this.world.seed,
       clock: { elapsed: this.clock.elapsed, timeOfDay: this.clock.timeOfDay, day: this.clock.day },
       player: {
@@ -1515,5 +1516,11 @@ function buildInteractables(map: MapData): Interactable[] {
   return list
 }
 
+/** Dev labs pick another map; the production build folds this to the neighbourhood (no generator in the bundle). */
+function initialMap(): MapData {
+  if (!import.meta.env.DEV) return NEIGHBORHOOD_MAP
+  return DOOR_LAB_ENABLED ? DOOR_LAB_MAP : STRESS_TILES ? buildStressMap(STRESS_TILES) : NEIGHBORHOOD_MAP
+}
+
 /** Singleton runtime cho ứng dụng. Test tạo instance riêng bằng `new GameRuntime()`. */
-export const runtime = new GameRuntime(DOOR_LAB_ENABLED ? DOOR_LAB_MAP : STRESS_TILES ? buildStressMap(STRESS_TILES) : NEIGHBORHOOD_MAP)
+export const runtime = new GameRuntime(initialMap())
