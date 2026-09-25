@@ -1,0 +1,263 @@
+import { useEffect, useRef, useState } from 'react'
+import { bundledWorldIds } from '../map/content'
+import { recordAtPath, recordForEntity } from '../map/editor/document'
+import { SLUG } from '../map/transform'
+import { deleteDraft } from './drafts'
+import { isDirty, SNAP_STEPS, useEditorStore } from './editorStore'
+import { downloadText } from './interaction'
+
+const confirmDiscard = () => !isDirty(useEditorStore.getState()) || window.confirm('Document có thay đổi chưa lưu. Bỏ các thay đổi đó?')
+
+export function Palette() {
+  const edit = useEditorStore((s) => s.edit)
+  const tool = useEditorStore((s) => s.tool)
+  const placePrefab = useEditorStore((s) => s.placePrefab)
+  const setTool = useEditorStore((s) => s.setTool)
+  const [query, setQuery] = useState('')
+  if (!edit) return <aside className="panel left" />
+  const q = query.trim().toLowerCase()
+  const prefabs = edit.doc.world.prefabs
+    .map((e) => edit.doc.prefabs.get(e.prefabId)!)
+    .filter((p) => !q || p.prefabId.includes(q) || p.name.toLowerCase().includes(q))
+  return (
+    <aside className="panel left">
+      <h3>Prefab</h3>
+      <input className="search" placeholder="Tìm prefab…" value={query} onChange={(e) => setQuery(e.target.value)} />
+      <ul className="palette">
+        {prefabs.map((p) => {
+          const f = p.footprint
+          const active = tool === 'place' && placePrefab === p.prefabId
+          return (
+            <li key={p.prefabId}>
+              <button className={active ? 'active' : ''} onClick={() => setTool(active ? 'select' : 'place', active ? null : p.prefabId)} data-prefab={p.prefabId}>
+                <strong>{p.name}</strong>
+                <small>
+                  {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m
+                </small>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="hint">
+        Đặt: click vào viewport, R xoay 90°, Esc thoát. Object rời, đường, zone, spawn mới: M4. Sửa prefab: M5.
+      </p>
+    </aside>
+  )
+}
+
+export function TopBar({ onImport }: { onImport: () => void }) {
+  const edit = useEditorStore((s) => s.edit)
+  const savedDoc = useEditorStore((s) => s.savedDoc)
+  const issues = useEditorStore((s) => s.issues)
+  const snapStep = useEditorStore((s) => s.snapStep)
+  const view = useEditorStore((s) => s.view)
+  const showIssues = useEditorStore((s) => s.showIssues)
+  const store = useEditorStore.getState
+  const dirty = isDirty({ edit, savedDoc })
+  const errors = issues.filter((i) => i.severity === 'error').length
+  const warnings = issues.length - errors
+  return (
+    <header className="topbar">
+      <strong className="title">
+        Map Editor{edit ? ` — ${edit.doc.world.name} (${edit.doc.world.worldId})` : ''}
+        {dirty && <span className="dirty" title="Có thay đổi chưa lưu nháp/export"> ●</span>}
+      </strong>
+      <button onClick={() => confirmDiscard() && store().set({ dialog: 'new' })}>Mới</button>
+      <button
+        onClick={() => {
+          if (!confirmDiscard()) return
+          void store().refreshDrafts()
+          store().set({ dialog: 'open' })
+        }}
+      >
+        Mở…
+      </button>
+      <button onClick={() => void store().saveDraft()} disabled={!edit} title="Ctrl+S">
+        Lưu nháp
+      </button>
+      <button onClick={onImport}>Import…</button>
+      <button
+        onClick={() => {
+          const f = store().exportFile()
+          if (f) downloadText(f.name, f.text)
+        }}
+        disabled={!edit}
+      >
+        Export
+      </button>
+      <span className="sep" />
+      <button onClick={() => store().undo()} disabled={!edit?.past.length} title="Ctrl+Z">
+        Hoàn tác
+      </button>
+      <button onClick={() => store().redo()} disabled={!edit?.future.length} title="Ctrl+Y / Ctrl+Shift+Z">
+        Làm lại
+      </button>
+      <span className="sep" />
+      <label>
+        Snap{' '}
+        <select value={snapStep} onChange={(e) => store().set({ snapStep: Number(e.target.value) })}>
+          {SNAP_STEPS.map((s) => (
+            <option key={s} value={s}>
+              {s ? `${s} m` : 'OFF'}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button onClick={() => store().set({ view: view === 'top' ? 'iso' : 'top' })} title="Tab">
+        {view === 'top' ? 'Nhìn: trên xuống' : 'Nhìn: isometric'}
+      </button>
+      <span className="sep" />
+      <button className={errors ? 'bad' : warnings ? 'warn' : 'good'} onClick={() => store().set({ showIssues: !showIssues })}>
+        Validate: {errors} lỗi, {warnings} cảnh báo
+      </button>
+    </header>
+  )
+}
+
+export function IssuesPanel() {
+  const show = useEditorStore((s) => s.showIssues)
+  const issues = useEditorStore((s) => s.issues)
+  const rejected = useEditorStore((s) => s.rejected)
+  const edit = useEditorStore((s) => s.edit)
+  if (!show) return null
+  const pick = (entityId: string | undefined, path: string) => {
+    const s = useEditorStore.getState()
+    if (!s.edit) return
+    const id = (entityId && recordForEntity(s.edit.doc, entityId)) || recordAtPath(s.edit.doc, path)
+    if (id) {
+      s.select([id])
+      s.requestFocus()
+    }
+  }
+  return (
+    <section className="issues">
+      <header>
+        <strong>Validate</strong>
+        <button onClick={() => useEditorStore.setState({ showIssues: false, rejected: null })}>Đóng</button>
+      </header>
+      {rejected && (
+        <div className="rejected">
+          <strong>{rejected.title}</strong> (document đang mở giữ nguyên)
+          <IssueList issues={rejected.issues} />
+        </div>
+      )}
+      {edit && issues.length === 0 && <p className="good">Không có lỗi hay cảnh báo.</p>}
+      <IssueList issues={issues} onPick={pick} />
+    </section>
+  )
+}
+
+function IssueList({ issues, onPick }: { issues: { severity: string; code: string; message: string; path: string; entityId?: string }[]; onPick?: (entityId: string | undefined, path: string) => void }) {
+  return (
+    <ul>
+      {issues.map((i, k) => (
+        <li key={k} className={i.severity} onClick={() => onPick?.(i.entityId, i.path)}>
+          <b>{i.severity === 'error' ? 'LỖI' : 'CẢNH BÁO'}</b> <code>{i.code}</code> {i.message} <small>{i.path}</small>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export function StatusBar() {
+  const status = useEditorStore((s) => s.status)
+  const cursor = useEditorStore((s) => s.cursor)
+  const tool = useEditorStore((s) => s.tool)
+  const placePrefab = useEditorStore((s) => s.placePrefab)
+  const placeTurns = useEditorStore((s) => s.placeTurns)
+  const selection = useEditorStore((s) => s.edit?.selection.length ?? 0)
+  const chunkSize = useEditorStore((s) => s.edit?.doc.world.chunkSize ?? 32)
+  const chunk = cursor ? `c${Math.floor(cursor.x / chunkSize) + 0}_${Math.floor(cursor.z / chunkSize) + 0}` : ''
+  return (
+    <footer className="statusbar">
+      <span className={status?.kind === 'error' ? 'error' : ''} data-status>
+        {status?.text ?? ''}
+      </span>
+      <span>
+        {tool === 'place' ? `Đặt ${placePrefab} (${placeTurns * 90}°)` : `Chọn: ${selection}`}
+        {cursor ? ` · (${cursor.x.toFixed(2)}, ${cursor.z.toFixed(2)}) ${chunk}` : ''}
+      </span>
+    </footer>
+  )
+}
+
+export function OpenDialog() {
+  const dialog = useEditorStore((s) => s.dialog)
+  const drafts = useEditorStore((s) => s.drafts)
+  const store = useEditorStore.getState
+  if (dialog !== 'open') return null
+  return (
+    <div className="modal" role="dialog">
+      <div className="box">
+        <h3>Mở world</h3>
+        <h4>Content trong repo (content/maps)</h4>
+        <ul>
+          {bundledWorldIds().map((id) => (
+            <li key={id}>
+              <button onClick={() => store().openBundled(id)}>{id}</button>
+            </li>
+          ))}
+        </ul>
+        <h4>Bản nháp (IndexedDB của editor)</h4>
+        {drafts.length === 0 && <p className="hint">Chưa có bản nháp.</p>}
+        <ul>
+          {drafts.map((d) => (
+            <li key={d.worldId}>
+              <button onClick={() => store().openPack(d.pack, `nháp ${d.worldId}`, true)}>
+                {d.name} ({d.worldId})
+              </button>{' '}
+              <small>{new Date(d.savedAt).toLocaleString()}</small>{' '}
+              <button
+                className="bad"
+                onClick={() => {
+                  if (window.confirm(`Xóa bản nháp ${d.worldId}?`)) void deleteDraft(d.worldId).then(() => store().refreshDrafts())
+                }}
+              >
+                Xóa nháp
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="row">
+          <button onClick={() => store().set({ dialog: null })}>Hủy</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function NewDialog() {
+  const dialog = useEditorStore((s) => s.dialog)
+  const [worldId, setWorldId] = useState('new-world')
+  const [name, setName] = useState('World mới')
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (dialog === 'new') input.current?.focus()
+  }, [dialog])
+  if (dialog !== 'new') return null
+  const valid = SLUG.test(worldId) && name.trim().length > 0
+  return (
+    <div className="modal" role="dialog">
+      <div className="box">
+        <h3>World mới</h3>
+        <p className="hint">2 × 2 chunk 32 m quanh gốc tọa độ, hàng rào, spawn người chơi + 1 spawn zombie; thư viện prefab lấy từ neighborhood-50.</p>
+        <label className="field">
+          <span>worldId</span>
+          <input ref={input} value={worldId} onChange={(e) => setWorldId(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Tên</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        {!SLUG.test(worldId) && <p className="error">worldId: chữ thường, số, gạch nối.</p>}
+        <div className="row">
+          <button disabled={!valid} onClick={() => useEditorStore.getState().newWorld(worldId, name.trim())}>
+            Tạo
+          </button>
+          <button onClick={() => useEditorStore.getState().set({ dialog: null })}>Hủy</button>
+        </div>
+      </div>
+    </div>
+  )
+}

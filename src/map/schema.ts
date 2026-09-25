@@ -64,6 +64,11 @@ export interface WorldDocument {
   /** Stable ID of the `player` spawn used by New Game. */
   playerSpawn: string
   gameplay?: { maxActiveZombies?: number }
+  /**
+   * Record IDs deleted from published content (sorted). They are never handed out again, so a
+   * save holding state for a deleted object cannot attach it to a new, unrelated one (editor M3).
+   */
+  retiredIds?: string[]
 }
 
 export interface BuildingProps {

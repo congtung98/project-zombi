@@ -13,6 +13,9 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
+# Map editor (M3): npm run dev rồi mở http://localhost:5173/editor.html
+npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
+npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/
 ```
 
 ## Phát hành
@@ -62,10 +65,13 @@ simulation để kiểm tra từ console hoặc kịch bản playtest tự độ
 
 ```text
 content/maps/<world>/  nội dung map: world.json, prefabs/, chunks/ (32 m), migrations/ (docs/map-content-format.md)
-scripts/map-tools/     check.ts (npm run map:check), import-legacy.ts
+scripts/map-tools/     check.ts (npm run map:check), import-legacy.ts, pack.ts / unpack.ts (content pack của editor)
+editor.html            entry riêng của map editor
 src/
   map/                 schema, transform (xoay/chunk/ID), validate, resolve (JSON → MapData), loader (ChunkLifecycle),
-                       content (nạp JSON đi kèm bundle), tools/ (importLegacy, tileWorld)
+                       content (nạp JSON đi kèm bundle), tools/ (importLegacy, tileWorld),
+                       editor/ (document bất biến, lệnh, lịch sử undo/redo, content pack — thuần TS)
+  editor/              UI map editor (React + R3F): viewport, palette, inspector, validate, nháp IndexedDB riêng
   app/                 App (điều hướng màn hình), GameCanvas
   game/
     core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, di cư, đòn vào cửa, snapshot/load)
@@ -110,6 +116,10 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M3: editor MVP (25/09/2026)
+
+- `/editor.html`: mở content trong repo/bản nháp/pack, đặt prefab (bóng mờ, xoay 90°), chọn/kéo (qua biên chunk giữ ID), Inspector, xóa/nhân bản, snap 1/0,5/0,25 m/OFF, nhìn trên xuống/isometric, undo/redo cho mọi thao tác, Validate dùng chung validator của game (click lỗi → chọn record), nháp IndexedDB riêng, Export/Import content pack. Output chạy trong game qua `npm run map:unpack` + `/?world=<id>` (dev, slot save riêng). Chi tiết `docs/map-editor-m3.md`.
 
 ### R3b: hiệu năng theo chunk (25/09/2026)
 

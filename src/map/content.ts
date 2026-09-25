@@ -20,6 +20,20 @@ export function bundledWorldReader(worldId: string): (path: string) => unknown {
   }
 }
 
+/** IDs of the worlds bundled under `content/maps/` (folders with a `world.json`), sorted. */
+export function bundledWorldIds(): string[] {
+  return Object.keys(FILES)
+    .map((p) => /^\/content\/maps\/([^/]+)\/world\.json$/.exec(p)?.[1])
+    .filter((id): id is string => !!id)
+    .sort()
+}
+
+/** Every file of a bundled world folder by relative path (editor: open a world with its extras). */
+export function bundledWorldFiles(worldId: string): Map<string, unknown> {
+  const root = `/content/maps/${worldId}/`
+  return new Map(Object.keys(FILES).filter((p) => p.startsWith(root)).sort().map((p) => [p.slice(root.length), FILES[p]]))
+}
+
 export const REGISTERED_LOOT_TABLES: ReadonlySet<string> = new Set(Object.keys(LOOT_TABLES))
 
 export interface LoadedWorld {

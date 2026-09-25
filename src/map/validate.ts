@@ -211,6 +211,14 @@ export function validateWorldDocument(doc: unknown, file = 'world.json'): Valida
   if (doc.gameplay !== undefined && c.obj(doc.gameplay, '/gameplay') && doc.gameplay.maxActiveZombies !== undefined) {
     c.num(doc.gameplay.maxActiveZombies, '/gameplay/maxActiveZombies', { int: true, min: 0 })
   }
+  if (doc.retiredIds !== undefined && c.arr(doc.retiredIds, '/retiredIds')) {
+    const seen = new Set<string>()
+    doc.retiredIds.forEach((id, i) => {
+      if (!c.str(id, `/retiredIds/${i}`)) return
+      if (seen.has(id)) c.error('duplicate-id', `/retiredIds/${i}`, `retired ID "${id}" listed twice`)
+      seen.add(id)
+    })
+  }
   return c.issues
 }
 
@@ -440,7 +448,9 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
   const chunkPath = (id: string) => world.chunks.find((c) => c.chunkId === id)?.path ?? id
 
   const owners = new Map<string, string>()
+  const retired = new Set(world.retiredIds ?? [])
   for (const r of records) {
+    if (retired.has(r.id)) add('error', 'retired-id-reused', `${chunkPath(r.ownerChunkId)}#/${r.category}/${r.order[2]}`, `"${r.id}" belongs to a deleted record and cannot be used again`, r.id)
     for (const id of r.entityIds) {
       const first = owners.get(id)
       if (first) add('error', 'duplicate-id', `${chunkPath(r.ownerChunkId)}#/${r.category}/${r.order[2]}`, `stable ID "${id}" also used in ${first}`, id)
@@ -489,6 +499,17 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
 
 /** Parse + validate every document of a world read through `read(path)`; throws on errors. */
 export function loadWorldDocuments(read: (path: string) => unknown, opts: ValidationOptions = {}): { docs: WorldDocuments; issues: ValidationIssue[] } {
+  const checked = checkWorldDocuments(read, opts)
+  if (!checked.docs || hasErrors(checked.issues)) throw new MapContentError(checked.issues)
+  return { docs: checked.docs, issues: checked.issues }
+}
+
+/**
+ * Non-throwing form of `loadWorldDocuments` (editor Validate panel, drafts): every issue found.
+ * `docs` is null when a document failed on its own; otherwise the world-level checks ran too and
+ * `docs` is returned even if they found errors.
+ */
+export function checkWorldDocuments(read: (path: string) => unknown, opts: ValidationOptions = {}): { docs: WorldDocuments | null; issues: ValidationIssue[] } {
   const issues: ValidationIssue[] = []
   const readChecked = (path: string): unknown => {
     try {
@@ -500,7 +521,7 @@ export function loadWorldDocuments(read: (path: string) => unknown, opts: Valida
   }
   const raw = readChecked('world.json')
   if (raw !== undefined) issues.push(...validateWorldDocument(raw))
-  if (hasErrors(issues)) throw new MapContentError(issues)
+  if (hasErrors(issues)) return { docs: null, issues }
   const world = raw as WorldDocument
   const prefabs = new Map<string, PrefabDocument>()
   for (const entry of world.prefabs) {
@@ -518,9 +539,8 @@ export function loadWorldDocuments(read: (path: string) => unknown, opts: Valida
     issues.push(...found)
     if (!hasErrors(found)) chunks.set(entry.chunkId, doc as ChunkDocument)
   }
-  if (hasErrors(issues)) throw new MapContentError(issues)
+  if (hasErrors(issues)) return { docs: null, issues }
   const docs = { world, prefabs, chunks }
   issues.push(...validateContent(docs))
-  if (hasErrors(issues)) throw new MapContentError(issues)
   return { docs, issues }
 }

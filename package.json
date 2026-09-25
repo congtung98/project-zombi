@@ -6,11 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:editor": "tsc -b && vite build --config vite.editor.config.ts",
+    "check:bundle": "node scripts/check-game-bundle.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "map:check": "node scripts/map-tools/check.ts",
+    "map:pack": "node scripts/map-tools/pack.ts",
+    "map:unpack": "node scripts/map-tools/unpack.ts",
     "deploy:check": "npm test && npm run build && vite preview --port 4173 --strictPort"
   },
   "dependencies": {

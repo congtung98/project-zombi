@@ -33,6 +33,7 @@ import { createWorldState, type ContainerState, type WorldState } from '../world
 import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
 import { STRESS_TILES, buildStressMap } from '../world/stressMap'
+import { DEV_WORLD_ID, loadDevWorld } from '../world/devWorld'
 import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOccluders'
 import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
 import { BuildingLightingSystem, buildLightingBuildings, outdoorLightLevel } from '../lighting/buildingLighting'
@@ -1524,7 +1525,9 @@ function buildInteractables(map: MapData): Interactable[] {
 /** Dev labs pick another map; the production build folds this to the neighbourhood (no generator in the bundle). */
 function initialMap(): MapData {
   if (!import.meta.env.DEV) return NEIGHBORHOOD_MAP
-  return DOOR_LAB_ENABLED ? DOOR_LAB_MAP : STRESS_TILES ? buildStressMap(STRESS_TILES) : NEIGHBORHOOD_MAP
+  if (DOOR_LAB_ENABLED) return DOOR_LAB_MAP
+  if (STRESS_TILES) return buildStressMap(STRESS_TILES)
+  return DEV_WORLD_ID ? loadDevWorld(DEV_WORLD_ID) : NEIGHBORHOOD_MAP
 }
 
 /** Singleton runtime cho ứng dụng. Test tạo instance riêng bằng `new GameRuntime()`. */

@@ -168,11 +168,16 @@ describe('nav tiles (R3b)', () => {
       if (Math.hypot(a.x - b.x, a.z - b.z) > 120 && nav.routeKind(a, b) === 'search') pairs.push([a, b])
     }
     for (const [a, b] of pairs) nav.findPath(a, b) // warm the lazy tile graphs
+    // Best of three per route: the suite runs in parallel workers, one scheduler/GC pause must not fail it.
     let worst = 0
     for (const [a, b] of pairs) {
-      const t = performance.now()
-      nav.findPath(a, b)
-      worst = Math.max(worst, performance.now() - t)
+      let best = Infinity
+      for (let k = 0; k < 3; k++) {
+        const t = performance.now()
+        nav.findPath(a, b)
+        best = Math.min(best, performance.now() - t)
+      }
+      worst = Math.max(worst, best)
     }
     expect(worst).toBeLessThan(8)
   })

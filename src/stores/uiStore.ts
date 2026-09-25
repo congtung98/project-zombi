@@ -6,6 +6,7 @@ import type { SaveSummary } from '../types/save'
 import type { CharacterProfile } from '../game/entities/player'
 import { sfx } from '../game/audio/sfx'
 import { STRESS_MAP_PREFIX } from '../game/world/stressMap'
+import { NEIGHBORHOOD_MAP } from '../game/world/mapData'
 import { useHudStore } from './hudStore'
 import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
@@ -17,10 +18,20 @@ const DEBUG_PLAYER_VISION =
 /** DEBUG_BUILDING_LIGHTING: config flag or `?lighting=debug`. */
 const DEBUG_BUILDING_LIGHTING =
   runtime.config.buildingLighting.debug || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('lighting') === 'debug')
-/** Dev maps never touch the player's save: the door lab and the stress map (`?stress=N`) use their own slots. */
+
 /** R0 perf HUD (F7); `?perf=1` starts with it on. */
 const PERF_HUD = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('perf') === '1'
-const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : runtime.map.id.startsWith(STRESS_MAP_PREFIX) ? 'slot-stress' : 'slot-1'
+/**
+ * Dev maps never touch the player's save: the door lab, the stress map (`?stress=N`) and other
+ * bundled worlds (`?world=<id>`, editor output) each use their own slot.
+ */
+function activeSaveSlot(mapId: string): string {
+  if (mapId === NEIGHBORHOOD_MAP.id) return 'slot-1'
+  if (mapId === 'door-lab') return 'slot-lab'
+  if (mapId.startsWith(STRESS_MAP_PREFIX)) return 'slot-stress'
+  return `slot-world-${mapId}`
+}
+const ACTIVE_SAVE_SLOT = activeSaveSlot(runtime.map.id)
 const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
 const DEFAULT_LOOK_NOTE = 'Nhân vật dùng tên và ngoại hình mặc định.'
 const MATERIALS_NOTE = 'Có 3 chỗ vật liệu mới (hộp đồ nghề nhà an toàn, kệ vật liệu cửa hàng, đống phế liệu sau nhà dân) để sửa/chế tạo.'

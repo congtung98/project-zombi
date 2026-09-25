@@ -1,12 +1,24 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **R3b (hiệu năng theo chunk)** sau map content M1–M2 (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, **docs/refactor-r3b.md**.
+> Cập nhật: **2026-09-25**, hoàn thành **map editor M3 (editor MVP)** sau R3b (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, **docs/map-editor-m3.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. R3b: hiệu năng theo chunk (mới nhất, chưa commit — chi tiết docs/refactor-r3b.md)
+## 0. Map editor M3 — editor MVP (mới nhất, chưa commit — chi tiết docs/map-editor-m3.md)
 
-Save không đổi (v8), content không đổi. Thứ tự đã chốt: R3a → **R3b** → M3 (editor).
+Save không đổi (v8), content khu phố không đổi. Thứ tự đã chốt: R3a → R3b → **M3** → M4 (world authoring) → M5 (prefab editor) → M6 (công cụ sản xuất).
+
+- **Entry riêng** `editor.html` (`npm run dev` → `/editor.html`; build `npm run build:editor` → `dist-editor/`). Bản build game không chứa editor/generator: `npm run check:bundle`.
+- **Lõi thuần** `src/map/editor/`: `MapDocument` bất biến (world + prefabs + chunks + extras), lệnh place/move/setAnchor/rotate/delete/duplicate/updateRecord/updateWorld, lịch sử (document + selection trước/sau), content pack, picking/snap. **UI** `src/editor/` (zustand + R3F): viewport vẽ output của resolver runtime, palette, inspector, bảng Validate, nháp IndexedDB riêng `zombie-outbreak-editor`.
+- **Identity**: move/rotate/sửa giữ ID; kéo qua biên chunk chuyển file chunk và giữ ID (báo rõ); đặt/nhân bản tạo `<chunk>/<tên>-<n>` mới; xóa ghi `world.retiredIds` (mới, tùy chọn) + lỗi validate `retired-id-reused`; không xóa được spawn người chơi; cảnh báo editor `content-changed-same-version` nếu đổi bố cục mà giữ `contentVersion`.
+- **Validator**: thêm `checkWorldDocuments` (không ném lỗi), `loadWorldDocuments` bọc lại nó. Export bị chặn khi còn lỗi; import pack lỗi bị từ chối, document đang mở giữ nguyên.
+- **Đưa vào game**: `npm run map:unpack -- <pack>` (validate, `--force` để ghi đè, file không đổi không ghi lại), `npm run map:pack -- <dir>`; dev `?world=<id>` chơi world trong `content/maps/<id>` với slot save `slot-world-<id>` (`world/devWorld.ts`, `uiStore.activeSaveSlot`).
+- **Kiểm chứng**: 414 test (+9 skip; mới `src/map/editor/editor.test.ts` 18 gồm runtime chạy pack do editor tạo), tsc/oxlint/build/build:editor/map:check/check:bundle sạch; Playwright `scripts/m3-editor-browser.mjs` (dev) PASS 13 bước kể cả world mới → unpack → chơi trong game; hồi quy dev p2-s2/vision, production p2-s5/lighting PASS. Test thời gian `navTiles` đổi sang min-of-3 (từng rớt khi chạy song song).
+- **Chưa làm**: tạo chunk, đặt object rời/đường/zone/spawn mới, layer (M4); sửa prefab (M5); Play From Here, kiểm tra collider chồng/đi tới được, generator (M6); chọn vùng bằng kéo khung.
+
+Commit message gợi ý: **feat(editor): map editor MVP (separate entry, viewport, palette, inspector, commands with undo/redo, drafts, content pack import/export, validation UI)**
+
+## 0a. R3b: hiệu năng theo chunk (đã commit 09112e2 — chi tiết docs/refactor-r3b.md)
 
 - **LOS phía simulation**: `runtime.isBlocked()` → `staticColliders.segmentBlocked()` (cùng bộ hộp Rapier; test đối chiếu Rapier WASM trùng 100 %) cho tầm nhìn/đòn của zombie, tương tác, cận chiến, che spawn. `PhysicsBridge` bỏ; test thay bằng `setLineOfSightOverride` (tên cũ `registerPhysicsQuery`). Soak/perf dùng LOS thật.
 - **Render gộp theo chunk**: `rendering/StaticBatches.tsx` (`BatchedMesh` mỗi chunk: tường/vật cản, thân container, sàn, mái; màu theo instance trên một material trắng; shader trong nhà hỗ trợ batching, key `indoor-lighting-v2`); vật che là hộp + callback (`occlusionRegistry`), tường/mái mờ = ẩn instance + bản sao mờ; `RoofController` ở StaticBatches. `Walls.tsx`, `BuildingView.tsx`, `blockerData.ts` bỏ.
@@ -17,9 +29,7 @@ Save không đổi (v8), content không đổi. Thứ tự đã chốt: R3a → 
 - **Kiểm chứng**: 396 test (+9 skip), tsc/oxlint/build sạch; Playwright dev S2–S5/vision/lighting + tường chunk xa, production S5/vision/lighting/S4 PASS.
 - **Chưa làm (dời sang streaming)**: `ChunkLifecycle` điều khiển registry/nav/WorldState, nav lưu theo tile, instancing nhân vật.
 
-Commit message gợi ý: **perf(r3b): simulation line of sight, per-chunk static batches and Rapier colliders, chunk-tiled nav with HPA\***
-
-## 0a. Map content M1–M2 = R3a (đã commit 86ce472 — chi tiết docs/map-editor-m1-m2.md)
+## 0b. Map content M1–M2 = R3a (đã commit 86ce472 — chi tiết docs/map-editor-m1-m2.md)
 
 Kế hoạch: `docs/Map_Editor_Implementation_Plan.md`. Thứ tự đã chốt với chủ dự án: **R3a (M1+M2) → R3b (hiệu năng theo chunk) → M3+ (editor GUI)**.
 
@@ -30,9 +40,9 @@ Kế hoạch: `docs/Map_Editor_Implementation_Plan.md`. Thứ tự đã chốt v
 - **Tương đương**: test so từng thực thể với map cũ; soak trùng từng số R2 khi cùng thứ tự + khóa loot cũ. Mốc soak lúc đó (thứ tự chunk, loot seed theo ID mới, LOS giả): shelter 1800 s/3 kill/10 dmg, patrol 970 s/42 kill (R3b thay bằng mốc LOS thật).
 - **Kiểm chứng**: 380 test pass (+9 skip), tsc/oxlint/build sạch, `npm run map:check` OK; Playwright dev S2 (migrate v7/v3/v2/v1 → v8 qua Continue), S3, S4, S5, vision, lighting và production S5/vision/lighting/S4 PASS. Fixture `phase2-light-v7.json` nay đóng băng (script không ghi nữa).
 - **Sửa nội dung**: sửa JSON trong `content/maps/…` rồi `npm run map:check`; đổi bố cục khu phố = tăng `contentVersion` (test tương đương/importer tự bỏ qua khi khác 1) và viết migrate nếu trạng thái đã lưu bị ảnh hưởng.
-- Sau M1–M2 là R3b (mục 0), rồi M3 (editor MVP, entry riêng).
+- Sau M1–M2 là R3b (mục 0a), rồi M3 (mục 0).
 
-## 0b. Refactor kiến trúc R0–R2 (đã commit 8637897 — chi tiết docs/refactor-r0-r2.md)
+## 0c. Refactor kiến trúc R0–R2 (đã commit 8637897 — chi tiết docs/refactor-r0-r2.md)
 
 Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak.md` (dựa trên `game-architecture-refactor-plan.md`). Không streaming/ảo hóa/worker/floating origin/chunk persistence. Save vẫn v7 (M2 nâng lên v8).
 
@@ -48,7 +58,7 @@ Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak
 
 Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S5** (đã commit, S5 = 1f81571) và **sprint bổ sung tầm nhìn người chơi** (zombie chỉ vẽ khi nhân vật thấy; debug F4; save vẫn v6; sau playtest đã **bỏ lớp tối mặt đất** — tầm nhìn không được đụng ánh sáng). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0b, commit 8637897) và **map content M1–M2** (mục 0, save v8). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
+Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0c, commit 8637897), **map content M1–M2** (mục 0b, save v8), R3b (mục 0a) và **map editor M3** (mục 0). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
 
 | Sprint | Trạng thái |
 |---|---|
@@ -59,8 +69,9 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 | Bổ sung: ánh sáng trong nhà | Đã commit (38a1469) |
 | Refactor R0–R2 (hiệu năng/kiến trúc) | Đã commit (8637897) |
 | Map content M1–M2 = R3a (prefab + chunk JSON, save v8) | Đã commit (86ce472) |
-| R3b (LOS simulation, batch + collider theo chunk, nav HPA*) | Xong, chưa commit (docs/refactor-r3b.md) |
-| M3–M6 map editor | Tiếp theo (thứ tự đã chốt) |
+| R3b (LOS simulation, batch + collider theo chunk, nav HPA*) | Đã commit (09112e2) |
+| M3 map editor MVP | Xong, chưa commit (docs/map-editor-m3.md) |
+| M4–M6 map editor | Tiếp theo (thứ tự đã chốt) |
 | P2-S6 Barricade/tool/fuel | Tạm dừng (sau R0–R2); dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
