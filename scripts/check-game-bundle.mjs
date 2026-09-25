@@ -10,6 +10,8 @@ const MARKERS = [
   ['editor content pack', 'zombie-outbreak/map-pack'],
   ['editor history', 'selectionBefore'],
   ['editor UI', 'Map Editor'],
+  ['editor palette presets (M4)', 'surface/asphalt'],
+  ['editor layers (M4)', 'Tường / vật cản'],
   ['tile generator', 'extraZombieSpawns'],
   ['legacy importer', 'is not a quarter turn'],
 ]

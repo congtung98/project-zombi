@@ -234,8 +234,14 @@ export function resolveRecord(world: WorldDocument, chunk: ChunkDocument, catego
     case 'zones': {
       const z = chunk.zones[index]
       const c = at(z.center)
+      const center = { x: c.x, y: 0, z: c.z }
+      if (z.shape === 'rect') {
+        const halfSize = { x: z.size[0] / 2, z: z.size[1] / 2 }
+        const zone = { id, name: z.name, center, radius: quantize(Math.hypot(halfSize.x, halfSize.z)), halfSize }
+        return { ...base, bounds: boxRect(c, z.size), entityIds: [id], parts: { zones: [zone] } }
+      }
       const bounds = { minX: c.x - z.radius, minZ: c.z - z.radius, maxX: c.x + z.radius, maxZ: c.z + z.radius }
-      return { ...base, bounds, entityIds: [id], parts: { zones: [{ id, name: z.name, center: { x: c.x, y: 0, z: c.z }, radius: z.radius }] } }
+      return { ...base, bounds, entityIds: [id], parts: { zones: [{ id, name: z.name, center, radius: z.radius }] } }
     }
     case 'spawns': {
       const s = chunk.spawns[index]

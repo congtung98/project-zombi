@@ -166,6 +166,43 @@ export function documentFiles(doc: MapDocument): [string, unknown][] {
   return files
 }
 
+export interface ChunkStatus {
+  chunkId: string
+  cx: number
+  cz: number
+  /** Records the chunk owns. */
+  records: number
+  /** Records owned elsewhere that reach into it. */
+  refs: number
+  /** Differs from the reference document (last open / draft save / export), or new. */
+  modified: boolean
+  errors: number
+  warnings: number
+}
+
+/**
+ * Per-chunk status for the chunk panel and the viewport outlines (M4). Every chunk of the document
+ * is loaded in the editor; issues are attributed to a chunk by their file path.
+ */
+export function chunkStatuses(doc: MapDocument, reference: MapDocument | null, issues: readonly { severity: string; path: string }[]): ChunkStatus[] {
+  return doc.world.chunks.map((e) => {
+    const chunk = doc.chunks.get(e.chunkId)!
+    const before = reference?.chunks.get(e.chunkId)
+    const prefix = `${e.path}#`
+    const mine = issues.filter((i) => i.path === e.path || i.path.startsWith(prefix))
+    return {
+      chunkId: e.chunkId,
+      cx: e.cx,
+      cz: e.cz,
+      records: RECORD_CATEGORIES.reduce((n, c) => n + chunk[c].length, 0),
+      refs: chunk.externalRefs.length,
+      modified: !before || (before !== chunk && JSON.stringify(before) !== JSON.stringify(chunk)),
+      errors: mine.filter((i) => i.severity === 'error').length,
+      warnings: mine.filter((i) => i.severity !== 'error').length,
+    }
+  })
+}
+
 export interface BlankWorldOptions {
   worldId: string
   name: string
@@ -176,7 +213,7 @@ export interface BlankWorldOptions {
 
 /**
  * New world: 2 × 2 chunks around the origin (the play area is centred on it), a fence, the player
- * spawn and one zombie spawn so New Game works right away. Chunk creation arrives with M4.
+ * spawn and one zombie spawn so New Game works right away. More chunks: `addChunk` (M4).
  */
 export function blankDocument(opts: BlankWorldOptions): MapDocument {
   const S = opts.chunkSize ?? 32

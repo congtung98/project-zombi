@@ -74,10 +74,10 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 
 Room: `localId, name, bounds`, `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }`. Trần nhà = `building.height`.
 
-**Chunk**: `schemaVersion, contentVersion, chunkId, cx, cz`, `instances [{ instanceId, prefabId, position {x,y,z}, quarterTurns }]`, `objects` (wall/prop/container, có `objectId`), `roads [{ roadId, position, size [x,z], color }]`, `zones [{ zoneId, kind: "zombiePopulation", name, shape: "circle", center, radius }]`, `spawns [{ spawnId, kind: "player"|"zombie", position }]`, `externalRefs`.
+**Chunk**: `schemaVersion, contentVersion, chunkId, cx, cz`, `instances [{ instanceId, prefabId, position {x,y,z}, quarterTurns }]`, `objects` (wall/prop/container, có `objectId`), `roads [{ roadId, position, size [x,z], color }]`, `zones [{ zoneId, kind: "zombiePopulation", name, shape: "circle", center, radius } | { …, shape: "rect", center, size [x,z] }]`, `spawns [{ spawnId, kind: "player"|"zombie", position }]`, `externalRefs`.
 
 - Không có mảng `terrain`: mặt đất vẫn là một mặt phẳng cấp world như trước.
-- Zone chỉ có hình tròn, vì đó là loại duy nhất horde director dùng. Zone chồng nhau được phép: zombie thuộc zone có tâm gần nhất (luật `nearestZone` có từ trước).
+- Zone chỉ có loại `zombiePopulation` (loại duy nhất có consumer: horde director), hình tròn hoặc chữ nhật (M4). Zone chồng nhau được phép. Luật gán (`game/world/zones.ts`, dùng chung cho runtime và validator): điểm nằm trong zone chữ nhật thuộc zone chữ nhật nhỏ nhất chứa nó, nếu không thì thuộc zone có tâm gần nhất (luật S5; map chỉ có zone tròn không đổi hành vi). Zone chữ nhật lang thang trong hình chữ nhật.
 - Chưa có `assetId`/asset registry: mọi thứ vẫn là hộp tô màu, chưa có model để ánh xạ.
 
 File được ghi bằng `formatJson`: giữ thứ tự khóa, và object/mảng nào ngắn thì nằm trên một dòng, để diff dễ đọc.
@@ -88,7 +88,7 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 
 - **Lỗi** (chặn nạp/export): `unsupported-schema`, `schema`, `not-finite`, `out-of-range`, `invalid-rect`, `invalid-id`, `invalid-path`, `missing-file`, `duplicate-id`, `manifest-mismatch`, `version-mismatch`, `unknown-kind`, `unknown-prefab`, `unknown-loot-table`, `rooms-need-building`, `chunk-outside-bounds`, `owner-mismatch`, `missing-external-ref`, `stale-external-ref`, `missing-player-spawn`, `spawn-outside-play-area`, `spawn-blocked` (spawn cách một collider thấp dưới 0,4 m), `retired-id-reused`.
 - `checkWorldDocuments` là bản không ném lỗi của `loadWorldDocuments` (editor dùng cho bảng Validate và bản nháp).
-- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`.
+- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu chồng nhau, sẽ nhấp nháy) — hai cái sau từ M4.
 - Chưa kiểm tra (để M6): khả năng đi tới được và nav bị tách vùng, collider chồng nhau, zone quá dày.
 
 ## 8. Save
@@ -105,5 +105,5 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - `npm run map:check [thư-mục-world…]`: kiểm tra content trên đĩa. Cần Node ≥ 22.18 vì dùng TypeScript stripping có sẵn; các module `src/map/*` import bằng đuôi `.ts` để chạy trực tiếp.
 - `node scripts/map-tools/import-legacy.ts <legacy-map.json> <world-dir> --world-id … --name …`: chuyển một `MapData` viết tay thành prefab + chunk + bảng ID. Khu phố được sinh bằng lệnh này từ `legacy-v7-map.json`, và test khóa lại rằng file đã commit đúng là output của lệnh, chừng nào `contentVersion` còn là 1.
 - `npm run map:unpack -- <pack.json> [--out <dir>] [--force]`: ghi content pack của editor vào `content/maps/<worldId>/` sau khi validate; cần `--force` để ghi đè; file dữ liệu không đổi thì không ghi lại; file thừa trên đĩa chỉ được báo. `npm run map:pack -- <world-dir> [out.json]` làm chiều ngược lại.
-- Content pack (`<worldId>.mappack.json`): `{ format: "zombie-outbreak/map-pack", formatVersion: 1, worldId, files: { <đường dẫn tương đối>: <JSON> } }`, thứ tự ổn định, không chứa trạng thái editor. Chi tiết editor: `docs/map-editor-m3.md`.
+- Content pack (`<worldId>.mappack.json`): `{ format: "zombie-outbreak/map-pack", formatVersion: 1, worldId, files: { <đường dẫn tương đối>: <JSON> } }`, thứ tự ổn định, không chứa trạng thái editor. Chi tiết editor: `docs/map-editor-m3.md`, `docs/map-editor-m4.md`.
 - `src/map/tools/tileWorld.ts`: generator ghép ô N × N rồi phân lại vào lưới chunk; map stress `?stress=N` (chỉ dev) dùng nó. Bundle production không chứa generator và importer.

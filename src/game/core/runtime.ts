@@ -708,10 +708,21 @@ export class GameRuntime {
     const rng = createRng(hashSeed(this.world.seed, `wander:${zombie.id}:${zombie.wanderCount++}`))
     const region = this.nav.componentAt(zombie.position.x, zombie.position.z)
     const building = this.buildingAt(zombie.position)
+    const half = zone?.halfSize
     for (let i = 0; i < 8; i++) {
-      const angle = rng() * Math.PI * 2
-      const r = radius * Math.sqrt(rng())
-      const cell = this.nav.nearestWalkableCell(anchor.x + Math.cos(angle) * r, anchor.z + Math.sin(angle) * r, 2)
+      let x: number
+      let z: number
+      if (half) {
+        // Rectangle zone (map editor M4): uniform inside it, same two draws as the circle.
+        x = anchor.x + (rng() * 2 - 1) * half.x
+        z = anchor.z + (rng() * 2 - 1) * half.z
+      } else {
+        const angle = rng() * Math.PI * 2
+        const r = radius * Math.sqrt(rng())
+        x = anchor.x + Math.cos(angle) * r
+        z = anchor.z + Math.sin(angle) * r
+      }
+      const cell = this.nav.nearestWalkableCell(x, z, 2)
       if (!cell) continue
       const point = this.nav.cellToWorld(cell.cx, cell.cz)
       if (region < 0 || this.nav.componentAt(point.x, point.z) !== region) continue

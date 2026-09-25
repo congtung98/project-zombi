@@ -13,6 +13,7 @@ import {
 } from './schema.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, PREFAB_ID, SLUG } from './transform.ts'
 import { resolveChunk, type ResolvedRecord } from './resolve.ts'
+import { zoneContains, zoneFor } from '../game/world/zones.ts'
 
 /**
  * Validation shared by the runtime loader, tests, the CLI (`npm run map:check`) and later the
@@ -383,9 +384,10 @@ export function validateChunkDocument(doc: unknown, entry: ChunkEntry, world: Wo
         case 'zones':
           c.oneOf(r.kind, ['zombiePopulation'], `${p}/kind`)
           c.str(r.name, `${p}/name`)
-          c.oneOf(r.shape, ['circle'], `${p}/shape`)
           if (c.xz(r.center, `${p}/center`)) owned(r.center, `${p}/center`, id)
-          c.num(r.radius, `${p}/radius`, { positive: true })
+          if (!c.oneOf(r.shape, ['circle', 'rect'], `${p}/shape`)) break
+          if (r.shape === 'circle') c.num(r.radius, `${p}/radius`, { positive: true })
+          else c.size(r.size, `${p}/size`, 2)
           break
         case 'spawns':
           c.oneOf(r.kind, ['player', 'zombie'], `${p}/kind`)
@@ -486,6 +488,30 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
     if (blocker) add('error', 'spawn-blocked', path, `spawn (${p.x}, ${p.z}) is inside ${blocker.id}`, r.id)
   }
   if (!player) add('error', 'missing-player-spawn', 'world.json#/playerSpawn', `${world.playerSpawn} is not a player spawn of this world`)
+
+  // Zone membership follows the runtime rule; a spawn standing in a zone it will not belong to is a design slip.
+  const zones = records.flatMap((r) => r.parts.zones ?? [])
+  for (const r of records) {
+    const p = r.parts.zombieSpawns?.[0]
+    if (!p) continue
+    const inside = zones.filter((z) => zoneContains(z, p.x, p.z))
+    const assigned = zoneFor(p, zones)
+    if (inside.length && assigned && !inside.includes(assigned)) {
+      add('warning', 'zone-assignment', `${chunkPath(r.ownerChunkId)}#/spawns/${r.order[2]}`, `zombie spawn (${p.x}, ${p.z}) lies in ${inside.map((z) => z.id).join(', ')} but belongs to ${assigned.id} (rectangles first, then nearest centre)`, r.id)
+    }
+  }
+
+  // Road surfaces share one height: differently coloured overlaps flicker (z-fighting) in the game.
+  const roads = records.filter((r) => r.parts.roads?.length)
+  for (let i = 0; i < roads.length; i++) {
+    for (let j = i + 1; j < roads.length; j++) {
+      const a = roads[i]
+      const b = roads[j]
+      if (a.parts.roads![0].color === b.parts.roads![0].color) continue
+      const overlaps = a.bounds.minX < b.bounds.maxX && b.bounds.minX < a.bounds.maxX && a.bounds.minZ < b.bounds.maxZ && b.bounds.minZ < a.bounds.maxZ
+      if (overlaps) add('warning', 'surface-overlap', `${chunkPath(b.ownerChunkId)}#/roads/${b.order[2]}`, `${b.id} overlaps ${a.id} with another colour (surfaces share one height and flicker)`, b.id)
+    }
+  }
 
   for (const r of records) {
     if (r.category === 'spawns') continue

@@ -12,6 +12,9 @@ const BOX = new BoxGeometry(1, 1, 1)
 const PLANE = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
 const MARKER = new CylinderGeometry(0.35, 0.35, 1.2, 12)
 const RING = new RingGeometry(0.92, 1, 48).rotateX(-Math.PI / 2)
+/** Zone centre marker (zones are picked at their outline or centre). */
+const DOT = new RingGeometry(0.35, 0.6, 24).rotateX(-Math.PI / 2)
+const ZONE_LINE = 0.16
 
 const materials = new Map<string, Material>()
 /** Shared materials by colour and variant (ghost = translucent placement preview). */
@@ -69,7 +72,22 @@ export const RecordView = memo(function RecordView({ record, ghost }: { record: 
         />
       ))}
       {p.zones?.map((z) => (
-        <mesh key={z.id} geometry={RING} material={mat('#e08a2c', v('zone'))} position={[z.center.x, 0.05, z.center.z]} scale={[z.radius, 1, z.radius]} />
+        <group key={z.id}>
+          {z.halfSize ? (
+            // Rectangle outline: four 0.16 m strips on the zone edges.
+            [
+              [0, -z.halfSize.z, 2 * z.halfSize.x, ZONE_LINE],
+              [0, z.halfSize.z, 2 * z.halfSize.x, ZONE_LINE],
+              [-z.halfSize.x, 0, ZONE_LINE, 2 * z.halfSize.z],
+              [z.halfSize.x, 0, ZONE_LINE, 2 * z.halfSize.z],
+            ].map(([dx, dz, sx, sz], i) => (
+              <mesh key={i} geometry={PLANE} material={mat('#e08a2c', v('zone'))} position={[z.center.x + dx, 0.05, z.center.z + dz]} scale={[sx, 1, sz]} />
+            ))
+          ) : (
+            <mesh geometry={RING} material={mat('#e08a2c', v('zone'))} position={[z.center.x, 0.05, z.center.z]} scale={[z.radius, 1, z.radius]} />
+          )}
+          <mesh geometry={DOT} material={mat('#e08a2c', v('zone'))} position={[z.center.x, 0.05, z.center.z]} />
+        </group>
       ))}
       {p.playerSpawns?.map((s) => (
         <mesh key={s.id} geometry={MARKER} material={mat('#3fbf5f', v('solid'))} position={[s.position.x, 0.6, s.position.z]} />

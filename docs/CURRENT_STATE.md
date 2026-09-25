@@ -1,12 +1,25 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **map editor M3 (editor MVP)** sau R3b (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, **docs/map-editor-m3.md**.
+> Cập nhật: **2026-09-25**, hoàn thành **map editor M4 (world authoring)** sau M3 (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, **docs/map-editor-m4.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M3 — editor MVP (mới nhất, chưa commit — chi tiết docs/map-editor-m3.md)
+## 0. Map editor M4 — world authoring (mới nhất, chưa commit — chi tiết docs/map-editor-m4.md)
 
-Save không đổi (v8), content khu phố không đổi. Thứ tự đã chốt: R3a → R3b → **M3** → M4 (world authoring) → M5 (prefab editor) → M6 (công cụ sản xuất).
+Save không đổi (v8), content khu phố không đổi, schema map vẫn v1 (thêm tùy chọn). Thứ tự đã chốt: R3a → R3b → M3 → **M4** → M5 (prefab editor) → M6 (công cụ sản xuất).
+
+- **Palette theo tab** (`src/map/editor/presets.ts`): Object/Nền/Zone/Spawn đặt bằng click (kích thước mẫu) hoặc kéo (tường theo chiều dài, khung, bán kính); lệnh `placeRecord` tạo ID `<chunk>/<namespace>/<tên>-<n>`, khóa theo thứ tự file content. `rotateRecords` thay `rotateInstances` (hộp/nền/zone chữ nhật đổi X/Z).
+- **Chunk**: `addChunk` (cuối manifest, nới `chunkBounds`, tham chiếu tính lại), `removeChunk` (chỉ chunk rỗng, không phải chunk cuối), `fittedPlayAreaSize`; `chunkStatuses` (record/ref/đã sửa/lỗi) cho panel và viền viewport; công cụ chunk click ô trống để thêm.
+- **Layer** (`layers.ts`, phiên editor): ẩn/khóa 7 layer; picking, khung chọn (`recordsInRect`), Ctrl+A, undo/redo và click lỗi đều tôn trọng. Zone chỉ bắt click ở viền/tâm.
+- **Zone chữ nhật** (`shape: "rect", size`) → `ZoneDef.halfSize`; luật gán mới `game/world/zones.ts` (`zoneFor`: zone chữ nhật nhỏ nhất chứa điểm, còn lại tâm gần nhất — map chỉ có zone tròn không đổi); `pickWanderPoint` lang thang trong hình chữ nhật (cùng số lần rút RNG). Validator thêm cảnh báo `zone-assignment`, `surface-overlap`. Inspector: kích thước zone, số spawn thuộc zone, "Thuộc zone" của spawn zombie, vùng chơi + hàng rào biên.
+- Vùng chơi vẫn là hình vuông tâm gốc (NavGrid/Ground/save/biên giả định vậy).
+- World mới trong editor không còn cảnh báo `content-changed-same-version` (chưa phát hành).
+- **Kiểm chứng**: 434 test (+9 skip; mới `src/map/editor/world.test.ts` 20, gồm nhà vượt biên giữa 2 chunk mới qua `ChunkLifecycle`, zone chữ nhật trong `GameRuntime`, world nhiều chunk do editor tạo chạy 900 tick), tsc/oxlint/build/build:editor/map:check/check:bundle (thêm marker M4) sạch; Playwright `scripts/m4-editor-browser.mjs` (dev) PASS kể cả export → unpack → chơi `?world=`; hồi quy `m3-editor-browser.mjs`, game dev `p2-s5-browser.mjs` PASS. Soak không đổi.
+- **Chưa làm**: vùng chơi lệch tâm, thứ tự vẽ mặt nền chồng nhau, đổi kiểu object/tay cầm đổi kích thước trong viewport; sửa prefab (M5); Play From Here, generator (M6).
+
+Commit message gợi ý: **feat(editor): world authoring M4 (chunk add/remove + status, palette for props/surfaces/zones/spawns with drag sizing, rectangle zones in runtime, layers hide/lock, box select)**
+
+## 0-M3. Map editor M3 — editor MVP (đã commit 08a3559 — chi tiết docs/map-editor-m3.md)
 
 - **Entry riêng** `editor.html` (`npm run dev` → `/editor.html`; build `npm run build:editor` → `dist-editor/`). Bản build game không chứa editor/generator: `npm run check:bundle`.
 - **Lõi thuần** `src/map/editor/`: `MapDocument` bất biến (world + prefabs + chunks + extras), lệnh place/move/setAnchor/rotate/delete/duplicate/updateRecord/updateWorld, lịch sử (document + selection trước/sau), content pack, picking/snap. **UI** `src/editor/` (zustand + R3F): viewport vẽ output của resolver runtime, palette, inspector, bảng Validate, nháp IndexedDB riêng `zombie-outbreak-editor`.
@@ -14,9 +27,7 @@ Save không đổi (v8), content khu phố không đổi. Thứ tự đã chốt
 - **Validator**: thêm `checkWorldDocuments` (không ném lỗi), `loadWorldDocuments` bọc lại nó. Export bị chặn khi còn lỗi; import pack lỗi bị từ chối, document đang mở giữ nguyên.
 - **Đưa vào game**: `npm run map:unpack -- <pack>` (validate, `--force` để ghi đè, file không đổi không ghi lại), `npm run map:pack -- <dir>`; dev `?world=<id>` chơi world trong `content/maps/<id>` với slot save `slot-world-<id>` (`world/devWorld.ts`, `uiStore.activeSaveSlot`).
 - **Kiểm chứng**: 414 test (+9 skip; mới `src/map/editor/editor.test.ts` 18 gồm runtime chạy pack do editor tạo), tsc/oxlint/build/build:editor/map:check/check:bundle sạch; Playwright `scripts/m3-editor-browser.mjs` (dev) PASS 13 bước kể cả world mới → unpack → chơi trong game; hồi quy dev p2-s2/vision, production p2-s5/lighting PASS. Test thời gian `navTiles` đổi sang min-of-3 (từng rớt khi chạy song song).
-- **Chưa làm**: tạo chunk, đặt object rời/đường/zone/spawn mới, layer (M4); sửa prefab (M5); Play From Here, kiểm tra collider chồng/đi tới được, generator (M6); chọn vùng bằng kéo khung.
-
-Commit message gợi ý: **feat(editor): map editor MVP (separate entry, viewport, palette, inspector, commands with undo/redo, drafts, content pack import/export, validation UI)**
+- **Chưa làm lúc M3** (tạo chunk, object rời/đường/zone/spawn mới, layer, khung chọn): xong ở M4 (mục 0).
 
 ## 0a. R3b: hiệu năng theo chunk (đã commit 09112e2 — chi tiết docs/refactor-r3b.md)
 
@@ -58,7 +69,7 @@ Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak
 
 Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S5** (đã commit, S5 = 1f81571) và **sprint bổ sung tầm nhìn người chơi** (zombie chỉ vẽ khi nhân vật thấy; debug F4; save vẫn v6; sau playtest đã **bỏ lớp tối mặt đất** — tầm nhìn không được đụng ánh sáng). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0c, commit 8637897), **map content M1–M2** (mục 0b, save v8), R3b (mục 0a) và **map editor M3** (mục 0). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
+Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0c, commit 8637897), **map content M1–M2** (mục 0b, save v8), R3b (mục 0a), map editor M3 (mục 0-M3) và **M4** (mục 0). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
 
 | Sprint | Trạng thái |
 |---|---|
@@ -70,8 +81,9 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 | Refactor R0–R2 (hiệu năng/kiến trúc) | Đã commit (8637897) |
 | Map content M1–M2 = R3a (prefab + chunk JSON, save v8) | Đã commit (86ce472) |
 | R3b (LOS simulation, batch + collider theo chunk, nav HPA*) | Đã commit (09112e2) |
-| M3 map editor MVP | Xong, chưa commit (docs/map-editor-m3.md) |
-| M4–M6 map editor | Tiếp theo (thứ tự đã chốt) |
+| M3 map editor MVP | Đã commit (08a3559) |
+| M4 world authoring | Xong, chưa commit (docs/map-editor-m4.md) |
+| M5–M6 map editor | Tiếp theo (thứ tự đã chốt) |
 | P2-S6 Barricade/tool/fuel | Tạm dừng (sau R0–R2); dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |

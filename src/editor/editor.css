@@ -302,3 +302,78 @@ h4 {
   gap: 6px;
   margin-bottom: 6px;
 }
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.tabs button {
+  padding: 2px 6px;
+}
+
+.tabs button.active {
+  border-color: var(--accent);
+  background: #3b3a24;
+}
+
+.chunks {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.chunks li {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.chunks li > button:first-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.chunks li.active > button:first-child {
+  border-color: #ffffff;
+}
+
+.chunks small {
+  color: var(--muted);
+}
+
+.layers {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+
+.layers summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.layers table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.layers th {
+  color: var(--muted);
+  font-weight: normal;
+  font-size: 11px;
+}
+
+.layers td:not(:first-child) {
+  text-align: center;
+}
+
+.layers input {
+  padding: 0;
+}

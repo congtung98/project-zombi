@@ -1,7 +1,11 @@
-import { deleteRecords, duplicateRecords, moveRecords, placeInstance, rotateInstances } from '../map/editor/commands'
+import { addChunk, deleteRecords, duplicateRecords, moveRecords, placeInstance, placeRecord, removeChunk, rotateRecords, type CommandResult } from '../map/editor/commands'
+import { resolvedRecords, type MapDocument } from '../map/editor/document'
+import { isEditable } from '../map/editor/layers'
 import { snap } from '../map/editor/picking'
+import { findPreset } from '../map/editor/presets'
 import type { XZ } from '../map/schema'
-import { useEditorStore } from './editorStore'
+import { chunkIdOf, chunkIndex, chunkOrigin } from '../map/transform'
+import { useEditorStore, type PlaceItem } from './editorStore'
 
 /**
  * Editor actions shared by the viewport, toolbar and hotkeys. They read the store directly
@@ -16,11 +20,25 @@ export function snapPoint(p: XZ): XZ {
   return { x: snap(p.x, step), z: snap(p.z, step) }
 }
 
-/** Ghost of the prefab being placed at the (snapped) cursor. */
-export function updatePlacePreview(cursor: XZ | null = store().cursor): void {
+/** The place command for an item: prefabs drop at a point, records may be sized by a drag (M4). */
+function placeCommand(doc: MapDocument, item: PlaceItem, from: XZ, to: XZ | null): CommandResult {
+  if (item.kind === 'prefab') return placeInstance(doc, item.prefabId, from, store().placeTurns)
+  return placeRecord(doc, item.presetId, from, to)
+}
+
+export function placeLabel(item: PlaceItem): string {
+  return item.kind === 'prefab' ? `Đặt ${item.prefabId}` : `Đặt ${findPreset(item.presetId)?.label ?? item.presetId}`
+}
+
+/**
+ * Ghost of what the place tool would put down: at the (snapped) cursor, or sized from `from`
+ * (the press point) to the cursor while dragging a record preset.
+ */
+export function updatePlacePreview(cursor: XZ | null = store().cursor, from: XZ | null = null): void {
   const s = store()
-  if (s.tool !== 'place' || !s.placePrefab || !s.edit || !cursor) return
-  const r = placeInstance(s.edit.doc, s.placePrefab, snapPoint(cursor), s.placeTurns)
+  if (s.tool !== 'place' || !s.place || !s.edit || !cursor) return
+  const at = snapPoint(cursor)
+  const r = from ? placeCommand(s.edit.doc, s.place, from, at) : placeCommand(s.edit.doc, s.place, at, null)
   if (r.ok) s.setPreview({ doc: r.doc, ghostIds: r.selection })
   else {
     s.setPreview(null)
@@ -28,13 +46,43 @@ export function updatePlacePreview(cursor: XZ | null = store().cursor): void {
   }
 }
 
-export function commitPlace(cursor: XZ): void {
+/** Put the item down: a click at `from`, or a drag from `from` to `to` (both snapped already). */
+export function commitPlace(from: XZ, to: XZ | null = null): void {
   const s = store()
-  if (!s.placePrefab) return
-  const prefab = s.placePrefab
-  const at = snapPoint(cursor)
-  const turns = s.placeTurns
-  s.run(`Đặt ${prefab}`, (doc) => placeInstance(doc, prefab, at, turns))
+  const item = s.place
+  if (!item) return
+  const end = to && (to.x !== from.x || to.z !== from.z) ? to : null
+  s.run(placeLabel(item), (doc) => placeCommand(doc, item, from, end))
+}
+
+/** Chunk tool click: select an existing chunk, or add one in an empty cell (M4). */
+export function chunkClick(p: XZ): void {
+  const s = store()
+  if (!s.edit) return
+  const S = s.edit.doc.world.chunkSize
+  const cx = chunkIndex(p.x, S)
+  const cz = chunkIndex(p.z, S)
+  const id = chunkIdOf(cx, cz)
+  if (s.edit.doc.chunks.has(id)) {
+    s.set({ selectedChunk: id })
+    return
+  }
+  if (s.run(`Thêm chunk ${id}`, (doc, sel) => addChunk(doc, cx, cz, sel))) s.set({ selectedChunk: id })
+}
+
+export function deleteChunk(chunkId: string): void {
+  const s = store()
+  if (s.run(`Xóa chunk ${chunkId}`, (doc, sel) => removeChunk(doc, chunkId, sel))) s.set({ selectedChunk: null })
+}
+
+export function focusChunk(chunkId: string): void {
+  const s = store()
+  const c = s.edit?.doc.chunks.get(chunkId)
+  if (!c || !s.edit) return
+  const S = s.edit.doc.world.chunkSize
+  const o = chunkOrigin(c.cx, c.cz, S)
+  s.set({ selectedChunk: chunkId })
+  s.requestFocus({ minX: o.x, minZ: o.z, maxX: o.x + S, maxZ: o.z + S })
 }
 
 /** Arrow-key nudge by one snap step (0.25 m when snap is off). */
@@ -51,7 +99,7 @@ export function rotateSelection(turns: number): void {
     updatePlacePreview()
     return
   }
-  s.run('Xoay', (doc, sel) => rotateInstances(doc, sel, turns))
+  s.run('Xoay', (doc, sel) => rotateRecords(doc, sel, turns))
 }
 
 export function deleteSelection(): void {
@@ -64,9 +112,16 @@ export function duplicateSelection(): void {
   s.run('Nhân bản', (doc, sel) => duplicateRecords(doc, sel, { x: step, z: step }))
 }
 
+/** Ctrl+A: every record on a visible, unlocked layer. */
+export function selectAll(): void {
+  const s = store()
+  if (!s.edit) return
+  s.select(resolvedRecords(s.edit.doc).filter((r) => isEditable(r, s.layers)).map((r) => r.id))
+}
+
 export function cancel(): void {
   const s = store()
-  if (s.tool === 'place') s.setTool('select')
+  if (s.tool !== 'select') s.setTool('select')
   else if (s.preview) s.setPreview(null)
   else s.select([])
 }

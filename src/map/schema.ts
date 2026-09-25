@@ -195,15 +195,32 @@ export interface RoadRecord {
   color: string
 }
 
-/** Zombie wander/migration area (horde director). Only circles have a consumer today. */
-export interface ZoneRecord {
+interface ZoneBase {
   zoneId: string
+  /** Only `zombiePopulation` has a runtime consumer (horde wander/migration). */
   kind: 'zombiePopulation'
   name: string
-  shape: 'circle'
+  /** Anchor (ownership) and the centre used by the nearest-centre rule. */
   center: XZ
+}
+
+export interface CircleZoneRecord extends ZoneBase {
+  shape: 'circle'
   radius: number
 }
+
+/** Axis-aligned rectangle around `center` (map editor M4). */
+export interface RectZoneRecord extends ZoneBase {
+  shape: 'rect'
+  /** Full size [X, Z]. */
+  size: [number, number]
+}
+
+/**
+ * Zombie wander/migration area (horde director). A point inside rectangle zones belongs to the
+ * smallest one, otherwise to the nearest centre (`game/world/zones.ts`).
+ */
+export type ZoneRecord = CircleZoneRecord | RectZoneRecord
 
 export interface SpawnRecord {
   spawnId: string

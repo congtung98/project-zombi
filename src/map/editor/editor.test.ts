@@ -3,7 +3,7 @@ import { bundledWorldFiles, loadWorld, REGISTERED_LOOT_TABLES } from '../content
 import { formatJson } from '../format'
 import { checkWorldDocuments, hasErrors } from '../validate'
 import { GameRuntime } from '../../game/core/runtime'
-import { deleteRecords, duplicateRecords, moveRecords, placeInstance, rotateInstances, updateRecord, updateWorld, type CommandResult } from './commands'
+import { deleteRecords, duplicateRecords, moveRecords, placeInstance, rotateRecords, updateRecord, updateWorld, type CommandResult } from './commands'
 import { documentFiles, findRecord, recordAtPath, recordForEntity, resolvedRecords, worldAnchor, type MapDocument } from './document'
 import { documentFromFiles, exportPack, parsePack, toPack } from './pack'
 import { pickRecord, snap } from './picking'
@@ -146,11 +146,11 @@ describe('map editor commands (M3)', () => {
 
   it('rotates instances about their pivot, keeping IDs', () => {
     const doc = open()
-    const r = ok(rotateInstances(doc, ['c0_0/house'], 1))
+    const r = ok(rotateRecords(doc, ['c0_0/house'], 1))
     expect(findRecord(r.doc, 'c0_0/house')!.record.quarterTurns).toBe(1)
-    const back = ok(rotateInstances(r.doc, ['c0_0/house'], 3))
+    const back = ok(rotateRecords(r.doc, ['c0_0/house'], 3))
     expect(findRecord(back.doc, 'c0_0/house')!.record.quarterTurns).toBe(0)
-    expect(rotateInstances(doc, ['c0_0/objects/pillar-1'], 1).ok).toBe(false)
+    expect(rotateRecords(doc, ['c0_0/objects/pillar-1'], 1).ok).toBe(false)
   })
 
   it('delete retires the ID; new records never get it back', () => {
@@ -193,7 +193,7 @@ describe('map editor history (M3)', () => {
     s = applyCommand(s, 'place', placeInstance(s.doc, 'building/house', FREE_SPOT, 0)).state
     const afterPlace = s.doc
     s = applyCommand(s, 'move', moveRecords(s.doc, s.selection, { x: 1, z: 1 })).state
-    s = applyCommand(s, 'rotate', rotateInstances(s.doc, s.selection, 1)).state
+    s = applyCommand(s, 'rotate', rotateRecords(s.doc, s.selection, 1)).state
     s = applyCommand(s, 'delete', deleteRecords(s.doc, s.selection)).state
     const end = s.doc
     expect(s.past.map((e) => e.label)).toEqual(['place', 'move', 'rotate', 'delete'])

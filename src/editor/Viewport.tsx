@@ -2,18 +2,21 @@ import { Canvas, useThree, type RootState } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import { BufferGeometry, CanvasTexture, Float32BufferAttribute, MeshBasicMaterial, SRGBColorSpace, LineBasicMaterial, Plane, Raycaster, Vector2, Vector3, type OrthographicCamera } from 'three'
 import { moveRecords } from '../map/editor/commands'
-import { resolvedRecords, type MapDocument } from '../map/editor/document'
-import { pickRecord, snap } from '../map/editor/picking'
+import { chunkStatuses, resolvedRecords, type ChunkStatus, type MapDocument } from '../map/editor/document'
+import { isEditable, isHidden } from '../map/editor/layers'
+import { pickRecord, recordsInRect, snap } from '../map/editor/picking'
 import type { Rect, XZ } from '../map/schema'
-import { chunkOrigin } from '../map/transform'
+import { chunkIdOf, chunkOrigin } from '../map/transform'
 import { useEditorStore } from './editorStore'
-import { commitPlace, updatePlacePreview } from './interaction'
+import { chunkClick, commitPlace, snapPoint, updatePlacePreview } from './interaction'
 import { RecordView } from './RecordView'
 
 /**
  * Authoring viewport: orthographic top-down (north up) or isometric like the game camera.
- * Left click selects (Shift toggles) and drags the selection (preview, one command on release);
- * in place mode it drops the ghost. Right/middle drag pans, wheel zooms, F focuses.
+ * Select tool: left click selects (Shift toggles), drags the selection (preview, one command on
+ * release) or, from empty ground, draws a selection box. Place tool: click drops the ghost; a drag
+ * sizes surfaces, walls, boxes and zones (M4). Chunk tool: click an empty cell to add a chunk.
+ * Right/middle drag pans, wheel zooms, F focuses. Hidden/locked layers are never picked.
  * The player, AI and game loop never run here.
  */
 
@@ -34,7 +37,33 @@ function rectPoints(r: Rect, y: number): number[] {
 
 const SELECT_MAT = new LineBasicMaterial({ color: '#ffd23f' })
 const CHUNK_MAT = new LineBasicMaterial({ color: '#2b6cb0' })
+const CHUNK_MODIFIED_MAT = new LineBasicMaterial({ color: '#e0a030' })
+const CHUNK_INVALID_MAT = new LineBasicMaterial({ color: '#ff4040' })
+const CHUNK_PICKED_MAT = new LineBasicMaterial({ color: '#ffffff' })
+const CANDIDATE_MAT = new LineBasicMaterial({ color: '#8a939b', transparent: true, opacity: 0.6 })
+const MARQUEE_MAT = new LineBasicMaterial({ color: '#7fd4ff' })
 const PLAY_MAT = new LineBasicMaterial({ color: '#e05050' })
+
+function chunkMaterial(s: ChunkStatus | undefined, picked: boolean): LineBasicMaterial {
+  if (picked) return CHUNK_PICKED_MAT
+  if (s?.errors) return CHUNK_INVALID_MAT
+  if (s?.modified) return CHUNK_MODIFIED_MAT
+  return CHUNK_MAT
+}
+
+/** Empty cells next to the world's chunks: where the chunk tool can add one. */
+function candidateCells(doc: MapDocument): { cx: number; cz: number }[] {
+  const out = new Map<string, { cx: number; cz: number }>()
+  for (const c of doc.world.chunks) {
+    for (let dz = -1; dz <= 1; dz++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const id = chunkIdOf(c.cx + dx, c.cz + dz)
+        if (!doc.chunks.has(id)) out.set(id, { cx: c.cx + dx, cz: c.cz + dz })
+      }
+    }
+  }
+  return [...out.values()]
+}
 /** Chunk ID painted on the ground (a texture: DOM labels would need extra React roots). */
 const labels = new Map<string, MeshBasicMaterial>()
 function labelMaterial(text: string): MeshBasicMaterial {
@@ -57,7 +86,7 @@ function labelMaterial(text: string): MeshBasicMaterial {
 }
 const GRID_MAT = new LineBasicMaterial({ color: '#56624a', transparent: true, opacity: 0.35 })
 
-function Grid({ doc }: { doc: MapDocument }) {
+function Grid({ doc, statuses, pickedChunk, candidates }: { doc: MapDocument; statuses: ChunkStatus[]; pickedChunk: string | null; candidates: boolean }) {
   const { world } = doc
   const geometry = useMemo(() => {
     const S = world.chunkSize
@@ -82,6 +111,16 @@ function Grid({ doc }: { doc: MapDocument }) {
     const h = world.playArea.size / 2
     return lineGeometry(rectPoints({ minX: -h, minZ: -h, maxX: h, maxZ: h }, 0.04))
   }, [world.playArea.size])
+  const empty = useMemo(() => {
+    if (!candidates) return null
+    const S = world.chunkSize
+    const pts = candidateCells(doc).flatMap(({ cx, cz }) => {
+      const o = chunkOrigin(cx, cz, S)
+      return rectPoints({ minX: o.x + 0.5, minZ: o.z + 0.5, maxX: o.x + S - 0.5, maxZ: o.z + S - 0.5 }, 0.03)
+    })
+    return pts.length ? lineGeometry(pts) : null
+  }, [candidates, doc, world.chunkSize])
+  const byId = new Map(statuses.map((s) => [s.chunkId, s]))
   const size = (world.chunkBounds.maxCx - world.chunkBounds.minCx + 1) * world.chunkSize
   const cx = ((world.chunkBounds.minCx + world.chunkBounds.maxCx + 1) * world.chunkSize) / 2
   const cz = ((world.chunkBounds.minCz + world.chunkBounds.maxCz + 1) * world.chunkSize) / 2
@@ -93,14 +132,19 @@ function Grid({ doc }: { doc: MapDocument }) {
         <meshStandardMaterial color="#6f7d5c" />
       </mesh>
       <lineSegments geometry={geometry} material={GRID_MAT} />
-      {chunks.map((c) => (
-        <group key={c.id}>
-          <lineSegments geometry={c.geometry} material={CHUNK_MAT} />
-          <mesh position={[c.o.x + 3.2, 0.02, c.o.z + 0.9]} rotation={[-Math.PI / 2, 0, 0]} material={labelMaterial(c.id)}>
-            <planeGeometry args={[6, 1.5]} />
-          </mesh>
-        </group>
-      ))}
+      {chunks.map((c) => {
+        const st = byId.get(c.id)
+        const label = `${c.id}${st?.errors ? ' ✕' : st?.modified ? ' ●' : ''}`
+        return (
+          <group key={c.id}>
+            <lineSegments geometry={c.geometry} material={chunkMaterial(st, c.id === pickedChunk)} renderOrder={c.id === pickedChunk ? 5 : 0} />
+            <mesh position={[c.o.x + 3.6, 0.02, c.o.z + 0.9]} rotation={[-Math.PI / 2, 0, 0]} material={labelMaterial(label)}>
+              <planeGeometry args={[6, 1.5]} />
+            </mesh>
+          </group>
+        )
+      })}
+      {empty && <lineSegments geometry={empty} material={CANDIDATE_MAT} />}
       <lineSegments geometry={play} material={PLAY_MAT} />
     </group>
   )
@@ -121,32 +165,51 @@ function Selection({ doc, ids }: { doc: MapDocument; ids: string[] }) {
   return geometry ? <lineSegments geometry={geometry} material={SELECT_MAT} renderOrder={10} /> : null
 }
 
+function Marquee() {
+  const rect = useEditorStore((s) => s.marquee)
+  const geometry = useMemo(() => (rect ? lineGeometry(rectPoints(rect, 0.1)) : null), [rect])
+  return geometry ? <lineSegments geometry={geometry} material={MARQUEE_MAT} renderOrder={11} /> : null
+}
+
 function EditorScene() {
   const edit = useEditorStore((s) => s.edit)
   const preview = useEditorStore((s) => s.preview)
+  const layers = useEditorStore((s) => s.layers)
+  const savedDoc = useEditorStore((s) => s.savedDoc)
+  const issues = useEditorStore((s) => s.issues)
+  const tool = useEditorStore((s) => s.tool)
+  const pickedChunk = useEditorStore((s) => s.selectedChunk)
   if (!edit) return null
   const doc = preview?.doc ?? edit.doc
   const ghosts = new Set(preview?.ghostIds ?? [])
-  const records = resolvedRecords(doc)
+  const records = resolvedRecords(doc).filter((r) => ghosts.has(r.id) || !isHidden(r, layers))
+  const statuses = chunkStatuses(edit.doc, savedDoc, issues)
   return (
     <group>
       <ambientLight intensity={0.75} />
       <directionalLight position={[30, 60, 20]} intensity={1.6} />
-      <Grid doc={doc} />
+      <Grid doc={doc} statuses={statuses} pickedChunk={tool === 'chunk' ? pickedChunk : null} candidates={tool === 'chunk'} />
       {records.map((r) => (
         <RecordView key={r.id} record={r} ghost={ghosts.has(r.id)} />
       ))}
       <Selection doc={doc} ids={preview?.ghostIds.length ? preview.ghostIds : edit.selection} />
+      <Marquee />
     </group>
   )
 }
 
 interface Drag {
-  kind: 'move' | 'pan'
+  /** move: selection; pan: camera; box: selection rectangle; place: sizing a new record. */
+  kind: 'move' | 'pan' | 'box' | 'place'
   start: XZ
   ids: string[]
   delta: XZ
+  /** box: Shift held (add to the selection). */
+  additive?: boolean
 }
+
+/** A box smaller than this (m) is a plain click on empty ground. */
+const MIN_BOX = 0.3
 
 /** Place the camera for the current view around the target (session state, never saved). */
 function applyCamera(state: RootState, t: Vector3): void {
@@ -183,7 +246,9 @@ function Controls() {
     const wanted = new Set(s.edit.selection)
     const picked = resolvedRecords(doc).filter((r) => wanted.has(r.id))
     let rect: Rect
-    if (picked.length) {
+    if (s.focusRect) {
+      rect = s.focusRect
+    } else if (picked.length) {
       rect = picked.map((r) => r.bounds).reduce((a, b) => ({ minX: Math.min(a.minX, b.minX), minZ: Math.min(a.minZ, b.minZ), maxX: Math.max(a.maxX, b.maxX), maxZ: Math.max(a.maxZ, b.maxZ) }))
     } else {
       const h = doc.world.playArea.size / 2
@@ -227,19 +292,30 @@ function Controls() {
       if (e.button !== 0) return
       const s = store()
       if (!s.edit) return
+      if (s.tool === 'chunk') {
+        chunkClick(g)
+        return
+      }
       if (s.tool === 'place') {
-        commitPlace(g)
-        updatePlacePreview(g)
+        if (s.place?.kind === 'prefab') {
+          commitPlace(snapPoint(g))
+          updatePlacePreview(g)
+          return
+        }
+        const from = snapPoint(g)
+        drag.current = { kind: 'place', start: from, ids: [], delta: { x: 0, z: 0 } }
+        updatePlacePreview(g, from)
         return
       }
-      const picked = pickRecord(resolvedRecords(s.edit.doc), g)
+      const layers = s.layers
+      const picked = pickRecord(resolvedRecords(s.edit.doc), g, (r) => !isEditable(r, layers))
       const selection = s.edit.selection
-      if (e.shiftKey) {
-        if (picked) s.select(selection.includes(picked.id) ? selection.filter((id) => id !== picked.id) : [...selection, picked.id])
+      if (!picked) {
+        drag.current = { kind: 'box', start: g, ids: [], delta: { x: 0, z: 0 }, additive: e.shiftKey }
         return
       }
-      if (!picked) {
-        s.select([])
+      if (e.shiftKey) {
+        s.select(selection.includes(picked.id) ? selection.filter((id) => id !== picked.id) : [...selection, picked.id])
         return
       }
       const ids = selection.includes(picked.id) ? selection : [picked.id]
@@ -257,6 +333,14 @@ function Controls() {
         target.current.x += d.start.x - g.x
         target.current.z += d.start.z - g.z
         apply.current()
+        return
+      }
+      if (d?.kind === 'box') {
+        s.set({ marquee: { minX: Math.min(d.start.x, g.x), minZ: Math.min(d.start.z, g.z), maxX: Math.max(d.start.x, g.x), maxZ: Math.max(d.start.z, g.z) } })
+        return
+      }
+      if (d?.kind === 'place') {
+        updatePlacePreview(g, d.start)
         return
       }
       if (d?.kind === 'move' && s.edit) {
@@ -282,9 +366,28 @@ function Controls() {
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
       const d = drag.current
       drag.current = null
+      const s = store()
+      if (d?.kind === 'place') {
+        const g = groundAt(e)
+        commitPlace(d.start, g ? snapPoint(g) : null)
+        updatePlacePreview(g)
+        return
+      }
+      if (d?.kind === 'box') {
+        s.set({ marquee: null })
+        const g = groundAt(e)
+        if (!s.edit || !g) return
+        if (Math.abs(g.x - d.start.x) < MIN_BOX && Math.abs(g.z - d.start.z) < MIN_BOX) {
+          if (!d.additive) s.select([])
+          return
+        }
+        const rect = { minX: d.start.x, minZ: d.start.z, maxX: g.x, maxZ: g.z }
+        const inside = recordsInRect(resolvedRecords(s.edit.doc), rect, (r) => !isEditable(r, s.layers)).map((r) => r.id)
+        s.select(d.additive ? [...new Set([...s.edit.selection, ...inside])] : inside)
+        return
+      }
       if (d?.kind !== 'move') return
       const { x, z } = d.delta
-      const s = store()
       if (x === 0 && z === 0) return
       s.run('Di chuyển', (doc) => moveRecords(doc, d.ids, { x, z }))
     }

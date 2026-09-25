@@ -1,35 +1,47 @@
 import { useEffect, useRef, useState } from 'react'
 import { bundledWorldIds } from '../map/content'
-import { recordAtPath, recordForEntity } from '../map/editor/document'
+import { fittedPlayAreaSize, updateWorld } from '../map/editor/commands'
+import { chunkStatuses, recordAtPath, recordForEntity } from '../map/editor/document'
+import { LAYERS } from '../map/editor/layers'
+import { RECORD_PRESETS, type PresetCategory } from '../map/editor/presets'
 import { SLUG } from '../map/transform'
 import { deleteDraft } from './drafts'
-import { isDirty, SNAP_STEPS, useEditorStore } from './editorStore'
-import { downloadText } from './interaction'
+import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab } from './editorStore'
+import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
 
 const confirmDiscard = () => !isDirty(useEditorStore.getState()) || window.confirm('Document có thay đổi chưa lưu. Bỏ các thay đổi đó?')
 
-export function Palette() {
-  const edit = useEditorStore((s) => s.edit)
+const TABS: { id: PaletteTab; label: string }[] = [
+  { id: 'prefabs', label: 'Prefab' },
+  { id: 'objects', label: 'Object' },
+  { id: 'roads', label: 'Nền' },
+  { id: 'zones', label: 'Zone' },
+  { id: 'spawns', label: 'Spawn' },
+  { id: 'chunks', label: 'Chunk' },
+]
+
+const DRAG_HINT = { point: 'click', line: 'click hoặc kéo (dài)', rect: 'click hoặc kéo (khung)', radius: 'click hoặc kéo (bán kính)' } as const
+
+function PrefabList() {
+  const edit = useEditorStore((s) => s.edit)!
   const tool = useEditorStore((s) => s.tool)
-  const placePrefab = useEditorStore((s) => s.placePrefab)
+  const place = useEditorStore((s) => s.place)
   const setTool = useEditorStore((s) => s.setTool)
   const [query, setQuery] = useState('')
-  if (!edit) return <aside className="panel left" />
   const q = query.trim().toLowerCase()
   const prefabs = edit.doc.world.prefabs
     .map((e) => edit.doc.prefabs.get(e.prefabId)!)
     .filter((p) => !q || p.prefabId.includes(q) || p.name.toLowerCase().includes(q))
   return (
-    <aside className="panel left">
-      <h3>Prefab</h3>
+    <>
       <input className="search" placeholder="Tìm prefab…" value={query} onChange={(e) => setQuery(e.target.value)} />
       <ul className="palette">
         {prefabs.map((p) => {
           const f = p.footprint
-          const active = tool === 'place' && placePrefab === p.prefabId
+          const active = tool === 'place' && place?.kind === 'prefab' && place.prefabId === p.prefabId
           return (
             <li key={p.prefabId}>
-              <button className={active ? 'active' : ''} onClick={() => setTool(active ? 'select' : 'place', active ? null : p.prefabId)} data-prefab={p.prefabId}>
+              <button className={active ? 'active' : ''} onClick={() => setTool(active ? 'select' : 'place', active ? null : { kind: 'prefab', prefabId: p.prefabId })} data-prefab={p.prefabId}>
                 <strong>{p.name}</strong>
                 <small>
                   {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m
@@ -39,9 +51,140 @@ export function Palette() {
           )
         })}
       </ul>
+      <p className="hint">Click vào viewport để đặt, R xoay 90°, Esc thoát. Sửa prefab: M5.</p>
+    </>
+  )
+}
+
+function PresetList({ category }: { category: PresetCategory }) {
+  const tool = useEditorStore((s) => s.tool)
+  const place = useEditorStore((s) => s.place)
+  const setTool = useEditorStore((s) => s.setTool)
+  return (
+    <>
+      <ul className="palette">
+        {RECORD_PRESETS.filter((p) => p.category === category).map((p) => {
+          const active = tool === 'place' && place?.kind === 'record' && place.presetId === p.id
+          return (
+            <li key={p.id}>
+              <button className={active ? 'active' : ''} onClick={() => setTool(active ? 'select' : 'place', active ? null : { kind: 'record', presetId: p.id })} data-preset={p.id}>
+                <strong>{p.label}</strong>
+                <small>{DRAG_HINT[p.drag]}</small>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+      {category === 'zones' && (
+        <p className="hint">
+          Zone zombie (horde): zombie lang thang trong zone của mình, đạo diễn di cư chuyển cả nhóm giữa các zone. Điểm nằm trong zone chữ nhật thuộc zone nhỏ nhất chứa nó, nếu
+          không thì thuộc zone có tâm gần nhất. Chọn zone bằng viền hoặc tâm.
+        </p>
+      )}
+      {category === 'spawns' && <p className="hint">Spawn zombie: nơi zombie xuất hiện lúc đầu và respawn (ngoài nhà). Spawn người chơi: đặt làm điểm xuất phát ở Inspector.</p>}
+      {category === 'roads' && <p className="hint">Mặt nền chỉ để hiển thị (không collider). Hai mặt khác màu chồng nhau sẽ nhấp nháy trong game (cảnh báo surface-overlap).</p>}
+      <p className="hint">R xoay 90° vùng chọn, Esc thoát.</p>
+    </>
+  )
+}
+
+function ChunkPanel() {
+  const edit = useEditorStore((s) => s.edit)!
+  const savedDoc = useEditorStore((s) => s.savedDoc)
+  const issues = useEditorStore((s) => s.issues)
+  const picked = useEditorStore((s) => s.selectedChunk)
+  const run = useEditorStore((s) => s.run)
+  const statuses = chunkStatuses(edit.doc, savedDoc, issues)
+  const w = edit.doc.world
+  const fit = fittedPlayAreaSize(w)
+  return (
+    <>
+      <p className="hint">Click ô trống viền xám quanh world để thêm chunk {w.chunkSize} m; click chunk có sẵn để chọn. Viền: xanh = đã lưu, cam ● = đã sửa, đỏ ✕ = có lỗi.</p>
+      <ul className="chunks">
+        {statuses.map((c) => (
+          <li key={c.chunkId} className={c.chunkId === picked ? 'active' : ''}>
+            <button onClick={() => focusChunk(c.chunkId)} data-chunk={c.chunkId}>
+              <code>{c.chunkId}</code>
+              <small>
+                {c.records} record · {c.refs} ref{c.modified ? ' · ● sửa' : ''}
+                {c.errors ? ` · ✕ ${c.errors} lỗi` : ''}
+                {c.warnings ? ` · ${c.warnings} cảnh báo` : ''}
+              </small>
+            </button>
+            {c.chunkId === picked && (
+              <button className="bad" disabled={c.records > 0 || statuses.length === 1} title={c.records > 0 ? 'Chunk còn record: di chuyển hoặc xóa trước' : ''} onClick={() => deleteChunk(c.chunkId)}>
+                Xóa chunk
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
       <p className="hint">
-        Đặt: click vào viewport, R xoay 90°, Esc thoát. Object rời, đường, zone, spawn mới: M4. Sửa prefab: M5.
+        Vùng chơi (đỏ) là hình vuông tâm gốc tọa độ: {w.playArea.size} m. Vừa với mọi chunk: {fit} m.
       </p>
+      <button disabled={fit === w.playArea.size} onClick={() => run('Khớp vùng chơi', (d, sel) => updateWorld(d, { playArea: { size: fittedPlayAreaSize(d.world) } }, sel))}>
+        Khớp vùng chơi với chunk
+      </button>
+    </>
+  )
+}
+
+function LayersPanel() {
+  const layers = useEditorStore((s) => s.layers)
+  const setLayer = useEditorStore((s) => s.setLayer)
+  return (
+    <details className="layers" open>
+      <summary>Layer (chỉ trong editor)</summary>
+      <table>
+        <thead>
+          <tr>
+            <th />
+            <th>Hiện</th>
+            <th>Khóa</th>
+          </tr>
+        </thead>
+        <tbody>
+          {LAYERS.map((l) => (
+            <tr key={l.id} data-layer={l.id}>
+              <td>{l.label}</td>
+              <td>
+                <input type="checkbox" aria-label={`Hiện ${l.label}`} checked={!layers[l.id].hidden} onChange={(e) => setLayer(l.id, { hidden: !e.target.checked })} />
+              </td>
+              <td>
+                <input type="checkbox" aria-label={`Khóa ${l.label}`} checked={layers[l.id].locked} onChange={(e) => setLayer(l.id, { locked: e.target.checked })} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="hint">Ẩn/khóa chỉ ảnh hưởng chọn và hiển thị trong editor, không bao giờ vào file export hay game.</p>
+    </details>
+  )
+}
+
+export function Palette() {
+  const edit = useEditorStore((s) => s.edit)
+  const tab = useEditorStore((s) => s.paletteTab)
+  if (!edit) return <aside className="panel left" />
+  const choose = (id: PaletteTab) => {
+    const s = useEditorStore.getState()
+    s.set({ paletteTab: id })
+    if (id === 'chunks') s.setTool('chunk')
+    else if (s.tool !== 'select') s.setTool('select')
+  }
+  return (
+    <aside className="panel left">
+      <nav className="tabs">
+        {TABS.map((t) => (
+          <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => choose(t.id)} data-tab={t.id}>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+      {tab === 'prefabs' && <PrefabList />}
+      {tab !== 'prefabs' && tab !== 'chunks' && <PresetList category={tab} />}
+      {tab === 'chunks' && <ChunkPanel />}
+      <LayersPanel />
     </aside>
   )
 }
@@ -125,10 +268,13 @@ export function IssuesPanel() {
     const s = useEditorStore.getState()
     if (!s.edit) return
     const id = (entityId && recordForEntity(s.edit.doc, entityId)) || recordAtPath(s.edit.doc, path)
-    if (id) {
-      s.select([id])
-      s.requestFocus()
+    if (!id) return
+    if (editableSelection(s.edit.doc, [id], s.layers).length === 0) {
+      s.setStatus(`${id} thuộc layer "${layerLabel(s.edit.doc, id)}" đang ẩn hoặc khóa — mở layer đó để chọn`, 'error')
+      return
     }
+    s.select([id])
+    s.requestFocus()
   }
   return (
     <section className="issues">
@@ -164,7 +310,7 @@ export function StatusBar() {
   const status = useEditorStore((s) => s.status)
   const cursor = useEditorStore((s) => s.cursor)
   const tool = useEditorStore((s) => s.tool)
-  const placePrefab = useEditorStore((s) => s.placePrefab)
+  const place = useEditorStore((s) => s.place)
   const placeTurns = useEditorStore((s) => s.placeTurns)
   const selection = useEditorStore((s) => s.edit?.selection.length ?? 0)
   const chunkSize = useEditorStore((s) => s.edit?.doc.world.chunkSize ?? 32)
@@ -175,7 +321,7 @@ export function StatusBar() {
         {status?.text ?? ''}
       </span>
       <span>
-        {tool === 'place' ? `Đặt ${placePrefab} (${placeTurns * 90}°)` : `Chọn: ${selection}`}
+        {tool === 'place' && place ? `${placeLabel(place)}${place.kind === 'prefab' ? ` (${placeTurns * 90}°)` : ''}` : tool === 'chunk' ? 'Công cụ chunk' : `Chọn: ${selection}`}
         {cursor ? ` · (${cursor.x.toFixed(2)}, ${cursor.z.toFixed(2)}) ${chunk}` : ''}
       </span>
     </footer>

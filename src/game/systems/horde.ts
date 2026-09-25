@@ -1,21 +1,16 @@
 import { GAME_CONFIG } from '../core/config'
 import { UNAWARE_STATES } from '../entities/zombie'
 import type { ZoneDef } from '../world/mapData'
+import { zoneFor } from '../world/zones'
 import type { Rng } from './loot'
 import type { EntityId, Vec3, ZombieAIState } from '../../types'
 
-/** Zone whose centre is nearest to `p`; null when the map has no zones. */
+/**
+ * Zone a zombie at `p` belongs to: the smallest rectangle zone containing it, else the zone whose
+ * centre is nearest (`world/zones.ts`); null when the map has no zones.
+ */
 export function nearestZone(p: Vec3, zones: readonly ZoneDef[] | undefined): ZoneDef | null {
-  let best: ZoneDef | null = null
-  let bestD = Infinity
-  for (const zone of zones ?? []) {
-    const d = Math.hypot(zone.center.x - p.x, zone.center.z - p.z)
-    if (d < bestD) {
-      best = zone
-      bestD = d
-    }
-  }
-  return best
+  return zoneFor(p, zones)
 }
 
 export interface HordeMember {

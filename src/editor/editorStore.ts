@@ -1,24 +1,30 @@
 import { create } from 'zustand'
 import { bundledWorldFiles, REGISTERED_LOOT_TABLES } from '../map/content'
-import type { QuarterTurns, XZ } from '../map/schema'
+import type { QuarterTurns, Rect, XZ } from '../map/schema'
 import type { ValidationIssue } from '../map/validate'
 import { type CommandResult } from '../map/editor/commands'
-import { blankDocument, type MapDocument } from '../map/editor/document'
+import { blankDocument, resolvedRecords, type MapDocument } from '../map/editor/document'
+import { defaultLayers, isEditable, LAYERS, layerOf, type LayerId, type LayerState, type LayerStates } from '../map/editor/layers'
 import { documentFromFiles, exportPack, parsePack, validateDocument } from '../map/editor/pack'
 import { applyCommand, initialEditState, redo, undo, type EditState } from '../map/editor/session'
 import { listDrafts, saveDraft, type DraftRecord } from './drafts'
 
 /**
- * Editor state (M3). The document and its history (`EditState`) are the only map data; the rest
- * is session state (tool, snap, camera mode, preview, messages) and is never exported. The Three.js
- * scene is derived from the document on render.
+ * Editor state (M3, M4). The document and its history (`EditState`) are the only map data; the rest
+ * is session state (tool, snap, camera mode, layers, preview, messages) and is never exported. The
+ * Three.js scene is derived from the document on render.
  */
 
 export const OPTS = { lootTables: REGISTERED_LOOT_TABLES }
 export const SNAP_STEPS = [1, 0.5, 0.25, 0] as const
 export const DEFAULT_WORLD = 'neighborhood-50'
 
-export type Tool = 'select' | 'place'
+export type Tool = 'select' | 'place' | 'chunk'
+
+/** What the place tool puts down: a prefab instance or a palette record (M4). */
+export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record'; presetId: string }
+
+export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks'
 
 export interface Preview {
   doc: MapDocument
@@ -42,8 +48,14 @@ interface EditorStore {
   /** Issues of a rejected import/draft (the open document is kept). */
   rejected: { title: string; issues: ValidationIssue[] } | null
   tool: Tool
-  placePrefab: string | null
+  place: PlaceItem | null
   placeTurns: QuarterTurns
+  paletteTab: PaletteTab
+  layers: LayerStates
+  /** Chunk picked in the chunk tool / panel. */
+  selectedChunk: string | null
+  /** Box select in progress (world rect), drawn by the viewport. */
+  marquee: Rect | null
   snapStep: number
   view: 'top' | 'iso'
   preview: Preview | null
@@ -53,6 +65,8 @@ interface EditorStore {
   showIssues: boolean
   drafts: DraftRecord[]
   focusRequest: number
+  /** Area the next focus frames (a chunk); null = the selection or the whole world. */
+  focusRect: Rect | null
 
   openDocument(doc: MapDocument, source: string, issues?: ValidationIssue[]): void
   run(label: string, command: (doc: MapDocument, selection: string[]) => CommandResult): boolean
@@ -61,10 +75,11 @@ interface EditorStore {
   select(ids: string[]): void
   setPreview(preview: Preview | null): void
   setStatus(text: string, kind?: Status['kind']): void
-  setTool(tool: Tool, prefabId?: string | null): void
+  setTool(tool: Tool, place?: PlaceItem | null): void
   rotatePlacement(turns: number): void
-  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues'>>): void
-  requestFocus(): void
+  setLayer(id: LayerId, patch: Partial<LayerState>): void
+  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee'>>): void
+  requestFocus(rect?: Rect | null): void
   reject(title: string, error: string, issues: ValidationIssue[]): void
 
   openBundled(worldId: string): boolean
@@ -99,6 +114,19 @@ function issuesFor(doc: MapDocument, baseline: MapDocument | null): ValidationIs
   return [...validateDocument(doc, OPTS), ...editorWarnings(doc, baseline)]
 }
 
+/** Selection without records on hidden or locked layers (they can't be picked or edited). */
+export function editableSelection(doc: MapDocument, ids: readonly string[], layers: LayerStates): string[] {
+  const wanted = new Set(ids)
+  const blocked = new Set(resolvedRecords(doc).filter((r) => wanted.has(r.id) && !isEditable(r, layers)).map((r) => r.id))
+  return blocked.size ? ids.filter((id) => !blocked.has(id)) : [...ids]
+}
+
+/** Layer label of a record, for status messages. */
+export function layerLabel(doc: MapDocument, id: string): string | null {
+  const r = resolvedRecords(doc).find((x) => x.id === id)
+  return r ? LAYERS.find((l) => l.id === layerOf(r))!.label : null
+}
+
 export const useEditorStore = create<EditorStore>((set, get) => ({
   edit: null,
   savedDoc: null,
@@ -107,8 +135,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   issues: [],
   rejected: null,
   tool: 'select',
-  placePrefab: null,
+  place: null,
   placeTurns: 0,
+  paletteTab: 'prefabs',
+  layers: defaultLayers(),
+  selectedChunk: null,
+  marquee: null,
   snapStep: 0.5,
   view: 'top',
   preview: null,
@@ -118,6 +150,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   showIssues: false,
   drafts: [],
   focusRequest: 0,
+  focusRect: null,
 
   openDocument(doc, source, issues) {
     set({
@@ -129,7 +162,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       rejected: null,
       preview: null,
       tool: 'select',
-      placePrefab: null,
+      place: null,
+      selectedChunk: null,
+      marquee: null,
+      focusRect: null,
       dialog: null,
       status: { text: `Đã mở ${doc.world.name} (${doc.world.worldId}) — ${source}`, kind: 'info' },
       focusRequest: get().focusRequest + 1,
@@ -158,7 +194,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const { edit, baseline } = get()
     if (!edit || edit.past.length === 0) return
     const label = edit.past[edit.past.length - 1].label
-    const next = undo(edit)
+    const back = undo(edit)
+    const next = { ...back, selection: editableSelection(back.doc, back.selection, get().layers) }
     set({ edit: next, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Hoàn tác: ${label}`, kind: 'info' } })
   },
 
@@ -166,7 +203,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const { edit, baseline } = get()
     if (!edit || edit.future.length === 0) return
     const label = edit.future[0].label
-    const next = redo(edit)
+    const forward = redo(edit)
+    const next = { ...forward, selection: editableSelection(forward.doc, forward.selection, get().layers) }
     set({ edit: next, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Làm lại: ${label}`, kind: 'info' } })
   },
 
@@ -184,20 +222,26 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     set({ status: { text, kind } })
   },
 
-  setTool(tool, prefabId = null) {
-    set({ tool, placePrefab: tool === 'place' ? prefabId : null, preview: null })
+  setTool(tool, place = null) {
+    set({ tool, place: tool === 'place' ? place : null, preview: null, marquee: null })
   },
 
   rotatePlacement(turns) {
     set({ placeTurns: ((((get().placeTurns + turns) % 4) + 4) % 4) as QuarterTurns })
   },
 
+  setLayer(id, patch) {
+    const layers = { ...get().layers, [id]: { ...get().layers[id], ...patch } }
+    const { edit } = get()
+    set({ layers, ...(edit ? { edit: { ...edit, selection: editableSelection(edit.doc, edit.selection, layers) } } : {}) })
+  },
+
   set(patch) {
     set(patch)
   },
 
-  requestFocus() {
-    set({ focusRequest: get().focusRequest + 1 })
+  requestFocus(rect = null) {
+    set({ focusRequest: get().focusRequest + 1, focusRect: rect })
   },
 
   reject(title, error, issues) {
@@ -238,7 +282,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return false
     }
     get().openDocument(doc, 'world mới')
-    set({ savedDoc: null })
+    // Never published: no save can hold its IDs yet, so no contentVersion warning.
+    set({ savedDoc: null, baseline: null, issues: issuesFor(doc, null) })
     return true
   },
 

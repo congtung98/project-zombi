@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { DEFAULT_WORLD, isDirty, useEditorStore } from './editorStore'
-import { cancel, deleteSelection, duplicateSelection, nudge, rotateSelection } from './interaction'
+import { cancel, deleteSelection, duplicateSelection, nudge, rotateSelection, selectAll } from './interaction'
 import { Inspector } from './Inspector'
 import { IssuesPanel, NewDialog, OpenDialog, Palette, StatusBar, TopBar } from './Panels'
 import { Viewport } from './Viewport'
@@ -25,6 +25,7 @@ function onKey(e: KeyboardEvent): void {
   if (mod && (key === 'y' || (key === 'z' && e.shiftKey))) return handled(), s.redo()
   if (mod && key === 's') return handled(), void s.saveDraft()
   if (mod && key === 'd') return handled(), duplicateSelection()
+  if (mod && key === 'a') return handled(), selectAll()
   if (mod) return
   switch (e.key) {
     case 'Delete':

@@ -1,9 +1,27 @@
-import { rotateInstances, setRecordAnchor, updateRecord, updateWorld } from '../map/editor/commands'
-import { findRecord, worldAnchor, type AnyRecord, type MapDocument } from '../map/editor/document'
-import type { QuarterTurns, XYZ } from '../map/schema'
+import { rotateRecords, setRecordAnchor, updateRecord, updateWorld } from '../map/editor/commands'
+import { findRecord, resolvedRecords, worldAnchor, type AnyRecord, type MapDocument } from '../map/editor/document'
+import type { QuarterTurns, XYZ, XZ } from '../map/schema'
+import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
 import { NumField, ReadField, TextField } from './fields'
-import { deleteSelection, duplicateSelection } from './interaction'
+import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
+
+/** Zones of the document as the runtime sees them (`ZoneDef`). */
+function zoneDefs(doc: MapDocument) {
+  return resolvedRecords(doc).flatMap((r) => r.parts.zones ?? [])
+}
+
+/** Zone a zombie spawned at `p` belongs to, by the runtime rule. */
+function zoneOfPoint(doc: MapDocument, p: XZ): string | null {
+  return zoneFor(p, zoneDefs(doc))?.id ?? null
+}
+
+function zombieSpawnsIn(doc: MapDocument, zoneId: string): number {
+  const zones = zoneDefs(doc)
+  return resolvedRecords(doc)
+    .flatMap((r) => r.parts.zombieSpawns ?? [])
+    .filter((p) => zoneFor(p, zones)?.id === zoneId).length
+}
 
 const CATEGORY_LABEL = { instances: 'Công trình (prefab)', objects: 'Object rời', roads: 'Đường', zones: 'Zone', spawns: 'Spawn' } as const
 const COLOR = /^#[0-9a-f]{6}$/i
@@ -19,12 +37,30 @@ function WorldInspector({ doc }: { doc: MapDocument }) {
       <TextField label="Tên" value={w.name} onCommit={(name) => run('Đổi tên world', (d, sel) => updateWorld(d, { name }, sel))} />
       <NumField label="contentVersion" value={w.contentVersion} step={1} min={1} onCommit={(v) => run('Đổi contentVersion', (d, sel) => updateWorld(d, { contentVersion: v }, sel))} />
       <ReadField label="Chunk" value={`${w.chunks.length} × ${w.chunkSize} m`} />
-      <ReadField label="Vùng chơi" value={`${w.playArea.size} m`} />
+      <NumField label="Vùng chơi (m)" value={w.playArea.size} step={1} min={1} onCommit={(size) => run('Đổi vùng chơi', (d, sel) => updateWorld(d, { playArea: { size } }, sel))} />
+      <label className="field">
+        <span>Hàng rào biên</span>
+        <input
+          type="checkbox"
+          checked={w.boundary !== null}
+          onChange={(e) => run(e.target.checked ? 'Bật hàng rào biên' : 'Tắt hàng rào biên', (d, sel) => updateWorld(d, { boundary: e.target.checked ? { height: 2, thickness: 1 } : null }, sel))}
+        />
+      </label>
+      {w.boundary && (
+        <>
+          <NumField label="Rào cao" value={w.boundary.height} min={0.1} onCommit={(height) => run('Đổi hàng rào biên', (d, sel) => updateWorld(d, { boundary: { ...d.world.boundary!, height } }, sel))} />
+          <NumField label="Rào dày" value={w.boundary.thickness} min={0.1} onCommit={(thickness) => run('Đổi hàng rào biên', (d, sel) => updateWorld(d, { boundary: { ...d.world.boundary!, thickness } }, sel))} />
+        </>
+      )}
+      <p className="hint">Vùng chơi luôn là hình vuông tâm (0, 0) (lưới nav của game giả định vậy); tab Chunk có nút khớp với các chunk.</p>
       <ReadField label="Prefab" value={String(w.prefabs.length)} />
       <ReadField label="Record" value={String(counts)} />
       <ReadField label="Spawn người chơi" value={w.playerSpawn} />
       <ReadField label="ID đã xóa" value={String(w.retiredIds?.length ?? 0)} />
-      <p className="hint">Click chọn record; Shift+click chọn nhiều. Kéo để di chuyển. Chọn prefab bên trái để đặt.</p>
+      <p className="hint">
+        Click chọn record; Shift+click chọn thêm; kéo từ chỗ trống để chọn theo khung; Ctrl+A chọn hết (trừ layer ẩn/khóa). Kéo để di chuyển. Chọn mục bên trái để đặt; tab
+        Chunk để thêm/xóa chunk.
+      </p>
     </div>
   )
 }
@@ -59,7 +95,7 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
               value={String(r.quarterTurns)}
               onChange={(e) => {
                 const q = Number(e.target.value) as QuarterTurns
-                run('Xoay', (d) => rotateInstances(d, [id], q - (r.quarterTurns as number)))
+                run('Xoay', (d) => rotateRecords(d, [id], q - (r.quarterTurns as number)))
               }}
             >
               {[0, 1, 2, 3].map((q) => (
@@ -113,15 +149,23 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
 
       {loc.category === 'zones' && (
         <>
-          <ReadField label="Loại" value={`${String(r.kind)} (${String(r.shape)})`} />
+          <ReadField label="Loại" value={`${String(r.kind)} (${r.shape === 'rect' ? 'chữ nhật' : 'tròn'})`} />
           <TextField label="Tên" value={String(r.name)} onCommit={(name) => patch('Đổi tên', { name })} />
-          <NumField label="Bán kính" value={r.radius as number} min={0.5} onCommit={(radius) => patch('Đổi bán kính', { radius })} />
+          {r.shape === 'rect' ? (
+            (r.size as number[]).map((v, i) => (
+              <NumField key={i} label={`Kích thước ${'XZ'[i]}`} value={v} min={0.5} onCommit={(n) => patch('Đổi kích thước', { size: (r.size as number[]).map((s, j) => (j === i ? n : s)) })} />
+            ))
+          ) : (
+            <NumField label="Bán kính" value={r.radius as number} min={0.5} onCommit={(radius) => patch('Đổi bán kính', { radius })} />
+          )}
+          <ReadField label="Spawn zombie thuộc" value={String(zombieSpawnsIn(doc, id))} />
         </>
       )}
 
       {loc.category === 'spawns' && (
         <>
           <ReadField label="Loại" value={String(r.kind)} />
+          {r.kind === 'zombie' && <ReadField label="Thuộc zone" value={zoneOfPoint(doc, at) ?? '(không có zone: lang thang quanh spawn)'} />}
           {r.kind === 'player' &&
             (doc.world.playerSpawn === id ? (
               <p className="hint">Điểm xuất phát của New Game.</p>
@@ -132,6 +176,11 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
       )}
 
       <div className="row">
+        {loc.category !== 'instances' && Array.isArray(r.size) && (
+          <button onClick={() => rotateSelection(1)} title="R">
+            Xoay 90°
+          </button>
+        )}
         <button onClick={duplicateSelection} title="Ctrl+D">
           Nhân bản
         </button>

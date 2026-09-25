@@ -13,7 +13,7 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3): npm run dev rồi mở http://localhost:5173/editor.html
+# Map editor (M3–M4): npm run dev rồi mở http://localhost:5173/editor.html
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/
 ```
@@ -70,8 +70,8 @@ editor.html            entry riêng của map editor
 src/
   map/                 schema, transform (xoay/chunk/ID), validate, resolve (JSON → MapData), loader (ChunkLifecycle),
                        content (nạp JSON đi kèm bundle), tools/ (importLegacy, tileWorld),
-                       editor/ (document bất biến, lệnh, lịch sử undo/redo, content pack — thuần TS)
-  editor/              UI map editor (React + R3F): viewport, palette, inspector, validate, nháp IndexedDB riêng
+                       editor/ (document bất biến, lệnh, lịch sử undo/redo, content pack, preset palette, layer — thuần TS)
+  editor/              UI map editor (React + R3F): viewport, palette theo tab, chunk/layer, inspector, validate, nháp IndexedDB riêng
   app/                 App (điều hướng màn hình), GameCanvas
   game/
     core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, di cư, đòn vào cửa, snapshot/load)
@@ -116,6 +116,11 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M4: world authoring (25/09/2026)
+
+- Palette theo tab: Prefab, Object (tường/hàng rào kéo theo chiều dài, thùng, xe, container có loot), Nền (đường/vỉa hè/đất/sỏi, kéo khung), Zone (zombie chữ nhật kéo khung, tròn kéo bán kính), Spawn; tab **Chunk** thêm chunk bằng click ô trống, xóa chunk rỗng, trạng thái đã sửa/lỗi, khớp vùng chơi. **Layer** ẩn/khóa (chỉ trong editor), khung chọn, Ctrl+A, xoay object/nền/zone.
+- **Zone chữ nhật** có tác dụng trong game: zombie trong zone chữ nhật thuộc zone nhỏ nhất chứa nó (còn lại: tâm gần nhất như S5) và lang thang trong hình chữ nhật. Cảnh báo mới `zone-assignment`, `surface-overlap`. Save không đổi (v8). Chi tiết `docs/map-editor-m4.md`.
 
 ### Map editor M3: editor MVP (25/09/2026)
 

@@ -23,15 +23,18 @@ export interface RoadDef {
 }
 
 /**
- * Outdoor area a zombie group wanders in (P2-S5). Every zombie belongs to the zone nearest its
- * spawn point; the horde director moves whole groups between zones.
+ * Outdoor area a zombie group wanders in (P2-S5). Every zombie belongs to a zone by the rule of
+ * `world/zones.ts` (smallest rectangle containing its spawn, else nearest centre); the horde
+ * director moves whole groups between zones.
  */
 export interface ZoneDef {
   id: string
   name: string
   center: Vec3
-  /** Wander destinations are picked within this radius of the centre. */
+  /** Circle: wander destinations are picked within this radius of the centre. Rectangle: enclosing radius. */
   radius: number
+  /** Rectangle zones (map editor M4): half extents on X/Z; wander destinations are picked inside it. */
+  halfSize?: { x: number; z: number }
 }
 
 export interface MapData {
