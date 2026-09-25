@@ -173,6 +173,20 @@ export function resolvedRecords(doc: MapDocument): ResolvedRecord[] {
   return out
 }
 
+/**
+ * Save as a new world: the same content under another worldId and name, as a world that was never
+ * published. contentVersion restarts at 1 (no save holds its IDs yet); the source world's save
+ * migrations (`migrations/…`, they convert that world's old saves) and generator provenance are
+ * dropped. Chunks, prefabs, record IDs and retired IDs are kept as they are (IDs never contain the
+ * world ID), so the copy plays exactly like the source and the source is left untouched.
+ */
+export function forkDocument(doc: MapDocument, worldId: string, name: string): MapDocument {
+  const world: WorldDocument = { ...doc.world, worldId, name, contentVersion: 1 }
+  delete world.generator
+  const extras = new Map([...doc.extras].filter(([path]) => !path.startsWith('migrations/')))
+  return { world, prefabs: doc.prefabs, chunks: doc.chunks, extras }
+}
+
 /** A document from content already split into world/prefabs/chunks (bundled worlds, tests). */
 export function documentFrom(docs: WorldDocuments, extras: ReadonlyMap<string, unknown> = new Map()): MapDocument {
   return { world: docs.world, prefabs: docs.prefabs, chunks: docs.chunks, extras }

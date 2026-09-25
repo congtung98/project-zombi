@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "worldId": "neighborhood-50-lab",
+  "name": "Khu phố 50 m (thử nghiệm)",
+  "contentVersion": 1,
+  "chunkSize": 32,
+  "coordinateSystem": "y-up-xz-meters",
+  "playArea": { "size": 50 },
+  "boundary": { "height": 2, "thickness": 1 },
+  "chunkBounds": { "minCx": -1, "maxCx": 0, "minCz": -1, "maxCz": 0 },
+  "chunks": [
+    { "chunkId": "c-1_-1", "cx": -1, "cz": -1, "path": "chunks/c-1_-1.json" },
+    { "chunkId": "c0_-1", "cx": 0, "cz": -1, "path": "chunks/c0_-1.json" },
+    { "chunkId": "c-1_0", "cx": -1, "cz": 0, "path": "chunks/c-1_0.json" },
+    { "chunkId": "c0_0", "cx": 0, "cz": 0, "path": "chunks/c0_0.json" }
+  ],
+  "prefabs": [
+    { "prefabId": "building/safehouse", "contentVersion": 1, "path": "prefabs/safehouse.json" },
+    { "prefabId": "building/store", "contentVersion": 1, "path": "prefabs/store.json" },
+    { "prefabId": "building/house", "contentVersion": 1, "path": "prefabs/house.json" },
+    { "prefabId": "building/new-house", "contentVersion": 1, "path": "prefabs/new-house.json" }
+  ],
+  "playerSpawn": "c-1_-1/spawns/player-start"
+}

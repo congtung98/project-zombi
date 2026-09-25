@@ -1,10 +1,24 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **map editor M6 (công cụ sản xuất)** — kế hoạch map editor M1–M6 xong (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Cập nhật: **2026-09-26**, sau M6: **Lưu thành world mới** trong editor + world thử nghiệm `neighborhood-50-lab` — kế hoạch map editor M1–M6 xong (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
 > Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M6 — công cụ sản xuất (mới nhất, chưa commit — chi tiết docs/map-editor-m6.md)
+## 0. Lưu thành world mới (mới nhất, chưa commit)
+
+Save không đổi (v8), `neighborhood-50` không đổi (đã trả về bản commit ef15bdd), schema map vẫn v1.
+
+- **Lý do**: sửa `neighborhood-50` tại chỗ (thêm nhà có cửa/tủ, xóa zone) làm đổi tập ID có trạng thái → save thật `slot-1` bị từ chối và 46 test migrate/tương đương v1–v7 fail. Thử nghiệm phải làm trên world khác.
+- `forkDocument(doc, worldId, name)` (`src/map/editor/document.ts`): `worldId`/tên mới, `contentVersion` 1, bỏ `migrations/…` và `generator`; chunk/prefab/ID/retiredIds giữ nguyên (dùng chung object).
+- Editor: nút **Lưu thành…** (Ctrl+Shift+S, `SaveAsDialog` trong `Panels.tsx`, `store.saveAsWorld`): từ chối `worldId` trùng world đang mở, world trong repo hoặc bản nháp; bản sao lưu nháp ngay, lịch sử mới, `baseline` null (không cảnh báo contentVersion), giữ vùng chọn/chế độ prefab/camera.
+- CLI: `map:unpack -- <pack> --world-id <id> [--name <tên>]`.
+- **`content/maps/neighborhood-50-lab/`** (mới): chỉnh sửa của người dùng (nhà `building/new-house` ở `c0_0/new-house-1`, safehouse và spawn dời, bỏ zone `c-1_-1/zones/west`), chơi bằng `/?world=neighborhood-50-lab` (slot `slot-world-neighborhood-50-lab`).
+- **Kiểm chứng**: 463 test (+10 skip; `production.test.ts` +2); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright (kịch bản tạm) Lưu thành → tiêu đề/nháp/Export `<id>.mappack.json`, trùng repo/nháp bị từ chối, game `?world=neighborhood-50-lab` có `c0_0/new-house-1`, map mặc định vẫn 3 nhà; hồi quy m3/m4/m5/m6 PASS.
+- Hướng dẫn: `docs/map-editor-guide.md` (Lưu thành…, khởi động lại dev server khi không thấy thay đổi, cảnh báo sửa `neighborhood-50`).
+
+Commit message gợi ý: **feat(editor): save as new world (fork with new worldId, editor dialog + map:unpack --world-id) and move neighborhood-50 experiments to neighborhood-50-lab**
+
+## 0-M6. Map editor M6 — công cụ sản xuất (đã commit ef15bdd — chi tiết docs/map-editor-m6.md)
 
 Save không đổi (v8), content khu phố không đổi, schema map vẫn v1 (thêm tùy chọn `world.generator`). Kế hoạch map editor M1–M6 đã xong.
 
@@ -15,7 +29,6 @@ Save không đổi (v8), content khu phố không đổi, schema map vẫn v1 (t
 - **Kiểm chứng**: 461 test (+10 skip; mới `production.test.ts` 9, `src/playtest/playtest.test.ts` 1); tsc/oxlint/build/build:editor/map:check (+ --deep)/check:bundle (marker M6) sạch; Playwright `scripts/m6-editor-browser.mjs` PASS; playtest trên build production editor (vite preview) OK; hồi quy dev p2-s5, p2-s2 (migrate save thật), m3/m4/m5 PASS.
 - **Giới hạn**: viewport editor vẽ mỗi hộp một mesh (4×4: 1 495 draw call, ~35 ms/khung SwiftShader, chỉ khi vẽ lại); vùng chơi tâm gốc; chưa có zone-quá-dày, cây cối, migration nội dung save.
 
-Commit message gợi ý: **feat(editor): production tools M6 (play from here with in-memory saves, deep checks through game systems, deterministic town generator + CLI, prefab thumbnails, guide and perf report)**
 
 ## 0-M5. Map editor M5 — prefab editor (đã commit c187992 — chi tiết docs/map-editor-m5.md)
 

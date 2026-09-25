@@ -14,6 +14,7 @@ Editor mở sẵn khu phố `neighborhood-50`. Các nút trên thanh trên cùng
 - **Mới**: world trống 2 × 2 chunk, hoặc **Sinh bằng generator** (seed + số khối).
 - **Mở…**: content trong repo hoặc bản nháp.
 - **Lưu nháp** (Ctrl+S): lưu vào IndexedDB riêng của editor, không đụng save game.
+- **Lưu thành…** (Ctrl+Shift+S): lưu bản đang sửa (kể cả phần chưa lưu) thành **world mới** với `worldId`/tên mới rồi sửa tiếp trên bản đó. Chunk, prefab, ID giữ nguyên; `contentVersion` về 1; không mang theo migration save của world gốc. World gốc không đổi. Bản sao được lưu nháp ngay; lịch sử hoàn tác bắt đầu lại.
 - **Import… / Export**: content pack `.mappack.json`.
 
 Chuột: trái để chọn/kéo; phải hoặc giữa để kéo camera; lăn để zoom. F để focus, Tab để đổi nhìn trên xuống / isometric.
@@ -61,11 +62,15 @@ Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
    ```bash
    npm run map:unpack -- <worldId>.mappack.json           # → content/maps/<worldId>/
    npm run map:unpack -- <file> --force                   # ghi đè world có sẵn (file không đổi thì không ghi lại)
+   npm run map:unpack -- <file> --world-id <id-mới> [--name "Tên"]   # ghi pack thành world mới (như Lưu thành…)
    npm run map:check -- --deep                            # validate + kiểm tra sâu mọi world
    ```
 
-3. Chơi trong game (dev): `http://localhost:5173/?world=<worldId>`. Save của world này dùng slot riêng.
+3. Chơi trong game (dev): `http://localhost:5173/?world=<worldId>`. World khác `neighborhood-50` dùng slot save riêng (`slot-world-<id>`). `neighborhood-50` là map mặc định của game (không cần `?world=`) và dùng save thật `slot-1`.
+   - **Không thấy thay đổi sau khi unpack?** Tắt `npm run dev` (Ctrl+C) rồi chạy lại. Dev server chạy lâu, nhất là sau khi các thư mục trong `content/maps/` bị tạo/xóa, có thể bỏ lỡ sự kiện "file đổi" và tiếp tục phục vụ JSON cũ; tải lại trang không đủ vì cache nằm ở server. Cách kiểm tra: console dev `__runtime.map.contentVersion` phải bằng số trong `world.json`.
 4. Commit thư mục `content/maps/<worldId>/`. Muốn sửa tiếp: Mở… → content trong repo; hoặc `npm run map:pack -- content/maps/<worldId>` rồi Import.
+
+> **Sửa `neighborhood-50` (world chính đang phát hành).** Save thật của người chơi (`slot-1`) và các bước migrate save cũ v1–v7 gắn với đúng tập cửa/tủ/cửa sổ/đèn/zone của khu phố. Thêm, bỏ hoặc đổi tên những thứ đó (ví dụ đặt thêm một nhà có cửa) sẽ làm save hiện có bị từ chối và làm fail các test migrate/tương đương trong `npm test`. Đó là thay đổi nội dung cần một content migration, chưa có công cụ. Để thử nghiệm, hãy làm trên **world mới**: mở `neighborhood-50` → **Lưu thành…** (`worldId` khác) rồi mới sửa; hoặc Mới → Trống / Sinh bằng generator. Lỡ export `neighborhood-50` đã sửa thì `map:unpack -- neighborhood-50.mappack.json --world-id <id-mới>`. Chỉ dời, xoay, đổi màu, đổi kích thước (giữ nguyên tập ID) mới là sửa tương thích.
 
 ## 6. Sinh world bằng generator
 

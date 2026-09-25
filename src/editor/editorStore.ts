@@ -1,9 +1,9 @@
 import { create } from 'zustand'
-import { bundledWorldFiles, REGISTERED_LOOT_TABLES } from '../map/content'
+import { bundledWorldFiles, bundledWorldIds, REGISTERED_LOOT_TABLES } from '../map/content'
 import type { QuarterTurns, Rect, XZ } from '../map/schema'
 import type { ValidationIssue } from '../map/validate'
 import { type CommandResult } from '../map/editor/commands'
-import { blankDocument, findRecord, resolvedRecords, statefulEntityIds, type MapDocument } from '../map/editor/document'
+import { blankDocument, findRecord, forkDocument, resolvedRecords, statefulEntityIds, type MapDocument } from '../map/editor/document'
 import { usedLocalIds } from '../map/editor/prefabCommands'
 import { playPointProblem, playtestFiles } from '../map/editor/playtest'
 import { deepCheck } from '../map/analysis'
@@ -11,7 +11,7 @@ import { generateTown } from '../map/tools/generator'
 import { defaultLayers, isEditable, LAYERS, layerOf, type LayerId, type LayerState, type LayerStates } from '../map/editor/layers'
 import { documentFromFiles, exportPack, parsePack, validateDocument } from '../map/editor/pack'
 import { applyCommand, initialEditState, redo, undo, type EditState } from '../map/editor/session'
-import { listDrafts, saveDraft, type DraftRecord } from './drafts'
+import { listDrafts, readDraft, saveDraft, type DraftRecord } from './drafts'
 
 /**
  * Editor state (M3, M4). The document and its history (`EditState`) are the only map data; the rest
@@ -93,7 +93,7 @@ interface EditorStore {
   preview: Preview | null
   status: Status | null
   cursor: XZ | null
-  dialog: 'open' | 'new' | 'newPrefab' | 'duplicatePrefab' | null
+  dialog: 'open' | 'new' | 'saveAs' | 'newPrefab' | 'duplicatePrefab' | null
   showIssues: boolean
   drafts: DraftRecord[]
   focusRequest: number
@@ -126,6 +126,8 @@ interface EditorStore {
   openPack(text: string, source: string, allowContentErrors: boolean): boolean
   newWorld(worldId: string, name: string, generate?: { seed: number; blocksX: number; blocksZ: number }): boolean
   saveDraft(): Promise<void>
+  /** Save as a new world (new worldId/name, contentVersion 1) and continue editing the copy. */
+  saveAsWorld(worldId: string, name: string): Promise<boolean>
   exportFile(): { name: string; text: string } | null
   refreshDrafts(): Promise<void>
 }
@@ -453,6 +455,36 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     } catch (e) {
       set({ status: { text: `Lưu nháp lỗi: ${e instanceof Error ? e.message : String(e)}`, kind: 'error' } })
     }
+  },
+
+  async saveAsWorld(worldId, name) {
+    const { edit } = get()
+    if (!edit) return false
+    const fail = (text: string) => (set({ status: { text: `Lưu thành world mới: ${text}`, kind: 'error' } }), false)
+    if (worldId === edit.doc.world.worldId) return fail('worldId phải khác world đang mở')
+    if (bundledWorldIds().includes(worldId)) return fail(`content/maps/${worldId} đã có trong repo, chọn worldId khác`)
+    try {
+      if (await readDraft(worldId)) return fail(`đã có bản nháp ${worldId} (Mở… để sửa tiếp, hoặc xóa nháp đó), chọn worldId khác`)
+    } catch {
+      // No IndexedDB: saveDraft below reports it; the copy still opens.
+    }
+    const from = edit.doc.world.worldId
+    const doc = forkDocument(edit.doc, worldId, name)
+    // A new history: undoing past this point would bring the old worldId back. Selection, prefab
+    // mode and camera stay. Never published, so no contentVersion warning (baseline null).
+    set({
+      edit: { ...initialEditState(doc), selection: edit.selection },
+      savedDoc: null,
+      baseline: null,
+      source: `lưu thành từ ${from}`,
+      issues: issuesFor(doc, null),
+      deep: null,
+      preview: null,
+      dialog: null,
+    })
+    await get().saveDraft()
+    if (get().savedDoc === doc) set({ status: { text: `Đã lưu thành world mới ${worldId} (bản nháp; ${from} không đổi). Export → ${worldId}.mappack.json rồi npm run map:unpack.`, kind: 'info' } })
+    return true
   },
 
   exportFile() {

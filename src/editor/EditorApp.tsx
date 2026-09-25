@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { DEFAULT_WORLD, isDirty, useEditorStore } from './editorStore'
 import { cancel, deleteSelection, duplicateSelection, nudge, rotateSelection, selectAll } from './interaction'
 import { Inspector } from './Inspector'
-import { DuplicatePrefabDialog, IssuesPanel, NewDialog, NewPrefabDialog, OpenDialog, Palette, StatusBar, TopBar } from './Panels'
+import { DuplicatePrefabDialog, IssuesPanel, NewDialog, NewPrefabDialog, OpenDialog, Palette, SaveAsDialog, StatusBar, TopBar } from './Panels'
 import { Viewport } from './Viewport'
 import { PlaytestOverlay } from './Playtest'
 
@@ -26,6 +26,11 @@ function onKey(e: KeyboardEvent): void {
   const handled = () => e.preventDefault()
   if (mod && key === 'z' && !e.shiftKey) return handled(), s.undo()
   if (mod && (key === 'y' || (key === 'z' && e.shiftKey))) return handled(), s.redo()
+  if (mod && key === 's' && e.shiftKey) {
+    handled()
+    if (s.edit) s.set({ dialog: 'saveAs' })
+    return
+  }
   if (mod && key === 's') return handled(), void s.saveDraft()
   if (mod && key === 'd') return handled(), duplicateSelection()
   if (mod && key === 'a') return handled(), selectAll()
@@ -91,6 +96,7 @@ export function EditorApp() {
       <StatusBar />
       <OpenDialog />
       <NewDialog />
+      <SaveAsDialog />
       <NewPrefabDialog />
       <DuplicatePrefabDialog />
       <PlaytestOverlay />

@@ -5,7 +5,7 @@ import { checkWorldDocuments } from '../validate'
 import { GameRuntime } from '../../game/core/runtime'
 import { GENERATOR_NAME, GENERATOR_VERSION, generateTown, type Catalog } from '../tools/generator'
 import { moveRecords, placeInstance, placeRecord, updateRecord, type CommandResult } from './commands'
-import { blankDocument, documentFiles, findRecord, resolvedRecords, worldAnchor, type MapDocument } from './document'
+import { blankDocument, documentFiles, findRecord, forkDocument, resolvedRecords, statefulEntityIds, worldAnchor, type MapDocument } from './document'
 import { documentFromFiles, exportPack, parsePack } from './pack'
 import { playPointProblem, playtestFiles } from './playtest'
 import { updatePrefabItem } from './prefabCommands'
@@ -170,5 +170,43 @@ describe('play from here (M6)', () => {
     const edited = ok(updateRecord(doc, 'c0_0/objects/house-scrap', { name: 'X' })).doc
     expect(JSON.stringify(snap)).not.toContain('"name":"X"')
     expect(edited).not.toBe(doc)
+  })
+})
+
+describe('save as new world', () => {
+  it('copies the content under a new worldId as an unpublished world and leaves the source alone', () => {
+    const doc = neighbourhood()
+    const before = exportPack(doc)
+    const copy = forkDocument(doc, 'lab', 'Lab')
+    expect(exportPack(doc)).toBe(before)
+    expect(copy.world).toMatchObject({ worldId: 'lab', name: 'Lab', contentVersion: 1 })
+    expect(copy.world.retiredIds).toEqual(doc.world.retiredIds)
+    expect(copy.chunks).toBe(doc.chunks)
+    expect(copy.prefabs).toBe(doc.prefabs)
+    // The source's save migrations convert that world's old saves only.
+    expect([...doc.extras.keys()].some((p) => p.startsWith('migrations/'))).toBe(true)
+    expect([...copy.extras.keys()]).toEqual([])
+    expect(statefulEntityIds(copy)).toEqual(statefulEntityIds(doc))
+    expect(issuesOf(copy).filter((i) => i.severity === 'error')).toEqual([])
+    const back = parsePack(exportPack(copy), OPTS)
+    if (!back.ok) throw new Error(back.error)
+    expect(back.doc.world.worldId).toBe('lab')
+    const files = new Map(documentFiles(copy))
+    expect(loadWorld((p) => files.get(p)).map.id).toBe('lab')
+  })
+
+  it('drops generator provenance, keeps an edited copy playable', () => {
+    const src = gen(7)
+    expect(src.world.generator).toBeDefined()
+    const copy = forkDocument(src, 'gen-copy', 'Copy')
+    expect(copy.world.generator).toBeUndefined()
+    expect(src.world.generator).toBeDefined()
+    const house = resolvedRecords(copy).find((r) => r.category === 'instances')!
+    const edited = ok(moveRecords(copy, [house.id], { x: 0.5, z: 0 })).doc
+    expect(issuesOf(edited).filter((i) => i.severity === 'error')).toEqual([])
+    const files = new Map(documentFiles(edited))
+    const rt = new GameRuntime(loadWorld((p) => files.get(p)).map)
+    rt.newGame(3)
+    expect(rt.player.alive).toBe(true)
   })
 })

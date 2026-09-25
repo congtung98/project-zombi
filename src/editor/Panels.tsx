@@ -363,6 +363,9 @@ export function TopBar({ onImport }: { onImport: () => void }) {
       <button onClick={() => void store().saveDraft()} disabled={!edit} title="Ctrl+S">
         Lưu nháp
       </button>
+      <button onClick={() => store().set({ dialog: 'saveAs' })} disabled={!edit} title="Ctrl+Shift+S — bản sao với worldId mới, world đang mở không đổi" data-save-as>
+        Lưu thành…
+      </button>
       <button onClick={onImport}>Import…</button>
       <button
         onClick={() => {
@@ -614,6 +617,62 @@ export function NewDialog() {
 }
 
 /** New prefab (M5): a starter house (four walls, a door, one room with a lamp), opened for editing. */
+export function SaveAsDialog() {
+  const dialog = useEditorStore((s) => s.dialog)
+  const world = useEditorStore((s) => s.edit?.doc.world)
+  if (dialog !== 'saveAs' || !world) return null
+  return <SaveAsForm key={world.worldId} fromId={world.worldId} fromName={world.name} />
+}
+
+function SaveAsForm({ fromId, fromName }: { fromId: string; fromName: string }) {
+  const [worldId, setWorldId] = useState(`${fromId}-copy`)
+  const [name, setName] = useState(`${fromName} (bản sao)`)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const input = useRef<HTMLInputElement>(null)
+  useEffect(() => input.current?.select(), [])
+  const taken = worldId === fromId || bundledWorldIds().includes(worldId)
+  const valid = SLUG.test(worldId) && !taken && name.trim().length > 0 && !busy
+  const submit = () => {
+    if (!valid) return
+    setBusy(true)
+    setError(null)
+    void useEditorStore
+      .getState()
+      .saveAsWorld(worldId, name.trim())
+      .then((ok) => ok || setError(useEditorStore.getState().status?.text ?? null))
+      .finally(() => setBusy(false))
+  }
+  return (
+    <div className="modal" role="dialog">
+      <div className="box">
+        <h3>Lưu thành world mới</h3>
+        <p className="hint">
+          Bản sao của {fromId} kể cả phần chưa lưu, với worldId mới: chunk, prefab và ID giữ nguyên, contentVersion về 1, không kèm migration save của world gốc. {fromId} không đổi. Bản sao được lưu
+          nháp ngay và mở để sửa tiếp (lịch sử hoàn tác bắt đầu lại). Đưa vào repo: Export rồi npm run map:unpack (không cần --force); chơi bằng ?world=&lt;worldId&gt; với slot save riêng.
+        </p>
+        <label className="field">
+          <span>worldId</span>
+          <input ref={input} value={worldId} onChange={(e) => setWorldId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} data-save-as-id />
+        </label>
+        <label className="field">
+          <span>Tên</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} data-save-as-name />
+        </label>
+        {!SLUG.test(worldId) && <p className="error">worldId: chữ thường, số, gạch nối.</p>}
+        {taken && <p className="error">{worldId === fromId ? 'worldId phải khác world đang mở.' : `content/maps/${worldId} đã có trong repo.`}</p>}
+        {error && <p className="error">{error}</p>}
+        <div className="row">
+          <button disabled={!valid} onClick={submit} data-save-as-ok>
+            Lưu thành
+          </button>
+          <button onClick={() => useEditorStore.getState().set({ dialog: null })}>Hủy</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function NewPrefabDialog() {
   const dialog = useEditorStore((s) => s.dialog)
   const [prefabId, setPrefabId] = useState('building/new-house')

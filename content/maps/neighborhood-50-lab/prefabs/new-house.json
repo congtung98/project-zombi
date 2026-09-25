@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "building/new-house",
+  "contentVersion": 1,
+  "name": "Tiệm thuốc",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -3, "minZ": -3, "maxX": 3, "maxZ": 3 },
+  "building": {
+    "height": 3,
+    "wallThickness": 0.3,
+    "wallColor": "#c4a484",
+    "roofColor": "#7a3f2f",
+    "floorColor": "#8a7560"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "wall-n",
+      "from": { "x": -3, "z": -3 },
+      "to": { "x": 3, "z": -3 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-s",
+      "from": { "x": -3, "z": 3 },
+      "to": { "x": 3, "z": 3 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-w",
+      "from": { "x": -3, "z": -3 },
+      "to": { "x": -3, "z": 3 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-e",
+      "from": { "x": 3, "z": -3 },
+      "to": { "x": 3, "z": 3 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "door",
+      "localId": "door",
+      "name": "Cửa Tiệm thuốc",
+      "position": { "x": 0, "z": 3 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "localId": "counter-2",
+      "position": { "x": -1.5, "y": 0.5, "z": -1 },
+      "size": [3, 1, 0.6],
+      "color": "#9a8f84"
+    },
+    {
+      "kind": "container",
+      "localId": "shelf-1",
+      "name": "Kệ hàng",
+      "position": { "x": -1.5, "y": 0.8, "z": -2.5 },
+      "size": [2, 1.6, 0.6],
+      "color": "#8a8580",
+      "lootTableId": "store-shelf"
+    },
+    {
+      "kind": "container",
+      "localId": "shelf-2",
+      "name": "Kệ hàng",
+      "position": { "x": 1, "y": 0.8, "z": -2.5 },
+      "size": [2, 1.6, 0.6],
+      "color": "#8a8580",
+      "lootTableId": "store-shelf"
+    },
+    {
+      "kind": "prop",
+      "localId": "sofa-1",
+      "position": { "x": 2.5, "y": 0.4, "z": 1 },
+      "size": [0.9, 0.8, 2],
+      "color": "#5a6b7b"
+    },
+    {
+      "kind": "window",
+      "localId": "win-1",
+      "name": "Cửa sổ",
+      "position": { "x": -3, "z": -2 },
+      "quarterTurns": 1,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.3
+    },
+    {
+      "kind": "window",
+      "localId": "win-2",
+      "name": "Cửa sổ",
+      "position": { "x": -1.5, "z": 3 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.3
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "room-1",
+      "name": "Phòng chính",
+      "bounds": { "minX": -3, "minZ": -3, "maxX": 3, "maxZ": 3 },
+      "lamp": {
+        "localId": "lamp-1",
+        "name": "Đèn phòng chính",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1, "z": 2.75 }
+      }
+    }
+  ],
+  "retiredLocalIds": ["counter-1"]
+}

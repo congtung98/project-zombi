@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_-1",
+  "cx": 0,
+  "cz": -1,
+  "instances": [
+    {
+      "instanceId": "c0_-1/store",
+      "prefabId": "building/store",
+      "position": { "x": 12.5, "y": 0, "z": 24 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c0_-1/objects/car-1",
+      "position": { "x": 4, "y": 0.7, "z": 31 },
+      "size": [4, 1.4, 2],
+      "color": "#7a3b3b"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_-1/objects/crate-3",
+      "position": { "x": 21, "y": 0.5, "z": 12 },
+      "size": [1, 1, 1],
+      "color": "#a67c52"
+    }
+  ],
+  "roads": [{ "roadId": "c0_-1/roads/ew", "position": { "x": 0, "z": 31 }, "size": [50, 4], "color": "#3a3a3f" }],
+  "zones": [
+    {
+      "zoneId": "c0_-1/zones/store",
+      "kind": "zombiePopulation",
+      "name": "Sân cửa hàng",
+      "shape": "circle",
+      "center": { "x": 11, "z": 30 },
+      "radius": 3.5
+    },
+    {
+      "zoneId": "c0_0/zones/east",
+      "kind": "zombiePopulation",
+      "name": "Đường phía đông",
+      "shape": "circle",
+      "center": { "x": 21.5, "z": 30.5 },
+      "radius": 3
+    }
+  ],
+  "spawns": [
+    { "spawnId": "c0_-1/spawns/zombie-5", "kind": "zombie", "position": { "x": 11, "z": 30.5 } },
+    { "spawnId": "c0_0/spawns/zombie-3", "kind": "zombie", "position": { "x": 20, "z": 30.5 } }
+  ],
+  "externalRefs": [
+    { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },
+    { "id": "c-1_-1/zones/north", "ownerChunkId": "c-1_-1" },
+    { "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" }
+  ]
+}
