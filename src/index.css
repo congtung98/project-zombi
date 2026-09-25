@@ -917,3 +917,18 @@ button.primary:hover:not(:disabled) {
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* Building lighting debug (F6): per room / door / window readout. */
+.lighting-debug-label {
+  padding: 2px 6px;
+  background: rgba(10, 14, 20, 0.78);
+  border-radius: 3px;
+  color: #f2e6b0;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  white-space: pre;
+}
+.lighting-debug-label.small {
+  color: #bfe3ff;
+  font-size: 10px;
+}

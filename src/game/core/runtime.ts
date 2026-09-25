@@ -34,6 +34,8 @@ import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
 import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOccluders'
 import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
+import { BuildingLightingSystem, buildLightingBuildings, outdoorLightLevel } from '../lighting/buildingLighting'
+import { mapRooms, mapWindows } from '../world/mapData'
 
 interface PendingAttack {
   sourceId: EntityId
@@ -136,6 +138,11 @@ export class GameRuntime {
    * the tick and never feeds the AI; hidden zombies keep wandering, chasing and bashing doors.
    */
   readonly vision: PlayerVisionSystem
+  /**
+   * Building lighting (room graph): derived room light from windows, doors, lamps and power. World
+   * state only drives it through dirty marks; it never reads the player's facing or vision.
+   */
+  readonly lighting: BuildingLightingSystem
 
   constructor(map: MapData = NEIGHBORHOOD_MAP) {
     this.map = map
@@ -144,7 +151,18 @@ export class GameRuntime {
     this.interactableById = new Map(this.interactables.map((i) => [i.id, i]))
     this.player = createPlayerState(map.playerSpawn)
     this.world = createWorldState(map, 0)
-    this.visionOccluders = buildVisionOccluders(map, (id) => this.world.doors.get(id)?.state, GAME_CONFIG.playerVision.occluderMinHeight)
+    this.visionOccluders = buildVisionOccluders(
+      map,
+      (id) => this.world.doors.get(id)?.state,
+      GAME_CONFIG.playerVision.occluderMinHeight,
+      (id) => this.world.curtains.get(id) === true,
+    )
+    this.lighting = new BuildingLightingSystem(GAME_CONFIG.buildingLighting, {
+      doorState: (id) => this.world.doors.get(id)?.state,
+      curtainClosed: (id) => this.world.curtains.get(id) === true,
+      lampOn: (id) => this.world.lamps.get(id) === true,
+      electricity: () => this.world.electricity,
+    }, buildLightingBuildings(map, GAME_CONFIG.buildingLighting))
     this.vision = new PlayerVisionSystem(GAME_CONFIG.playerVision, {
       getNearbyEntities: (center, radius) => this.getNearbyZombies(center, radius),
       hasLineOfSight: (from, to) => this.visionOccluders.firstBlocker(from, to) === null,
@@ -211,6 +229,7 @@ export class GameRuntime {
     this.hordeCounter = 0
     this.doorSlots.clear()
     this.vision.clear()
+    this.lighting.markAllDirty()
     this.aiRng = createRng(hashSeed(seed, 'ai'))
     for (const spawn of this.map.zombieSpawns) this.spawnZombie(spawn)
   }
@@ -272,6 +291,11 @@ export class GameRuntime {
       zombies,
       spawn: { nextZombieId: this.nextZombieId, timer: this.spawnTimer, counter: this.spawnCounter },
       horde: { timer: this.hordeTimer, counter: this.hordeCounter },
+      lighting: {
+        curtains: Array.from(this.world.curtains, ([id, closed]) => ({ id, closed })),
+        lamps: Array.from(this.world.lamps, ([id, on]) => ({ id, on })),
+        electricity: this.world.electricity,
+      },
       cameraZoom: this.cameraZoom,
     }
   }
@@ -311,6 +335,11 @@ export class GameRuntime {
       door.hp = d.hp
       this.nav.setDoorState(door.id, door.state)
     }
+    // Lighting inputs (derived room light is recomputed, never saved).
+    for (const c of save.lighting.curtains) if (this.world.curtains.has(c.id)) this.world.curtains.set(c.id, c.closed)
+    for (const l of save.lighting.lamps) if (this.world.lamps.has(l.id)) this.world.lamps.set(l.id, l.on)
+    this.world.electricity = save.lighting.electricity
+    this.lighting.markAllDirty()
     for (const c of save.containers) {
       if (c.position) {
         this.world.containers.set(c.id, { ...c, position: { ...c.position }, items: cloneInventory(c.items) })
@@ -385,6 +414,9 @@ export class GameRuntime {
     this.stepSurvival(dt)
     this.stepSpawn(dt)
     this.stepHorde(dt)
+    // Building lighting: the day/night level (throttled) + dirty buildings only (doors, lamps...).
+    this.lighting.updateOutdoorLight(outdoorLightLevel(this.clock.timeOfDay, GAME_CONFIG.buildingLighting))
+    this.lighting.update()
     // Player vision last: reads final positions this tick, writes only render-facing state.
     this.vision.update(dt, this.player)
     this.clock.advance(dt)
@@ -673,6 +705,13 @@ export class GameRuntime {
   }
 
   private describeInteraction(target: Interactable): string {
+    if (target.kind === 'light') {
+      const on = this.world.lamps.get(target.id) === true
+      const lamp = mapRooms(this.map).find((r) => r.lamp?.id === target.id)?.lamp
+      const noPower = lamp?.requiresElectricity && !this.world.electricity ? ' (mất điện)' : ''
+      return `${on ? 'Tắt' : 'Bật'} ${target.name}${noPower}`
+    }
+    if (target.kind === 'window') return `${this.world.curtains.get(target.id) ? 'Mở rèm' : 'Kéo rèm'} ${target.name}`
     if (target.kind === 'door') {
       const door = this.world.doors.get(target.id)
       if (door?.state === 'destroyed') return `${target.name} đã vỡ`
@@ -686,6 +725,16 @@ export class GameRuntime {
 
   /** Thực hiện tương tác với đối tượng; có thể gọi từ test mà không cần input. */
   interact(target: Interactable): void {
+    if (target.kind === 'light') {
+      this.setLamp(target.id, !this.world.lamps.get(target.id))
+      this.interactPrompt = this.describeInteraction(target)
+      return
+    }
+    if (target.kind === 'window') {
+      this.setCurtain(target.id, !this.world.curtains.get(target.id))
+      this.interactPrompt = this.describeInteraction(target)
+      return
+    }
     if (target.kind === 'door') {
       const door = this.world.doors.get(target.id)
       if (!door || door.state === 'destroyed') return
@@ -721,8 +770,33 @@ export class GameRuntime {
     door.state = state
     door.hp = state === 'destroyed' ? 0 : door.hp || DOOR_MAX_HP
     this.nav.setDoorState(id, state)
+    this.lighting.markDoorDirty(id)
     if (state !== 'destroyed') this.events.queue('door:toggled', { id, open: state === 'open' })
     this.events.queue('door:changed', { id, state })
+  }
+
+  /** Lamp switch (the switch still clicks without power; the lamp just stays dark). */
+  setLamp(id: string, on: boolean): void {
+    if (!this.world.lamps.has(id) || this.world.lamps.get(id) === on) return
+    this.world.lamps.set(id, on)
+    this.lighting.markLampDirty(id)
+    this.events.queue('light:changed', { id, on })
+  }
+
+  /** Curtain: lets less daylight in (lighting) and blocks the player's sight (vision), separately. */
+  setCurtain(id: string, closed: boolean): void {
+    if (!this.world.curtains.has(id) || this.world.curtains.get(id) === closed) return
+    this.world.curtains.set(id, closed)
+    this.lighting.markWindowDirty(id)
+    this.events.queue('curtain:changed', { id, closed })
+  }
+
+  /** Grid power for lamps that need it (no shutoff schedule yet; generator later). */
+  setElectricity(on: boolean): void {
+    if (this.world.electricity === on) return
+    this.world.electricity = on
+    this.lighting.markAllDirty()
+    this.events.queue('power:changed', { on })
   }
 
   equipItem(id: string | null): boolean {
@@ -1163,6 +1237,9 @@ function maxZombieNumber(zombies: Map<EntityId, ZombieState>): number {
   return max
 }
 
+/** Stand right at a window to draw its curtain (a wide reach stole prompts from nearby furniture). */
+const CURTAIN_REACH = 0.3
+
 function buildInteractables(map: MapData): Interactable[] {
   const list: Interactable[] = []
   for (const door of map.doors) {
@@ -1182,6 +1259,14 @@ function buildInteractables(map: MapData): Interactable[] {
       position: { ...c.position },
       radius: Math.max(c.size[0], c.size[2]) / 2 + 0.3,
     })
+  }
+  // Lamp switches on the inner wall, curtains just inside each window (blocked from outside).
+  for (const room of mapRooms(map)) {
+    if (!room.lamp) continue
+    list.push({ id: room.lamp.id, kind: 'light', name: room.lamp.name, position: { x: room.lamp.switchAt.x, y: 1.3, z: room.lamp.switchAt.z }, radius: 0.25 })
+  }
+  for (const w of mapWindows(map)) {
+    list.push({ id: w.id, kind: 'window', name: w.name, position: { x: w.center.x + w.inward.x * 0.35, y: 1.3, z: w.center.z + w.inward.z * 0.35 }, radius: CURTAIN_REACH })
   }
   return list
 }

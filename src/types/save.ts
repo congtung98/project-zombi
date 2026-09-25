@@ -8,11 +8,12 @@ import type { MemorySource } from '../game/entities/zombie'
 /**
  * v1 (Phase 1) → v2 (item instances, door state) → v3 (P2-S2 melee containers) → v4 (P2-S3
  * name + appearance) → v5 (P2-S4 material containers; crafted items are ordinary instances) → v6
- * (P2-S5 zombie perception memory, wander/migration zones, door siege target, horde director).
+ * (P2-S5 zombie perception memory, wander/migration zones, door siege target, horde director) → v7
+ * (building lighting: curtains, lamps, grid power; the house bedroom door).
  * Older versions migrate in memory; unknown versions are rejected without overwriting the
- * original. Timed actions (craft/repair in progress) are never part of a save.
+ * original. Timed actions (craft/repair in progress) and derived room light are never saved.
  */
-export const SAVE_SCHEMA_VERSION = 6
+export const SAVE_SCHEMA_VERSION = 7
 
 export interface SavedPlayer {
   name: string
@@ -70,7 +71,15 @@ export interface SaveGame {
   spawn: { nextZombieId: number; timer: number; counter: number }
   /** v6: seconds to the next horde migration attempt and the attempt counter (seeds its RNG). */
   horde: { timer: number; counter: number }
+  /** v7: lighting inputs only (room light is recomputed after load). */
+  lighting: SavedLighting
   cameraZoom: number
+}
+
+export interface SavedLighting {
+  curtains: { id: string; closed: boolean }[]
+  lamps: { id: string; on: boolean }[]
+  electricity: boolean
 }
 
 /** Thông tin tóm tắt để hiện ở menu Continue. */

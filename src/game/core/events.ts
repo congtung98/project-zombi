@@ -27,6 +27,10 @@ export type GameEvents = {
   /** A player footstep landed (only while the footsteps are audible to zombies, P2-S5 noise). */
   'player:footstep': { running: boolean }
   'door:toggled': { id: string; open: boolean }
+  /** Building lighting: a lamp switched, a curtain drawn, grid power changed. */
+  'light:changed': { id: string; on: boolean }
+  'curtain:changed': { id: string; closed: boolean }
+  'power:changed': { on: boolean }
   'door:changed': { id: string; state: import('../world/doors').DoorStatus }
   /** P2-S5: a zombie bash landed on a closed door. */
   'door:damaged': { id: string; hp: number; maxHp: number; sourceId: EntityId }

@@ -13,17 +13,22 @@ export type Screen = 'menu' | 'create' | 'playing' | 'paused' | 'gameover'
 /** DEBUG_PLAYER_VISION: config flag or `?vision=debug` starts the session with the vision debug drawn. */
 const DEBUG_PLAYER_VISION =
   runtime.config.playerVision.debug || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('vision') === 'debug')
+/** DEBUG_BUILDING_LIGHTING: config flag or `?lighting=debug`. */
+const DEBUG_BUILDING_LIGHTING =
+  runtime.config.buildingLighting.debug || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('lighting') === 'debug')
 const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : 'slot-1'
 const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
 const DEFAULT_LOOK_NOTE = 'Nhân vật dùng tên và ngoại hình mặc định.'
 const MATERIALS_NOTE = 'Có 3 chỗ vật liệu mới (hộp đồ nghề nhà an toàn, kệ vật liệu cửa hàng, đống phế liệu sau nhà dân) để sửa/chế tạo.'
 const ZOMBIE_AI_NOTE = 'Zombie giờ lang thang theo đàn, nghe tiếng bước chân và đập cửa khi đã phát hiện bạn.'
+const LIGHTING_NOTE = 'Nhà có cửa sổ, rèm và đèn (công tắc cạnh cửa, E); nhà dân có thêm phòng ngủ.'
 const MIGRATION_TOAST: Record<number, string> = {
-  1: `Đã nâng cấp save Phase 1 và giữ bản sao v1. Gậy cũ ở túi hoặc túi đồ rơi dưới chân. ${NEW_CONTAINERS_NOTE} ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE} ${ZOMBIE_AI_NOTE}`,
-  2: `Đã nâng cấp save và giữ bản sao v2. ${NEW_CONTAINERS_NOTE} ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE} ${ZOMBIE_AI_NOTE}`,
-  3: `Đã nâng cấp save và giữ bản sao v3. ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE} ${ZOMBIE_AI_NOTE}`,
-  4: `Đã nâng cấp save và giữ bản sao v4. ${MATERIALS_NOTE} ${ZOMBIE_AI_NOTE}`,
-  5: `Đã nâng cấp save và giữ bản sao v5. ${ZOMBIE_AI_NOTE}`,
+  1: `Đã nâng cấp save Phase 1 và giữ bản sao v1. Gậy cũ ở túi hoặc túi đồ rơi dưới chân. ${NEW_CONTAINERS_NOTE} ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE} ${ZOMBIE_AI_NOTE} ${LIGHTING_NOTE}`,
+  2: `Đã nâng cấp save và giữ bản sao v2. ${NEW_CONTAINERS_NOTE} ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE} ${ZOMBIE_AI_NOTE} ${LIGHTING_NOTE}`,
+  3: `Đã nâng cấp save và giữ bản sao v3. ${MATERIALS_NOTE} ${DEFAULT_LOOK_NOTE} ${ZOMBIE_AI_NOTE} ${LIGHTING_NOTE}`,
+  4: `Đã nâng cấp save và giữ bản sao v4. ${MATERIALS_NOTE} ${ZOMBIE_AI_NOTE} ${LIGHTING_NOTE}`,
+  5: `Đã nâng cấp save và giữ bản sao v5. ${ZOMBIE_AI_NOTE} ${LIGHTING_NOTE}`,
+  6: `Đã nâng cấp save và giữ bản sao v6. ${LIGHTING_NOTE}`,
 }
 
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */
@@ -42,6 +47,8 @@ interface UiState {
   debug: boolean
   /** Player vision debug drawing (F4; `?vision=debug` or `playerVision.debug` start with it on). */
   visionDebug: boolean
+  /** Building lighting debug drawing (F6). */
+  lightingDebug: boolean
   saveSlot: SaveSlotState
   /** Đang ghi/đọc IndexedDB; menu khóa nút để tránh thao tác chồng. */
   busy: boolean
@@ -67,6 +74,7 @@ interface UiState {
   toMenu: () => void
   toggleDebug: () => void
   toggleVisionDebug: () => void
+  toggleLightingDebug: () => void
 }
 
 function enterSession(set: (s: Partial<UiState>) => void): void {
@@ -80,6 +88,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   sessionId: runtime.sessionId,
   debug: false,
   visionDebug: DEBUG_PLAYER_VISION,
+  lightingDebug: DEBUG_BUILDING_LIGHTING,
   saveSlot: { kind: 'unknown' },
   busy: false,
   sceneReady: false,
@@ -225,4 +234,5 @@ export const useUiStore = create<UiState>((set, get) => ({
 
   toggleDebug: () => set((s) => ({ debug: !s.debug })),
   toggleVisionDebug: () => set((s) => ({ visionDebug: !s.visionDebug })),
+  toggleLightingDebug: () => set((s) => ({ lightingDebug: !s.lightingDebug })),
 }))

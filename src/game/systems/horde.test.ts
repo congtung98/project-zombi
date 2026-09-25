@@ -97,6 +97,8 @@ describe('nav regions and door slots', () => {
 
   it('each door side has two walkable contact slots within reach of the door centre', () => {
     const g = nav()
+    // Slots are only used against a closed door (the bedroom door starts open; its leaf is elsewhere then).
+    for (const id of g.portals.keys()) g.setDoorState(id, 'closed')
     for (const [id, portal] of g.portals) {
       for (const side of [0, 1] as const) {
         expect(portal.slots[side]).toHaveLength(2)

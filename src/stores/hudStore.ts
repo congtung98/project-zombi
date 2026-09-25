@@ -62,6 +62,8 @@ interface HudSnapshot {
   visionStats: { visible: number; candidates: number; raycasts: number }
   /** F3: VisionOverlay readout (direction, daylight read, strength, alpha 10 m ahead/behind). */
   overlay: string
+  /** F3: building lighting at the player (outdoor level, room light, power, recalculations). */
+  lighting: string
   /** Nội dung prompt tương tác, ví dụ "Mở Cửa nhà an toàn". */
   interactPrompt: string | null
   kills: number
@@ -112,6 +114,7 @@ export const useHudStore = create<HudState>((set) => ({
   hordeTimer: 0,
   visionStats: { visible: 0, candidates: 0, raycasts: 0 },
   overlay: '',
+  lighting: '',
   interactPrompt: null,
   kills: 0,
   attackCooldown: 0,
@@ -165,6 +168,7 @@ export const useHudStore = create<HudState>((set) => ({
       hordeTimer: rt.hordeTimer,
       visionStats: { visible: rt.vision.stats.visible, candidates: rt.vision.stats.candidates, raycasts: rt.vision.stats.raycasts },
       overlay: overlayReadout(),
+      lighting: lightingReadout(rt),
       interactPrompt: rt.interactPrompt,
       kills: p.kills,
       attackCooldown: p.attackCooldown,
@@ -197,4 +201,11 @@ function overlayReadout(): string {
   const o = visionOverlayDebug
   const deg = Math.round((((o.facing * 180) / Math.PI) % 360 + 360) % 360)
   return `hướng ${deg}° · ánh sáng ngày ${o.daylight.toFixed(2)} · độ mạnh ${o.strength.toFixed(2)} · alpha trước ${o.frontAlpha.toFixed(3)} / sau ${o.rearAlpha.toFixed(3)} · ${o.frameMs.toFixed(2)} ms`
+}
+
+function lightingReadout(rt: GameRuntime): string {
+  const l = rt.lighting
+  const room = l.getRoomAtPosition(rt.player.position)
+  const here = room ? `${room.name} ${l.getLightAtPosition(rt.player.position).toFixed(2)}` : `ngoài trời ${l.outdoorLightLevel.toFixed(2)}`
+  return `ngoài trời ${l.outdoorLightLevel.toFixed(2)} · tại chỗ: ${here} · điện ${rt.world.electricity ? 'có' : 'mất'} · tính lại ${l.stats.recalculations} lần (F6 vẽ)`
 }

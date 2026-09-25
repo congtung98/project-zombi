@@ -1,6 +1,7 @@
 import type { Vec3 } from '../../types'
 
-export type InteractableKind = 'door' | 'container'
+/** `light` = a lamp's wall switch, `window` = its curtain (building lighting sprint). */
+export type InteractableKind = 'door' | 'container' | 'light' | 'window'
 
 export interface Interactable {
   id: string

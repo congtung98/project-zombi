@@ -188,6 +188,41 @@ export const GAME_CONFIG = {
     /** DEBUG_VISION_OVERLAY: tint the mask so it can be seen; F4 debug also shows direction and alpha. */
     debug: false,
   },
+  /**
+   * Building lighting (room graph): how light each room is, from windows, doors/openings and lamps.
+   * It consumes the day/night `outdoorLightLevel` and never reads the player's facing or vision.
+   */
+  buildingLighting: {
+    /** outdoorLightLevel = nightOutdoorLevel + (1 − night) × daylight (0 = pitch dark, 1 = noon). */
+    nightOutdoorLevel: 0.05,
+    minIndoorLight: 0.03,
+    maxPropagationDepth: 3,
+    propagationDecay: 0.8,
+    minPropagationLight: 0.03,
+    defaultOpenDoorTransmission: 0.65,
+    defaultClosedDoorTransmission: 0.05,
+    /** A broken door (no leaf) lets light through like an open one. */
+    destroyedDoorTransmission: 0.65,
+    defaultWindowTransmission: 0.75,
+    closedCurtainTransmission: 0.15,
+    /** Window area (m²) giving the full transmission; smaller panes let in proportionally less. */
+    referenceWindowArea: 1.44,
+    /** Several windows do not add linearly: exposure = clamp(sum × scale, 0, 1). */
+    windowExposureScale: 0.6,
+    roomDepthFactor: 0.8,
+    /** Recompute daylight in rooms only when the outdoor level moved at least this much. */
+    daylightRecalcThreshold: 0.03,
+    /**
+     * Indoor surfaces: shade = min + (max − min) × room light (replaces sun/ambient indoors; the roof
+     * blocks the sun). max ≈ the outdoor noon response, min keeps a pitch-dark room readable.
+     */
+    indoorShadeMin: 0.06,
+    indoorShadeMax: 0.85,
+    /** Colour of daylight inside (lamps tint by their own colour, weighted by their share). */
+    daylightColor: '#f4f6ff',
+    /** DEBUG_BUILDING_LIGHTING: F6 toggles it in game, `?lighting=debug` starts with it on. */
+    debug: false,
+  },
   nav: {
     /** Kích thước ô lưới điều hướng (đơn vị thế giới). */
     cellSize: 0.5,
@@ -308,3 +343,6 @@ export type PlayerVisionConfig = typeof PLAYER_VISION_CONFIG
 
 export const VISION_OVERLAY_CONFIG = GAME_CONFIG.visionOverlay
 export type VisionOverlayConfig = typeof VISION_OVERLAY_CONFIG
+
+export const BUILDING_LIGHTING_CONFIG = GAME_CONFIG.buildingLighting
+export type BuildingLightingConfig = typeof BUILDING_LIGHTING_CONFIG

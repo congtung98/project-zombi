@@ -15,6 +15,7 @@ export type ActionName =
   | 'pause'
   | 'debug'
   | 'visionDebug'
+  | 'lightingDebug'
   | 'cancelAction'
 
 export const KEY_BINDINGS: Record<ActionName, string[]> = {
@@ -30,11 +31,12 @@ export const KEY_BINDINGS: Record<ActionName, string[]> = {
   pause: ['Escape'],
   debug: ['F3'],
   visionDebug: ['F4'],
+  lightingDebug: ['F6'],
   cancelAction: ['KeyX'],
 }
 
 /** Phím cần chặn hành vi mặc định của trình duyệt (cuộn trang, ...). */
-const PREVENT_DEFAULT_CODES = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F3', 'F4'])
+const PREVENT_DEFAULT_CODES = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F3', 'F4', 'F6'])
 
 export interface PointerState {
   /** Tọa độ chuẩn hóa -1..1 trên canvas. */

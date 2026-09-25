@@ -1,11 +1,11 @@
 // P2-S5 browser check with Playwright (fresh isolated context): wandering zombies, footstep noise,
 // a zombie that saw the player bashing the closed safehouse door (real Rapier colliders), save
-// mid-siege → reload → Continue → the door breaks and the zombie comes in; save schema v6.
+// mid-siege → reload → Continue → the door breaks and the zombie comes in; save schema v7 (was v6 when written).
 //   Dev:        BASE_URL=http://127.0.0.1:5174 node scripts/p2-s5-browser.mjs
 //   Production: BASE_URL=http://127.0.0.1:5199 node scripts/p2-s5-browser.mjs --production
 // Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
-// Dev mode writes src/game/systems/fixtures/phase2-s5-v6.json from the real mid-siege save.
-import { mkdirSync, writeFileSync } from 'node:fs'
+// Wrote src/game/systems/fixtures/phase2-s5-v6.json until save v7; that fixture is now frozen.
+import { mkdirSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
 const production = process.argv.includes('--production')
@@ -102,7 +102,7 @@ try {
     await page.keyboard.press('F3')
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 6)
+    assert.equal(saved.schemaVersion, 7)
     assert.ok(saved.horde && Number.isFinite(saved.horde.timer))
     assert.ok(saved.zombies.every((z) => typeof z.zoneId === 'string' && 'memoryAge' in z && z.structureTargetId === null))
     const moved = saved.zombies.filter((z) => ![[-14, 13], [4, 14], [20, 0], [-2, -20], [16, -5], [22, 20], [-22, 0], [8, 22]].some(([x, zz]) => Math.hypot(z.position.x - x, z.position.z - zz) < 0.3))
@@ -113,7 +113,7 @@ try {
     await continueGame()
     await page.waitForTimeout(1500)
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    log('PASS production', 'wandering + zones in F3, footstep radius walk/run/silent, save v6 → reload → Continue; no __runtime')
+    log('PASS production', 'wandering + zones in F3, footstep radius walk/run/silent, save v7 → reload → Continue; no __runtime')
   } else {
     await page.evaluate(async () => {
       const { runtime } = await import('/src/game/core/runtime.ts')
@@ -186,11 +186,11 @@ try {
     await saveToMenu()
     const saved = await readSlot('slot-1')
     const sz = saved.zombies.find((z) => z.ai !== 'DEAD' && z.structureTargetId)
-    assert.equal(saved.schemaVersion, 6)
+    assert.equal(saved.schemaVersion, 7)
     assert.ok(sz && sz.ai === 'ATTACK_STRUCTURE' && sz.structureTargetId === 'door-safehouse' && sz.memorySource === 'sight')
     const savedDoor = saved.doors.find((d) => d.id === 'door-safehouse')
     assert.ok(savedDoor.state === 'closed' && savedDoor.hp < 120 && savedDoor.hp > 0)
-    writeFileSync('src/game/systems/fixtures/phase2-s5-v6.json', JSON.stringify({ ...saved, savedAt: 1790467200000 }, null, 2) + '\n')
+    // Save schema v7 (building lighting): phase2-s5-v6.json is frozen; this script no longer writes it.
     await page.reload()
     await menu()
     await continueGame()
@@ -210,7 +210,7 @@ try {
     await page.waitForFunction(() => window.__runtime.player.health < 100, null, { timeout: 10000 })
     log('breach', { zombie: await zombieState(), health: await rt(() => window.__runtime.player.health) })
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    log('PASS dev', 'wander, footsteps, seen → door closed (E) → bash → save/reload/Continue mid-siege → break → enter → attack; fixture v6 written')
+    log('PASS dev', 'wander, footsteps, seen → door closed (E) → bash → save/reload/Continue mid-siege → break → enter → attack')
   }
 } catch (e) {
   await shot(production ? 'p2s5-prod-fail' : 'p2s5-fail').catch(() => undefined)

@@ -1,5 +1,5 @@
 import type { Vec3 } from '../../types'
-import type { MapData } from './mapData'
+import { mapWindows, type MapData } from './mapData'
 import { doorLeafTransform, type DoorStatus } from './doors'
 
 /**
@@ -129,7 +129,12 @@ export function createWindowOccluder(id: string, min: Vec3, max: Vec3, isCurtain
  * Lower props (fences, crates, cars, beds, counters) are solid but never hide a standing zombie.
  * The door state is read at query time through `doorStatus`.
  */
-export function buildVisionOccluders(map: MapData, doorStatus: (id: string) => DoorStatus | undefined, minHeight: number): VisionOccluderSet {
+export function buildVisionOccluders(
+  map: MapData,
+  doorStatus: (id: string) => DoorStatus | undefined,
+  minHeight: number,
+  curtainClosed: (id: string) => boolean = () => false,
+): VisionOccluderSet {
   const items: VisionOccluder[] = []
   for (const wall of map.walls) {
     if (wall.position.y + wall.size[1] / 2 < minHeight) continue
@@ -155,6 +160,18 @@ export function buildVisionOccluders(map: MapData, doorStatus: (id: string) => D
       // Open and destroyed doors do not block; only the closed leaf filling the doorway does.
       isBlocking: () => doorStatus(door.id) === 'closed',
     })
+  }
+  // Glass never blocks the player's sight; a closed curtain does (read live, no rebuild).
+  for (const win of mapWindows(map)) {
+    const hx = (win.alongX ? win.width : win.thickness) / 2
+    const hz = (win.alongX ? win.thickness : win.width) / 2
+    const hy = (win.head - win.sill) / 2
+    items.push(createWindowOccluder(
+      win.id,
+      { x: win.center.x - hx, y: win.center.y - hy, z: win.center.z - hz },
+      { x: win.center.x + hx, y: win.center.y + hy, z: win.center.z + hz },
+      () => curtainClosed(win.id),
+    ))
   }
   return new VisionOccluderSet(items)
 }

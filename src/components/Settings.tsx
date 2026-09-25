@@ -79,6 +79,7 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
         <li>Sửa/chế tạo mất vài giây: di chuyển, đánh, bị trúng đòn hoặc <kbd>X</kbd> sẽ hủy và không mất nguyên liệu. Thời gian vẫn chạy khi mở túi; <kbd>Esc</kbd> tạm dừng thì thao tác dừng theo.</li>
         <li>Zombie lang thang theo từng đàn và thỉnh thoảng cả đàn kéo sang khu khác. Chúng <b>nhìn</b> phía trước mặt và <b>nghe tiếng bước chân</b> quanh mình (chạy nghe xa hơn đi bộ; đứng yên thì im lặng; tường làm tiếng nhỏ đi). Lẻn sau lưng zombie thì đi chậm.</li>
         <li>Bạn chỉ <b>thấy</b> zombie trong hình quạt phía trước nhân vật (theo hướng nhân vật quay, không theo camera) và không bị tường/cửa đóng che; zombie đứng sát bên cạnh hay sau lưng vẫn nhận ra. Ngoài tầm nhìn zombie mờ dần rồi biến mất; khung cảnh vẫn sáng theo giờ trong ngày, chỉ hơi dịu đi phía sau lưng, nhưng chúng vẫn đi lại, đuổi và đập cửa bình thường: hãy quay lại nhìn khi nghe tiếng động.</li>
+        <li>Trong nhà sáng nhờ <b>cửa sổ</b> và cửa mở; phòng sâu không cửa sổ (phòng ngủ nhà dân) tối hơn, đóng cửa phòng thì tối hẳn. <b>Công tắc đèn</b> cạnh cửa (<kbd>E</kbd>) bật đèn trần, hữu ích ban đêm (cần điện). Đứng sát cửa sổ bên trong nhấn <kbd>E</kbd> để kéo/mở <b>rèm</b>: bớt ánh sáng và che tầm nhìn qua kính.</li>
         <li>Đóng cửa sau lưng (<kbd>E</kbd>): zombie không mở được cửa, nhưng con nào vừa <b>thấy hoặc nghe</b> bạn sẽ <b>đập cửa</b> (tiếng thình thịch, cửa rung và sẫm dần) và phá được sau vài chục giây. Zombie chưa hề phát hiện bạn thì không biết bạn ở trong nhà.</li>
         <li>Game tự lưu mỗi phút; <kbd>Esc</kbd> → Lưu game để lưu ngay. Chết là mất bản lưu.</li>
       </ol>
@@ -94,6 +95,7 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
         <li><kbd>Esc</kbd> đóng túi / tạm dừng</li>
         <li><kbd>F3</kbd> overlay debug (FPS)</li>
         <li><kbd>F4</kbd> debug tầm nhìn người chơi</li>
+        <li><kbd>F6</kbd> debug ánh sáng trong nhà</li>
       </ul>
       <div className="actions">
         <button onClick={onBack}>Quay lại</button>

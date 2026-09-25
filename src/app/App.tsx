@@ -102,6 +102,7 @@ export function App() {
       ),
       runtime.input.onAction('debug', () => ui().toggleDebug()),
       runtime.input.onAction('visionDebug', () => ui().toggleVisionDebug()),
+      runtime.input.onAction('lightingDebug', () => ui().toggleLightingDebug()),
       runtime.events.on('player:died', () => ui().gameOver()),
       runtime.events.on('player:damaged', (e) => {
         if (e.sourceId !== 'starvation') useHudStore.getState().flashDamage()
@@ -135,6 +136,8 @@ export function App() {
         if (e.sourceId !== 'starvation') sfx.play('playerHurt')
       }),
       runtime.events.on('door:toggled', () => sfx.play('door')),
+      runtime.events.on('light:changed', () => sfx.play('switch')),
+      runtime.events.on('curtain:changed', () => sfx.play('curtain')),
       runtime.events.on('container:opened', () => sfx.play('container')),
       runtime.events.on('item:used', (e) => sfx.play(ITEM_SFX[getItemDef(e.itemId).kind])),
       runtime.events.on('inventory:changed', () => sfx.play('pickup')),

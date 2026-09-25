@@ -1,7 +1,7 @@
 import { ITEMS, type ItemId } from '../entities/items'
 import { addItem, createInventory, type Inventory } from './inventory'
 import { DOOR_MAX_HP } from '../world/doors'
-import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
+import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, NEIGHBORHOOD_MAP, WALL_PREFIXES_ADDED_V7, mapRooms, mapWindows, type MapData } from '../world/mapData'
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
 import { nearestZone } from './horde'
@@ -94,6 +94,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     const horde = data.horde
     if (!isRecord(horde) || !isFiniteNumber(horde.timer) || horde.timer < 0 || !Number.isSafeInteger(horde.counter) || Number(horde.counter) < 0) return corrupt('horde')
   }
+  if (version >= 7 && !isLighting(data.lighting)) return corrupt('lighting')
   const spawn = data.spawn
   if (!isRecord(spawn) || !isFiniteNumber(spawn.nextZombieId) || !isFiniteNumber(spawn.timer) || !isFiniteNumber(spawn.counter)) {
     return corrupt('spawn')
@@ -117,7 +118,17 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if ((player.inventory as Inventory).slots.length !== GAME_CONFIG.inventory.slots) return corrupt('player inventory capacity')
   if (knownMap) {
     const doors = data.doors as { id: string }[]
-    if (doors.length !== knownMap.doors.length || knownMap.doors.some((d) => !doors.some((s) => s.id === d.id))) return corrupt('door IDs do not match map')
+    // Saves older than v7 predate the bedroom door; migration adds it in its initial state.
+    const doorNewerThanSave = (id: string) => version < 7 && DOORS_ADDED_V7.has(id)
+    const requiredDoors = knownMap.doors.filter((d) => !doorNewerThanSave(d.id))
+    if (doors.some((d) => doorNewerThanSave(d.id))) return corrupt('door newer than schema')
+    if (doors.length !== requiredDoors.length || requiredDoors.some((d) => !doors.some((s) => s.id === d.id))) return corrupt('door IDs do not match map')
+    if (version >= 7) {
+      const lighting = data.lighting as SaveGame['lighting']
+      const sameIds = (saved: { id: string }[], ids: string[]) => saved.length === ids.length && ids.every((id) => saved.some((s) => s.id === id))
+      if (!sameIds(lighting.curtains, mapWindows(knownMap).map((w) => w.id))) return corrupt('curtain IDs do not match map')
+      if (!sameIds(lighting.lamps, mapRooms(knownMap).flatMap((r) => (r.lamp ? [r.lamp.id] : [])))) return corrupt('lamp IDs do not match map')
+    }
     // Saves older than v3/v5 predate the P2-S2/P2-S4 containers; migration seeds them once.
     const newerThanSave = (id: string) => (version < 3 && CONTAINERS_ADDED_V3.has(id)) || (version < 5 && CONTAINERS_ADDED_V5.has(id))
     const required = knownMap.containers.filter((c) => !newerThanSave(c.id))
@@ -164,6 +175,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (version === 3) return migrateV3(save, expectedMapId, knownMap)
   if (version === 4) return migrateV4(save, expectedMapId, knownMap)
   if (version === 5) return migrateV5(save, expectedMapId, knownMap)
+  if (version === 6) return migrateV6(save, expectedMapId, knownMap)
   return { ok: true, save, migrated: false, fromVersion: version }
 }
 
@@ -210,6 +222,20 @@ function isInventory(v: unknown): v is Inventory {
       return s.kind === 'stack' && s.condition === undefined && s.fuel === undefined
     },
   )
+}
+
+/** v7 lighting inputs: unique IDs, booleans only (derived light is never stored). */
+function isLighting(v: unknown): boolean {
+  if (!isRecord(v) || typeof v.electricity !== 'boolean' || !Array.isArray(v.curtains) || !Array.isArray(v.lamps)) return false
+  const unique = (list: unknown[], flag: string) => {
+    const ids = new Set<string>()
+    for (const e of list) {
+      if (!isRecord(e) || typeof e.id !== 'string' || !e.id || typeof e[flag] !== 'boolean' || ids.has(e.id)) return false
+      ids.add(e.id)
+    }
+    return true
+  }
+  return unique(v.curtains, 'closed') && unique(v.lamps, 'on')
 }
 
 /** Memory is all-or-nothing; siege states always name their door and keep the memory they chase. */
@@ -325,4 +351,51 @@ function migrateV5(source: SaveGame, mapId: string, map?: MapData): SaveValidati
   save.horde = { timer: GAME_CONFIG.horde.intervalMin, counter: 0 }
   const checked = validateSaveGame(save, mapId, map)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 5 } : checked
+}
+
+/** Clearance kept from a wall added in v7 when moving a migrated player/zombie out of it. */
+const V7_WALL_CLEARANCE = 0.45
+
+/** Push a point out of the added walls (nearest face, along the thin axis), else leave it. */
+function outOfAddedWalls(p: Vec3, map: MapData): Vec3 {
+  const out = { ...p }
+  for (const w of map.walls) {
+    if (!WALL_PREFIXES_ADDED_V7.some((prefix) => w.id.startsWith(prefix))) continue
+    // Overhead pieces (the lintel above the new door) block nobody, like in the nav grid.
+    if (w.position.y - w.size[1] / 2 >= 1.6) continue
+    const hx = w.size[0] / 2 + V7_WALL_CLEARANCE
+    const hz = w.size[2] / 2 + V7_WALL_CLEARANCE
+    const dx = out.x - w.position.x
+    const dz = out.z - w.position.z
+    if (Math.abs(dx) >= hx || Math.abs(dz) >= hz) continue
+    if (hx - Math.abs(dx) < hz - Math.abs(dz)) out.x = w.position.x + Math.sign(dx || 1) * (hx + 0.05)
+    else out.z = w.position.z + Math.sign(dz || 1) * (hz + 0.05)
+  }
+  return out
+}
+
+/**
+ * Pure v6 → v7 (building lighting): the bedroom door is added in its initial state (open), curtains
+ * open, lamps off, the grid powered; a player or zombie standing where the new partition is gets
+ * moved beside it. Everything else is untouched.
+ */
+function migrateV6(source: SaveGame, mapId: string, map?: MapData): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = 7
+  if (map) {
+    for (const d of map.doors) {
+      if (DOORS_ADDED_V7.has(d.id) && !save.doors.some((s) => s.id === d.id)) {
+        save.doors.push({ id: d.id, state: d.initialState ?? 'closed', hp: DOOR_MAX_HP })
+      }
+    }
+    save.player.position = outOfAddedWalls(save.player.position, map)
+    save.zombies = save.zombies.map((z) => ({ ...z, position: outOfAddedWalls(z.position, map) }))
+  }
+  save.lighting = {
+    curtains: map ? mapWindows(map).map((w) => ({ id: w.id, closed: false })) : [],
+    lamps: map ? mapRooms(map).flatMap((r) => (r.lamp ? [{ id: r.lamp.id, on: false }] : [])) : [],
+    electricity: true,
+  }
+  const checked = validateSaveGame(save, mapId, map)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 6 } : checked
 }

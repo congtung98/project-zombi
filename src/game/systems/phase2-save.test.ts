@@ -5,12 +5,13 @@ import s2Fixture from './fixtures/phase2-s2-v3.json'
 import s3Fixture from './fixtures/phase2-s3-v4.json'
 import s4Fixture from './fixtures/phase2-s4-v5.json'
 import s5Fixture from './fixtures/phase2-s5-v6.json'
+import lightFixture from './fixtures/phase2-light-v7.json'
 import { DOOR_MAX_HP } from '../world/doors'
 import { GameRuntime } from '../core/runtime'
 import { validateSaveGame } from './save'
 import { addItem, createInventory, totalQuantity, transferSlot } from './inventory'
 import { equippedWeapon, equipWeapon } from './equipment'
-import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, NEIGHBORHOOD_MAP } from '../world/mapData'
+import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, NEIGHBORHOOD_MAP } from '../world/mapData'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { GAME_CONFIG } from '../core/config'
 import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME } from '../entities/appearance'
@@ -21,9 +22,16 @@ const migrate = (data: unknown) => {
   if (!result.ok) throw new Error(result.detail)
   return result
 }
-/** The save without the P2-S5 (v6) zombie AI fields, to compare with pre-v6 fixtures. */
-const withoutV6 = (save: SaveGame): Omit<SaveGame, 'horde'> => {
+/** The save without the v7 lighting inputs and the bedroom door, to compare with pre-v7 fixtures. */
+const withoutV7 = (save: SaveGame): Omit<SaveGame, 'lighting'> => {
   const copy: Partial<SaveGame> = structuredClone(save)
+  delete copy.lighting
+  copy.doors = copy.doors!.filter((d) => !DOORS_ADDED_V7.has(d.id))
+  return copy as Omit<SaveGame, 'lighting'>
+}
+/** The save without the P2-S5 (v6) zombie AI fields (and v7 additions), to compare with pre-v6 fixtures. */
+const withoutV6 = (save: SaveGame): Omit<SaveGame, 'horde' | 'lighting'> => {
+  const copy: Partial<SaveGame> = withoutV7(save)
   delete copy.horde
   for (const z of copy.zombies as Partial<SaveGame['zombies'][number]>[]) {
     delete z.memoryAge
@@ -31,7 +39,7 @@ const withoutV6 = (save: SaveGame): Omit<SaveGame, 'horde'> => {
     delete z.zoneId
     delete z.structureTargetId
   }
-  return copy as Omit<SaveGame, 'horde'>
+  return copy as Omit<SaveGame, 'horde' | 'lighting'>
 }
 
 describe('Phase 1 fixture migration', () => {
@@ -180,10 +188,10 @@ describe('v4 → v5 (P2-S4 material containers)', () => {
 })
 
 describe('P2-S2 browser fixture (v3)', () => {
-  it('v3 → v6 adds only the default name/appearance, the P2-S4 material containers and zombie AI fields; everything else is the S2 save', () => {
+  it('v3 → v7 adds only the default name/appearance, the P2-S4 material containers, zombie AI fields and lighting; everything else is the S2 save', () => {
     const before = JSON.stringify(s2Fixture)
     const { save, migrated, fromVersion } = migrate(s2Fixture)
-    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 3, 6])
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 3, SAVE_SCHEMA_VERSION])
     expect(JSON.stringify(s2Fixture)).toBe(before)
     const { name, appearance, ...rest } = save.player
     expect([name, appearance]).toEqual([DEFAULT_PLAYER_NAME, DEFAULT_APPEARANCE])
@@ -210,9 +218,9 @@ describe('P2-S2 browser fixture (v3)', () => {
 })
 
 describe('P2-S3 browser fixture (v4)', () => {
-  it('migrates to v6 and keeps the chosen name/appearance through repeated round trips', () => {
+  it('migrates to the current schema and keeps the chosen name/appearance through repeated round trips', () => {
     const { save, migrated, fromVersion } = migrate(s3Fixture)
-    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 4, 6])
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 4, SAVE_SCHEMA_VERSION])
     expect([save.player.name, save.player.appearance]).toEqual(['Trần Tùng', { preset: 'sturdy', hair: 'mohawk', skin: 'dark', shirt: 'red', pants: 'olive' }])
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
@@ -333,7 +341,7 @@ describe('v5 → v6 (P2-S5 zombie perception, zones, siege, horde)', () => {
     const before = JSON.stringify(s4Fixture)
     const { save, fromVersion } = migrate(s4Fixture)
     expect(JSON.stringify(s4Fixture)).toBe(before)
-    expect([fromVersion, save.schemaVersion]).toEqual([5, 6])
+    expect([fromVersion, save.schemaVersion]).toEqual([5, SAVE_SCHEMA_VERSION])
     expect({ ...withoutV6(save), schemaVersion: 5 }).toEqual(s4Fixture)
     expect(save.horde).toEqual({ timer: GAME_CONFIG.horde.intervalMin, counter: 0 })
     expect(Object.fromEntries(save.zombies.map((z) => [z.id, z.zoneId]))).toEqual({
@@ -382,9 +390,9 @@ describe('v5 → v6 (P2-S5 zombie perception, zones, siege, horde)', () => {
 })
 
 describe('P2-S5 browser fixture (v6, saved mid-siege in Chromium)', () => {
-  it('loads without migration, round-trips exactly, and the loaded siege breaks the door', () => {
-    const { save, migrated } = migrate(s5Fixture)
-    expect(migrated).toBe(false)
+  it('migrates to v7 (lighting, bedroom door), round-trips exactly, and the loaded siege breaks the door', () => {
+    const { save, migrated, fromVersion } = migrate(s5Fixture)
+    expect([migrated, fromVersion, save.schemaVersion]).toEqual([true, 6, SAVE_SCHEMA_VERSION])
     const siege = save.zombies.find((z) => z.ai === 'ATTACK_STRUCTURE')!
     expect(siege).toMatchObject({ structureTargetId: 'door-safehouse', memorySource: 'sight' })
     const door = save.doors.find((d) => d.id === 'door-safehouse')!
@@ -402,5 +410,87 @@ describe('P2-S5 browser fixture (v6, saved mid-siege in Chromium)', () => {
     for (let t = 0; t < (door.hp / GAME_CONFIG.structure.damage) * period + 2; t += 1 / 30) rt.tick(1 / 30)
     expect(rt.world.doors.get('door-safehouse')).toMatchObject({ state: 'destroyed', hp: 0 })
     expect(destroyed).toBe(1)
+  })
+})
+
+describe('v6 → v7 (building lighting)', () => {
+  it('adds the bedroom door open, curtains open, lamps off and power on; nothing else changes', () => {
+    const before = JSON.stringify(s5Fixture)
+    const { save, fromVersion } = migrate(s5Fixture)
+    expect(JSON.stringify(s5Fixture)).toBe(before)
+    expect(fromVersion).toBe(6)
+    expect(save.doors.find((d) => d.id === 'door-house-bedroom')).toEqual({ id: 'door-house-bedroom', state: 'open', hp: DOOR_MAX_HP })
+    expect(save.lighting.electricity).toBe(true)
+    expect(save.lighting.curtains.map((c) => c.id).sort()).toEqual(['win-house-n', 'win-house-w', 'win-safehouse-e', 'win-safehouse-n', 'win-store-s1', 'win-store-s2'])
+    expect(save.lighting.curtains.every((c) => !c.closed)).toBe(true)
+    expect(save.lighting.lamps.map((l) => l.id).sort()).toEqual(['lamp-house-bedroom', 'lamp-house-living', 'lamp-safehouse', 'lamp-store'])
+    expect(save.lighting.lamps.every((l) => !l.on)).toBe(true)
+    expect({ ...withoutV7(save), schemaVersion: 6 }).toEqual(s5Fixture)
+    expect(migrate(s5Fixture).save).toEqual(save)
+    expect(migrate(save)).toMatchObject({ migrated: false, save })
+  })
+
+  it('moves a player or zombie standing where the new partition is to beside it', () => {
+    const inWall = structuredClone(s5Fixture) as unknown as SaveGame
+    inWall.player.position = { x: 14.05, y: 0.9, z: 14 }
+    inWall.zombies[0].position = { x: 13.95, y: 0.9, z: 14.9 }
+    const { save } = migrate(inWall)
+    expect(save.player.position.x).toBeGreaterThan(14.5)
+    expect(save.player.position.z).toBe(14)
+    expect(save.zombies[0].position.x).toBeLessThan(13.5)
+    const rt = new GameRuntime()
+    rt.loadSnapshot(save)
+    expect(rt.nav.isWalkable(save.player.position.x, save.player.position.z)).toBe(true)
+  })
+
+  it('rejects v7 saves with unknown/missing lighting IDs and pre-v7 saves that already have the bedroom door', () => {
+    const { save } = migrate(s5Fixture)
+    const missingLamp = structuredClone(save)
+    missingLamp.lighting.lamps.pop()
+    expect(validateSaveGame(missingLamp, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+    const badCurtain = structuredClone(save)
+    badCurtain.lighting.curtains[0] = { id: 'win-nowhere', closed: true }
+    expect(validateSaveGame(badCurtain, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+    const noLighting = structuredClone(save) as Partial<SaveGame>
+    delete noLighting.lighting
+    expect(validateSaveGame(noLighting, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+    const early = structuredClone(s5Fixture) as unknown as SaveGame
+    early.doors.push({ id: 'door-house-bedroom', state: 'open', hp: DOOR_MAX_HP })
+    expect(validateSaveGame(early, mapId)).toMatchObject({ ok: false, reason: 'corrupt' })
+  })
+
+  it('curtains, lamps and power round-trip; room light is recomputed after load, not stored', () => {
+    const rt = new GameRuntime()
+    rt.newGame(77)
+    rt.setCurtain('win-house-n', true)
+    rt.setLamp('lamp-house-bedroom', true)
+    rt.setElectricity(false)
+    rt.tick(1 / 60)
+    const snap = JSON.parse(JSON.stringify(rt.createSnapshot()))
+    expect(JSON.stringify(snap)).not.toContain('finalLightLevel')
+    const other = new GameRuntime()
+    other.loadSnapshot(migrate(snap).save)
+    other.tick(1 / 60)
+    expect(other.world.curtains.get('win-house-n')).toBe(true)
+    expect(other.world.lamps.get('lamp-house-bedroom')).toBe(true)
+    expect(other.world.electricity).toBe(false)
+    expect(other.lighting.getRoomLight('room-house-bedroom')).toEqual(rt.lighting.getRoomLight('room-house-bedroom'))
+  })
+})
+
+describe('Building lighting browser fixture (v7, saved in Chromium)', () => {
+  it('loads without migration, keeps lamp/curtain/door and recomputes room light; round-trips exactly', () => {
+    const { save, migrated } = migrate(lightFixture)
+    expect(migrated).toBe(false)
+    expect(save.schemaVersion).toBe(7)
+    const rt = new GameRuntime()
+    rt.loadSnapshot(save)
+    for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    rt.tick(1 / 60)
+    expect(rt.world.lamps.get('lamp-house-living')).toBe(true)
+    expect(rt.world.curtains.get('win-safehouse-n')).toBe(true)
+    expect(rt.world.doors.get('door-house-bedroom')!.state).toBe('open')
+    expect(rt.lighting.getRoomLight('room-house-living')!.artificialLight).toBeCloseTo(0.8)
   })
 })

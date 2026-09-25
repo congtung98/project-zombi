@@ -1,24 +1,33 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **sprint bổ sung "tầm nhìn người chơi"** (sau P2-S5, trước P2-S6).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md và docs/phase2-vision.md.
+> Cập nhật: **2026-09-25**, hoàn thành **sprint bổ sung "ánh sáng trong nhà"** (sau tầm nhìn người chơi, trước P2-S6).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md và docs/phase2-lighting.md.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
 ## 1. Trạng thái hiện tại
 
 Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S5** (đã commit, S5 = 1f81571) và **sprint bổ sung tầm nhìn người chơi** (zombie chỉ vẽ khi nhân vật thấy; debug F4; save vẫn v6; sau playtest đã **bỏ lớp tối mặt đất** — tầm nhìn không được đụng ánh sáng). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Tầm nhìn: c4f9728 (bản đầu, có lớp tối) → **1fc531d** (bỏ lớp tối). Playtest lần 2: **VisionOverlay** nhẹ (`Prompt triển khai VisionOverlay kiểu Project Zomboid không phá world lighting.md`) xong, **chưa commit**, để người dùng review. File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
+Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** (`building-lighting-system-spec.md`) xong, **chưa commit**, để người dùng review; save **v7**. File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
 
 | Sprint | Trạng thái |
 |---|---|
 | Phase 1 S1–S6 | Xong mã; deploy thật, FPS GPU thật và playtest tay vẫn cần xác nhận |
 | P2-S1 … P2-S4 | Xong, đã commit |
 | P2-S5 Perception/lang thang/di cư/phá cửa | Xong, đã commit (1f81571) |
-| Bổ sung: tầm nhìn người chơi | c4f9728 + 1fc531d đã commit; VisionOverlay xong, 298 test, build/lint, soak không đổi, Playwright dev + production qua; **chưa commit** |
+| Bổ sung: tầm nhìn người chơi | Đã commit (c4f9728, 1fc531d, 5f38d8d) |
+| Bổ sung: ánh sáng trong nhà | Xong; 325 test, build/lint, Playwright dev + production qua; soak shelter đạt, patrol 719 s (vách nhà dân); **chưa commit** |
 | P2-S6 Barricade/tool/fuel | Tiếp theo; dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
+
+## 1b. Sprint ánh sáng trong nhà đã bàn giao (chi tiết docs/phase2-lighting.md)
+
+- `lighting/buildingLighting.ts`: `outdoorLightLevel(t)` = 0,05 + 0,95 × `daylightAt` (DayNight không đổi); `buildLightingBuildings(map)` (cửa sổ/cửa tự tìm phòng bằng điểm hai bên, bên ngoài = `outdoor`); `solveBuilding` (cửa sổ → direct × 0,6 × 0,8; lan truyền × transmission × 0,8, sâu ≤ 3, ngưỡng 0,03, visited, best arrival; đèn có điện; final = 1 − Π(1 − x), kẹp 0,03); `BuildingLightingSystem` (dirty theo building, bước ánh sáng ngày 0,03, `revision`, `getLightAtPosition`).
+- `runtime.lighting`; `setLamp/setCurtain/setElectricity` (+ sự kiện `light:changed/curtain:changed/power:changed`), `setDoorState` đánh dấu bẩn; cập nhật trước tầm nhìn cuối tick. Không đọc facing/vision (test chặn).
+- Map (ID mới): cửa sổ `win-*` (bệ/dầm là tường, kính là `WindowView` + collider `…:pane`), phòng `room-*`, đèn `lamp-*` + công tắc; nhà dân có vách `house-partition` + cửa `door-house-bedroom` (ban đầu mở, `DoorPlacement.initialState`). Kính chặn nav như tường.
+- Hiển thị: `rendering/indoorShading.ts` patch mọi `MeshStandardMaterial` tại chỗ (`onBeforeCompile`, key chung): fragment trong phòng dưới trần = màu × shade phòng (0,06…0,85) × hướng mặt + emissive; ngoài giữ nguyên. `IndoorLighting.tsx` cập nhật uniform theo revision. Tương tác E: công tắc (`light`), rèm (`window`, tầm 0,3 m). F6 debug, F3 dòng Ánh sáng.
+- Save v7 `lighting {curtains, lamps, electricity}`; migrate v6 → v7 thêm cửa phòng ngủ (mở), mặc định rèm mở/đèn tắt/có điện, đẩy entity khỏi vách mới. Fixture `phase2-light-v7.json` (script lighting dev ghi); `phase2-s5-v6.json` đóng băng.
 
 ## 2. Sprint tầm nhìn đã bàn giao (chi tiết docs/phase2-vision.md)
 
@@ -42,6 +51,8 @@ Tầm nhìn: c4f9728 (bản đầu, có lớp tối) → **1fc531d** (bỏ lớp
 - **Save v6**: zombie thêm `memoryAge/memorySource/zoneId/structureTargetId`, save thêm `horde {timer, counter}`; migrate v5 → v6 (vùng gần nhất, không vây, timer 90), backup `slot-1.backup-v5`. Fixture `phase2-s5-v6.json` (Chromium, lưu giữa lúc đang đập cửa); `phase2-s4-v5.json` đóng băng.
 
 ## 3. Kiểm chứng cuối sprint
+
+**Sprint ánh sáng (25/09)**: npm test **325/325** (31 file; mới `lighting/buildingLighting.test.ts` 22 gồm 10 acceptance của spec + test chặn; `phase2-save.test.ts` thêm v6 → v7 và fixture v7). Build/lint sạch. Playwright `scripts/p2-lighting-browser.mjs` dev + production PASS (độ sáng sàn thật: 12:00 phòng khách 92,5 / phòng ngủ 59,5 → đóng cửa 15,1; quay 4 hướng chênh 0; 00:00 bật đèn phòng ngủ 15 → 84; mất điện về 15; ngoài trời không đổi). Hồi quy vision, s5 (dev+prod), s4/s3/s2 (prod) PASS. **Soak**: shelter sống 30', 3 kill, 30 dmg, cửa không vỡ; patrol **719 s**, 31 kill (S5: 853 s) — do vách nhà dân đổi đường đi, chưa chỉnh số.
 
 **Sprint tầm nhìn (25/09)**: npm test **298/298** (30 file; `systems/playerVision.test.ts` 20 gồm 3 test chặn vision/overlay chạm ánh sáng, `systems/visionOverlay.test.ts` 8, `core/vision.test.ts` 4), build/lint sạch. Soak **không đổi** so với S5 (shelter 30'/4 kill/30 dmg/cửa vỡ giây 61; patrol 853 s/30 kill). Hiệu năng Node: 500 zombie 0,095 ms/lượt. Playwright/Chrome 153 `scripts/p2-vision-browser.mjs` dev (trước/sau/sát lưng, quay bằng phím thật, cửa đóng/mở, zombie ẩn vẫn đập cửa, **đèn và độ sáng màn hình không đổi khi quay 4 hướng lúc 12:00/00:00/trong nhà; overlay chỉ dịu còn ≥ 92 % (ngày), ≥ 98 % (đêm); quay nhanh/zoom không có khung tối**) + production (F3/F4, không lỗi) PASS; hồi quy production p2-s5, p2-s4 PASS.
 
@@ -73,7 +84,7 @@ Tầm nhìn: c4f9728 (bản đầu, có lớp tối) → **1fc531d** (bỏ lớp
 
 ## 5. Bước tiếp theo — P2-S6
 
-0. Barricade/vách mới phải chặn tầm nhìn người chơi: thêm occluder vào `runtime.visionOccluders` (`isBlocking` đọc trạng thái) — không sửa `PlayerVisionSystem`.
+0. Barricade/vách mới phải chặn tầm nhìn người chơi: thêm occluder vào `runtime.visionOccluders` (`isBlocking` đọc trạng thái) — không sửa `PlayerVisionSystem`. Barricade cửa sổ: nối `windowBarricade(id)` của `LightingInputs` (hệ số ánh sáng, ví dụ 0,4) và `markWindowDirty`; barricade cửa: transmission riêng. Giữ tách movement / vision / lighting.
 1. Barricade trên `DoorState` (gỗ 1–3 ván, kim loại); `stepStructureHits` trừ barricade trước, phần dư vào cửa (plan §9.3). Cửa barricade không mở được.
 2. Action nhắm cửa: `startRecipe` với `worldTargetId = doorId` (hook đã có), kiểm tra khoảng cách tới cửa, cooldown 3 s sau lần cửa trúng đòn.
 3. Items `metal_sheet`, `welding_torch` (fuel), `welder_mask`, `fuel_canister`; refuel là recipe có thời gian. Búa đã là tool (`isUsableTool`).
@@ -82,6 +93,7 @@ Tầm nhìn: c4f9728 (bản đầu, có lớp tối) → **1fc531d** (bỏ lớp
 
 ## 6. Giới hạn và việc còn lại
 
+- Ánh sáng: không PointLight động, phòng sáng đều (chưa theo khoảng cách cửa sổ), chưa semi-indoor/blend ngưỡng cửa/màu lan truyền/thời tiết/lịch mất điện; tối đa 16 phòng trong shader. Soak patrol giảm còn 719 s vì vách nhà dân.
 - Tầm nhìn: **quy tắc** — vision chỉ đổi zombie nào được vẽ, không bao giờ đổi đèn/vật liệu/exposure/lớp phủ môi trường (ánh sáng chỉ ở `Lights.tsx` theo đồng hồ; có test chặn). VisionOverlay là lớp phủ duy nhất, kẹp ≤ 0,15; mái/tường lấy shade của điểm đất phía sau (chiếu mặt đất). Một tia LOS/zombie; tầm nhìn không giảm ban đêm; chưa spatial hash (điểm thay: `getNearbyZombies`). Giá trị 2,5/20 m/110° là khởi điểm, chưa playtest tay.
 
 - Chưa deploy thật, đo FPS GPU tích hợp thật hay playtest tay. Draw call tăng ~1,6–1,8× so với capsule (S3).
@@ -96,8 +108,8 @@ Tầm nhìn: c4f9728 (bản đầu, có lớp tối) → **1fc531d** (bỏ lớp
 
 Chạy npm test, npm run build, npm run lint. Lưu ý: `npm run` bằng npm 10 từng ghi đè trường `license` trong package-lock.json (đã hoàn tác); có thể gọi thẳng `node node_modules/vitest/vitest.mjs run`, `node node_modules/vite/bin/vite.js build`, `./node_modules/.bin/oxlint`. Soak: `npx vitest run src/game/core/soak.test.ts --reporter=verbose` (in thêm `sightAlerts/noiseAlerts/sieges/doorHits/doorsDestroyed/migrations`). Chơi thử `npm run dev`; F3 xem trạng thái/vùng/trí nhớ zombie; lab `?lab=doors` (mở cửa cho zombie thấy, đóng lại, xem HP cửa).
 
-Browser: Playwright không phải dependency; truyền `PLAYWRIGHT_MODULE` (file:// URL, ví dụ npx cache `playwright@1.64`) và `CHROMIUM_PATH` (Chrome cài sẵn), `BASE_URL`. Khởi động Vite mới sau khi sửa source. `p2-s5-browser.mjs` (dev) ghi đè `phase2-s5-v6.json`; fixture v1–v5 đóng băng. `p2-vision-browser.mjs` (dev/`--production`) không ghi fixture. `p2-smoke.mjs` cần Chrome headless mở sẵn với `--remote-debugging-port=9223` và profile thử riêng. Ảnh ở node_modules/.tmp (không track).
+Browser: Playwright không phải dependency; truyền `PLAYWRIGHT_MODULE` (file:// URL, ví dụ npx cache `playwright@1.64`) và `CHROMIUM_PATH` (Chrome cài sẵn), `BASE_URL`. Khởi động Vite mới sau khi sửa source. `p2-s5-browser.mjs` (dev) ghi đè `phase2-s5-v6.json`; fixture v1–v5 đóng băng. `p2-vision-browser.mjs` (dev/`--production`) không ghi fixture. `p2-lighting-browser.mjs` dev ghi `phase2-light-v7.json`; `p2-s5-browser.mjs` thôi ghi fixture v6; script cũ assert schema 7. `p2-smoke.mjs` cần Chrome headless mở sẵn với `--remote-debugging-port=9223` và profile thử riêng. Ảnh ở node_modules/.tmp (không track).
 
-Giữ simulation ngoài React; thứ tự tick: input → movement (tính tiếng bước chân) → interaction → AI → combat → **đòn vào công trình** → action → survival/clock → spawn → **di cư** → **tầm nhìn người chơi (chỉ render, AI không đọc)** → events; pose chạy sau tick qua `CharacterAnimator`; không import Rapier runtime vào simulation. AI chỉ biết vị trí người chơi qua nhìn/nghe/trí nhớ. Mọi hành động có thời gian mới dùng `startRecipe`/reservation/commit nguyên tử. Giữ layout/ID map, ID vùng và fixture cũ. Tăng schema khi đổi cấu trúc save. Không đổi balance khi chưa đo; soak sau sửa combat/AI/spawn/survival. **Không commit/push; chỉ gợi ý message.**
+Giữ simulation ngoài React; thứ tự tick: input → movement (tính tiếng bước chân) → interaction → AI → combat → **đòn vào công trình** → action → survival/clock → spawn → **di cư** → **ánh sáng trong nhà (theo sự kiện)** → **tầm nhìn người chơi (chỉ render, AI không đọc)** → events; pose chạy sau tick qua `CharacterAnimator`; không import Rapier runtime vào simulation. AI chỉ biết vị trí người chơi qua nhìn/nghe/trí nhớ. Mọi hành động có thời gian mới dùng `startRecipe`/reservation/commit nguyên tử. Giữ layout/ID map, ID vùng và fixture cũ. Tăng schema khi đổi cấu trúc save. Không đổi balance khi chưa đo; soak sau sửa combat/AI/spawn/survival. **Không commit/push; chỉ gợi ý message.**
 
-Commit message gợi ý: **feat(vision): subtle full-screen VisionOverlay (perception only, max 15 %, world lighting untouched)**
+Commit message gợi ý: **feat(lighting): room-graph building lighting with windows, curtains, lamps and save v7**

@@ -3,10 +3,14 @@ import { GAME_CONFIG } from '../core/config'
 import {
   generateBuildingWalls,
   generateDoorPlacements,
+  generateRooms,
+  generateWindowPlacements,
   type BuildingDef,
   type ContainerDef,
   type DoorPlacement,
+  type RoomPlacement,
   type WallDef,
+  type WindowPlacement,
 } from './buildings'
 
 export type { WallDef } from './buildings'
@@ -45,6 +49,20 @@ export interface MapData {
   containers: ContainerDef[]
   /** Mặt đường chỉ để hiển thị, không có collider. */
   roads: RoadDef[]
+  /** Window panes (building lighting + see-through glass). Omitted = derived from `buildings`. */
+  windows?: WindowPlacement[]
+  /** Rooms with their lamps (building lighting). Omitted = derived from `buildings`. */
+  rooms?: RoomPlacement[]
+}
+
+/** Windows of a map (test maps often list only walls/doors: derive from the buildings). */
+export function mapWindows(map: MapData): WindowPlacement[] {
+  return map.windows ?? map.buildings.flatMap(generateWindowPlacements)
+}
+
+/** Rooms of a map; a building without room data is one room over its footprint (no lamp). */
+export function mapRooms(map: MapData): RoomPlacement[] {
+  return map.rooms ?? map.buildings.flatMap(generateRooms)
 }
 
 const SIZE = GAME_CONFIG.world.size
@@ -76,6 +94,17 @@ const SAFE_HOUSE: BuildingDef = {
   roofColor: '#6b4f3a',
   floorColor: '#7d6b55',
   doors: [{ id: 'door-safehouse', name: 'Cửa nhà an toàn', side: 'S', offset: 1, width: 1.4 }],
+  // Building lighting sprint: windows (daylight), a ceiling lamp and its switch beside the door.
+  windows: [
+    { id: 'win-safehouse-n', name: 'Cửa sổ phía bắc nhà an toàn', side: 'N', offset: 2, width: 1.2 },
+    { id: 'win-safehouse-e', name: 'Cửa sổ phía đông nhà an toàn', side: 'E', offset: 2.2, width: 1.2 },
+  ],
+  rooms: [
+    {
+      id: 'room-safehouse', name: 'Nhà an toàn', bounds: { minX: -18, maxX: -10, minZ: -18, maxZ: -10 },
+      lamp: { id: 'lamp-safehouse', name: 'Đèn nhà an toàn', intensity: 0.8, color: '#ffd9a0', requiresElectricity: true, switchAt: { x: -14.3, z: -10.25 } },
+    },
+  ],
   containers: [
     { id: 'ct-safehouse-cabinet', name: 'Tủ đồ nhà an toàn', position: { x: -17, y: 0.5, z: -17.4 }, size: [1.2, 1, 0.6], color: '#8b5e3c', loot: 'safehouse-cabinet' },
     // P2-S2: New Game starts unarmed; the starting melee is guaranteed here, a few steps from spawn.
@@ -96,6 +125,16 @@ const STORE: BuildingDef = {
   roofColor: '#4d5561',
   floorColor: '#9aa0a6',
   doors: [{ id: 'door-store', name: 'Cửa cửa hàng', side: 'S', offset: -3, width: 1.6 }],
+  windows: [
+    { id: 'win-store-s1', name: 'Tủ kính cửa hàng', side: 'S', offset: 1, width: 1.6 },
+    { id: 'win-store-s2', name: 'Tủ kính cửa hàng (góc)', side: 'S', offset: 4, width: 1.6 },
+  ],
+  rooms: [
+    {
+      id: 'room-store', name: 'Cửa hàng tiện lợi', bounds: { minX: 7, maxX: 19, minZ: -17, maxZ: -9 },
+      lamp: { id: 'lamp-store', name: 'Đèn cửa hàng', intensity: 0.9, color: '#e8f2ff', requiresElectricity: true, switchAt: { x: 8.6, z: -9.25 } },
+    },
+  ],
   containers: [
     { id: 'ct-store-shelf-1', name: 'Kệ hàng 1', position: { x: 9, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a', loot: 'store-shelf' },
     { id: 'ct-store-shelf-2', name: 'Kệ hàng 2', position: { x: 13, y: 0.8, z: -16.4 }, size: [2, 1.6, 0.6], color: '#5b6b7a', loot: 'store-shelf' },
@@ -118,6 +157,28 @@ const HOUSE: BuildingDef = {
   roofColor: '#7a3f2f',
   floorColor: '#8a7560',
   doors: [{ id: 'door-house', name: 'Cửa nhà dân', side: 'N', offset: -2, width: 1.4 }],
+  // Building lighting sprint: a wall splits the living room (windows, front door) from the back
+  // bedroom (no window); the bedroom door starts open.
+  partitions: [
+    {
+      id: 'house-partition', axis: 'z', at: 14, from: 8.5, to: 15.5,
+      door: { id: 'door-house-bedroom', name: 'Cửa phòng ngủ', at: 13, width: 1.4, openSide: -1, initialState: 'open' },
+    },
+  ],
+  windows: [
+    { id: 'win-house-n', name: 'Cửa sổ phòng khách', side: 'N', offset: 0, width: 1.2 },
+    { id: 'win-house-w', name: 'Cửa sổ phía tây phòng khách', side: 'W', offset: -0.5, width: 1.2 },
+  ],
+  rooms: [
+    {
+      id: 'room-house-living', name: 'Phòng khách', bounds: { minX: 8.5, maxX: 14, minZ: 8.5, maxZ: 15.5 },
+      lamp: { id: 'lamp-house-living', name: 'Đèn phòng khách', intensity: 0.8, color: '#ffd9a0', requiresElectricity: true, switchAt: { x: 12.05, z: 8.75 } },
+    },
+    {
+      id: 'room-house-bedroom', name: 'Phòng ngủ', bounds: { minX: 14, maxX: 17.5, minZ: 8.5, maxZ: 15.5 },
+      lamp: { id: 'lamp-house-bedroom', name: 'Đèn phòng ngủ', intensity: 0.7, color: '#ffd9a0', requiresElectricity: true, switchAt: { x: 14.25, z: 14.3 } },
+    },
+  ],
   containers: [
     { id: 'ct-house-wardrobe', name: 'Tủ quần áo', position: { x: 16.5, y: 1, z: 14.9 }, size: [1.6, 2, 0.6], color: '#6d4c35', loot: 'house-wardrobe' },
     { id: 'ct-house-kitchen', name: 'Tủ bếp', position: { x: 9.6, y: 0.5, z: 14.9 }, size: [1.4, 1, 0.6], color: '#9c7a5a', loot: 'house-kitchen' },
@@ -139,6 +200,11 @@ export const CONTAINERS_ADDED_V3: ReadonlySet<string> = new Set(['ct-safehouse-c
 
 /** Material containers added in P2-S4 (save v5); seeded once when an older save migrates. */
 export const CONTAINERS_ADDED_V5: ReadonlySet<string> = new Set(['ct-safehouse-toolbox', 'ct-store-hardware', 'ct-house-scrap'])
+
+/** Building lighting sprint (save v7): the bedroom door; older saves get it in its initial state. */
+export const DOORS_ADDED_V7: ReadonlySet<string> = new Set(['door-house-bedroom'])
+/** Wall pieces added in v7 (the house partition): migrated players/zombies inside them are moved out. */
+export const WALL_PREFIXES_ADDED_V7: readonly string[] = ['house-partition']
 
 /** Vật cản rời: hàng rào công viên, xe hỏng, quầy, giường, thùng. */
 const obstacles: WallDef[] = [
@@ -191,4 +257,6 @@ export const NEIGHBORHOOD_MAP: MapData = {
   doors: BUILDINGS.flatMap(generateDoorPlacements),
   containers: [...BUILDINGS.flatMap((b) => b.containers), ...outdoorContainers],
   roads,
+  windows: BUILDINGS.flatMap(generateWindowPlacements),
+  rooms: BUILDINGS.flatMap(generateRooms),
 }

@@ -28,6 +28,8 @@ export type SfxName =
   | 'doorBreak'
   | 'stepWalk'
   | 'stepRun'
+  | 'switch'
+  | 'curtain'
 
 class Sfx {
   private ctx: AudioContext | null = null
@@ -132,6 +134,8 @@ const MIN_GAP_MS: Record<SfxName, number> = {
   doorBreak: 300,
   stepWalk: 40,
   stepRun: 40,
+  switch: 120,
+  curtain: 200,
 }
 
 type Recipe = (ctx: AudioContext, out: AudioNode, noise: AudioBuffer) => void
@@ -220,6 +224,12 @@ const RECIPES: Record<SfxName, Recipe> = {
   },
   pickup: (c, o) => tone(c, o, { type: 'triangle', from: 700, to: 1000, duration: 0.08, gain: 0.15 }),
   ui: (c, o) => tone(c, o, { type: 'sine', from: 500, duration: 0.05, gain: 0.08 }),
+  // Light switch: a short plastic click; curtain: a soft cloth swish.
+  switch: (c, o, n) => {
+    burst(c, o, n, { duration: 0.03, gain: 0.25, filter: 3200, q: 2 })
+    tone(c, o, { type: 'square', from: 1400, to: 900, duration: 0.025, gain: 0.05 })
+  },
+  curtain: (c, o, n) => burst(c, o, n, { duration: 0.35, gain: 0.12, filter: 1800, sweepTo: 900, q: 0.7 }),
   // Gỗ/kim loại gãy: tiếng rắc ngắn + nốt trầm đi xuống để khác tiếng trúng đòn thường.
   weaponBreak: (c, o, n) => {
     burst(c, o, n, { duration: 0.18, gain: 0.45, filter: 2200, q: 3 })

@@ -1,5 +1,5 @@
 import type { Vec3 } from '../../types'
-import type { MapData } from './mapData'
+import { mapWindows, type MapData } from './mapData'
 import type { DoorPlacement } from './buildings'
 import { DOOR_LEAF_THICKNESS, type DoorStatus } from './doors'
 
@@ -62,6 +62,8 @@ export class NavGrid {
   private readonly blocked: Uint8Array
   private readonly doorCells = new Map<string, DoorCells>()
   private readonly doorStates = new Map<string, DoorStatus>()
+  /** New-game state per door (interior doors may start open). */
+  private readonly initialDoorStates = new Map<string, DoorStatus>()
   private readonly cellDoors = new Map<number, Set<string>>()
   readonly portals = new Map<string, DoorPortal>()
   /** 4-connected component label per cell (-1 blocked), rebuilt lazily per `version`. */
@@ -92,6 +94,13 @@ export class NavGrid {
       )
     }
 
+    // Window panes block like the wall they replace (sill below, header above is overhead).
+    for (const win of mapWindows(map)) {
+      const hx = (win.alongX ? win.width : win.thickness) / 2 + r
+      const hz = (win.alongX ? win.thickness : win.width) / 2 + r
+      this.fillRect(this.staticBlocked, win.center.x - hx, win.center.z - hz, win.center.x + hx, win.center.z + hz, 1)
+    }
+
     for (const door of map.doors) {
       const building = map.buildings.find((b) => b.id === door.buildingId)
       const thickness = building?.wallThickness ?? 0.3
@@ -99,7 +108,8 @@ export class NavGrid {
       for (const idx of corridor) this.staticBlocked[idx] = 0
       const openLeaf = this.doorLeafCells(door, door.openAngle, r).filter((idx) => !corridor.includes(idx))
       this.doorCells.set(door.id, { corridor, openLeaf })
-      this.doorStates.set(door.id, 'closed')
+      this.doorStates.set(door.id, door.initialState ?? 'closed')
+      this.initialDoorStates.set(door.id, door.initialState ?? 'closed')
       for (const idx of [...corridor, ...openLeaf]) {
         const owners = this.cellDoors.get(idx) ?? new Set<string>()
         owners.add(door.id)
@@ -137,7 +147,7 @@ export class NavGrid {
   }
 
   resetDoors(): void {
-    for (const id of this.doorStates.keys()) this.doorStates.set(id, 'closed')
+    for (const id of this.doorStates.keys()) this.doorStates.set(id, this.initialDoorStates.get(id) ?? 'closed')
     this.rebuild()
   }
 

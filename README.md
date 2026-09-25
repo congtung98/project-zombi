@@ -1,7 +1,7 @@
 # Zombie Outbreak — Phase 2
 
 Game sinh tồn zombie 3D góc nhìn isometric chạy trên trình duyệt. Kế hoạch chi tiết nằm trong
-`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng), **Sprint 3** (model/animation, tạo nhân vật), **Sprint 4** (hành động có thời gian, sửa vũ khí, chế tạo) , **Sprint 5** (zombie nghe tiếng bước chân, lang thang/di cư theo đàn, phá cửa) và sprint bổ sung **tầm nhìn người chơi** (chỉ thấy zombie trong hình quạt/không bị che). Bản build production
+`Zombie_Outbreak_Phase_1_MVP.md` và `Zombie_Outbreak_Phase_2_Plan.md`. Repo đã hoàn thành mã Phase 1 (Sprint 1–6), **Phase 2 — Sprint 1** (dữ liệu item, migration save, thử cửa động), **Sprint 2** (bắt đầu tay không, loot melee, độ bền/hỏng), **Sprint 3** (model/animation, tạo nhân vật), **Sprint 4** (hành động có thời gian, sửa vũ khí, chế tạo) , **Sprint 5** (zombie nghe tiếng bước chân, lang thang/di cư theo đàn, phá cửa) , sprint bổ sung **tầm nhìn người chơi** (chỉ thấy zombie trong hình quạt/không bị che) và **ánh sáng trong nhà** (phòng, cửa sổ, rèm, đèn). Bản build production
 nằm trong `dist/` sau `npm run build`; workflow GitHub Pages ở `.github/workflows/deploy.yml`.
 
 ## Chạy
@@ -43,6 +43,8 @@ npm run lint
 | Con lăn chuột | Zoom camera trong giới hạn min/max |
 | Esc | Tạm dừng (dừng simulation, cooldown và đồng hồ); menu pause có Lưu game / Lưu và về menu |
 | F3 | Overlay debug: FPS, vị trí, trạng thái zombie (và collider Rapier) |
+| E (công tắc cạnh cửa / sát cửa sổ bên trong) | Bật/tắt đèn trần của phòng (cần điện); kéo/mở rèm (bớt ánh sáng, che tầm nhìn qua kính) |
+| F6 | Debug ánh sáng trong nhà: viền phòng theo độ sáng, số liệu Direct/Propagated/Artificial/Final, cửa, cửa sổ, đồ thị phòng (`?lighting=debug`) |
 | F4 | Debug tầm nhìn người chơi: vòng tầm nhìn/gần, hình quạt, tia LOS xanh/đỏ, nhãn trạng thái trên zombie (`?vision=debug` bật sẵn) |
 | I | Mở/đóng túi 12 ô. Click trái chọn món → thẻ chi tiết (damage, độ bền, trạng thái) với Trang bị/Dùng, Cất vào tủ, Thả xuống. Chuột phải dùng/trang bị nhanh; Shift+trái cất nhanh khi mở tủ. Panel tủ: click lấy hoặc Lấy tất cả. Đồ thả tạo túi đồ rơi, E để nhặt lại |
 | I → click vũ khí → Sửa | Sửa vũ khí (đồ gỗ: 1 ván + 1 băng keo, +30; đồ kim loại: 1 kim loại vụn + 1 băng keo, +25), mất 4–5 s. Bảng **Chế tạo** cạnh túi: gậy gỗ tự chế (2 ván + 1 băng keo) |
@@ -99,6 +101,14 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Phase 2 — Sprint bổ sung: ánh sáng trong nhà (25/09/2026)
+
+- **Room graph**: mỗi nhà chia phòng; cửa sổ cho ánh sáng ngày trực tiếp, cửa/lối mở truyền ánh sáng giữa các phòng và từ ngoài trời (mở 0,65, đóng 0,05, suy giảm 0,8/bước, tối đa 3 bước), đèn trần cộng ánh sáng nhân tạo (cần điện). Phòng sâu không cửa sổ tối hơn; đóng cửa thì tối hẳn; ban đêm bật đèn mới sáng. Tính lại theo sự kiện, không mỗi frame.
+- Map: cửa sổ + rèm cho nhà an toàn, cửa hàng, nhà dân; nhà dân có **vách ngăn và phòng ngủ** (cửa phòng ngủ ban đầu mở); mỗi phòng một đèn + công tắc (E).
+- Hiển thị: shader patch tại chỗ cho vật liệu (không clone, không PointLight): chỉ bề mặt trong phòng theo ánh sáng phòng; ngoài trời giữ nguyên theo ngày/đêm. Không phụ thuộc hướng nhìn hay PlayerVision (có test chặn).
+- Save **v7** (rèm, đèn, điện, cửa phòng ngủ; backup `slot-1.backup-v6`). F6 debug, F3 dòng "Ánh sáng".
+- **325 test**; Playwright dev + production (`scripts/p2-lighting-browser.mjs`, đo độ sáng sàn thật). Soak shelter vẫn sống 30' (patrol 719 s do vách mới đổi đường đi). Chi tiết `docs/phase2-lighting.md`.
 
 ### Phase 2 — Sprint bổ sung: tầm nhìn người chơi (25/09/2026)
 

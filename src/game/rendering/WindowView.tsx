@@ -1,0 +1,48 @@
+import { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { CuboidCollider, RigidBody } from '@react-three/rapier'
+import type { Mesh } from 'three'
+import type { WindowPlacement } from '../world/buildings'
+import { runtime } from '../core/runtime'
+import { blockerData } from './blockerData'
+
+const GLASS_THICKNESS = 0.04
+const CURTAIN_THICKNESS = 0.05
+
+/**
+ * Window: a glass pane in the wall gap (sill and header come from `Walls`). The pane collider
+ * blocks movement, zombie sight and interaction rays like the wall it replaces; the player's own
+ * sight goes through it unless the curtain is closed (vision occluders, separate from lighting).
+ * The curtain hangs on the inner side and is drawn only while closed.
+ */
+export function WindowView({ win }: { win: WindowPlacement }) {
+  const curtainRef = useRef<Mesh>(null)
+  const h = win.head - win.sill
+  const glass: [number, number, number] = win.alongX ? [win.width, h, GLASS_THICKNESS] : [GLASS_THICKNESS, h, win.width]
+  const half: [number, number, number] = win.alongX ? [win.width / 2, h / 2, win.thickness / 2] : [win.thickness / 2, h / 2, win.width / 2]
+  const curtain: [number, number, number] = win.alongX ? [win.width + 0.1, h + 0.1, CURTAIN_THICKNESS] : [CURTAIN_THICKNESS, h + 0.1, win.width + 0.1]
+  const inset = win.thickness / 2 + CURTAIN_THICKNESS
+  const c = win.center
+
+  useFrame(() => {
+    const mesh = curtainRef.current
+    if (mesh) mesh.visible = runtime.world.curtains.get(win.id) === true
+  })
+
+  return (
+    <>
+      {/* Blocker ID differs from the window ID so the curtain cannot be drawn from outside through the glass. */}
+      <RigidBody type="fixed" colliders={false} position={[c.x, c.y, c.z]} userData={blockerData(`${win.id}:pane`)}>
+        <CuboidCollider args={half} />
+      </RigidBody>
+      <mesh position={[c.x, c.y, c.z]}>
+        <boxGeometry args={glass} />
+        <meshStandardMaterial color="#a9d2ea" transparent opacity={0.32} roughness={0.08} metalness={0.1} depthWrite={false} />
+      </mesh>
+      <mesh ref={curtainRef} position={[c.x + win.inward.x * inset, c.y, c.z + win.inward.z * inset]} visible={false} castShadow>
+        <boxGeometry args={curtain} />
+        <meshStandardMaterial color="#7d5a6e" roughness={0.95} />
+      </mesh>
+    </>
+  )
+}
