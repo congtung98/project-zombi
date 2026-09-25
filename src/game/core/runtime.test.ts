@@ -270,9 +270,8 @@ describe('GameRuntime combat', () => {
     rt.registerPhysicsQuery({ isBlocked: (a, b) => !rt.nav.hasLineOfWalk(a, b) })
     rt.player.position = { x: 0, y: 0.9, z: -1 }
     const playerBody = fakeBody(0, -1)
-    const zombieBody = fakeBody(0, 8)
     rt.registerPlayerBody(asRigidBody(playerBody))
-    rt.registerZombieBody('zombie-1', asRigidBody(zombieBody))
+    // R2: the zombie is moved by the simulation (walls and the closed door are static colliders).
     const zombie = rt.zombies.get('zombie-1')!
     // Phase 1 scenario: a zombie standing still, facing the hut (no wandering off).
     rt.pickWanderPoint = () => null
@@ -281,14 +280,13 @@ describe('GameRuntime combat', () => {
     const step = (seconds: number) => {
       for (let t = 0; t < seconds; t += DT) {
         playerBody.step(DT)
-        zombieBody.step(DT)
         rt.tick(DT)
       }
     }
     // Người chơi đứng yên (không giữ phím) → body người chơi vận tốc 0.
     step(2)
     expect(zombie.ai).toBe('IDLE')
-    expect(zombieBody.translation().z).toBeCloseTo(8, 1)
+    expect(zombie.position.z).toBeCloseTo(8, 1)
 
     const door = rt.interactables.find((i) => i.id === 'door-hut')!
     rt.interact(door)
@@ -296,7 +294,7 @@ describe('GameRuntime combat', () => {
     rt.events.on('player:damaged', () => (damaged += 1))
     step(12)
     // Zombie đã vào trong nhà và tới sát người chơi, gây sát thương.
-    expect(zombieBody.translation().z).toBeLessThan(2)
+    expect(zombie.position.z).toBeLessThan(2)
     expect(zombie.ai).toBe('ATTACK')
     expect(damaged).toBeGreaterThan(0)
   })

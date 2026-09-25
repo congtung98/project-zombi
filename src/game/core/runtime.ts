@@ -32,10 +32,18 @@ import { isInsideBuilding } from '../world/buildings'
 import { createWorldState, type ContainerState, type WorldState } from '../world/worldState'
 import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
+import { STRESS_TILES, buildStressMap } from '../world/stressMap'
 import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOccluders'
 import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
 import { BuildingLightingSystem, buildLightingBuildings, outdoorLightLevel } from '../lighting/buildingLighting'
 import { mapRooms, mapWindows } from '../world/mapData'
+import { PerfMonitor } from './perf'
+import { SpatialHash } from './spatialHash'
+import { AIScheduler, type ScheduledUpdate } from '../systems/aiScheduler'
+import { PathfindingQueue } from '../world/pathfindingQueue'
+import { StaticColliderRegistry, registerMapColliders } from '../world/staticColliders'
+import { moveZombie, pushOutOfCircle, resolveStatic, type Circle, type MoveEnv } from '../systems/zombieMovement'
+import type { BuildingDef } from '../world/buildings'
 
 interface PendingAttack {
   sourceId: EntityId
@@ -45,6 +53,15 @@ interface PendingAttack {
 interface PendingStructureHit {
   sourceId: EntityId
   doorId: string
+}
+
+/**
+ * R2: what the runtime needs from a zombie's physics body. Rapier's kinematic body satisfies it; the
+ * simulation writes the position, never reads it back.
+ */
+export interface ZombieBodyProxy {
+  setNextKinematicTranslation(t: { x: number; y: number; z: number }): void
+  setEnabled?(enabled: boolean): void
 }
 
 export type ActionStartFailure = CraftFailure | 'busy' | 'dead'
@@ -66,6 +83,13 @@ const PLAYER_HURT_TIME = 0.3
 const EYE_HEIGHT = 1.5
 /** Độ cao raycast kiểm tra tường chắn đòn gậy. */
 const SWING_HEIGHT = 1.2
+/**
+ * R1 spatial index cell sizes (m): zombies ≈ the separation/melee/vision query scale, interactables
+ * the interaction range, buildings their footprint (a query touches one or two cells).
+ */
+const ZOMBIE_CELL = 4
+const INTERACTABLE_CELL = 4
+const BUILDING_CELL = 16
 
 /**
  * Trạng thái runtime của simulation. Không phải React state: render đọc trực
@@ -127,7 +151,8 @@ export class GameRuntime {
   private aiRng = createRng(1)
 
   private playerBody: RapierRigidBody | null = null
-  private zombieBodies = new Map<EntityId, RapierRigidBody>()
+  /** R2: kinematic bodies of ACTIVE zombies (mounted by the view layer); positions are pushed into them. */
+  private zombieBodies = new Map<EntityId, ZombieBodyProxy>()
   private physics: PhysicsQuery | null = null
   private nextZombieId = 1
   private readonly zombieAIContext: ZombieAIContext
@@ -143,12 +168,54 @@ export class GameRuntime {
    * state only drives it through dirty marks; it never reads the player's facing or vision.
    */
   readonly lighting: BuildingLightingSystem
+  /** R0 instrumentation: section timings, counters and gauges over a rolling window (perf HUD, benchmarks). */
+  readonly perf = new PerfMonitor()
+  /**
+   * R1 spatial indexes. Zombies are re-bucketed as they move (queries: separation, melee, player
+   * vision); interactables (map objects + dropped bags) and buildings are static. Results come in
+   * insertion order, which is the order of the lists they replace.
+   */
+  readonly zombieIndex = new SpatialHash<ZombieState>(ZOMBIE_CELL)
+  private readonly interactableIndex = new SpatialHash<Interactable>(INTERACTABLE_CELL)
+  private readonly buildingIndex = new SpatialHash<BuildingDef>(BUILDING_CELL)
+  /** Largest interactable radius: the interaction query reaches `INTERACT_RANGE` + this. */
+  private maxInteractRadius = 0
+  private readonly nearbyScratch: ZombieState[] = []
+  private readonly neighbourScratch: ZombieState[] = []
+  /**
+   * R2: the simulation owns zombie transforms. `zombie.position` is authoritative; Rapier only
+   * mirrors ACTIVE zombies with kinematic bodies. (Benchmarks and tests check this flag.)
+   */
+  readonly simulationOwnsZombies = true
+  /** Solid boxes for zombie movement (walls, containers, panes, door leaves); R3 registers per chunk. */
+  readonly staticColliders = new StaticColliderRegistry()
+  /** Decides which zombies run their AI each tick (levels, rates, budget). */
+  readonly aiScheduler = new AIScheduler(GAME_CONFIG.simulation)
+  /** A* requests of the AI, served after the AI pass within a budget. */
+  readonly pathQueue = new PathfindingQueue()
+  /**
+   * Budget of `pathQueue` per tick. The time part depends on the machine; deterministic runs (soak,
+   * replays) set `maxPathMs` to Infinity and keep only the count.
+   */
+  pathBudget = { ...GAME_CONFIG.pathfinding }
+  private readonly aiUpdates: ScheduledUpdate[] = []
+  /** DORMANT zombies move only when their AI ran, by the time step it received. */
+  private readonly dormantStep = new Map<EntityId, number>()
+  private readonly moveEnv: MoveEnv
 
   constructor(map: MapData = NEIGHBORHOOD_MAP) {
     this.map = map
     this.nav = new NavGrid(map, GAME_CONFIG.nav)
     this.interactables = buildInteractables(map)
     this.interactableById = new Map(this.interactables.map((i) => [i.id, i]))
+    for (const b of map.buildings) this.buildingIndex.insert(b.id, b, b.center.x, b.center.z, b.size.w / 2, b.size.d / 2)
+    registerMapColliders(this.staticColliders, map, (id) => this.world.doors.get(id)?.state)
+    this.moveEnv = {
+      colliders: this.staticColliders,
+      radius: GAME_CONFIG.zombie.radius,
+      height: GAME_CONFIG.zombie.height,
+      substep: GAME_CONFIG.simulation.movementSubstep,
+    }
     this.player = createPlayerState(map.playerSpawn)
     this.world = createWorldState(map, 0)
     this.visionOccluders = buildVisionOccluders(
@@ -165,19 +232,53 @@ export class GameRuntime {
     }, buildLightingBuildings(map, GAME_CONFIG.buildingLighting))
     this.vision = new PlayerVisionSystem(GAME_CONFIG.playerVision, {
       getNearbyEntities: (center, radius) => this.getNearbyZombies(center, radius),
-      hasLineOfSight: (from, to) => this.visionOccluders.firstBlocker(from, to) === null,
+      hasLineOfSight: (from, to) => {
+        this.perf.count('visionRaycasts')
+        return this.visionOccluders.firstBlocker(from, to) === null
+      },
     })
 
     // Zombie chỉ phát hiện và gây sát thương khi không có tường/cửa đóng giữa nó và người chơi;
     // đường đi lấy từ lưới điều hướng (đi vòng tường, qua cửa mở).
     this.zombieAIContext = {
-      canReach: (zombie, target) =>
-        this.physics ? !this.physics.isBlocked(atHeight(zombie.position, EYE_HEIGHT), atHeight(target, EYE_HEIGHT), []) : true,
-      findPath: (from, to) => this.nav.findPath(from, to),
+      canReach: (zombie, target) => {
+        if (!this.physics) return true
+        this.perf.count('zombieRaycasts')
+        return !this.physics.isBlocked(atHeight(zombie.position, EYE_HEIGHT), atHeight(target, EYE_HEIGHT), [])
+      },
+      // R2: the AI files path requests; A* runs in `stepPathQueue` after the AI pass (budgeted).
+      requestPath: (zombie, from, to) => {
+        const t = this.perf.begin()
+        this.perf.count('pathRequests')
+        const kind = this.nav.routeKind(from, to)
+        let result: 'none' | 'ready' | 'queued' = 'queued'
+        if (kind === 'none') {
+          this.pathQueue.cancel(zombie.id)
+          zombie.pathPending = false
+          result = 'none'
+        } else if (kind === 'direct') {
+          this.pathQueue.cancel(zombie.id)
+          zombie.path = this.nav.findPath(from, to) ?? []
+          zombie.pathIndex = 0
+          zombie.pathPending = false
+          result = 'ready'
+        } else {
+          this.pathQueue.request(zombie.id, to, zombie.simLevel)
+          zombie.pathPending = true
+        }
+        this.perf.end('nav', t)
+        return result
+      },
       hasLineOfWalk: (from, to) => this.nav.hasLineOfWalk(from, to),
       getNavVersion: () => this.nav.version,
       noiseRadius: () => this.playerNoise,
-      findDoorRoute: (from, to) => this.nav.findDoorRoute(from, to),
+      findDoorRoute: (from, to) => {
+        const t = this.perf.begin()
+        this.perf.count('doorRoutes')
+        const route = this.nav.findDoorRoute(from, to)
+        this.perf.end('nav', t)
+        return route
+      },
       getDoor: (id) => {
         const door = this.world.doors.get(id)
         const portal = this.nav.portals.get(id)
@@ -207,7 +308,9 @@ export class GameRuntime {
     this.world = createWorldState(this.map, seed)
     this.interactables = buildInteractables(this.map)
     this.interactableById.clear()
-    for (const item of this.interactables) this.interactableById.set(item.id, item)
+    this.interactableIndex.clear()
+    this.maxInteractRadius = 0
+    for (const item of this.interactables) this.indexInteractable(item)
     this.nav.resetDoors()
     this.currentInteractable = null
     this.interactPrompt = null
@@ -216,6 +319,10 @@ export class GameRuntime {
     this.openContainerId = null
     this.uiOpen = false
     this.zombies.clear()
+    this.zombieIndex.clear()
+    this.aiScheduler.clear()
+    this.pathQueue.clear()
+    this.dormantStep.clear()
     this.zombieBodies.clear()
     this.playerBody = null
     this.nextZombieId = 1
@@ -243,6 +350,8 @@ export class GameRuntime {
   private addZombie(id: EntityId, position: Vec3, zoneId: string | null): ZombieState {
     const zombie = createZombieState(id, position, zoneId)
     this.zombies.set(id, zombie)
+    this.zombieIndex.insert(id, zombie, position.x, position.z)
+    this.aiScheduler.add(zombie, this.player.position)
     return zombie
   }
 
@@ -312,6 +421,9 @@ export class GameRuntime {
     save = validation.save
     this.newGame(save.worldSeed, { name: save.player.name, appearance: save.player.appearance })
     this.zombies.clear()
+    this.zombieIndex.clear()
+    this.aiScheduler.clear()
+    this.pathQueue.clear()
     this.clock.restore(save.clock.elapsed, save.clock.timeOfDay, save.clock.day)
     this.cameraZoom = Math.min(GAME_CONFIG.camera.zoomMax, Math.max(GAME_CONFIG.camera.zoomMin, save.cameraZoom))
 
@@ -386,7 +498,8 @@ export class GameRuntime {
     this.playerBody = body
   }
 
-  registerZombieBody(id: EntityId, body: RapierRigidBody | null): void {
+  /** A kinematic body appears when the zombie becomes ACTIVE and goes away when it leaves ACTIVE or dies. */
+  registerZombieBody(id: EntityId, body: ZombieBodyProxy | null): void {
     if (body) this.zombieBodies.set(id, body)
     else this.zombieBodies.delete(id)
   }
@@ -404,24 +517,39 @@ export class GameRuntime {
   tick(rawDt: number): void {
     const dt = Math.min(rawDt, GAME_CONFIG.loop.maxDelta)
     if (dt <= 0) return
+    const perf = this.perf
+    const tickStart = perf.begin()
 
     this.stepPlayerMovement(dt)
     this.stepInteraction()
+    let t = perf.begin()
     const { attacks, structureHits } = this.stepZombies(dt)
+    perf.end('ai', t)
+    t = perf.begin()
     this.stepCombat(attacks, dt)
     this.stepStructureHits(structureHits)
+    perf.end('combat', t)
     this.stepAction(dt)
     this.stepSurvival(dt)
+    t = perf.begin()
     this.stepSpawn(dt)
     this.stepHorde(dt)
+    perf.end('spawn', t)
     // Building lighting: the day/night level (throttled) + dirty buildings only (doors, lamps...).
+    t = perf.begin()
     this.lighting.updateOutdoorLight(outdoorLightLevel(this.clock.timeOfDay, GAME_CONFIG.buildingLighting))
     this.lighting.update()
+    perf.end('lighting', t)
     // Player vision last: reads final positions this tick, writes only render-facing state.
+    t = perf.begin()
     this.vision.update(dt, this.player)
+    perf.end('vision', t)
     this.clock.advance(dt)
     this.events.flush()
     this.input.endFrame()
+    perf.end('sim', tickStart)
+    this.recordPerfGauges()
+    perf.endTick()
 
     if (this.player.alive) {
       this.autosaveTimer -= dt
@@ -430,6 +558,23 @@ export class GameRuntime {
         this.autosaveDue = true
       }
     }
+  }
+
+  /** Per-tick gauges for the perf HUD (counts only; no allocation). */
+  private recordPerfGauges(): void {
+    const perf = this.perf
+    let alive = 0
+    for (const z of this.zombies.values()) if (z.ai !== 'DEAD') alive += 1
+    const levels = this.aiScheduler.countLevels(this.zombies.values())
+    perf.gauge('zombies', this.zombies.size)
+    perf.gauge('zombiesAlive', alive)
+    perf.gauge('zombiesActive', levels.ACTIVE)
+    perf.gauge('zombiesNear', levels.NEAR)
+    perf.gauge('zombiesDormant', levels.DORMANT)
+    perf.gauge('zombieBodies', this.zombieBodies.size)
+    perf.gauge('pathQueue', this.pathQueue.size)
+    perf.count('occluderTests', this.visionOccluders.testCount)
+    this.visionOccluders.testCount = 0
   }
 
   /**
@@ -452,7 +597,7 @@ export class GameRuntime {
     this.spawnTimer -= dt
     if (this.spawnTimer > 0) return
     this.spawnTimer = spawnInterval(this.clock.isNight)
-    if (alive >= cfg.maxActive) return
+    if (alive >= (this.map.maxActiveZombies ?? cfg.maxActive)) return
 
     const aliveZombies: Vec3[] = []
     for (const z of this.zombies.values()) if (z.ai !== 'DEAD') aliveZombies.push(z.position)
@@ -462,9 +607,14 @@ export class GameRuntime {
       {
         playerPos: this.player.position,
         aliveZombies,
-        isHiddenFromPlayer: this.physics ? (pt) => this.physics!.isBlocked(playerEye, atHeight(pt, EYE_HEIGHT), []) : undefined,
+        isHiddenFromPlayer: this.physics
+          ? (pt) => {
+              this.perf.count('otherRaycasts')
+              return this.physics!.isBlocked(playerEye, atHeight(pt, EYE_HEIGHT), [])
+            }
+          : undefined,
         // Plan §10.5: never inside a building (a barricaded shelter stays empty) or a blocked cell.
-        isAllowed: (pt) => this.nav.isWalkable(pt.x, pt.z) && !this.map.buildings.some((b) => isInsideBuilding(b, pt.x, pt.z, 0.5)),
+        isAllowed: (pt) => this.nav.isWalkable(pt.x, pt.z) && this.buildingAt(pt, 0.5) === null,
       },
       createRng(hashSeed(this.world.seed, `spawn:${this.spawnCounter}`)),
     )
@@ -475,17 +625,27 @@ export class GameRuntime {
   }
 
   /**
-   * Zombies around a point for the player vision broad phase. A plain loop today; swap in a spatial
-   * hash here when zombie counts grow (the vision system only sees this function).
+   * Zombies (dead ones too, for their fade-out) within the square of half-size `radius` around a
+   * point: the player vision broad phase. R1: a spatial-hash query, same items and order as the old
+   * loop over every zombie. The returned array is reused by the next call.
    */
-  *getNearbyZombies(center: Vec3, radius: number): Iterable<VisionTarget> {
-    for (const z of this.zombies.values()) {
-      if (Math.abs(z.position.x - center.x) <= radius && Math.abs(z.position.z - center.z) <= radius) yield z
-    }
+  getNearbyZombies(center: Vec3, radius: number): readonly VisionTarget[] {
+    const out = this.nearbyScratch
+    out.length = 0
+    return this.zombieIndex.queryAABB(center.x - radius, center.z - radius, center.x + radius, center.z + radius, out)
+  }
+
+  /** Re-bucket every zombie at its current position (positions may be changed from outside a tick). */
+  private syncZombieIndex(): void {
+    for (const z of this.zombies.values()) this.zombieIndex.update(z.id, z.position.x, z.position.z)
   }
 
   private removeZombie(id: EntityId): void {
     this.zombies.delete(id)
+    this.zombieIndex.remove(id)
+    this.aiScheduler.remove(id)
+    this.pathQueue.cancel(id)
+    this.dormantStep.delete(id)
     this.zombieBodies.delete(id)
     this.vision.forget(id)
     this.events.queue('zombie:removed', { id })
@@ -555,8 +715,12 @@ export class GameRuntime {
     return null
   }
 
-  private buildingAt(p: Vec3): string | null {
-    return this.map.buildings.find((b) => isInsideBuilding(b, p.x, p.z))?.id ?? null
+  /** First building (map order) whose footprint grown by `margin` contains the point; spatial query (R1). */
+  buildingAt(p: { x: number; z: number }, margin = 0): string | null {
+    for (const b of this.buildingIndex.queryAABB(p.x - margin, p.z - margin, p.x + margin, p.z + margin)) {
+      if (isInsideBuilding(b, p.x, p.z, margin)) return b.id
+    }
+    return null
   }
 
   /** Keep or claim one of the two contact slots on a door side; null when both are taken. */
@@ -695,9 +859,13 @@ export class GameRuntime {
     }
 
     const from: Vec3 = { x: player.position.x, y: player.position.y, z: player.position.z }
-    const target = selectInteractable(player.position, player.facing, this.interactables, (item) =>
-      this.physics ? this.physics.isBlocked(from, item.position, [item.id]) : false,
-    )
+    // R1: only the interactables around the player (same order as the full list), not the whole map.
+    const nearby = this.interactableIndex.queryRadius(player.position.x, player.position.z, INTERACT_RANGE + this.maxInteractRadius)
+    const target = selectInteractable(player.position, player.facing, nearby, (item) => {
+      if (!this.physics) return false
+      this.perf.count('otherRaycasts')
+      return this.physics.isBlocked(from, item.position, [item.id])
+    })
     this.currentInteractable = target
     this.interactPrompt = target ? this.describeInteraction(target) : null
 
@@ -837,7 +1005,14 @@ export class GameRuntime {
     const item: Interactable = { id, kind: 'container', name: 'Túi đồ rơi', position: { ...position, y: 0.25 }, radius: 0.25 }
     this.interactables = this.interactables.filter((i) => i.id !== id)
     this.interactables.push(item)
-    this.interactableById.set(id, item)
+    this.indexInteractable(item)
+  }
+
+  private indexInteractable(item: Interactable): void {
+    this.interactableById.set(item.id, item)
+    // Re-inserting moves it last, like the list push above.
+    this.interactableIndex.insert(item.id, item, item.position.x, item.position.z)
+    this.maxInteractRadius = Math.max(this.maxInteractRadius, item.radius)
   }
 
   /** Phím I: mở/đóng túi. Đóng túi cũng đóng panel container. */
@@ -1040,22 +1215,30 @@ export class GameRuntime {
     this.events.queue('inventory:changed', { inventoryOpen: this.inventoryOpen, containerId: this.openContainerId })
   }
 
+  /**
+   * R2 zombie pass: levels → scheduled AI decisions (`AIScheduler`: critical zombies every tick, the
+   * rest at their level's rate, each with the time since its previous decision) → queued A* within the
+   * budget → movement of every ACTIVE/NEAR zombie (and of DORMANT ones that just decided) by the
+   * simulation, with collision; ACTIVE bodies then follow. Attacks and door hits keep map order.
+   */
   private stepZombies(dt: number): { attacks: PendingAttack[]; structureHits: PendingStructureHit[] } {
     const attacks: PendingAttack[] = []
     const structureHits: PendingStructureHit[] = []
     const target = this.player.position
     const cfg = GAME_CONFIG.zombie
     this.releaseDoorSlots()
-    for (const zombie of this.zombies.values()) {
-      const body = this.zombieBodies.get(zombie.id)
-      if (body) {
-        const t = body.translation()
-        zombie.position.x = t.x
-        zombie.position.y = t.y
-        zombie.position.z = t.z
-      }
-
-      const result = stepZombie(zombie, target, this.player.alive, dt, cfg, this.zombieAIContext)
+    this.syncZombieIndex()
+    this.aiScheduler.updateLevels(this.zombies.values(), target, dt, (z, from) => {
+      this.events.queue('zombie:levelChanged', { id: z.id, from, to: z.simLevel })
+    })
+    const updates = this.aiScheduler.plan(this.zombies, target, dt, this.aiUpdates)
+    this.dormantStep.clear()
+    for (const { zombie, dt: aiDt } of updates) {
+      const result = stepZombie(zombie, target, this.player.alive, aiDt, cfg, this.zombieAIContext)
+      this.perf.count('aiUpdates')
+      zombie.velocity.x = result.velocity.x
+      zombie.velocity.z = result.velocity.z
+      if (zombie.simLevel === 'DORMANT') this.dormantStep.set(zombie.id, aiDt)
 
       if (result.transition) {
         this.events.queue('zombie:stateChanged', { id: zombie.id, ...result.transition })
@@ -1065,13 +1248,66 @@ export class GameRuntime {
         attacks.push({ sourceId: zombie.id, damage: cfg.damage })
       }
       if (result.structureHit) structureHits.push({ sourceId: zombie.id, doorId: result.structureHit })
-      if (body && zombie.ai !== 'DEAD') {
-        const sep = this.separation(zombie)
-        const v = body.linvel()
-        body.setLinvel({ x: result.velocity.x + sep.x, y: v.y, z: result.velocity.z + sep.z }, true)
-      }
     }
+
+    let t = this.perf.begin()
+    this.stepPathQueue()
+    this.perf.end('nav', t)
+    t = this.perf.begin()
+    this.moveZombies(dt)
+    this.perf.end('movement', t)
     return { attacks, structureHits }
+  }
+
+  /** Serve queued A* requests within `GAME_CONFIG.pathfinding` (count and time), ACTIVE first. */
+  private stepPathQueue(): void {
+    this.pathQueue.process(this.pathBudget, (req) => {
+      const z = this.zombies.get(req.id)
+      if (!z || z.ai === 'DEAD') return false
+      this.perf.count('pathsComputed')
+      z.path = this.nav.findPath(z.position, req.goal) ?? []
+      z.pathIndex = 0
+      z.pathPending = false
+      return true
+    })
+  }
+
+  /**
+   * Integrate the velocity each zombie's AI chose, plus the soft separation, with collision against
+   * static boxes, the player and (hard) other zombies. ACTIVE/NEAR move every tick; DORMANT ones move
+   * only on their AI tick, by that update's time step (sub-stepped). ACTIVE bodies follow.
+   */
+  private moveZombies(dt: number): void {
+    const cfg = GAME_CONFIG.zombie
+    const env = this.moveEnv
+    const p = this.player.position
+    const player: Circle = { x: p.x, z: p.z, r: GAME_CONFIG.player.radius }
+    const other: Circle = { x: 0, z: 0, r: cfg.radius }
+    for (const z of this.zombies.values()) {
+      if (z.ai === 'DEAD') continue
+      const dormant = z.simLevel === 'DORMANT'
+      const stepDt = dormant ? (this.dormantStep.get(z.id) ?? 0) : dt
+      if (stepDt <= 0) continue
+      const sep = dormant ? null : this.separation(z)
+      moveZombie(z.position, z.velocity.x + (sep?.x ?? 0), z.velocity.z + (sep?.z ?? 0), stepDt, env, player)
+      if (!dormant) {
+        // Zombies do not overlap: each resolves half of an overlap with a neighbour, then the walls win.
+        const neighbours = this.neighbourScratch
+        neighbours.length = 0
+        this.zombieIndex.queryRadius(z.position.x, z.position.z, cfg.radius * 2, neighbours)
+        let pushed = false
+        for (const n of neighbours) {
+          if (n === z || n.ai === 'DEAD') continue
+          other.x = n.position.x
+          other.z = n.position.z
+          pushed = pushOutOfCircle(z.position, cfg.radius, other, 0.5) || pushed
+        }
+        if (pushed) resolveStatic(z.position, env)
+      }
+      this.zombieIndex.update(z.id, z.position.x, z.position.z)
+      const body = this.zombieBodies.get(z.id)
+      if (body) body.setNextKinematicTranslation({ x: z.position.x, y: cfg.height / 2, z: z.position.z })
+    }
   }
 
   /** Đẩy nhẹ zombie ra khỏi các zombie còn sống khác để không chồng lên một điểm. */
@@ -1079,7 +1315,12 @@ export class GameRuntime {
     const cfg = GAME_CONFIG.zombie
     let x = 0
     let z = 0
-    for (const other of this.zombies.values()) {
+    // R1: neighbours from the spatial index (same order as the old loop over every zombie).
+    const neighbours = this.neighbourScratch
+    neighbours.length = 0
+    this.zombieIndex.queryRadius(zombie.position.x, zombie.position.z, cfg.separationRadius, neighbours)
+    this.perf.count('separationChecks', neighbours.length - 1)
+    for (const other of neighbours) {
       if (other === zombie || other.ai === 'DEAD') continue
       const dx = zombie.position.x - other.position.x
       const dz = zombie.position.z - other.position.z
@@ -1119,15 +1360,18 @@ export class GameRuntime {
     }
   }
 
-  private meleeTargets(): MeleeTarget[] {
+  /** Zombies that can be within `range` (edge distance) of the player: spatial query (R1), map order. */
+  private meleeTargets(range: number): MeleeTarget[] {
     const r = GAME_CONFIG.zombie.radius
     const list: MeleeTarget[] = []
-    for (const z of this.zombies.values()) list.push({ id: z.id, position: z.position, radius: r, alive: z.ai !== 'DEAD' })
+    const p = this.player.position
+    for (const z of this.zombieIndex.queryRadius(p.x, p.z, range + r)) list.push({ id: z.id, position: z.position, radius: r, alive: z.ai !== 'DEAD' })
     return list
   }
 
   private isTargetBlocked(target: MeleeTarget): boolean {
     if (!this.physics) return false
+    this.perf.count('otherRaycasts')
     return this.physics.isBlocked(atHeight(this.player.position, SWING_HEIGHT), atHeight(target.position, SWING_HEIGHT), [])
   }
 
@@ -1146,7 +1390,7 @@ export class GameRuntime {
     }
     const stats = meleeStats(weapon.itemId)
     const damage = weaponHitDamage(weapon.itemId, weapon.condition)
-    const hits = resolveConeHits(player.position, player.facing, this.meleeTargets(), { range: stats.range, halfAngleDeg: cfg.halfAngleDeg }, (t) => this.isTargetBlocked(t))
+    const hits = resolveConeHits(player.position, player.facing, this.meleeTargets(stats.range), { range: stats.range, halfAngleDeg: cfg.halfAngleDeg }, (t) => this.isTargetBlocked(t))
     const hitIds: EntityId[] = []
     for (const hit of hits) {
       const zombie = this.zombies.get(hit.id)
@@ -1174,7 +1418,7 @@ export class GameRuntime {
 
   private resolvePlayerPush(): void {
     const cfg = GAME_CONFIG.push
-    const hits = resolveConeHits(this.player.position, this.player.facing, this.meleeTargets(), cfg, (t) => this.isTargetBlocked(t))
+    const hits = resolveConeHits(this.player.position, this.player.facing, this.meleeTargets(cfg.range), cfg, (t) => this.isTargetBlocked(t))
     const hitIds: EntityId[] = []
     for (const hit of hits) {
       const zombie = this.zombies.get(hit.id)
@@ -1188,11 +1432,11 @@ export class GameRuntime {
   /** DEAD hủy AI, collider và đòn đang chờ: tắt body để không chặn đường và không nhận đòn. */
   private onZombieDied(zombie: ZombieState, sourceId: EntityId): void {
     if (sourceId === 'player') this.player.kills += 1
-    const body = this.zombieBodies.get(zombie.id)
-    if (body) {
-      body.setLinvel({ x: 0, y: 0, z: 0 }, true)
-      body.setEnabled(false)
-    }
+    // The view unmounts the kinematic body of a dead zombie; disable it at once so it stops blocking.
+    this.zombieBodies.get(zombie.id)?.setEnabled?.(false)
+    zombie.velocity.x = 0
+    zombie.velocity.z = 0
+    this.pathQueue.cancel(zombie.id)
     this.events.queue('zombie:died', { id: zombie.id, sourceId })
   }
 
@@ -1272,4 +1516,4 @@ function buildInteractables(map: MapData): Interactable[] {
 }
 
 /** Singleton runtime cho ứng dụng. Test tạo instance riêng bằng `new GameRuntime()`. */
-export const runtime = new GameRuntime(DOOR_LAB_ENABLED ? DOOR_LAB_MAP : NEIGHBORHOOD_MAP)
+export const runtime = new GameRuntime(DOOR_LAB_ENABLED ? DOOR_LAB_MAP : STRESS_TILES ? buildStressMap(STRESS_TILES) : NEIGHBORHOOD_MAP)

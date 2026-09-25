@@ -53,6 +53,8 @@ export interface MapData {
   windows?: WindowPlacement[]
   /** Rooms with their lamps (building lighting). Omitted = derived from `buildings`. */
   rooms?: RoomPlacement[]
+  /** Living zombie cap for this map; omitted = `GAME_CONFIG.spawn.maxActive` (stress maps raise it). */
+  maxActiveZombies?: number
 }
 
 /** Windows of a map (test maps often list only walls/doors: derive from the buildings). */
@@ -66,17 +68,20 @@ export function mapRooms(map: MapData): RoomPlacement[] {
 }
 
 const SIZE = GAME_CONFIG.world.size
-const HALF = SIZE / 2
 const BOUNDARY_HEIGHT = 2
 const BOUNDARY_THICKNESS = 1
 
-/** Hàng rào bao quanh bản đồ để người chơi không đi ra ngoài sân. */
-const boundaryWalls: WallDef[] = [
-  { id: 'bound-n', position: { x: 0, y: BOUNDARY_HEIGHT / 2, z: -HALF - BOUNDARY_THICKNESS / 2 }, size: [SIZE + 2, BOUNDARY_HEIGHT, BOUNDARY_THICKNESS] },
-  { id: 'bound-s', position: { x: 0, y: BOUNDARY_HEIGHT / 2, z: HALF + BOUNDARY_THICKNESS / 2 }, size: [SIZE + 2, BOUNDARY_HEIGHT, BOUNDARY_THICKNESS] },
-  { id: 'bound-w', position: { x: -HALF - BOUNDARY_THICKNESS / 2, y: BOUNDARY_HEIGHT / 2, z: 0 }, size: [BOUNDARY_THICKNESS, BOUNDARY_HEIGHT, SIZE + 2] },
-  { id: 'bound-e', position: { x: HALF + BOUNDARY_THICKNESS / 2, y: BOUNDARY_HEIGHT / 2, z: 0 }, size: [BOUNDARY_THICKNESS, BOUNDARY_HEIGHT, SIZE + 2] },
-]
+/** Hàng rào bao quanh bản đồ (vuông `size`, tâm gốc tọa độ) để người chơi không đi ra ngoài sân. */
+export function boundaryWallsFor(size: number): WallDef[] {
+  const half = size / 2
+  return [
+    { id: 'bound-n', position: { x: 0, y: BOUNDARY_HEIGHT / 2, z: -half - BOUNDARY_THICKNESS / 2 }, size: [size + 2, BOUNDARY_HEIGHT, BOUNDARY_THICKNESS] },
+    { id: 'bound-s', position: { x: 0, y: BOUNDARY_HEIGHT / 2, z: half + BOUNDARY_THICKNESS / 2 }, size: [size + 2, BOUNDARY_HEIGHT, BOUNDARY_THICKNESS] },
+    { id: 'bound-w', position: { x: -half - BOUNDARY_THICKNESS / 2, y: BOUNDARY_HEIGHT / 2, z: 0 }, size: [BOUNDARY_THICKNESS, BOUNDARY_HEIGHT, size + 2] },
+    { id: 'bound-e', position: { x: half + BOUNDARY_THICKNESS / 2, y: BOUNDARY_HEIGHT / 2, z: 0 }, size: [BOUNDARY_THICKNESS, BOUNDARY_HEIGHT, size + 2] },
+  ]
+}
+const boundaryWalls = boundaryWallsFor(SIZE)
 
 /**
  * Khu phố 50 × 50. Hai trục đường cắt nhau chia bản đồ thành 4 khu:
@@ -186,10 +191,12 @@ const HOUSE: BuildingDef = {
   ],
 }
 
-const BUILDINGS: BuildingDef[] = [SAFE_HOUSE, STORE, HOUSE]
+/** Exported for the dev stress map, which tiles the neighbourhood (`stressMap.ts`). */
+export const NEIGHBORHOOD_BUILDINGS: BuildingDef[] = [SAFE_HOUSE, STORE, HOUSE]
+const BUILDINGS = NEIGHBORHOOD_BUILDINGS
 
 /** Outdoor containers: riskier spots (the park has a zombie spawn) for rarer melee. */
-const outdoorContainers: ContainerDef[] = [
+export const NEIGHBORHOOD_OUTDOOR_CONTAINERS: ContainerDef[] = [
   { id: 'ct-park-toolbox', name: 'Thùng dụng cụ công viên', position: { x: -21.5, y: 0.35, z: 12.5 }, size: [0.9, 0.7, 0.5], color: '#b0472f', loot: 'park-toolbox' },
   // P2-S4: scrap pile behind (east of) the house, between two zombie spawns.
   { id: 'ct-house-scrap', name: 'Đống phế liệu sau nhà', position: { x: 20.5, y: 0.4, z: 12 }, size: [1.4, 0.8, 1], color: '#6b6f73', loot: 'scrap-pile' },
@@ -207,7 +214,7 @@ export const DOORS_ADDED_V7: ReadonlySet<string> = new Set(['door-house-bedroom'
 export const WALL_PREFIXES_ADDED_V7: readonly string[] = ['house-partition']
 
 /** Vật cản rời: hàng rào công viên, xe hỏng, quầy, giường, thùng. */
-const obstacles: WallDef[] = [
+export const NEIGHBORHOOD_OBSTACLES: WallDef[] = [
   { id: 'fence-park-n', position: { x: -14.5, y: 0.5, z: 6 }, size: [15, 1, 0.15], color: '#7a6a55' },
   { id: 'fence-park-e', position: { x: -7, y: 0.5, z: 13 }, size: [0.15, 1, 8], color: '#7a6a55' },
   { id: 'fence-park-s', position: { x: -14.5, y: 0.5, z: 20 }, size: [15, 1, 0.15], color: '#7a6a55' },
@@ -221,7 +228,7 @@ const obstacles: WallDef[] = [
   { id: 'pillar-2', position: { x: 5, y: 1, z: 20 }, size: [1.2, 2, 1.2], color: '#6f6a63' },
 ]
 
-const roads: RoadDef[] = [
+export const NEIGHBORHOOD_ROADS: RoadDef[] = [
   { id: 'road-ew', position: { x: 0, z: -1 }, size: [SIZE, 4], color: '#3a3a3f' },
   { id: 'road-ns', position: { x: -1, z: 0 }, size: [4, SIZE], color: '#3a3a3f' },
 ]
@@ -253,10 +260,10 @@ export const NEIGHBORHOOD_MAP: MapData = {
     { id: 'zone-yard', name: 'Sân sau nhà dân', center: { x: 20, y: 0, z: 20 }, radius: 3.5 },
   ],
   buildings: BUILDINGS,
-  walls: [...boundaryWalls, ...BUILDINGS.flatMap(generateBuildingWalls), ...obstacles],
+  walls: [...boundaryWalls, ...BUILDINGS.flatMap(generateBuildingWalls), ...NEIGHBORHOOD_OBSTACLES],
   doors: BUILDINGS.flatMap(generateDoorPlacements),
-  containers: [...BUILDINGS.flatMap((b) => b.containers), ...outdoorContainers],
-  roads,
+  containers: [...BUILDINGS.flatMap((b) => b.containers), ...NEIGHBORHOOD_OUTDOOR_CONTAINERS],
+  roads: NEIGHBORHOOD_ROADS,
   windows: BUILDINGS.flatMap(generateWindowPlacements),
   rooms: BUILDINGS.flatMap(generateRooms),
 }

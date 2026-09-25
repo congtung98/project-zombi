@@ -94,7 +94,7 @@ export function HUD() {
       )}
 
       {showHints && (
-        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ/chế tạo · X hủy thao tác · Esc tạm dừng · F3 debug · F4 tầm nhìn · F6 ánh sáng</div>
+        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ/chế tạo · X hủy thao tác · Esc tạm dừng · F3 debug · F4 tầm nhìn · F6 ánh sáng · F7 hiệu năng</div>
       )}
 
       {debug && (

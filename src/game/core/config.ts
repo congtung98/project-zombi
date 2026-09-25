@@ -222,6 +222,14 @@ export const GAME_CONFIG = {
     daylightColor: '#f4f6ff',
     /** DEBUG_BUILDING_LIGHTING: F6 toggles it in game, `?lighting=debug` starts with it on. */
     debug: false,
+    /**
+     * Rooms the indoor shader handles at once (a GLSL array size, fixed at compile time). Maps with
+     * more rooms upload the ones nearest the player (see `IndoorLighting.tsx`); the rest render as
+     * outdoors until the player comes closer.
+     */
+    maxShaderRooms: 16,
+    /** The nearest-room subset is re-picked after the player moved this far (m). */
+    shaderRoomRepickDistance: 4,
   },
   nav: {
     /** Kích thước ô lưới điều hướng (đơn vị thế giới). */
@@ -236,6 +244,39 @@ export const GAME_CONFIG = {
     waypointReachDist: 0.35,
     /** Không tiến được trong khoảng này thì buộc tìm đường lại. */
     stuckTime: 1,
+  },
+  /**
+   * R2 simulation levels (distance from the player on the ground plane) and the AI budget. The AI
+   * decides at these rates; movement, collision and physics sync still run every tick for ACTIVE and
+   * NEAR zombies (DORMANT ones move in sub-stepped jumps at their AI rate). Zombies near the player or
+   * mid-attack/stagger/fall ("critical") decide every tick, so combat timing is unchanged.
+   */
+  simulation: {
+    /** ACTIVE ≤ this: Rapier body, full perception, every-tick movement, drawn. */
+    activeDistance: 25,
+    /** NEAR ≤ this: no Rapier body, lower AI rate, still drawn. Beyond: DORMANT (not drawn). */
+    nearDistance: 60,
+    /** Band (m) around each threshold so a zombie on the edge does not flip level every evaluation. */
+    levelHysteresis: 2,
+    /** Seconds between two level evaluations. */
+    levelInterval: 0.25,
+    activeAiHz: 20,
+    nearAiHz: 4,
+    dormantAiHz: 0.5,
+    /** Zombies this close to the player decide every tick (combat, immediate danger). */
+    criticalDistance: 6,
+    /** Scheduled (non-critical) AI updates per tick; the most overdue go first. */
+    maxAiUpdatesPerTick: 48,
+    /** Longest time step one AI update may consume (a starved zombie does not jump further). */
+    maxAiDt: 1,
+    dormantMaxAiDt: 3,
+    /** Longest move per collision sub-step (m): below the thinnest wall + zombie radius. */
+    movementSubstep: 0.2,
+  },
+  /** R2 pathfinding queue: A* searches run after the AI pass, within these budgets (at least one per tick). */
+  pathfinding: {
+    maxPathsPerTick: 6,
+    maxPathMs: 2,
   },
   /**
    * damage/range/cooldown/stamina are the Phase 1 bat baseline that `ITEMS.baseball_bat` reuses;

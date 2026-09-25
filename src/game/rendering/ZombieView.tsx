@@ -27,14 +27,15 @@ interface ZombieViewProps {
 }
 
 /**
- * Zombie: same capsule collider as before; the rigged model (variant from the zombie ID) is
- * posed from runtime state. Eyes glow while chasing/attacking, the model flashes on hits, the
- * health bar shows once damaged and the body falls when dead (runtime already disabled it).
- * Drawn only as the player vision allows (`runtime.vision` opacity: fade in/out, hidden = not drawn,
- * no shadow); the body, collider and AI are untouched by it.
+ * Zombie visual (R2: rendering only). The rigged model (variant from the zombie ID) is placed and
+ * posed from simulation state after each tick; it owns no AI state, position, path, health or
+ * target, and unmounting it (DORMANT zombies are not drawn) changes nothing in the simulation. Eyes
+ * glow while chasing/attacking, the model flashes on hits, the health bar shows once damaged and the
+ * body falls when dead. Drawn only as the player vision allows (`runtime.vision` opacity: fade in/out,
+ * hidden = not drawn, no shadow). The physics body is `ZombieBody`, mounted only while ACTIVE.
  */
 export function ZombieView({ id }: ZombieViewProps) {
-  const bodyRef = useRef<RapierRigidBody>(null)
+  const rootRef = useRef<Group>(null)
   const visualRef = useRef<Group>(null)
   const healthBarRef = useRef<Group>(null)
   const healthFillRef = useRef<Mesh>(null)
@@ -44,18 +45,16 @@ export function ZombieView({ id }: ZombieViewProps) {
   const zombie = runtime.zombies.get(id)
   const anim = useRef({ gait: createMeasuredGait(), time: (zombie?.id.length ?? 0) * 0.37, strike: 0, windup: -1, facing: zombie?.facing ?? 0 })
 
-  useEffect(() => {
-    runtime.registerZombieBody(id, bodyRef.current)
-    return () => runtime.registerZombieBody(id, null)
-  }, [id])
-
   useEffect(() => () => rig.dispose(), [rig])
 
   // Posed after the tick by CharacterAnimator (same state as the simulation this frame).
   useEffect(() => registerAnimator((delta) => {
     const z = runtime.zombies.get(id)
     const visual = visualRef.current
-    if (!z || !visual) return
+    const root = rootRef.current
+    if (!z || !visual || !root) return
+    // The simulation owns the position (R2); the view just follows it.
+    root.position.set(z.position.x, 0, z.position.z)
     const a = anim.current
     a.time += delta
     a.facing = dampAngle(a.facing, z.facing, TURN_SMOOTHING, delta)
@@ -118,21 +117,13 @@ export function ZombieView({ id }: ZombieViewProps) {
   const spawn = zombie.position
 
   return (
-    <RigidBody
-      ref={bodyRef}
-      type="dynamic"
-      colliders={false}
-      lockRotations
-      canSleep={false}
-      linearDamping={0}
-      position={[spawn.x, CFG.height / 2, spawn.z]}
-    >
-      <CapsuleCollider args={[HALF_HEIGHT, CFG.radius]} friction={0} mass={CFG.mass} />
+    <group ref={rootRef} position={[spawn.x, 0, spawn.z]}>
       <group ref={visualRef} visible={false}>
-        <group position={[0, -CFG.height / 2, 0]}>
+        {/* Same hierarchy as before R2 (rig → group → visual), which debug tools and scripts rely on. */}
+        <group>
           <primitive object={rig.root} />
         </group>
-        <group ref={healthBarRef} position={[0, CFG.height / 2 + 0.35, 0]} visible={false}>
+        <group ref={healthBarRef} position={[0, CFG.height + 0.35, 0]} visible={false}>
           <mesh>
             <boxGeometry args={[0.94, 0.1, 0.06]} />
             <meshBasicMaterial color="#1a1a1a" />
@@ -143,6 +134,28 @@ export function ZombieView({ id }: ZombieViewProps) {
           </mesh>
         </group>
       </group>
+    </group>
+  )
+}
+
+/**
+ * R2: physics representation of an ACTIVE zombie: a kinematic capsule the simulation moves every
+ * tick (`runtime.registerZombieBody` → `setNextKinematicTranslation`). It blocks and pushes the
+ * player; it never feeds a position back. NEAR/DORMANT/dead zombies have none.
+ */
+export function ZombieBody({ id }: ZombieViewProps) {
+  const bodyRef = useRef<RapierRigidBody>(null)
+
+  useEffect(() => {
+    runtime.registerZombieBody(id, bodyRef.current)
+    return () => runtime.registerZombieBody(id, null)
+  }, [id])
+
+  const zombie = runtime.zombies.get(id)
+  if (!zombie) return null
+  return (
+    <RigidBody ref={bodyRef} type="kinematicPosition" colliders={false} position={[zombie.position.x, CFG.height / 2, zombie.position.z]}>
+      <CapsuleCollider args={[HALF_HEIGHT, CFG.radius]} friction={0} />
     </RigidBody>
   )
 }

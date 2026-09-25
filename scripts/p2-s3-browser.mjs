@@ -185,8 +185,7 @@ try {
       const c = { x: -14 - p.x, z: -14 - p.z }
       const len = Math.hypot(c.x, c.z) || 1
       const pos = { x: p.x + (c.x / len) * 1.3, y: 0.9, z: p.z + (c.z / len) * 1.3 }
-      z.position = { ...pos }
-      rt.zombieBodies.get(z.id).setTranslation(pos, true)
+      z.position = { ...pos } // R2: the simulation owns the position; the body follows next tick
       const rootOf = () => {
         let root = null
         window.__scene.traverse((o) => { if (o.name === 'character' && Math.abs(o.getWorldPosition(o.position.clone()).x - z.position.x) < 0.2 && Math.abs(o.getWorldPosition(o.position.clone()).z - z.position.z) < 0.2) root = o })

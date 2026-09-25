@@ -163,8 +163,7 @@ try {
       const z = rt.zombies.get('zombie-1')
       z.health = 50
       z.staggerTimer = 1e6
-      z.position = { ...pos }
-      rt.zombieBodies.get('zombie-1').setTranslation(pos, true)
+      z.position = { ...pos } // R2: the simulation owns the position; the body follows next tick
       const w = rt.player.inventory.slots.find((i) => i?.id === rt.player.equipment.weaponInstanceId)
       return { condition: w.condition, itemId: w.itemId }
     })

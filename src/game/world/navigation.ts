@@ -69,6 +69,21 @@ export class NavGrid {
   /** 4-connected component label per cell (-1 blocked), rebuilt lazily per `version`. */
   private components: Int32Array | null = null
   private componentsVersion = -1
+  /**
+   * R1: A* working buffers, allocated once per grid and reused by every search. A cell's g-score and
+   * parent are valid only when its `visited` stamp equals the current search, so nothing is cleared
+   * between searches (the old code allocated and filled three grid-sized arrays per path).
+   */
+  private readonly gScore: Float32Array
+  private readonly cameFrom: Int32Array
+  private readonly visited: Uint32Array
+  private readonly closedStamp: Uint32Array
+  private searchStamp = 0
+  private readonly heap = new MinHeap()
+  /** BFS queue of the component labelling, reused per rebuild. */
+  private componentQueue: Int32Array | null = null
+  /** A* searches run (instrumentation). */
+  searches = 0
 
   constructor(map: MapData, opts: NavGridOptions) {
     this.cellSize = opts.cellSize
@@ -79,6 +94,10 @@ export class NavGrid {
     this.originZ = -map.size / 2 - 1
     this.staticBlocked = new Uint8Array(this.cols * this.rows)
     this.blocked = new Uint8Array(this.cols * this.rows)
+    this.gScore = new Float32Array(this.cols * this.rows)
+    this.cameFrom = new Int32Array(this.cols * this.rows)
+    this.visited = new Uint32Array(this.cols * this.rows)
+    this.closedStamp = new Uint32Array(this.cols * this.rows)
 
     const r = opts.agentRadius
     for (const wall of map.walls) {
@@ -222,7 +241,7 @@ export class NavGrid {
     const total = this.cols * this.rows
     const labels = this.components ?? new Int32Array(total)
     labels.fill(-1)
-    const queue = new Int32Array(total)
+    const queue = (this.componentQueue ??= new Int32Array(total))
     let next = 0
     for (let seed = 0; seed < total; seed++) {
       if (this.blocked[seed] || labels[seed] >= 0) continue
@@ -273,6 +292,20 @@ export class NavGrid {
     return this.smooth(points)
   }
 
+  /**
+   * R2 pre-check of a path request, without A*: 'none' = no route (no walkable cell nearby or another
+   * connected region; `findPath` would return null), 'direct' = start and goal share a cell (the path
+   * is one waypoint), 'search' = an A* search is needed (queued).
+   */
+  routeKind(from: Vec3, to: Vec3): 'none' | 'direct' | 'search' {
+    const start = this.nearestWalkableCell(from.x, from.z)
+    const goal = this.nearestWalkableCell(to.x, to.z)
+    if (!start || !goal) return 'none'
+    if (start.cx === goal.cx && start.cz === goal.cz) return 'direct'
+    const labels = this.componentLabels()
+    return labels[start.cz * this.cols + start.cx] === labels[goal.cz * this.cols + goal.cx] ? 'search' : 'none'
+  }
+
   private goalPoint(to: Vec3, goal: { cx: number; cz: number }): Vec3 {
     return this.isWalkable(to.x, to.z) ? { x: to.x, y: 0, z: to.z } : this.cellToWorld(goal.cx, goal.cz)
   }
@@ -292,24 +325,30 @@ export class NavGrid {
 
   private astar(start: { cx: number; cz: number }, goal: { cx: number; cz: number }): { cx: number; cz: number }[] | null {
     const cols = this.cols
-    const total = cols * this.rows
     const startIdx = start.cz * cols + start.cx
     const goalIdx = goal.cz * cols + goal.cx
+    this.searches += 1
 
-    const gScore = new Float32Array(total).fill(Infinity)
-    const cameFrom = new Int32Array(total).fill(-1)
-    const closed = new Uint8Array(total)
-    const open = new MinHeap()
+    // Stamps instead of clearing: unvisited cells read as g = Infinity, parent = -1, not closed.
+    const stamp = this.nextStamp()
+    const gScore = this.gScore
+    const cameFrom = this.cameFrom
+    const visited = this.visited
+    const closed = this.closedStamp
+    const open = this.heap
+    open.clear()
 
     gScore[startIdx] = 0
+    cameFrom[startIdx] = -1
+    visited[startIdx] = stamp
     open.push(startIdx, this.heuristic(start.cx, start.cz, goal.cx, goal.cz))
 
     let expansions = 0
     while (open.size > 0) {
       const current = open.pop()
       if (current === goalIdx) return this.reconstruct(cameFrom, current)
-      if (closed[current]) continue
-      closed[current] = 1
+      if (closed[current] === stamp) continue
+      closed[current] = stamp
       if (++expansions > MAX_EXPANSIONS) return null
 
       const cx = current % cols
@@ -323,9 +362,11 @@ export class NavGrid {
           // Không cắt góc: đi chéo chỉ khi hai ô kề theo trục đều trống.
           if (dx !== 0 && dz !== 0 && (!this.isWalkableCell(cx + dx, cz) || !this.isWalkableCell(cx, cz + dz))) continue
           const nIdx = nz * cols + nx
-          if (closed[nIdx]) continue
+          if (closed[nIdx] === stamp) continue
+          // Same arithmetic as before: a double sum of the stored Float32 score (identical paths).
           const tentative = gScore[current] + (dx !== 0 && dz !== 0 ? Math.SQRT2 : 1)
-          if (tentative < gScore[nIdx]) {
+          if (visited[nIdx] !== stamp || tentative < gScore[nIdx]) {
+            visited[nIdx] = stamp
             gScore[nIdx] = tentative
             cameFrom[nIdx] = current
             open.push(nIdx, tentative + this.heuristic(nx, nz, goal.cx, goal.cz))
@@ -334,6 +375,17 @@ export class NavGrid {
       }
     }
     return null
+  }
+
+  /** New search stamp; on wrap-around (after 4 billion searches) the stamp arrays are reset. */
+  private nextStamp(): number {
+    this.searchStamp += 1
+    if (this.searchStamp >= 0xffffffff) {
+      this.visited.fill(0)
+      this.closedStamp.fill(0)
+      this.searchStamp = 1
+    }
+    return this.searchStamp
   }
 
   private heuristic(ax: number, az: number, bx: number, bz: number): number {
@@ -499,6 +551,11 @@ class MinHeap {
 
   get size(): number {
     return this.items.length
+  }
+
+  clear(): void {
+    this.items.length = 0
+    this.scores.length = 0
   }
 
   push(item: number, score: number): void {

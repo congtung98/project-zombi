@@ -9,8 +9,9 @@ import { DOOR_MAX_HP } from '../world/doors'
 import { addItem } from '../systems/inventory'
 
 /**
- * P2-S5 acceptance at runtime level (plan §12 Sprint P2-S5): bodies are fakes that move on the
- * nav grid (closed doors block like the Rapier collider) and LOS is the grid line of walk.
+ * P2-S5 acceptance at runtime level (plan §12 Sprint P2-S5). R2: zombies are moved by the simulation
+ * itself (static colliders: walls, closed door leaves); the player body is a fake that moves on the
+ * nav grid, and LOS is the grid line of walk.
  */
 const DT = 1 / 30
 
@@ -47,38 +48,27 @@ function fakeBody(nav: NavGrid, x: number, z: number) {
 type FakeBody = ReturnType<typeof fakeBody>
 const asBody = (b: FakeBody) => b as unknown as Parameters<GameRuntime['registerPlayerBody']>[0]
 
-/** Runtime with grid-backed physics; bodies are created for every zombie that exists. */
+/** Runtime with grid-backed physics for the player; zombies move in the simulation (R2). */
 function world(map: MapData, seed = 7) {
   const rt = new GameRuntime(map)
   rt.newGame(seed)
   rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
   const player = fakeBody(rt.nav, rt.player.position.x, rt.player.position.z)
   rt.registerPlayerBody(asBody(player))
-  const bodies = new Map<string, FakeBody>()
-  const sync = () => {
-    for (const z of rt.zombies.values()) {
-      if (bodies.has(z.id)) continue
-      const b = fakeBody(rt.nav, z.position.x, z.position.z)
-      bodies.set(z.id, b)
-      rt.registerZombieBody(z.id, asBody(b))
-    }
-  }
-  sync()
   const step = (seconds: number, each?: () => void) => {
     for (let t = 0; t < seconds; t += DT) {
-      sync()
       rt.tick(DT)
       player.step(DT)
-      for (const b of bodies.values()) b.step(DT)
       each?.()
     }
   }
-  return { rt, player, bodies, step }
+  const pos = (id: string) => rt.zombies.get(id)!.position
+  return { rt, player, pos, step }
 }
 
 describe('P2-S5 zombie breaks a door to reach a remembered player', () => {
   it('seen entering → door closed → approaches, bashes 10 per hit, breaks it, comes in and attacks', () => {
-    const { rt, bodies, step } = world(hutMap([{ x: 0, y: 0, z: 9 }]))
+    const { rt, pos, step } = world(hutMap([{ x: 0, y: 0, z: 9 }]))
     rt.pickWanderPoint = () => null // keep the Phase 1 staging: it stands facing the hut
     const zombie = rt.zombies.get('zombie-1')!
     zombie.facing = Math.PI
@@ -101,7 +91,7 @@ describe('P2-S5 zombie breaks a door to reach a remembered player', () => {
     expect(zombie.ai).toBe('ATTACK_STRUCTURE')
     expect(zombie.structureTargetId).toBe('door-hut')
     // Bashing from outside: the zombie never got in and never hurt the player through the door.
-    expect(bodies.get('zombie-1')!.translation().z).toBeGreaterThan(3.3)
+    expect(pos('zombie-1').z).toBeGreaterThan(3.3)
     expect(damaged).toBe(0)
 
     step(20)
@@ -111,7 +101,7 @@ describe('P2-S5 zombie breaks a door to reach a remembered player', () => {
     expect(rt.nav.findPath({ x: 0, y: 0, z: 8 }, { x: 0, y: 0, z: -1 })).not.toBeNull()
     step(6)
     // In through the broken door, sees the player again and attacks.
-    expect(bodies.get('zombie-1')!.translation().z).toBeLessThan(2)
+    expect(pos('zombie-1').z).toBeLessThan(2)
     expect(zombie.ai).toBe('ATTACK')
     expect(damaged).toBeGreaterThan(0)
   })
@@ -196,7 +186,7 @@ describe('P2-S5 zombie breaks a door to reach a remembered player', () => {
   })
 
   it('at most two zombies bash one side of a door; the rest wait further back', () => {
-    const { rt, step, bodies } = world(hutMap([{ x: -1.5, y: 0, z: 8 }, { x: -0.5, y: 0, z: 8.5 }, { x: 0.5, y: 0, z: 8 }, { x: 1.5, y: 0, z: 8.5 }]))
+    const { rt, step, pos } = world(hutMap([{ x: -1.5, y: 0, z: 8 }, { x: -0.5, y: 0, z: 8.5 }, { x: 0.5, y: 0, z: 8 }, { x: 1.5, y: 0, z: 8.5 }]))
     rt.pickWanderPoint = () => null
     for (const z of rt.zombies.values()) z.facing = Math.PI
     rt.setDoorState('door-hut', 'open')
@@ -215,7 +205,7 @@ describe('P2-S5 zombie breaks a door to reach a remembered player', () => {
     expect(maxBashing).toBeGreaterThan(0)
     expect(hitters.size).toBeLessThanOrEqual(2)
     const waiting = Array.from(rt.zombies.values()).filter((z) => z.ai === 'APPROACH_STRUCTURE')
-    for (const z of waiting) expect(Math.hypot(bodies.get(z.id)!.translation().x, bodies.get(z.id)!.translation().z - 3)).toBeGreaterThan(1.6)
+    for (const z of waiting) expect(Math.hypot(pos(z.id).x, pos(z.id).z - 3)).toBeGreaterThan(1.6)
   })
 
   it('a save mid-siege restores door HP and the siege; the loaded zombie finishes the door', () => {
@@ -235,9 +225,6 @@ describe('P2-S5 zombie breaks a door to reach a remembered player', () => {
     const second = world(hutMap([{ x: 0, y: 0, z: 9 }]))
     second.rt.loadSnapshot(snap)
     expect({ ...second.rt.createSnapshot(), savedAt: 0 }).toEqual({ ...snap, savedAt: 0 })
-    second.bodies.clear()
-    second.step(DT)
-    for (const [id, b] of second.bodies) b.setTranslation(second.rt.zombies.get(id)!.position)
     second.step(20)
     expect(second.rt.world.doors.get('door-hut')!.state).toBe('destroyed')
   })

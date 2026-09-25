@@ -5,8 +5,12 @@ import type { Mesh } from 'three'
 import type { WindowPlacement } from '../world/buildings'
 import { runtime } from '../core/runtime'
 import { blockerData } from './blockerData'
+import { sharedBox, sharedStandardMaterial } from './sharedResources'
 
 const GLASS_THICKNESS = 0.04
+/** R1: one glass and one curtain material for every window. */
+const GLASS = () => sharedStandardMaterial('#a9d2ea', { transparent: true, opacity: 0.32, roughness: 0.08, metalness: 0.1, depthWrite: false })
+const CURTAIN = () => sharedStandardMaterial('#7d5a6e', { roughness: 0.95 })
 const CURTAIN_THICKNESS = 0.05
 
 /**
@@ -35,14 +39,16 @@ export function WindowView({ win }: { win: WindowPlacement }) {
       <RigidBody type="fixed" colliders={false} position={[c.x, c.y, c.z]} userData={blockerData(`${win.id}:pane`)}>
         <CuboidCollider args={half} />
       </RigidBody>
-      <mesh position={[c.x, c.y, c.z]}>
-        <boxGeometry args={glass} />
-        <meshStandardMaterial color="#a9d2ea" transparent opacity={0.32} roughness={0.08} metalness={0.1} depthWrite={false} />
-      </mesh>
-      <mesh ref={curtainRef} position={[c.x + win.inward.x * inset, c.y, c.z + win.inward.z * inset]} visible={false} castShadow>
-        <boxGeometry args={curtain} />
-        <meshStandardMaterial color="#7d5a6e" roughness={0.95} />
-      </mesh>
+      <mesh position={[c.x, c.y, c.z]} dispose={null} geometry={sharedBox(glass)} material={GLASS()} />
+      <mesh
+        ref={curtainRef}
+        position={[c.x + win.inward.x * inset, c.y, c.z + win.inward.z * inset]}
+        visible={false}
+        castShadow
+        dispose={null}
+        geometry={sharedBox(curtain)}
+        material={CURTAIN()}
+      />
     </>
   )
 }

@@ -238,8 +238,7 @@ try {
       const z = r.zombies.get('zombie-1')
       z.health = 50
       z.staggerTimer = 1e6
-      z.position = { ...pos }
-      r.zombieBodies.get('zombie-1').setTranslation(pos, true)
+      z.position = { ...pos } // R2: the simulation owns the position; the body follows next tick
     })
     const hit = async () => {
       await page.waitForFunction(() => window.__runtime.player.attackCooldown <= 0 && window.__runtime.player.stamina > 30, null, { timeout: 10000 })

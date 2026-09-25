@@ -50,22 +50,11 @@ function world(map: MapData, seed = 11) {
   rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
   const player = fakeBody(rt.nav, rt.player.position.x, rt.player.position.z)
   rt.registerPlayerBody(asBody(player))
-  const bodies = new Map<string, FakeBody>()
-  const sync = () => {
-    for (const z of rt.zombies.values()) {
-      if (bodies.has(z.id)) continue
-      const b = fakeBody(rt.nav, z.position.x, z.position.z)
-      bodies.set(z.id, b)
-      rt.registerZombieBody(z.id, asBody(b))
-    }
-  }
-  sync()
+  // R2: zombies move in the simulation; only the player has a (grid) body.
   const step = (seconds: number, each?: () => void) => {
     for (let t = 0; t < seconds - 1e-9; t += DT) {
-      sync()
       rt.tick(DT)
       player.step(DT)
-      for (const b of bodies.values()) b.step(DT)
       each?.()
     }
   }
@@ -124,17 +113,9 @@ describe('player vision in the runtime', () => {
       const player = fakeBody(rt.nav, rt.player.position.x, rt.player.position.z)
       rt.registerPlayerBody(asBody(player))
       rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
-      const bodies = new Map<string, FakeBody>()
       for (let t = 0; t < 40; t += DT) {
-        for (const z of rt.zombies.values()) {
-          if (bodies.has(z.id)) continue
-          const b = fakeBody(rt.nav, z.position.x, z.position.z)
-          bodies.set(z.id, b)
-          rt.registerZombieBody(z.id, asBody(b))
-        }
         rt.tick(DT)
         player.step(DT)
-        for (const b of bodies.values()) b.step(DT)
       }
       return { zombies: Array.from(rt.zombies.values(), (z) => [z.id, z.ai, z.position.x, z.position.z]), vision: rt.vision.stats.passes }
     }

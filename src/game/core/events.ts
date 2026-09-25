@@ -1,4 +1,5 @@
 import type { ItemEffect, ItemId } from '../entities/items'
+import type { SimLevel } from '../entities/zombie'
 import type { UseItemFailure } from '../systems/survival'
 import type { CraftFailure, RepairPreview } from '../systems/crafting'
 import type { ActionCancelReason } from '../systems/timedAction'
@@ -14,6 +15,8 @@ export type GameEvents = {
   'zombie:spawned': { id: EntityId }
   /** Xác zombie bị dọn khỏi danh sách; view gỡ body. */
   'zombie:removed': { id: EntityId }
+  /** R2: simulation level changed (views mount/unmount the visual and the physics body). */
+  'zombie:levelChanged': { id: EntityId; from: SimLevel; to: SimLevel }
   /** Người chơi vung vũ khí; `hitIds` là các zombie trúng đòn (có thể rỗng), `damage` mỗi mục tiêu. */
   'player:attacked': { hitIds: EntityId[]; damage: number; weaponId: string | null }
   /** Bấm đánh khi tay không: UI nhắc tìm vũ khí / dùng Space đẩy. */

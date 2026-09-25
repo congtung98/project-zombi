@@ -1,14 +1,28 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **sprint bổ sung "ánh sáng trong nhà"** (sau tầm nhìn người chơi, trước P2-S6).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md và docs/phase2-lighting.md.
+> Cập nhật: **2026-09-25**, hoàn thành **refactor kiến trúc R0–R2** (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, **docs/refactor-r0-r2.md** và docs/map-format-note.md.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
+
+## 0. Refactor kiến trúc R0–R2 (mới nhất, chưa commit — chi tiết docs/refactor-r0-r2.md)
+
+Yêu cầu: `Prompt thực thi refactor kiến trúc R0–R2 cho Zombie Outbreak.md` (dựa trên `game-architecture-refactor-plan.md`). Không streaming/ảo hóa/worker/floating origin/chunk persistence. **Save vẫn v7.**
+
+- **R0**: `runtime.perf` (`core/perf.ts`), HUD **F7** / `?perf=1` (`components/PerfHud.tsx`, `rendering/PerfProbe.tsx`: frame, CPU/frame, draw call), map stress **`?stress=N`** (dev, `world/stressMap.ts`, slot `slot-stress`), benchmark `PERF_SCENARIOS=1 npx vitest run src/game/core/perf.scenarios.test.ts --reporter=verbose`, trình duyệt `scripts/r0-perf-browser.mjs [label] --gpu`.
+- **R1** (không đổi hành vi, soak trùng từng số): `core/spatialHash.ts` (kết quả theo thứ tự chèn); `runtime.zombieIndex` (separation, cận chiến, tầm nhìn), index occluder, interactable, công trình (`runtime.buildingAt`, `RoofController`); A* dùng lại buffer (stamp); không còn `scene.traverse` ở hot path: vá shader trong nhà trên `MeshStandardMaterial.prototype` (`installIndoorShading`), `occlusionRegistry` + `occluderRef`; material/geometry dùng chung (`rendering/sharedResources.ts`); giới hạn phòng shader `buildingLighting.maxShaderRooms` (map nhiều phòng tải 16 phòng gần nhất).
+- **R2**: **simulation sở hữu `zombie.position`**; `systems/zombieMovement.ts` (vòng tròn và hộp của `world/staticColliders.ts`, có `registerStaticCollider/unregisterStaticCollider`; `Walls.tsx` dựng từ registry); body Rapier **kinematic chỉ cho zombie ACTIVE còn sống** (`ZombieBody`), `ZombieView` chỉ hiển thị; `systems/aiScheduler.ts` (ACTIVE ≤ 25 m 20 Hz, NEAR ≤ 60 m 4 Hz, DORMANT 0,5 Hz, critical ≤ 6 m/đang đánh/khựng/ngã mọi tick, ≤ 48 lượt/tick); `world/pathfindingQueue.ts` (một yêu cầu/zombie, ≤ 6 A*/tick, ≤ 2 ms; `runtime.pathBudget.maxPathMs = Infinity` khi cần tất định); `ai.ts` dùng `ctx.requestPath` + `NavGrid.routeKind`; `Scene` tách danh sách zombie/body/túi đồ thành component riêng (đổi cấp độ không re-render cả scene). Config `GAME_CONFIG.simulation`, `GAME_CONFIG.pathfinding`.
+- **Kết quả** (map stress, 160 zombie): tick Node 1,29 → 0,056 ms; bão A* tệ nhất 595 → 9,8 ms; trình duyệt (Intel UHD 730) 53,6 → ~74 FPS, CPU/frame 17,5 → ~10,5 ms, body zombie 160 → ~8. Draw call chưa giảm (việc của R3).
+- **Hành vi đổi (R2)**: người chơi không đẩy được zombie (kinematic); zombie va chạm thật với người chơi/nhau/tủ; soak patrol 719 → **655 s** (shelter vẫn đạt cổng: 30', 4 kill, 30 dmg). Test dùng body giả chỉ còn cho người chơi.
+- **Kiểm chứng**: 359 test pass (+ 9 skip benchmark), tsc/oxlint/build sạch; trình duyệt dev s2/s3/s4/s5/vision/lighting và production s5/vision/lighting/s4 PASS (fixture lighting ghi lại đã khôi phục).
+- **Bước tiếp**: R3 (chunk ownership, gộp hình học tĩnh, nav theo chunk + portal, LOS zombie phía simulation, định dạng map prefab + layout JSON) hoặc quay lại P2-S6/S7. Barricade/vách mới đăng ký vào `StaticColliderRegistry`, `VisionOccluderSet` và nav.
+
+Commit message gợi ý (hoặc tách theo 8 nhóm ở docs/refactor-r0-r2.md §6): **refactor(arch): R0 perf HUD + stress map, R1 spatial hash and traversal cleanup, R2 simulation-owned zombies with AI scheduler and path queue**
 
 ## 1. Trạng thái hiện tại
 
 Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S5** (đã commit, S5 = 1f81571) và **sprint bổ sung tầm nhìn người chơi** (zombie chỉ vẽ khi nhân vật thấy; debug F4; save vẫn v6; sau playtest đã **bỏ lớp tối mặt đất** — tầm nhìn không được đụng ánh sáng). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** (`building-lighting-system-spec.md`) xong, **chưa commit**, để người dùng review; save **v7**. File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
+Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. **Ánh sáng trong nhà** đã commit (**38a1469**, save **v7**). Sau đó là **refactor R0–R2** (mục 0). File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
 
 | Sprint | Trạng thái |
 |---|---|
@@ -16,8 +30,9 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 | P2-S1 … P2-S4 | Xong, đã commit |
 | P2-S5 Perception/lang thang/di cư/phá cửa | Xong, đã commit (1f81571) |
 | Bổ sung: tầm nhìn người chơi | Đã commit (c4f9728, 1fc531d, 5f38d8d) |
-| Bổ sung: ánh sáng trong nhà | Xong; 325 test, build/lint, Playwright dev + production qua; soak shelter đạt, patrol 719 s (vách nhà dân); **chưa commit** |
-| P2-S6 Barricade/tool/fuel | Tiếp theo; dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
+| Bổ sung: ánh sáng trong nhà | Đã commit (38a1469) |
+| Refactor R0–R2 (hiệu năng/kiến trúc) | Xong, chưa commit (docs/refactor-r0-r2.md) |
+| P2-S6 Barricade/tool/fuel | Tạm dừng (sau R0–R2); dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
 
@@ -110,6 +125,5 @@ Chạy npm test, npm run build, npm run lint. Lưu ý: `npm run` bằng npm 10 t
 
 Browser: Playwright không phải dependency; truyền `PLAYWRIGHT_MODULE` (file:// URL, ví dụ npx cache `playwright@1.64`) và `CHROMIUM_PATH` (Chrome cài sẵn), `BASE_URL`. Khởi động Vite mới sau khi sửa source. `p2-s5-browser.mjs` (dev) ghi đè `phase2-s5-v6.json`; fixture v1–v5 đóng băng. `p2-vision-browser.mjs` (dev/`--production`) không ghi fixture. `p2-lighting-browser.mjs` dev ghi `phase2-light-v7.json`; `p2-s5-browser.mjs` thôi ghi fixture v6; script cũ assert schema 7. `p2-smoke.mjs` cần Chrome headless mở sẵn với `--remote-debugging-port=9223` và profile thử riêng. Ảnh ở node_modules/.tmp (không track).
 
-Giữ simulation ngoài React; thứ tự tick: input → movement (tính tiếng bước chân) → interaction → AI → combat → **đòn vào công trình** → action → survival/clock → spawn → **di cư** → **ánh sáng trong nhà (theo sự kiện)** → **tầm nhìn người chơi (chỉ render, AI không đọc)** → events; pose chạy sau tick qua `CharacterAnimator`; không import Rapier runtime vào simulation. AI chỉ biết vị trí người chơi qua nhìn/nghe/trí nhớ. Mọi hành động có thời gian mới dùng `startRecipe`/reservation/commit nguyên tử. Giữ layout/ID map, ID vùng và fixture cũ. Tăng schema khi đổi cấu trúc save. Không đổi balance khi chưa đo; soak sau sửa combat/AI/spawn/survival. **Không commit/push; chỉ gợi ý message.**
+Giữ simulation ngoài React; thứ tự tick: input → movement (tính tiếng bước chân) → interaction → AI (R2: cấp độ → scheduler → hàng đợi A* → di chuyển zombie có va chạm → body kinematic) → combat → **đòn vào công trình** → action → survival/clock → spawn → **di cư** → **ánh sáng trong nhà (theo sự kiện)** → **tầm nhìn người chơi (chỉ render, AI không đọc)** → events; pose chạy sau tick qua `CharacterAnimator`; không import Rapier runtime vào simulation. AI chỉ biết vị trí người chơi qua nhìn/nghe/trí nhớ. Mọi hành động có thời gian mới dùng `startRecipe`/reservation/commit nguyên tử. Giữ layout/ID map, ID vùng và fixture cũ. Tăng schema khi đổi cấu trúc save. Không đổi balance khi chưa đo; soak sau sửa combat/AI/spawn/survival. **Không commit/push; chỉ gợi ý message.**
 
-Commit message gợi ý: **feat(lighting): room-graph building lighting with windows, curtains, lamps and save v7**

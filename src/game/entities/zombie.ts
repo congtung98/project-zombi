@@ -1,6 +1,12 @@
 import { GAME_CONFIG } from '../core/config'
 import type { EntityId, Vec2, Vec3, ZombieAIState } from '../../types'
 
+/**
+ * R2 simulation level (runtime only, never saved): how much of the simulation a zombie gets, from its
+ * distance to the player. See `GAME_CONFIG.simulation`.
+ */
+export type SimLevel = 'ACTIVE' | 'NEAR' | 'DORMANT'
+
 /** How the remembered position was learnt (plan §10.1): seen, or heard (footsteps, being hit). */
 export type MemorySource = 'sight' | 'noise'
 
@@ -63,6 +69,12 @@ export interface ZombieState {
   hitFlashTimer: number
   /** Thời gian đã chết (giây), cho animation ngã. */
   deadTimer: number
+
+  /** R2 (runtime only): simulation level and the velocity the AI asked for at its last update. */
+  simLevel: SimLevel
+  velocity: Vec2
+  /** A path request is waiting in the pathfinding queue (deduplicates requests). */
+  pathPending: boolean
 }
 
 export function createZombieState(id: EntityId, spawn: Vec3, zoneId: string | null = null): ZombieState {
@@ -102,6 +114,9 @@ export function createZombieState(id: EntityId, spawn: Vec3, zoneId: string | nu
     staggerTimer: 0,
     hitFlashTimer: 0,
     deadTimer: 0,
+    simLevel: 'ACTIVE',
+    velocity: { x: 0, z: 0 },
+    pathPending: false,
   }
 }
 

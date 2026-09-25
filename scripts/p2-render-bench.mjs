@@ -40,10 +40,9 @@ async function setup() {
     for (const z of rt.zombies.values()) {
       const a = (i++ / rt.zombies.size) * Math.PI * 2
       const pos = { x: center.x + Math.cos(a) * 4, y: 0.9, z: center.z + Math.sin(a) * 4 }
-      z.position = { ...pos }
+      z.position = { ...pos } // R2: the simulation owns the position; the body follows next tick
       z.staggerTimer = 1e9
       z.facing = Math.atan2(center.x - pos.x, center.z - pos.z)
-      rt.zombieBodies.get(z.id)?.setTranslation(pos, true)
     }
   })
 }

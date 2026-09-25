@@ -97,23 +97,15 @@ interface Metrics {
 function runSoak(policy: 'shelter' | 'patrol') {
     const rt = new GameRuntime(NEIGHBORHOOD_MAP)
     rt.newGame(20260924)
+    // Deterministic: the pathfinding queue keeps its per-tick count budget but no wall-clock budget.
+    rt.pathBudget.maxPathMs = Infinity
     const nav = rt.nav
     const map = rt.map
 
-    // Thay Rapier: body giả bám lưới; raycast = tầm đi trên lưới (tường/cửa đóng chắn).
+    // Thay Rapier: body giả bám lưới cho người chơi; raycast = tầm đi trên lưới (tường/cửa đóng chắn).
+    // R2: zombies are moved by the simulation itself (no zombie bodies).
     const playerBody = fakeBody(nav, rt.player.position.x, rt.player.position.z)
     rt.registerPlayerBody(asBody(playerBody))
-    const zombieBodies = new Map<string, FakeBody>()
-    const ensureZombieBodies = () => {
-      for (const z of rt.zombies.values()) {
-        if (!zombieBodies.has(z.id)) {
-          const b = fakeBody(nav, z.position.x, z.position.z)
-          zombieBodies.set(z.id, b)
-          rt.registerZombieBody(z.id, asBody(b))
-        }
-      }
-      for (const id of Array.from(zombieBodies.keys())) if (!rt.zombies.has(id)) zombieBodies.delete(id)
-    }
     rt.registerPhysicsQuery({
       isBlocked: (from, to, ignore) => (ignore.length > 0 ? false : !nav.hasLineOfWalk(from, to)),
     })
@@ -367,11 +359,9 @@ function runSoak(policy: 'shelter' | 'patrol') {
         } else move(0, 0)
       } else move(0, 0)
 
-      // ---- Tick + tích phân body giả
-      ensureZombieBodies()
+      // ---- Tick + tích phân body giả của người chơi
       rt.tick(DT)
       playerBody.step(DT)
-      for (const b of zombieBodies.values()) b.step(DT)
 
       // ---- Số liệu và bất biến
       m.survivedSec = t

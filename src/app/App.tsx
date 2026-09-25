@@ -5,6 +5,7 @@ import { HUD } from '../components/HUD'
 import { InventoryOverlay } from '../components/ContainerPanel'
 import { GameOverScreen, MainMenu, PauseMenu } from '../components/Menus'
 import { CharacterCreation } from '../components/CharacterCreation'
+import { PerfHud } from '../components/PerfHud'
 import { runtime } from '../game/core/runtime'
 import { sfx } from '../game/audio/sfx'
 import type { ItemEffect } from '../game/entities/items'
@@ -44,9 +45,21 @@ function doorGain(id: string): number {
 }
 const DoorLab = lazy(() => import('../components/DoorLab'))
 
+/** Zombie list refresh, coalesced: many level changes in one tick cost one store update. */
+let zombieRefreshQueued = false
+function refreshZombies(): void {
+  if (zombieRefreshQueued) return
+  zombieRefreshQueued = true
+  queueMicrotask(() => {
+    zombieRefreshQueued = false
+    useWorldStore.getState().refreshZombies(runtime)
+  })
+}
+
 export function App() {
   const screen = useUiStore((s) => s.screen)
   const sceneReady = useUiStore((s) => s.sceneReady)
+  const perfHud = useUiStore((s) => s.perfHud)
 
   useEffect(() => {
     const ui = () => useUiStore.getState()
@@ -103,6 +116,7 @@ export function App() {
       runtime.input.onAction('debug', () => ui().toggleDebug()),
       runtime.input.onAction('visionDebug', () => ui().toggleVisionDebug()),
       runtime.input.onAction('lightingDebug', () => ui().toggleLightingDebug()),
+      runtime.input.onAction('perfHud', () => ui().togglePerfHud()),
       runtime.events.on('player:died', () => ui().gameOver()),
       runtime.events.on('player:damaged', (e) => {
         if (e.sourceId !== 'starvation') useHudStore.getState().flashDamage()
@@ -118,8 +132,11 @@ export function App() {
         if (door) useHudStore.getState().showToast(`${door.name} đã bị zombie phá vỡ!`, 3000, 'danger')
       }),
       runtime.events.on('drops:changed', () => useWorldStore.getState().syncFromRuntime(runtime)),
-      runtime.events.on('zombie:spawned', (e) => useWorldStore.getState().addZombie(e.id)),
-      runtime.events.on('zombie:removed', (e) => useWorldStore.getState().removeZombie(e.id)),
+      // R2: visuals follow spawn/removal/level, physics bodies ACTIVE + alive; one refresh per event burst.
+      runtime.events.on('zombie:spawned', refreshZombies),
+      runtime.events.on('zombie:removed', refreshZombies),
+      runtime.events.on('zombie:levelChanged', refreshZombies),
+      runtime.events.on('zombie:died', refreshZombies),
       runtime.events.on('container:opened', (e) => useWorldStore.getState().setContainerOpened(e.id)),
 
       // Âm thanh tổng hợp (không asset ngoài); mỗi sự kiện một hiệu ứng ngắn.
@@ -171,6 +188,7 @@ export function App() {
     <div className="app">
       <GameCanvas />
       {(screen === 'playing' || screen === 'paused') && <HUD />}
+      {perfHud && (screen === 'playing' || screen === 'paused') && <PerfHud />}
       {screen === 'playing' && !sceneReady && (
         <div className="overlay overlay-dim">
           <div className="loading">Đang tải…</div>

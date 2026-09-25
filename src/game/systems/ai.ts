@@ -27,6 +27,12 @@ export interface ZombieAIContext {
   canReach: (zombie: ZombieState, target: Vec3) => boolean
   /** Tìm đường trên lưới điều hướng; null nếu không có đường. Mặc định: đi thẳng. */
   findPath?: (from: Vec3, to: Vec3) => Vec3[] | null
+  /**
+   * R2: asynchronous path request (takes precedence over `findPath`). 'none' = no route at all
+   * (answered at once, like a null `findPath`), 'ready' = the path was written to the zombie now (a
+   * trivial one), 'queued' = the pathfinding queue writes `zombie.path` later (after this AI pass).
+   */
+  requestPath?: (zombie: ZombieState, from: Vec3, to: Vec3) => 'none' | 'ready' | 'queued'
   /** Đoạn thẳng không cắt vật cản trên lưới. Mặc định: luôn đúng. */
   hasLineOfWalk?: (from: Vec3, to: Vec3) => boolean
   /** Phiên bản lưới điều hướng; đổi thì path cũ bị bỏ. */
@@ -509,21 +515,37 @@ function moveTowards(
   const pos = zombie.position
   let waypoint: Vec3 = goal
 
-  if (ctx.findPath && !(ctx.hasLineOfWalk?.(pos, goal) ?? true)) {
+  if ((ctx.requestPath || ctx.findPath) && !(ctx.hasLineOfWalk?.(pos, goal) ?? true)) {
     const goalMoved = !zombie.pathGoal || Math.hypot(goal.x - zombie.pathGoal.x, goal.z - zombie.pathGoal.z) > navCfg.repathTargetDelta
     const navVersion = ctx.getNavVersion?.() ?? -1
     const navChanged = navVersion !== zombie.pathNavVersion
     const exhausted = zombie.pathIndex >= zombie.path.length
     const stuck = zombie.stuckTimer >= navCfg.stuckTime
+    // Re-plan only when the target moved enough, the path is invalid/finished, the doors changed or
+    // the zombie is stuck, and not more often than `repathInterval` (plan: no request every frame).
     if ((goalMoved || navChanged || exhausted || stuck) && (zombie.repathTimer <= 0 || navChanged)) {
-      const path = ctx.findPath(pos, goal)
-      zombie.path = path ?? []
-      zombie.pathIndex = 0
       zombie.pathGoal = { ...goal }
       zombie.pathNavVersion = navVersion
       zombie.repathTimer = navCfg.repathInterval
       zombie.stuckTimer = 0
-      if (!path) return { velocity: { x: 0, z: 0 }, blocked: true }
+      if (ctx.requestPath) {
+        // A path from before a door change may cross a door that is now closed: drop it and wait.
+        if (navChanged) {
+          zombie.path = []
+          zombie.pathIndex = 0
+        }
+        const r = ctx.requestPath(zombie, pos, goal)
+        if (r === 'none') {
+          zombie.path = []
+          zombie.pathIndex = 0
+          return { velocity: { x: 0, z: 0 }, blocked: true }
+        }
+      } else {
+        const path = ctx.findPath!(pos, goal)
+        zombie.path = path ?? []
+        zombie.pathIndex = 0
+        if (!path) return { velocity: { x: 0, z: 0 }, blocked: true }
+      }
     }
     while (
       zombie.pathIndex < zombie.path.length - 1 &&
@@ -532,7 +554,8 @@ function moveTowards(
       zombie.pathIndex += 1
     }
     if (zombie.pathIndex < zombie.path.length) waypoint = zombie.path[zombie.pathIndex]
-    else return { velocity: { x: 0, z: 0 }, blocked: false } // No route: wait for topology/perception changes, never walk straight through the blocker.
+    // No route yet (queued) or none: wait for the queue / topology / perception, never walk through the blocker.
+    else return { velocity: { x: 0, z: 0 }, blocked: false }
   } else {
     clearPath(zombie)
   }

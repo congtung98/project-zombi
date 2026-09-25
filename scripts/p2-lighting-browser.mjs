@@ -120,9 +120,10 @@ try {
       r.hordeTimer = 1e9
       r.pickWanderPoint = () => null
       let i = 0
-      for (const [id, body] of r.zombieBodies) {
-        body.setTranslation({ x: -22 + (i % 3), y: 0.9, z: 20 + Math.floor(i++ / 3) }, true)
-        r.zombies.get(id).health = 0
+      // R2: the simulation owns zombie positions (bodies only mirror them).
+      for (const z of r.zombies.values()) {
+        z.position = { x: -22 + (i % 3), y: 0.9, z: 20 + Math.floor(i++ / 3) }
+        z.health = 0
       }
       const { useSettingsStore } = await import('/src/stores/settingsStore.ts')
       useSettingsStore.getState().set({ visionOverlay: false })

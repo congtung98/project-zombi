@@ -1,6 +1,10 @@
 import type { Vec3 } from '../../types'
 import { mapWindows, type MapData } from './mapData'
 import { doorLeafTransform, type DoorStatus } from './doors'
+import { SpatialHash } from '../core/spatialHash'
+
+/** Cell size (m) of the occluder index: a wall piece spans a few cells, a vision ray ≤ 20 m a few dozen. */
+const OCCLUDER_CELL = 4
 
 /**
  * What can block the player's line of sight. Kept apart from the Rapier colliders on purpose:
@@ -57,9 +61,21 @@ const AXES = ['x', 'y', 'z'] as const
  */
 export class VisionOccluderSet {
   private items: VisionOccluder[]
+  /**
+   * R1: ground-plane index of the boxes; a query only tests occluders in the cells the segment's
+   * bounding box touches (in list order, so the first blocker found is the same as a full scan).
+   */
+  private readonly index = new SpatialHash<VisionOccluder>(OCCLUDER_CELL)
+  /** Index keys per occluder ID (IDs are expected unique, but a duplicate never hides another). */
+  private readonly keys = new Map<string, string[]>()
+  private nextKey = 0
+  private readonly candidates: VisionOccluder[] = []
+  /** Narrow-phase box tests since the owner last reset it (perf instrumentation). */
+  testCount = 0
 
   constructor(items: VisionOccluder[] = []) {
-    this.items = [...items]
+    this.items = []
+    for (const o of items) this.push(o)
   }
 
   get all(): readonly VisionOccluder[] {
@@ -68,11 +84,31 @@ export class VisionOccluderSet {
 
   add(occluder: VisionOccluder): void {
     this.remove(occluder.id)
-    this.items.push(occluder)
+    this.push(occluder)
   }
 
   remove(id: string): void {
+    const keys = this.keys.get(id)
+    if (!keys) return
+    for (const k of keys) this.index.remove(k)
+    this.keys.delete(id)
     this.items = this.items.filter((o) => o.id !== id)
+  }
+
+  private push(o: VisionOccluder): void {
+    const key = String(this.nextKey++)
+    this.items.push(o)
+    const list = this.keys.get(o.id) ?? []
+    list.push(key)
+    this.keys.set(o.id, list)
+    this.index.insert(key, o, (o.min.x + o.max.x) / 2, (o.min.z + o.max.z) / 2, (o.max.x - o.min.x) / 2, (o.max.z - o.min.z) / 2)
+  }
+
+  /** Occluders whose ground footprint overlaps the segment's bounding box, in list order. */
+  private near(minX: number, minZ: number, maxX: number, maxZ: number): VisionOccluder[] {
+    const out = this.candidates
+    out.length = 0
+    return this.index.queryAABB(minX, minZ, maxX, maxZ, out)
   }
 
   /** Any blocking occluder on the segment from → to (early exit); null when the view is clear. */
@@ -81,10 +117,11 @@ export class VisionOccluderSet {
     const minX = Math.min(from.x, to.x), maxX = Math.max(from.x, to.x)
     const minY = Math.min(from.y, to.y), maxY = Math.max(from.y, to.y)
     const minZ = Math.min(from.z, to.z), maxZ = Math.max(from.z, to.z)
-    for (const o of this.items) {
+    for (const o of this.near(minX, minZ, maxX, maxZ)) {
       // Broad phase: the segment's bounding box must overlap the occluder.
       if (o.max.x < minX || o.min.x > maxX || o.max.y < minY || o.min.y > maxY || o.max.z < minZ || o.min.z > maxZ) continue
       if (o.isBlocking && !o.isBlocking()) continue
+      this.testCount += 1
       if (segmentBoxEntry(from, d, o.min, o.max) <= 1) return o
     }
     return null
@@ -97,9 +134,10 @@ export class VisionOccluderSet {
     const minY = Math.min(from.y, to.y), maxY = Math.max(from.y, to.y)
     const minZ = Math.min(from.z, to.z), maxZ = Math.max(from.z, to.z)
     let best = 1
-    for (const o of this.items) {
+    for (const o of this.near(minX, minZ, maxX, maxZ)) {
       if (o.max.x < minX || o.min.x > maxX || o.max.y < minY || o.min.y > maxY || o.max.z < minZ || o.min.z > maxZ) continue
       if (o.isBlocking && !o.isBlocking()) continue
+      this.testCount += 1
       const t = segmentBoxEntry(from, d, o.min, o.max)
       if (t < best) best = t
     }

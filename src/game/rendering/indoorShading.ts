@@ -1,14 +1,20 @@
-import { MeshStandardMaterial, Vector4, type Material } from 'three'
+import { MeshStandardMaterial, Vector4 } from 'three'
+import { BUILDING_LIGHTING_CONFIG } from '../core/config'
 
 /**
- * Indoor shading for building lighting: every MeshStandardMaterial in the game scene is patched
- * once (no clones) with a few shared uniforms. A fragment inside a room rectangle and below its
- * ceiling replaces the sun/ambient response by the room's light (the roof keeps the sun out);
- * every other fragment is untouched, so outdoor world lighting stays exactly the day/night system's.
- * Uniforms change only when room light changes (and ease for a short fade).
+ * Indoor shading for building lighting: every MeshStandardMaterial shares a few uniforms. A fragment
+ * inside a room rectangle and below its ceiling replaces the sun/ambient response by the room's light
+ * (the roof keeps the sun out); every other fragment is untouched, so outdoor world lighting stays
+ * exactly the day/night system's. Uniforms change only when room light changes (and ease briefly).
+ *
+ * R1: the patch is installed once on `MeshStandardMaterial.prototype` (`installIndoorShading`), so
+ * every standard material gets it when it is created, wherever it is created (JSX, rigs, clones).
+ * Before R1 a `scene.traverse` patched new materials every frame. A material that assigns its own
+ * `onBeforeCompile` opts out.
  */
 
-export const INDOOR_MAX_ROOMS = 16
+/** GLSL array size; from config so the limit is not a magic number scattered around. */
+export const INDOOR_MAX_ROOMS = BUILDING_LIGHTING_CONFIG.maxShaderRooms
 
 /** Shared by every patched program: rooms as (minX, maxX, minZ, maxZ) and shade (rgb, ceiling y). */
 export const indoorUniforms = {
@@ -50,16 +56,32 @@ for (int i = 0; i < INDOOR_MAX_ROOMS; i++) {
 #include <opaque_fragment>
 `
 
-/** Patch a material in place (idempotent). Only standard materials: lines, overlays, HTML untouched. */
-export function patchIndoorMaterial(material: Material): boolean {
-  if (!(material instanceof MeshStandardMaterial) || material.userData.indoorLit) return false
-  material.userData.indoorLit = true
-  material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, indoorUniforms)
-    shader.vertexShader = shader.vertexShader.replace('#include <common>', VERTEX_DECL).replace('#include <project_vertex>', VERTEX_APPLY)
-    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', FRAGMENT_DECL).replace('#include <opaque_fragment>', FRAGMENT_APPLY)
-  }
-  material.customProgramCacheKey = () => 'indoor-lighting-v1'
-  material.needsUpdate = true
-  return true
+const PROGRAM_KEY = 'indoor-lighting-v1'
+
+type Shader = Parameters<MeshStandardMaterial['onBeforeCompile']>[0]
+
+function applyIndoorShader(shader: Shader): void {
+  Object.assign(shader.uniforms, indoorUniforms)
+  shader.vertexShader = shader.vertexShader.replace('#include <common>', VERTEX_DECL).replace('#include <project_vertex>', VERTEX_APPLY)
+  shader.fragmentShader = shader.fragmentShader.replace('#include <common>', FRAGMENT_DECL).replace('#include <opaque_fragment>', FRAGMENT_APPLY)
+}
+
+let installed = false
+
+/**
+ * Install the indoor patch for every MeshStandardMaterial (idempotent; called at module load of the
+ * game scene). Lines, basic materials, overlays and HTML are untouched. With no room uploaded
+ * (`uRoomCount` 0, e.g. the character preview) the loop is a no-op and the output is unchanged.
+ */
+export function installIndoorShading(): void {
+  if (installed) return
+  installed = true
+  const proto = MeshStandardMaterial.prototype
+  proto.onBeforeCompile = applyIndoorShader
+  proto.customProgramCacheKey = () => PROGRAM_KEY
+}
+
+/** True when this material compiles with the indoor patch (the prototype's, not its own hook). */
+export function hasIndoorShading(material: MeshStandardMaterial): boolean {
+  return installed && material.onBeforeCompile === applyIndoorShader
 }

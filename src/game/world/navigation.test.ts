@@ -3,6 +3,8 @@ import { NavGrid } from './navigation'
 import { generateBuildingWalls, generateDoorPlacements, type BuildingDef } from './buildings'
 import type { MapData } from './mapData'
 import { GAME_CONFIG } from '../core/config'
+import { NEIGHBORHOOD_MAP } from './mapData'
+import { createRng } from '../systems/loot'
 import type { Vec3 } from '../../types'
 
 const hut: BuildingDef = {
@@ -132,5 +134,20 @@ describe('NavGrid', () => {
     const path = g.findPath({ x: 6, y: 0, z: 0 }, { x: -8, y: 0, z: 0 })
     expect(path).not.toBeNull()
     expect(path!.length).toBeGreaterThan(0)
+  })
+
+  it('R1: reused A* buffers give the same paths as a fresh grid, search after search', () => {
+    const shared = new NavGrid(NEIGHBORHOOD_MAP, GAME_CONFIG.nav)
+    const rng = createRng(7)
+    const point = () => ({ x: (rng() - 0.5) * 48, y: 0, z: (rng() - 0.5) * 48 })
+    for (let i = 0; i < 60; i++) {
+      const a = point()
+      const b = point()
+      if (i % 20 === 10) shared.setDoorOpen('door-safehouse', i % 40 === 10)
+      const fresh = new NavGrid(NEIGHBORHOOD_MAP, GAME_CONFIG.nav)
+      fresh.setDoorOpen('door-safehouse', shared.doorState('door-safehouse') === 'open')
+      expect(shared.findPath(a, b)).toEqual(fresh.findPath(a, b))
+    }
+    expect(shared.searches).toBeGreaterThan(10)
   })
 })

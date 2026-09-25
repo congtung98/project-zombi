@@ -5,6 +5,7 @@ import { commitMigratedSave, deleteSave, readSave, writeSave } from '../game/sys
 import type { SaveSummary } from '../types/save'
 import type { CharacterProfile } from '../game/entities/player'
 import { sfx } from '../game/audio/sfx'
+import { STRESS_MAP_PREFIX } from '../game/world/stressMap'
 import { useHudStore } from './hudStore'
 import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
@@ -16,7 +17,10 @@ const DEBUG_PLAYER_VISION =
 /** DEBUG_BUILDING_LIGHTING: config flag or `?lighting=debug`. */
 const DEBUG_BUILDING_LIGHTING =
   runtime.config.buildingLighting.debug || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('lighting') === 'debug')
-const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : 'slot-1'
+/** Dev maps never touch the player's save: the door lab and the stress map (`?stress=N`) use their own slots. */
+/** R0 perf HUD (F7); `?perf=1` starts with it on. */
+const PERF_HUD = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('perf') === '1'
+const ACTIVE_SAVE_SLOT = runtime.map.id === 'door-lab' ? 'slot-lab' : runtime.map.id.startsWith(STRESS_MAP_PREFIX) ? 'slot-stress' : 'slot-1'
 const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
 const DEFAULT_LOOK_NOTE = 'Nhân vật dùng tên và ngoại hình mặc định.'
 const MATERIALS_NOTE = 'Có 3 chỗ vật liệu mới (hộp đồ nghề nhà an toàn, kệ vật liệu cửa hàng, đống phế liệu sau nhà dân) để sửa/chế tạo.'
@@ -49,6 +53,8 @@ interface UiState {
   visionDebug: boolean
   /** Building lighting debug drawing (F6). */
   lightingDebug: boolean
+  /** Performance HUD (F7). */
+  perfHud: boolean
   saveSlot: SaveSlotState
   /** Đang ghi/đọc IndexedDB; menu khóa nút để tránh thao tác chồng. */
   busy: boolean
@@ -75,6 +81,7 @@ interface UiState {
   toggleDebug: () => void
   toggleVisionDebug: () => void
   toggleLightingDebug: () => void
+  togglePerfHud: () => void
 }
 
 function enterSession(set: (s: Partial<UiState>) => void): void {
@@ -89,6 +96,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   debug: false,
   visionDebug: DEBUG_PLAYER_VISION,
   lightingDebug: DEBUG_BUILDING_LIGHTING,
+  perfHud: PERF_HUD,
   saveSlot: { kind: 'unknown' },
   busy: false,
   sceneReady: false,
@@ -235,4 +243,5 @@ export const useUiStore = create<UiState>((set, get) => ({
   toggleDebug: () => set((s) => ({ debug: !s.debug })),
   toggleVisionDebug: () => set((s) => ({ visionDebug: !s.visionDebug })),
   toggleLightingDebug: () => set((s) => ({ lightingDebug: !s.lightingDebug })),
+  togglePerfHud: () => set((s) => ({ perfHud: !s.perfHud })),
 }))
