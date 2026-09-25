@@ -4,6 +4,7 @@ import { countUsedSlots } from '../game/systems/inventory'
 import { equippedWeapon } from '../game/systems/equipment'
 import { conditionLevel, type ConditionLevel } from '../game/systems/weapons'
 import { getItemDef } from '../game/entities/items'
+import { visionOverlayDebug } from '../game/systems/visionOverlay'
 import type { EntityId, ZombieAIState } from '../types'
 
 export interface ZombieHudInfo {
@@ -59,6 +60,8 @@ interface HudSnapshot {
   hordeTimer: number
   /** F3: player vision pass stats (visible / candidates / raycasts last pass). */
   visionStats: { visible: number; candidates: number; raycasts: number }
+  /** F3: VisionOverlay readout (direction, daylight read, strength, alpha 10 m ahead/behind). */
+  overlay: string
   /** Nội dung prompt tương tác, ví dụ "Mở Cửa nhà an toàn". */
   interactPrompt: string | null
   kills: number
@@ -108,6 +111,7 @@ export const useHudStore = create<HudState>((set) => ({
   noise: 0,
   hordeTimer: 0,
   visionStats: { visible: 0, candidates: 0, raycasts: 0 },
+  overlay: '',
   interactPrompt: null,
   kills: 0,
   attackCooldown: 0,
@@ -160,6 +164,7 @@ export const useHudStore = create<HudState>((set) => ({
       noise: rt.playerNoise,
       hordeTimer: rt.hordeTimer,
       visionStats: { visible: rt.vision.stats.visible, candidates: rt.vision.stats.candidates, raycasts: rt.vision.stats.raycasts },
+      overlay: overlayReadout(),
       interactPrompt: rt.interactPrompt,
       kills: p.kills,
       attackCooldown: p.attackCooldown,
@@ -187,3 +192,9 @@ export const useHudStore = create<HudState>((set) => ({
     }, durationMs)
   },
 }))
+
+function overlayReadout(): string {
+  const o = visionOverlayDebug
+  const deg = Math.round((((o.facing * 180) / Math.PI) % 360 + 360) % 360)
+  return `hướng ${deg}° · ánh sáng ngày ${o.daylight.toFixed(2)} · độ mạnh ${o.strength.toFixed(2)} · alpha trước ${o.frontAlpha.toFixed(3)} / sau ${o.rearAlpha.toFixed(3)} · ${o.frameMs.toFixed(2)} ms`
+}

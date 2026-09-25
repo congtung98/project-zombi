@@ -1,6 +1,6 @@
 // Player vision browser check with Playwright (fresh isolated context). First: world lighting does not
-// depend on the facing (lights + measured screen brightness while turning 4 ways at 12:00, 00:00 and
-// indoors; no darkening layer exists). Then zombies in front / behind / right behind the back, a
+// depend on the facing and the VisionOverlay stays subtle (lights + measured screen brightness with the
+// overlay off/on while turning 4 ways at 12:00, 00:00 and indoors, a fast 180° turn, zoom limits). Then zombies in front / behind / right behind the back, a
 // real-key 180° turn, a closed vs open safehouse door, the fade, debug drawing (F4). Hidden zombies
 // keep their AI (a hidden zombie bashes the door).
 //   Dev:        BASE_URL=http://127.0.0.1:5174 node scripts/p2-vision-browser.mjs
@@ -55,6 +55,11 @@ try {
     await page.waitForFunction(() => /Tầm nhìn: thấy \d+ · ứng viên \d+ · raycast \d+/.test(document.querySelector('.hud-debug')?.textContent ?? ''), null, { timeout: 5000 })
     await page.waitForFunction(() => /nhìn=(VISIBLE|OUTSIDE_FOV|OUT_OF_RANGE|BLOCKED_BY_OCCLUDER|NEAR_DETECTION)/.test(document.querySelector('.hud-debug')?.textContent ?? ''), null, { timeout: 5000 })
     const line = (await page.locator('.hud-debug').innerText()).match(/Tầm nhìn:[^\n]*/)[0]
+    // VisionOverlay readout: shade 10 m behind the player > 0 and ≤ 0.15, CPU time per frame.
+    await page.waitForFunction(() => /Overlay: hướng \d+° · ánh sáng ngày [\d.]+ · độ mạnh [\d.]+ · alpha trước [\d.]+ \/ sau [\d.]+ · [\d.]+ ms/.test(document.querySelector('.hud-debug')?.textContent ?? ''), null, { timeout: 5000 })
+    const overlay = (await page.locator('.hud-debug').innerText()).match(/Overlay:[^\n]*/)[0]
+    const rear = Number(overlay.match(/sau ([\d.]+)/)[1])
+    assert.ok(rear > 0 && rear <= 0.15, overlay)
     await page.keyboard.press('F3')
     await page.keyboard.press('F4')
     await page.waitForFunction(() => document.querySelectorAll('.vision-debug-label').length >= 1, null, { timeout: 5000 })
@@ -64,7 +69,7 @@ try {
     await page.waitForFunction(() => document.querySelectorAll('.vision-debug-label').length === 0, null, { timeout: 5000 })
     await page.waitForTimeout(1000)
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    log('PASS production', { line, labels })
+    log('PASS production', { line, overlay, labels })
   } else {
     await page.evaluate(async () => {
       const { runtime } = await import('/src/game/core/runtime.ts')
@@ -122,10 +127,18 @@ try {
       return out.sort().join(' ')
     })
     const overlays = () => rt(() => {
-      let n = 0
-      window.__scene.traverse((o) => { if (o.isMesh && (o.material?.isShaderMaterial || o.material?.stencilWrite)) n += 1 })
-      return n
+      const found = { shader: 0, stencil: 0 }
+      window.__scene.traverse((o) => {
+        if (!o.isMesh) return
+        if (o.material?.isShaderMaterial) found.shader += 1
+        if (o.material?.stencilWrite) found.stencil += 1
+      })
+      return found
     })
+    const setOverlay = (on) => rt(async (on) => {
+      const { useSettingsStore } = await import('/src/stores/settingsStore.ts')
+      useSettingsStore.getState().set({ visionOverlay: on })
+    }, on)
     await rt(() => {
       const r = window.__runtime
       r.spawnTimer = 1e9
@@ -137,33 +150,84 @@ try {
         r.zombies.get(id).health = 0
       }
     })
-    const turnAround = async (label, where, timeOfDay) => {
-      await rt(({ where, timeOfDay }) => {
+    const place = async (where, timeOfDay, zoom = 28) => {
+      await rt(({ where, timeOfDay, zoom }) => {
         const r = window.__runtime
         r.playerBody.setTranslation({ x: where[0], y: 0.9, z: where[1] }, true)
         r.clock.restore(r.clock.elapsed, timeOfDay, r.clock.day)
-      }, { where, timeOfDay })
+        r.cameraZoom = zoom
+      }, { where, timeOfDay, zoom })
       await page.waitForTimeout(1500) // camera settles on the player
+    }
+    // Per facing: frame without the overlay (pure world lighting) and with it. World lighting must not
+    // follow the facing; the overlay may only dim each screen quadrant to ≥ minRatio (≥ 85 %).
+    const turnAround = async (label, where, timeOfDay, minRatio) => {
+      await place(where, timeOfDay)
       const rows = []
       for (const facing of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
         await rt((f) => { window.__runtime.player.facing = f }, facing)
-        await page.waitForTimeout(500)
-        rows.push({ facing: +facing.toFixed(2), lights: await lights(), quadrants: await luminance() })
-        if (facing === 0 || facing === Math.PI) await shot(`vision-light-${label}-${facing === 0 ? 'north' : 'south'}`)
+        await setOverlay(false)
+        await page.waitForTimeout(350)
+        const off = await luminance()
+        const lightsOff = await lights()
+        await setOverlay(true)
+        await page.waitForTimeout(450)
+        const on = await luminance()
+        rows.push({ facing, off, on, lights: [lightsOff, await lights()], ratio: on.map((v, k) => +(v / off[k]).toFixed(3)) })
+        if (facing === 0 || facing === Math.PI) await shot(`vision-overlay-${label}-${facing === 0 ? 'north' : 'south'}`)
       }
-      const spread = [0, 1, 2, 3].map((k) => +(Math.max(...rows.map((r) => r.quadrants[k])) - Math.min(...rows.map((r) => r.quadrants[k]))).toFixed(2))
-      const mean = +(rows[0].quadrants.reduce((a, b) => a + b, 0) / 4).toFixed(1)
-      log(`lighting ${label}`, { lights: rows[0].lights, mean, spreadPerQuadrant: spread })
-      assert.ok(rows.every((r) => r.lights === rows[0].lights), 'light intensities never follow the facing')
-      assert.ok(spread.every((d) => d < 2.5), `screen brightness per quadrant stays put while turning: ${spread}`)
-      return mean
+      const spreadOff = [0, 1, 2, 3].map((k) => +(Math.max(...rows.map((r) => r.off[k])) - Math.min(...rows.map((r) => r.off[k]))).toFixed(2))
+      const ratios = rows.flatMap((r) => r.ratio)
+      const mean = +(rows[0].off.reduce((x, y) => x + y, 0) / 4).toFixed(1)
+      const summary = { lights: rows[0].lights[0], mean, spreadWithoutOverlay: spreadOff, minRatio: Math.min(...ratios), maxRatio: Math.max(...ratios) }
+      log(`lighting ${label}`, summary)
+      assert.ok(rows.every((r) => r.lights[0] === rows[0].lights[0] && r.lights[1] === rows[0].lights[0]), 'lights never follow the facing or the overlay')
+      assert.ok(spreadOff.every((d) => d < 2.5), `world brightness does not follow the facing: ${spreadOff}`)
+      assert.ok(summary.minRatio >= minRatio, `overlay stays subtle: ${summary.minRatio} ≥ ${minRatio}`)
+      assert.ok(summary.maxRatio <= 1.01, 'the overlay never brightens (not a light)')
+      return summary
     }
-    assert.equal(await overlays(), 0, 'no darkening/stencil layer in the scene')
-    const noon = await turnAround('noon', [0, -8], 0.5)
-    const midnight = await turnAround('midnight', [0, -8], 0.0)
-    const indoor = await turnAround('indoor', [-14, -14], 0.5)
-    log('day vs night', { noon, midnight, indoor })
-    assert.ok(noon > midnight + 10, 'night is darker because of the clock')
+    const found = await overlays()
+    assert.deepEqual(found, { shader: 1, stencil: 0 }, 'exactly one overlay pass, no stencil mask')
+    const noon = await turnAround('noon', [0, -8], 0.5, 0.85)
+    assert.ok(noon.minRatio < 0.99, 'behind the player is slightly subdued at noon')
+    const midnight = await turnAround('midnight', [0, -8], 0.0, 0.9)
+    const indoor = await turnAround('indoor', [-14, -14], 0.5, 0.85)
+    log('day vs night', { noon: noon.mean, midnight: midnight.mean, indoor: indoor.mean })
+    assert.ok(noon.mean > midnight.mean + 10, 'night is darker because of the clock')
+
+    // Fast 180° turn: every frame stays close to the unshaded brightness (no black frame, no flash).
+    await place([0, -8], 0.5)
+    await rt(() => { window.__runtime.player.facing = 0 })
+    await page.waitForTimeout(400)
+    const before = await luminance()
+    await rt(() => { window.__runtime.player.facing = Math.PI })
+    const frames = []
+    for (let i = 0; i < 4; i++) frames.push(await luminance())
+    const worst = Math.min(...frames.flatMap((f) => f.map((v, k) => v / before[k])))
+    log('fast 180° turn', { worstRatioVsBefore: +worst.toFixed(3) })
+    assert.ok(worst > 0.82, 'no dark frame while the overlay turns')
+
+    // Zoom in/out: the shade is world-space (same bounds at the zoom limits).
+    for (const zoom of [14, 60]) {
+      await place([0, -8], 0.5, zoom)
+      await setOverlay(false)
+      await page.waitForTimeout(350)
+      const off = await luminance()
+      await setOverlay(true)
+      await page.waitForTimeout(450)
+      const on = await luminance()
+      const r = on.map((v, k) => +(v / off[k]).toFixed(3))
+      log(`zoom ${zoom}`, r)
+      assert.ok(Math.min(...r) >= 0.85 && Math.max(...r) <= 1.01)
+    }
+    await rt(() => { window.__runtime.cameraZoom = 28 })
+
+    // Debug tint (F4) for the screenshot only.
+    await page.keyboard.press('F4')
+    await page.waitForTimeout(400)
+    await shot('vision-overlay-debug')
+    await page.keyboard.press('F4')
     await rt(() => window.__runtime.clock.restore(window.__runtime.clock.elapsed, 0.3, window.__runtime.clock.day))
 
     // 1) Outdoor staging north of the crossroads: player at (0, -8) facing +Z, zombies in front (8 m),

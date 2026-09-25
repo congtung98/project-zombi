@@ -48,6 +48,11 @@ export function SettingsPanel({ onBack }: { onBack: () => void }) {
         <input type="checkbox" checked={s.showHints} onChange={(e) => s.set({ showHints: e.target.checked })} />
         <span className="setting-value">{s.showHints ? 'Hiện trên HUD' : 'Ẩn'}</span>
       </label>
+      <label className="setting-row">
+        <span>Hiệu ứng tầm nhìn</span>
+        <input type="checkbox" checked={s.visionOverlay} onChange={(e) => s.set({ visionOverlay: e.target.checked })} />
+        <span className="setting-value">{s.visionOverlay ? 'Bật (ngoài tầm nhìn hơi mờ)' : 'Tắt'}</span>
+      </label>
       <div className="actions">
         <button onClick={s.reset}>Mặc định</button>
         <button onClick={onBack}>Quay lại</button>
@@ -73,7 +78,7 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
         <li>Sửa vũ khí: mở túi (<kbd>I</kbd>), click vũ khí → <b>Sửa</b>. Đồ gỗ (gậy) cần 1 ván gỗ + 1 băng keo (+30), đồ kim loại (ống sắt, xà beng, búa) cần 1 kim loại vụn + 1 băng keo (+25). Vũ khí hỏng vẫn sửa được. Bảng <b>Chế tạo</b> cạnh túi làm gậy gỗ tự chế (2 ván + 1 băng keo). Vật liệu ở hộp đồ nghề nhà an toàn, kệ vật liệu cửa hàng, đống phế liệu sau nhà dân.</li>
         <li>Sửa/chế tạo mất vài giây: di chuyển, đánh, bị trúng đòn hoặc <kbd>X</kbd> sẽ hủy và không mất nguyên liệu. Thời gian vẫn chạy khi mở túi; <kbd>Esc</kbd> tạm dừng thì thao tác dừng theo.</li>
         <li>Zombie lang thang theo từng đàn và thỉnh thoảng cả đàn kéo sang khu khác. Chúng <b>nhìn</b> phía trước mặt và <b>nghe tiếng bước chân</b> quanh mình (chạy nghe xa hơn đi bộ; đứng yên thì im lặng; tường làm tiếng nhỏ đi). Lẻn sau lưng zombie thì đi chậm.</li>
-        <li>Bạn chỉ <b>thấy</b> zombie trong hình quạt phía trước nhân vật (theo hướng nhân vật quay, không theo camera) và không bị tường/cửa đóng che; zombie đứng sát bên cạnh hay sau lưng vẫn nhận ra. Ngoài tầm nhìn zombie mờ dần rồi biến mất (khung cảnh vẫn sáng theo giờ trong ngày), nhưng chúng vẫn đi lại, đuổi và đập cửa bình thường: hãy quay lại nhìn khi nghe tiếng động.</li>
+        <li>Bạn chỉ <b>thấy</b> zombie trong hình quạt phía trước nhân vật (theo hướng nhân vật quay, không theo camera) và không bị tường/cửa đóng che; zombie đứng sát bên cạnh hay sau lưng vẫn nhận ra. Ngoài tầm nhìn zombie mờ dần rồi biến mất; khung cảnh vẫn sáng theo giờ trong ngày, chỉ hơi dịu đi phía sau lưng, nhưng chúng vẫn đi lại, đuổi và đập cửa bình thường: hãy quay lại nhìn khi nghe tiếng động.</li>
         <li>Đóng cửa sau lưng (<kbd>E</kbd>): zombie không mở được cửa, nhưng con nào vừa <b>thấy hoặc nghe</b> bạn sẽ <b>đập cửa</b> (tiếng thình thịch, cửa rung và sẫm dần) và phá được sau vài chục giây. Zombie chưa hề phát hiện bạn thì không biết bạn ở trong nhà.</li>
         <li>Game tự lưu mỗi phút; <kbd>Esc</kbd> → Lưu game để lưu ngay. Chết là mất bản lưu.</li>
       </ol>

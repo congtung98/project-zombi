@@ -283,7 +283,17 @@ describe('player vision is not world lighting', () => {
   it('lighting reads only the clock, and only zombie rendering/debug read the vision state', () => {
     expect(rendering['../rendering/Lights.tsx']).toMatch(/daylightAt\(runtime\.clock\.timeOfDay\)/)
     for (const file of ['../rendering/Lights.tsx', '../rendering/daylight.ts']) expect(rendering[file]).not.toMatch(/vision/i)
-    const readers = Object.entries(rendering).filter(([, text]) => text.includes('runtime.vision')).map(([file]) => file.replace('../rendering/', ''))
+    const readers = Object.entries(rendering).filter(([, text]) => /runtime\.vision(?![A-Za-z])/.test(text)).map(([file]) => file.replace('../rendering/', ''))
     expect(readers.sort()).toEqual(['PlayerVisionDebug.tsx', 'ZombieView.tsx'])
+  })
+
+  it('VisionOverlay is one overlay pass: it writes no light, exposure, fog, background or world material', () => {
+    const overlay = rendering['../rendering/VisionOverlay.tsx']
+    expect(overlay).toBeTruthy()
+    expect(overlay).not.toMatch(/intensity|toneMapping|Exposure|SpotLight|PointLight|DirectionalLight|AmbientLight|HemisphereLight|scene\.|\.fog|emissive|multiplyScalar|traverse/)
+    // It only reads the daylight factor (never writes the clock) and draws a single full-screen quad.
+    expect(overlay).toMatch(/daylightAt\(runtime\.clock\.timeOfDay\)/)
+    expect(overlay).not.toMatch(/clock\.(restore|advance|reset)|timeOfDay\s*=/)
+    expect(overlay.match(/<mesh/g)).toHaveLength(1)
   })
 })

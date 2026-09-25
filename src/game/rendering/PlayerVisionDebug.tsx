@@ -5,6 +5,7 @@ import { BufferAttribute, BufferGeometry, Line, LineBasicMaterial, LineSegments,
 import { runtime } from '../core/runtime'
 import { useWorldStore } from '../../stores/worldStore'
 import type { VisionReason } from '../systems/playerVision'
+import { visionOverlayDebug } from '../systems/visionOverlay'
 import type { EntityId } from '../../types'
 
 const CFG = runtime.config.playerVision
@@ -40,13 +41,15 @@ function circle(radius: number): BufferGeometry {
 
 /**
  * DEBUG_PLAYER_VISION drawing (F4): vision distance and near radius rings, the two cone edges
- * (character facing ± FOV/2), this pass's LOS rays (green clear, red blocked) and a state label on
+ * (character facing ± FOV/2), the VisionOverlay forward (magenta; the overlay mask is tinted magenta
+ * too while F4 is on), this pass's LOS rays (green clear, red blocked) and a state label on
  * every zombie. Mounted only while enabled, so it costs nothing when off; it only reads state.
  */
 export function PlayerVisionDebug() {
   const zombieIds = useWorldStore((s) => s.zombieIds)
   const rigRef = useRef<Group>(null)
   const coneRef = useRef<Group>(null)
+  const forwardRef = useRef<Group>(null)
 
   const objects = useMemo(() => {
     const ringMat = new LineBasicMaterial({ color: '#f0e68c', depthTest: false, transparent: true, opacity: 0.8 })
@@ -61,13 +64,18 @@ export function PlayerVisionDebug() {
       new BufferAttribute(new Float32Array([0, 0, 0, Math.sin(-half) * r, 0, Math.cos(-half) * r, 0, 0, 0, Math.sin(half) * r, 0, Math.cos(half) * r]), 3),
     )
     const edges = new LineSegments(edgeGeo, ringMat)
+    // VisionOverlay forward (its smoothed direction), 4 m along local +Z.
+    const forward = new Line(
+      new BufferGeometry().setAttribute('position', new BufferAttribute(new Float32Array([0, 0, 0, 0, 0, 4]), 3)),
+      new LineBasicMaterial({ color: '#ff2bd6', depthTest: false }),
+    )
     const rayGeo = new BufferGeometry()
     rayGeo.setAttribute('position', new BufferAttribute(new Float32Array(CFG.maxRaycastsPerUpdate * 6), 3))
     rayGeo.setAttribute('color', new BufferAttribute(new Float32Array(CFG.maxRaycastsPerUpdate * 6), 3))
     const rays = new LineSegments(rayGeo, new LineBasicMaterial({ vertexColors: true, depthTest: false }))
     rays.frustumCulled = false
-    for (const o of [far, near, edges, rays]) o.renderOrder = 950
-    return { far, near, edges, rays }
+    for (const o of [far, near, edges, rays, forward]) o.renderOrder = 1001
+    return { far, near, edges, rays, forward }
   }, [])
 
   useEffect(() => {
@@ -86,6 +94,7 @@ export function PlayerVisionDebug() {
     const rig = rigRef.current
     rig?.position.set(p.position.x, Y, p.position.z)
     if (coneRef.current) coneRef.current.rotation.y = p.facing
+    if (forwardRef.current) forwardRef.current.rotation.y = visionOverlayDebug.facing
     const rays = runtime.vision.debugRays
     const pos = objects.rays.geometry.getAttribute('position') as BufferAttribute
     const col = objects.rays.geometry.getAttribute('color') as BufferAttribute
@@ -110,6 +119,9 @@ export function PlayerVisionDebug() {
         <primitive object={objects.near} />
         <group ref={coneRef}>
           <primitive object={objects.edges} />
+        </group>
+        <group ref={forwardRef}>
+          <primitive object={objects.forward} />
         </group>
       </group>
       <primitive object={objects.rays} />

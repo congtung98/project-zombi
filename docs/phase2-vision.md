@@ -117,3 +117,51 @@ Yêu cầu: `Prompt sửa hệ thống Player Vision không làm tối world lig
 - Ảnh: `node_modules/.tmp/vision-light-noon-north.png`, `-noon-south`, `-midnight-*`, `-indoor-*`.
 
 **Chưa có**: hệ thống ánh sáng trong nhà riêng (phòng không đèn tối hơn); hiện trong nhà chỉ khác ngoài trời do sàn/tường, như trước sprint.
+
+## Playtest lần 2 (25/09/2026): VisionOverlay nhẹ, không phải ánh sáng
+
+Yêu cầu: `Prompt triển khai VisionOverlay kiểu Project Zomboid không phá world lighting.md`. Mốc: `1fc531d` (đã bỏ lớp tối). Kiểm tra trước khi code: không còn overlay/fog/postprocessing/stencil nào; ánh sáng chỉ ở `Lights.tsx` theo `daylightAt`.
+
+**Kiến trúc**
+
+```text
+Lights.tsx ← daylightAt(clock)                         (ánh sáng — không đổi)
+PlayerVisionSystem → runtime.vision → ZombieView        (zombie hiện/ẩn — không đổi)
+VisionOverlay.tsx  ← player vị trí/hướng (làm mượt), playerVision (FOV/gần/tầm),
+                     visionOccluders (mask sector LOS), daylightAt (chỉ đọc)
+                   → 1 quad toàn màn hình, blend đen alpha ≤ 0,15, vẽ cuối
+```
+
+- `config.visionOverlay` (`VISION_OVERLAY_CONFIG`): inside 0, outside 0,08, blocked 0,12, **max 0,15**, edgeSoftness 0,2, nearDistanceShare 0,35, directionSmoothing 0,06 s, ban ngày 1 / ban đêm 0,5, losAware + 128 tia, debug. FOV/bán kính gần/tầm lấy từ `playerVision`, không lặp số.
+- `systems/visionOverlay.ts`: công thức alpha (bản TS của shader, dùng cho test/F3), độ mạnh theo ánh sáng ngày, mask sector LOS.
+- `rendering/VisionOverlay.tsx`: `OverlayPass` (1 `ShaderMaterial` + texture 128×1), cập nhật **chỉ uniform** mỗi frame; không duyệt scene, không clone/sửa vật liệu, không đèn nào.
+- Cài đặt "Hiệu ứng tầm nhìn" (mặc định bật). F3: dòng "Overlay" (hướng, ánh sáng ngày đọc được, độ mạnh, alpha 10 m trước/sau, ms CPU). F4: mask tô hồng + vạch hướng overlay.
+
+**Shader (mỗi pixel)**: chiếu pixel xuống mặt đất y = 0 bằng ma trận nghịch đảo camera (world-space nên zoom/độ phân giải không đổi tầm), rồi:
+- `edge = smoothstep(cos55° − 0,2, cos55° + 0,2, dot(hướng, forward))` (cạnh quạt mềm ~39°–68°), cuối tầm mềm 17–23 m;
+- `alpha = mix(outside, inside, edge·inRange)`; trong quạt mà sau vật chắn (tra mask sector, chuyển tiếp 1,5 m) → blocked;
+- bán kính gần: alpha 0 (mềm từ 2 → 3,25 m), không phát sáng gì; theo khoảng cách chỉ tăng nhẹ 35 % → 100 % (không phải fog: ≈ 0,03 ở 5 m, 0,06 ở 15 m, 0,08 từ ~25 m trở đi, không tăng thêm);
+- `alpha = min(alpha · độ mạnh, 0,15)`; màu = đen × alpha → độ sáng cảm nhận = 1 − alpha ≥ 85 %.
+- Không raycast theo pixel: 128 tia/frame trên CPU vào `visionOccluders` (0,1 ms), shader nội suy.
+- Hướng: `player.facing` (không phải camera), làm mượt hằng số thời gian 60 ms (cộng lọc hướng sẵn có của nhân vật) → quay xoay mượt, không cắt cứng.
+- Về "darkFactor" trong yêu cầu: `mix(scene, scene·0,8, 0,08)` chỉ tối 1,6 %, không đạt mục tiêu "ngoài FOV ≈ 85–95 %" cũng trong yêu cầu, nên dùng đen × alpha (tương đương darkFactor 0) với alpha đã kẹp 0,15.
+
+**Nghiệm thu** (`scripts/p2-vision-browser.mjs` bước 0, Chrome thật; mỗi hướng chụp khi tắt rồi bật overlay, tỉ lệ độ sáng 4 góc màn hình):
+
+| Trường hợp | Đèn (4 hướng) | Không overlay: chênh khi quay | Có overlay: tỉ lệ sáng |
+|---|---|---|---|
+| 12:00 ngoài trời | 0,55 / 1,6 / 0,5, không đổi | 0 | 0,94 – 0,98 |
+| 00:00 ngoài trời | 0,3 / 0,3 / 0,22, không đổi | 0 | 0,98 – 1,00 |
+| Trong nhà 12:00 | không đổi | 0 | 0,92 – 0,94 |
+| Quay nhanh 180° | | | khung tối nhất 0,957 so với trước khi quay |
+| Zoom 14 / 60 | | | 0,92 – 0,93 / 0,97 – 1,00 |
+
+- Chỉ có 1 mesh shader, 0 stencil. Zombie phía sau vẫn ẩn bởi PlayerVisionSystem (không phụ thuộc overlay). Production: dòng F3 Overlay (alpha sau lưng > 0 và ≤ 0,15, 0,10 ms CPU/frame). Hồi quy production `p2-s5`, `p2-s4` PASS.
+- **298 test** (30 file): `systems/visionOverlay.test.ts` (8: kẹp ≤ 0,15 ngày/đêm → ≥ 85 % sáng; trong tầm và bán kính gần = 0; sau lưng tăng nhẹ theo khoảng cách, không về đen; cạnh mềm (bước 0,5° chênh < 0,002); theo hướng nhân vật; ban đêm một nửa; mask sector nội suy/quấn vòng; trong nhà cửa đóng → blocked, mở → 0), thêm test chặn: file overlay không ghi đèn/exposure/fog/scene/vật liệu, chỉ đọc `daylightAt`, đúng 1 mesh.
+- Soak không đổi (shelter 30'/4 kill/30 dmg; patrol 853 s/30 kill). Build/lint sạch.
+- Ảnh: `node_modules/.tmp/vision-overlay-noon-north.png`, `-noon-south`, `-midnight-*`, `-indoor-*`, `vision-overlay-debug.png`.
+
+**Giới hạn**
+- Pixel được chiếu xuống mặt đất, nên tường/mái lấy shade của điểm đất phía sau chúng: mái nhà trong quạt có thể nhận shade "bị che" (≤ 12 %) theo đường chéo không trùng cạnh hình học. Rất nhẹ ở chế độ thường; chỉ rõ khi bật debug.
+- Mask LOS 128 lát (2,8°/lát): góc tường xa hơi tròn.
+- Chưa có ánh sáng trong nhà riêng/đèn; overlay không mô phỏng phòng tối (đúng yêu cầu).

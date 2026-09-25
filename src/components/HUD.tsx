@@ -108,6 +108,7 @@ export function HUD() {
           <div>
             Tầm nhìn: thấy {hud.visionStats.visible} · ứng viên {hud.visionStats.candidates} · raycast {hud.visionStats.raycasts} (F4 vẽ)
           </div>
+          <div>Overlay: {hud.overlay || 'tắt'}</div>
           <div>Zombies: {hud.zombies.filter((z) => z.ai !== 'DEAD').length} sống / {hud.zombies.length}</div>
           {hud.zombies.map((z) => (
             <div key={z.id}>

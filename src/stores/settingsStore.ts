@@ -10,6 +10,8 @@ export interface Settings {
   /** Giới hạn tỉ lệ pixel (1 = không dùng HiDPI) cho máy yếu. */
   maxPixelRatio: number
   showHints: boolean
+  /** Subtle perception shade outside the character's vision (VisionOverlay, max 15 %, not lighting). */
+  visionOverlay: boolean
 }
 
 interface SettingsState extends Settings {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shadows: 'high',
   maxPixelRatio: 1.5,
   showHints: true,
+  visionOverlay: true,
 }
 
 function load(): Settings {
@@ -45,6 +48,7 @@ function sanitize(s: Settings): Settings {
     shadows: s.shadows === 'off' || s.shadows === 'low' || s.shadows === 'high' ? s.shadows : DEFAULT_SETTINGS.shadows,
     maxPixelRatio: s.maxPixelRatio === 1 || s.maxPixelRatio === 1.5 || s.maxPixelRatio === 2 ? s.maxPixelRatio : DEFAULT_SETTINGS.maxPixelRatio,
     showHints: s.showHints !== false,
+    visionOverlay: s.visionOverlay !== false,
   }
 }
 
@@ -81,5 +85,5 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 }))
 
 function pick(s: SettingsState): Settings {
-  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints }
+  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints, visionOverlay: s.visionOverlay }
 }

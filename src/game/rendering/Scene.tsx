@@ -15,6 +15,8 @@ import { Lights } from './Lights'
 import { OcclusionFader } from './OcclusionFader'
 import { PhysicsBridge } from './PhysicsBridge'
 import { PlayerVisionDebug } from './PlayerVisionDebug'
+import { VisionOverlay } from './VisionOverlay'
+import { useSettingsStore } from '../../stores/settingsStore'
 import { PlayerView } from './PlayerView'
 import { Roads } from './Roads'
 import { Walls } from './Walls'
@@ -50,6 +52,7 @@ function CharacterAnimator() {
 export function Scene({ paused, debug, visionDebug }: SceneProps) {
   const zombieIds = useWorldStore((s) => s.zombieIds)
   const drops = useWorldStore((s) => s.drops)
+  const visionOverlay = useSettingsStore((s) => s.visionOverlay) && runtime.config.visionOverlay.enabled
   const map = runtime.map
 
   return (
@@ -84,6 +87,8 @@ export function Scene({ paused, debug, visionDebug }: SceneProps) {
         ))}
       </Physics>
       <OcclusionFader />
+      {/* Perception shade over the finished frame; never a light (see VisionOverlay). */}
+      {visionOverlay && <VisionOverlay debug={visionDebug} />}
       {visionDebug && <PlayerVisionDebug />}
       <GameLoop paused={paused} />
       <CharacterAnimator />

@@ -8,14 +8,14 @@
 
 Phase 1 xong mã cả 6 sprint. Phase 2 xong **S1–S5** (đã commit, S5 = 1f81571) và **sprint bổ sung tầm nhìn người chơi** (zombie chỉ vẽ khi nhân vật thấy; debug F4; save vẫn v6; sau playtest đã **bỏ lớp tối mặt đất** — tầm nhìn không được đụng ánh sáng). Sprint kế tiếp là **P2-S6: barricade gỗ/kim loại, tool/fuel**.
 
-Bản đầu của tầm nhìn đã commit (**c4f9728**, có lớp tối mặt đất). Sửa sau playtest (bỏ lớp tối, ánh sáng không phụ thuộc hướng nhìn) **chưa commit**, để người dùng review. Yêu cầu: `Prompt sửa hệ thống Player Vision không làm tối world lighting.md`. File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
+Tầm nhìn: c4f9728 (bản đầu, có lớp tối) → **1fc531d** (bỏ lớp tối). Playtest lần 2: **VisionOverlay** nhẹ (`Prompt triển khai VisionOverlay kiểu Project Zomboid không phá world lighting.md`) xong, **chưa commit**, để người dùng review. File yêu cầu `Prompt triển khai hệ thống tầm nhìn người chơi kiểu Project Zomboid.md` ở gốc repo chưa track (người dùng quyết định có commit hay không).
 
 | Sprint | Trạng thái |
 |---|---|
 | Phase 1 S1–S6 | Xong mã; deploy thật, FPS GPU thật và playtest tay vẫn cần xác nhận |
 | P2-S1 … P2-S4 | Xong, đã commit |
 | P2-S5 Perception/lang thang/di cư/phá cửa | Xong, đã commit (1f81571) |
-| Bổ sung: tầm nhìn người chơi | Bản đầu commit c4f9728; sửa theo playtest (bỏ lớp tối) xong, 289 test, build/lint, soak không đổi, Playwright dev + production qua; **chưa commit** |
+| Bổ sung: tầm nhìn người chơi | c4f9728 + 1fc531d đã commit; VisionOverlay xong, 298 test, build/lint, soak không đổi, Playwright dev + production qua; **chưa commit** |
 | P2-S6 Barricade/tool/fuel | Tiếp theo; dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
@@ -27,6 +27,7 @@ Bản đầu của tầm nhìn đã commit (**c4f9728**, có lớp tối mặt �
 - Vật chắn riêng `runtime.visionOccluders` (`world/visionOccluders.ts`, AABB, không Rapier): tường có đỉnh ≥ 1,5 m (kể cả lanh tô, biên, cột), tủ/kệ cao, lá cửa khi đóng (đọc `world.doors` lúc truy vấn). Hàng rào/thùng/xe/giường/quầy không chặn. `createWindowOccluder` (rèm) và `add/remove` sẵn cho cửa sổ/barricade/vách sau này.
 - Render: `ZombieView` đọc `runtime.vision.opacity(id)` (ẩn = không vẽ, không bóng, bỏ pose); `PlayerVisionDebug.tsx` (F4 / `?vision=debug` / `playerVision.debug`). F3 thêm thống kê + `nhìn=` từng zombie.
 - Config `GAME_CONFIG.playerVision` (= `PLAYER_VISION_CONFIG`).
+- **VisionOverlay** (`rendering/VisionOverlay.tsx` + `systems/visionOverlay.ts`, config `visionOverlay`): 1 quad toàn màn hình vẽ cuối, blend đen alpha ≤ 0,15 (ngoài tầm 0,08, sau vật chắn trong quạt 0,12, gần 0, ban đêm × 0,5), pixel chiếu xuống mặt đất (world-space), cạnh mềm smoothstep, hướng nhân vật làm mượt 60 ms, mask sector LOS 128 tia/frame (0,1 ms). Chỉ đọc `daylightAt`; không đèn/vật liệu/exposure. Setting "Hiệu ứng tầm nhìn". F3 dòng Overlay; F4 tô hồng mask.
 
 ## 2b. S5 đã bàn giao (đã commit)
 
@@ -42,7 +43,7 @@ Bản đầu của tầm nhìn đã commit (**c4f9728**, có lớp tối mặt �
 
 ## 3. Kiểm chứng cuối sprint
 
-**Sprint tầm nhìn (25/09)**: npm test **289/289** (29 file; mới `systems/playerVision.test.ts` 19 gồm 2 test chặn vision chạm ánh sáng, `core/vision.test.ts` 4), build/lint sạch. Soak **không đổi** so với S5 (shelter 30'/4 kill/30 dmg/cửa vỡ giây 61; patrol 853 s/30 kill). Hiệu năng Node: 500 zombie 0,095 ms/lượt. Playwright/Chrome 153 `scripts/p2-vision-browser.mjs` dev (trước/sau/sát lưng, quay bằng phím thật, cửa đóng/mở, zombie ẩn vẫn đập cửa, **đèn và độ sáng màn hình không đổi khi quay 4 hướng lúc 12:00/00:00/trong nhà**) + production (F3/F4, không lỗi) PASS; hồi quy production p2-s5, p2-s4 PASS.
+**Sprint tầm nhìn (25/09)**: npm test **298/298** (30 file; `systems/playerVision.test.ts` 20 gồm 3 test chặn vision/overlay chạm ánh sáng, `systems/visionOverlay.test.ts` 8, `core/vision.test.ts` 4), build/lint sạch. Soak **không đổi** so với S5 (shelter 30'/4 kill/30 dmg/cửa vỡ giây 61; patrol 853 s/30 kill). Hiệu năng Node: 500 zombie 0,095 ms/lượt. Playwright/Chrome 153 `scripts/p2-vision-browser.mjs` dev (trước/sau/sát lưng, quay bằng phím thật, cửa đóng/mở, zombie ẩn vẫn đập cửa, **đèn và độ sáng màn hình không đổi khi quay 4 hướng lúc 12:00/00:00/trong nhà; overlay chỉ dịu còn ≥ 92 % (ngày), ≥ 98 % (đêm); quay nhanh/zoom không có khung tối**) + production (F3/F4, không lỗi) PASS; hồi quy production p2-s5, p2-s4 PASS.
 
 **S5 (24/09)**:
 
@@ -81,7 +82,7 @@ Bản đầu của tầm nhìn đã commit (**c4f9728**, có lớp tối mặt �
 
 ## 6. Giới hạn và việc còn lại
 
-- Tầm nhìn: **quy tắc** — vision chỉ đổi zombie nào được vẽ, không bao giờ đổi đèn/vật liệu/exposure/lớp phủ môi trường (ánh sáng chỉ ở `Lights.tsx` theo đồng hồ; có test chặn). Nếu thêm hiệu ứng ngoài tầm nhìn sau này: rất nhẹ (≤ 0,1–0,15). Một tia LOS/zombie; tầm nhìn không giảm ban đêm; chưa spatial hash (điểm thay: `getNearbyZombies`). Giá trị 2,5/20 m/110° là khởi điểm, chưa playtest tay.
+- Tầm nhìn: **quy tắc** — vision chỉ đổi zombie nào được vẽ, không bao giờ đổi đèn/vật liệu/exposure/lớp phủ môi trường (ánh sáng chỉ ở `Lights.tsx` theo đồng hồ; có test chặn). VisionOverlay là lớp phủ duy nhất, kẹp ≤ 0,15; mái/tường lấy shade của điểm đất phía sau (chiếu mặt đất). Một tia LOS/zombie; tầm nhìn không giảm ban đêm; chưa spatial hash (điểm thay: `getNearbyZombies`). Giá trị 2,5/20 m/110° là khởi điểm, chưa playtest tay.
 
 - Chưa deploy thật, đo FPS GPU tích hợp thật hay playtest tay. Draw call tăng ~1,6–1,8× so với capsule (S3).
 - Cân bằng S5 (nón 70°, nghe 5/12 m, di cư 90–180 s) là giá trị khởi điểm. Nghe chưa có sai số; tiếng đánh/đập cửa chưa thu hút zombie.
@@ -99,4 +100,4 @@ Browser: Playwright không phải dependency; truyền `PLAYWRIGHT_MODULE` (file
 
 Giữ simulation ngoài React; thứ tự tick: input → movement (tính tiếng bước chân) → interaction → AI → combat → **đòn vào công trình** → action → survival/clock → spawn → **di cư** → **tầm nhìn người chơi (chỉ render, AI không đọc)** → events; pose chạy sau tick qua `CharacterAnimator`; không import Rapier runtime vào simulation. AI chỉ biết vị trí người chơi qua nhìn/nghe/trí nhớ. Mọi hành động có thời gian mới dùng `startRecipe`/reservation/commit nguyên tử. Giữ layout/ID map, ID vùng và fixture cũ. Tăng schema khi đổi cấu trúc save. Không đổi balance khi chưa đo; soak sau sửa combat/AI/spawn/survival. **Không commit/push; chỉ gợi ý message.**
 
-Commit message gợi ý: **fix(vision): remove ground darkening so player vision never affects world lighting**
+Commit message gợi ý: **feat(vision): subtle full-screen VisionOverlay (perception only, max 15 %, world lighting untouched)**

@@ -159,6 +159,35 @@ export const GAME_CONFIG = {
     /** Debug drawing (DEBUG_PLAYER_VISION); F4 toggles it in game, `?vision=debug` starts with it on. */
     debug: false,
   },
+  /**
+   * VisionOverlay: a subtle perception layer (one full-screen pass drawn over the finished frame).
+   * It is NOT lighting: it never touches lights, exposure or materials, only reads the daylight
+   * factor to scale itself. Cone, near radius and distance come from `playerVision`.
+   * Perceived brightness = 1 − alpha: inside vision 100 %, outside ≈ 92 %, never below 85 %.
+   */
+  visionOverlay: {
+    enabled: true,
+    insideOpacity: 0,
+    outsideOpacity: 0.08,
+    /** Inside the cone but behind a wall/closed door/tall furniture (LOS sector mask). */
+    blockedOpacity: 0.12,
+    /** Hard clamp of the final alpha. */
+    maxOpacity: 0.15,
+    /** Soft cone edge, in cosine units around cos(FOV/2). */
+    edgeSoftness: 0.2,
+    /** Near the player the overlay is ~35 % of its value and ramps to 100 % towards the far distance. */
+    nearDistanceShare: 0.35,
+    /** Seconds (time constant) the overlay direction trails the character facing: ≈ 60 ms response. */
+    directionSmoothing: 0.06,
+    /** Strength by world light (read only): full in daylight, half at night (the night is dark already). */
+    daytimeStrength: 1,
+    nighttimeStrength: 0.5,
+    /** Darken areas behind occluders inside the cone (sector mask of `losRays` rays, no per-pixel raycast). */
+    losAware: true,
+    losRays: 128,
+    /** DEBUG_VISION_OVERLAY: tint the mask so it can be seen; F4 debug also shows direction and alpha. */
+    debug: false,
+  },
   nav: {
     /** Kích thước ô lưới điều hướng (đơn vị thế giới). */
     cellSize: 0.5,
@@ -276,3 +305,6 @@ export type GameConfig = typeof GAME_CONFIG
 
 export const PLAYER_VISION_CONFIG = GAME_CONFIG.playerVision
 export type PlayerVisionConfig = typeof PLAYER_VISION_CONFIG
+
+export const VISION_OVERLAY_CONFIG = GAME_CONFIG.visionOverlay
+export type VisionOverlayConfig = typeof VISION_OVERLAY_CONFIG

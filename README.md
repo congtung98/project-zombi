@@ -104,8 +104,8 @@ Nguyên tắc:
 
 - Camera vẫn thấy cả khu vực, nhưng zombie chỉ được vẽ khi **nhân vật thấy nó**: trong 2,5 m quanh người (cả sau lưng), hoặc trong hình quạt 110° / 20 m theo **hướng nhân vật quay**, và không bị tường, tủ cao hay cửa đóng che (hàng rào, thùng, xe thấp không che). Hiện/ẩn có fade 0,2 s và giữ thêm 0,15 s chống nhấp nháy.
 - **Không đổi AI**: zombie bị ẩn vẫn lang thang, đuổi, đánh, đập cửa (test so simulation có/không có vision giống hệt; soak không đổi).
-- Tầm nhìn **không làm tối thế giới**: khung cảnh sáng/tối chỉ theo giờ trong ngày ở mọi hướng (lớp tối ngoài hình quạt của bản đầu đã bỏ sau playtest). F4 vẽ debug; F3 thêm thống kê tầm nhìn. Config `playerVision` trong `config.ts`. Save không đổi (v6).
-- **289 test**; Playwright dev + production (`scripts/p2-vision-browser.mjs`, có đo độ sáng màn hình khi quay lúc 12:00/00:00/trong nhà). Chi tiết `docs/phase2-vision.md`.
+- Tầm nhìn **không làm tối thế giới**: khung cảnh sáng/tối chỉ theo giờ trong ngày ở mọi hướng. Thêm **VisionOverlay** rất nhẹ (một shader toàn màn hình): ngoài tầm nhìn dịu ~8 %, sau tường trong hình quạt ~12 %, tối đa 15 %, ban đêm một nửa; cạnh mềm, xoay mượt theo hướng nhân vật; tắt được ("Hiệu ứng tầm nhìn"). F4 vẽ debug (mask tô hồng); F3 thêm thống kê tầm nhìn/overlay. Config `playerVision` trong `config.ts`. Save không đổi (v6).
+- **298 test**; Playwright dev + production (`scripts/p2-vision-browser.mjs`, đo độ sáng màn hình có/không overlay khi quay lúc 12:00/00:00/trong nhà, quay nhanh, zoom). Chi tiết `docs/phase2-vision.md`.
 
 ### Phase 2 — Sprint 5 (24/09/2026)
 
