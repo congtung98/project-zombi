@@ -38,6 +38,8 @@ export interface MapData {
   id: string
   /** Content revision of a data-driven world (world.json); saves record it. Hand-made maps: absent. */
   contentVersion?: number
+  /** Chunk edge (m) for render batches, collider groups and nav tiles; omitted = `DEFAULT_CHUNK_SIZE`. */
+  chunkSize?: number
   size: number
   playerSpawn: Vec3
   zombieSpawns: Vec3[]
@@ -56,6 +58,13 @@ export interface MapData {
   rooms?: RoomPlacement[]
   /** Living zombie cap for this map; omitted = `GAME_CONFIG.spawn.maxActive` (stress maps raise it). */
   maxActiveZombies?: number
+}
+
+/** Chunk edge of content worlds (world.json `chunkSize`) and the default for hand-made maps. */
+export const DEFAULT_CHUNK_SIZE = 32
+
+export function mapChunkSize(map: MapData): number {
+  return map.chunkSize ?? DEFAULT_CHUNK_SIZE
 }
 
 /** Parametric buildings of a hand-made map (content maps resolve windows/rooms explicitly). */

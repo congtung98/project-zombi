@@ -209,7 +209,7 @@ describe('spawn in runtime', () => {
     rt.events.on('zombie:spawned', (e) => spawned.push(e.id))
     // Giữ zombie đứng yên để không tới gần: tường chắn → IDLE. Mọi điểm spawn đang có zombie đứng,
     // nên chỉ sau khi một con chết (xác không chiếm chỗ) mới có điểm hợp lệ.
-    rt.registerPhysicsQuery({ isBlocked: () => true })
+    rt.setLineOfSightOverride({ isBlocked: () => true })
     rt.zombies.get('zombie-1')!.health = 0
     const max = GAME_CONFIG.spawn.maxActive
     for (let t = 0; t < GAME_CONFIG.spawn.intervalDay * (max + 2); t += 0.1) rt.tick(0.1)
@@ -229,7 +229,7 @@ describe('spawn in runtime', () => {
   it('removes corpses after corpseLifetime and emits zombie:removed', () => {
     const rt = new GameRuntime(makeMap())
     rt.newGame(12)
-    rt.registerPhysicsQuery({ isBlocked: () => true })
+    rt.setLineOfSightOverride({ isBlocked: () => true })
     const removed: string[] = []
     rt.events.on('zombie:removed', (e) => removed.push(e.id))
     rt.zombies.get('zombie-1')!.health = 0

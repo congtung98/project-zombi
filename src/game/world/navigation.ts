@@ -1,7 +1,9 @@
 import type { Vec3 } from '../../types'
-import { mapWindows, type MapData } from './mapData'
+import { mapChunkSize, mapWindows, type MapData } from './mapData'
 import type { DoorPlacement } from './buildings'
 import { DOOR_LEAF_THICKNESS, type DoorStatus } from './doors'
+import { GridSearch, type CellBounds } from './gridSearch'
+import { NavTiles } from './navTiles'
 
 export interface NavGridOptions {
   cellSize: number
@@ -12,6 +14,8 @@ export interface NavGridOptions {
 const OVERHEAD_MIN_BOTTOM = 1.6
 /** Giới hạn số ô A* mở rộng để một truy vấn không bao giờ làm khựng frame. */
 const MAX_EXPANSIONS = 20000
+/** Hierarchical paths look this many waypoints ahead when straightening (bounded cost on long routes). */
+const SMOOTH_WINDOW = 48
 /** Planning cost (metres) of breaking through a closed door, versus walking around (plan §10.2). */
 const BREACH_COST = 12
 /** Bash slots sit this far either side of the door centre, along the wall. */
@@ -47,6 +51,11 @@ interface DoorCells {
  * rộng theo bán kính tác nhân; ô trong khung cửa đi được tùy trạng thái cửa.
  * Simulation dùng `findPath` (A* 8 hướng, không cắt góc) và `hasLineOfWalk`
  * để zombie đi vòng tường, qua cửa mở mà không cần physics.
+ *
+ * R3b: the grid is also cut into chunk tiles (`NavTiles`): connected regions are labelled per tile
+ * and merged across tile edges (a door change relabels its tiles only), and a route between tiles
+ * two or more apart runs on the tile transition graph (HPA*) instead of one A* over the whole map.
+ * Routes within neighbouring tiles use the plain A* exactly as before.
  */
 export class NavGrid {
   readonly cellSize: number
@@ -66,24 +75,11 @@ export class NavGrid {
   private readonly initialDoorStates = new Map<string, DoorStatus>()
   private readonly cellDoors = new Map<number, Set<string>>()
   readonly portals = new Map<string, DoorPortal>()
-  /** 4-connected component label per cell (-1 blocked), rebuilt lazily per `version`. */
-  private components: Int32Array | null = null
-  private componentsVersion = -1
-  /**
-   * R1: A* working buffers, allocated once per grid and reused by every search. A cell's g-score and
-   * parent are valid only when its `visited` stamp equals the current search, so nothing is cleared
-   * between searches (the old code allocated and filled three grid-sized arrays per path).
-   */
-  private readonly gScore: Float32Array
-  private readonly cameFrom: Int32Array
-  private readonly visited: Uint32Array
-  private readonly closedStamp: Uint32Array
-  private searchStamp = 0
-  private readonly heap = new MinHeap()
-  /** BFS queue of the component labelling, reused per rebuild. */
-  private componentQueue: Int32Array | null = null
-  /** A* searches run (instrumentation). */
-  searches = 0
+  /** R1: A* with working buffers allocated once per grid (stamped, never cleared). */
+  private readonly search: GridSearch
+  /** R3b: chunk tiles (regions per tile, transition graph for long routes). */
+  readonly tiles: NavTiles
+  private readonly whole: CellBounds
 
   constructor(map: MapData, opts: NavGridOptions) {
     this.cellSize = opts.cellSize
@@ -94,10 +90,15 @@ export class NavGrid {
     this.originZ = -map.size / 2 - 1
     this.staticBlocked = new Uint8Array(this.cols * this.rows)
     this.blocked = new Uint8Array(this.cols * this.rows)
-    this.gScore = new Float32Array(this.cols * this.rows)
-    this.cameFrom = new Int32Array(this.cols * this.rows)
-    this.visited = new Uint32Array(this.cols * this.rows)
-    this.closedStamp = new Uint32Array(this.cols * this.rows)
+    this.search = new GridSearch(this.cols, this.rows, this.blocked)
+    this.whole = { c0: 0, c1: this.cols - 1, r0: 0, r1: this.rows - 1 }
+    this.tiles = new NavTiles({
+      cols: this.cols,
+      rows: this.rows,
+      blocked: this.blocked,
+      cellX: (cx) => this.originX + (cx + 0.5) * this.cellSize,
+      cellZ: (cz) => this.originZ + (cz + 0.5) * this.cellSize,
+    }, mapChunkSize(map), this.search)
 
     const r = opts.agentRadius
     for (const wall of map.walls) {
@@ -147,6 +148,8 @@ export class NavGrid {
       this.portals.set(door.id, { center: { x: door.center.x, y: 0, z: door.center.z }, sides, slots })
     }
     this.rebuild()
+    // R3b: build the tile graph now (like loading a chunk) so the first long route is not the one to pay.
+    this.tiles.warm(Infinity)
     // Slots that fall on blocked cells (furniture, walls) use the side point instead.
     for (const portal of this.portals.values()) {
       portal.slots = portal.slots.map((list, i) => list.map((p) => (this.staticWalkable(p) ? p : { ...portal.sides[i] }))) as [Vec3[], Vec3[]]
@@ -161,13 +164,25 @@ export class NavGrid {
     const cells = this.doorCells.get(id)
     if (!cells || this.doorStates.get(id) === state) return
     this.doorStates.set(id, state)
-    for (const idx of new Set([...cells.corridor, ...cells.openLeaf])) this.refreshCell(idx)
+    const changed = new Set([...cells.corridor, ...cells.openLeaf])
+    for (const idx of changed) this.refreshCell(idx)
+    this.tiles.markCellsDirty(changed)
     this.version += 1
   }
 
+  /** New game: every door back to its initial state (only the doors that changed touch the tiles). */
   resetDoors(): void {
-    for (const id of this.doorStates.keys()) this.doorStates.set(id, this.initialDoorStates.get(id) ?? 'closed')
-    this.rebuild()
+    const changed = new Set<number>()
+    for (const [id, state] of this.doorStates) {
+      const initial = this.initialDoorStates.get(id) ?? 'closed'
+      if (state === initial) continue
+      this.doorStates.set(id, initial)
+      const cells = this.doorCells.get(id)!
+      for (const idx of [...cells.corridor, ...cells.openLeaf]) changed.add(idx)
+    }
+    for (const idx of changed) this.refreshCell(idx)
+    if (changed.size) this.tiles.markCellsDirty(changed)
+    this.version += 1
   }
 
   worldToCell(x: number, z: number): { cx: number; cz: number } {
@@ -226,43 +241,20 @@ export class NavGrid {
     return null
   }
 
+  /** A* searches run (instrumentation): cell-level searches, including the tile legs of long routes. */
+  get searches(): number {
+    return this.search.searches
+  }
+
   /**
    * Connected region (4-neighbour, which is exactly what A* without corner cutting can reach) of
-   * the walkable cell nearest to a point; -1 when there is none. Labels are cached per `version`,
-   * so "is there any route" is a lookup instead of an A* that floods the whole reachable area.
+   * the walkable cell nearest to a point; -1 when there is none. R3b: regions come from the chunk
+   * tiles (per-tile labels merged across edges), so "is there any route" stays a lookup and a door
+   * change only relabels its tiles. Region IDs are only comparable within one nav `version`.
    */
   componentAt(x: number, z: number): number {
     const c = this.nearestWalkableCell(x, z)
-    return c ? this.componentLabels()[c.cz * this.cols + c.cx] : -1
-  }
-
-  private componentLabels(): Int32Array {
-    if (this.components && this.componentsVersion === this.version) return this.components
-    const total = this.cols * this.rows
-    const labels = this.components ?? new Int32Array(total)
-    labels.fill(-1)
-    const queue = (this.componentQueue ??= new Int32Array(total))
-    let next = 0
-    for (let seed = 0; seed < total; seed++) {
-      if (this.blocked[seed] || labels[seed] >= 0) continue
-      let head = 0
-      let tail = 0
-      queue[tail++] = seed
-      labels[seed] = next
-      while (head < tail) {
-        const idx = queue[head++]
-        const cx = idx % this.cols
-        for (const n of [cx > 0 ? idx - 1 : -1, cx < this.cols - 1 ? idx + 1 : -1, idx - this.cols, idx + this.cols]) {
-          if (n < 0 || n >= total || this.blocked[n] || labels[n] >= 0) continue
-          labels[n] = next
-          queue[tail++] = n
-        }
-      }
-      next += 1
-    }
-    this.components = labels
-    this.componentsVersion = this.version
-    return labels
+    return c ? this.tiles.regionOf(c.cz * this.cols + c.cx) : -1
   }
 
   private staticWalkable(p: Vec3): boolean {
@@ -280,16 +272,24 @@ export class NavGrid {
     const goal = this.nearestWalkableCell(to.x, to.z)
     if (!start || !goal) return null
     if (start.cx === goal.cx && start.cz === goal.cz) return [this.goalPoint(to, goal)]
-    const labels = this.componentLabels()
-    if (labels[start.cz * this.cols + start.cx] !== labels[goal.cz * this.cols + goal.cx]) return null
+    const startIdx = start.cz * this.cols + start.cx
+    const goalIdx = goal.cz * this.cols + goal.cx
+    if (this.tiles.regionOf(startIdx) !== this.tiles.regionOf(goalIdx)) return null
 
-    const cells = this.astar(start, goal)
+    // Nearby: one A* as before. Far (or a nearby search that ran out of budget): the tile graph.
+    const near = this.tiles.tileDistance(startIdx, goalIdx) <= 1
+    let cells = near ? this.search.astar(startIdx, goalIdx, this.whole, MAX_EXPANSIONS) : null
+    const hierarchical = !cells
+    cells ??= this.tiles.findCells(startIdx, goalIdx)
     if (!cells) return null
 
     const points: Vec3[] = [{ x: from.x, y: 0, z: from.z }]
-    for (let i = 1; i < cells.length; i++) points.push(this.cellToWorld(cells[i].cx, cells[i].cz))
+    for (let i = 1; i < cells.length; i++) {
+      const cx = cells[i] % this.cols
+      points.push(this.cellToWorld(cx, (cells[i] - cx) / this.cols))
+    }
     points[points.length - 1] = this.goalPoint(to, goal)
-    return this.smooth(points)
+    return this.smooth(points, hierarchical ? SMOOTH_WINDOW : Infinity)
   }
 
   /**
@@ -302,20 +302,19 @@ export class NavGrid {
     const goal = this.nearestWalkableCell(to.x, to.z)
     if (!start || !goal) return 'none'
     if (start.cx === goal.cx && start.cz === goal.cz) return 'direct'
-    const labels = this.componentLabels()
-    return labels[start.cz * this.cols + start.cx] === labels[goal.cz * this.cols + goal.cx] ? 'search' : 'none'
+    return this.tiles.regionOf(start.cz * this.cols + start.cx) === this.tiles.regionOf(goal.cz * this.cols + goal.cx) ? 'search' : 'none'
   }
 
   private goalPoint(to: Vec3, goal: { cx: number; cz: number }): Vec3 {
     return this.isWalkable(to.x, to.z) ? { x: to.x, y: 0, z: to.z } : this.cellToWorld(goal.cx, goal.cz)
   }
 
-  /** Kéo thẳng đường: từ mỗi điểm nhảy tới điểm xa nhất còn nhìn thấy trên lưới. */
-  private smooth(points: Vec3[]): Vec3[] {
+  /** Kéo thẳng đường: từ mỗi điểm nhảy tới điểm xa nhất còn nhìn thấy trên lưới (trong `window` điểm tới). */
+  private smooth(points: Vec3[], window: number): Vec3[] {
     const out: Vec3[] = []
     let i = 0
     while (i < points.length - 1) {
-      let j = points.length - 1
+      let j = Math.min(points.length - 1, i + window)
       while (j > i + 1 && !this.hasLineOfWalk(points[i], points[j])) j--
       out.push(points[j])
       i = j
@@ -323,92 +322,10 @@ export class NavGrid {
     return out
   }
 
-  private astar(start: { cx: number; cz: number }, goal: { cx: number; cz: number }): { cx: number; cz: number }[] | null {
-    const cols = this.cols
-    const startIdx = start.cz * cols + start.cx
-    const goalIdx = goal.cz * cols + goal.cx
-    this.searches += 1
-
-    // Stamps instead of clearing: unvisited cells read as g = Infinity, parent = -1, not closed.
-    const stamp = this.nextStamp()
-    const gScore = this.gScore
-    const cameFrom = this.cameFrom
-    const visited = this.visited
-    const closed = this.closedStamp
-    const open = this.heap
-    open.clear()
-
-    gScore[startIdx] = 0
-    cameFrom[startIdx] = -1
-    visited[startIdx] = stamp
-    open.push(startIdx, this.heuristic(start.cx, start.cz, goal.cx, goal.cz))
-
-    let expansions = 0
-    while (open.size > 0) {
-      const current = open.pop()
-      if (current === goalIdx) return this.reconstruct(cameFrom, current)
-      if (closed[current] === stamp) continue
-      closed[current] = stamp
-      if (++expansions > MAX_EXPANSIONS) return null
-
-      const cx = current % cols
-      const cz = (current - cx) / cols
-      for (let dz = -1; dz <= 1; dz++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dz === 0) continue
-          const nx = cx + dx
-          const nz = cz + dz
-          if (!this.isWalkableCell(nx, nz)) continue
-          // Không cắt góc: đi chéo chỉ khi hai ô kề theo trục đều trống.
-          if (dx !== 0 && dz !== 0 && (!this.isWalkableCell(cx + dx, cz) || !this.isWalkableCell(cx, cz + dz))) continue
-          const nIdx = nz * cols + nx
-          if (closed[nIdx] === stamp) continue
-          // Same arithmetic as before: a double sum of the stored Float32 score (identical paths).
-          const tentative = gScore[current] + (dx !== 0 && dz !== 0 ? Math.SQRT2 : 1)
-          if (visited[nIdx] !== stamp || tentative < gScore[nIdx]) {
-            visited[nIdx] = stamp
-            gScore[nIdx] = tentative
-            cameFrom[nIdx] = current
-            open.push(nIdx, tentative + this.heuristic(nx, nz, goal.cx, goal.cz))
-          }
-        }
-      }
-    }
-    return null
-  }
-
-  /** New search stamp; on wrap-around (after 4 billion searches) the stamp arrays are reset. */
-  private nextStamp(): number {
-    this.searchStamp += 1
-    if (this.searchStamp >= 0xffffffff) {
-      this.visited.fill(0)
-      this.closedStamp.fill(0)
-      this.searchStamp = 1
-    }
-    return this.searchStamp
-  }
-
-  private heuristic(ax: number, az: number, bx: number, bz: number): number {
-    const dx = Math.abs(ax - bx)
-    const dz = Math.abs(az - bz)
-    return Math.max(dx, dz) + (Math.SQRT2 - 1) * Math.min(dx, dz)
-  }
-
-  private reconstruct(cameFrom: Int32Array, end: number): { cx: number; cz: number }[] {
-    const out: { cx: number; cz: number }[] = []
-    let cur = end
-    while (cur !== -1) {
-      const cx = cur % this.cols
-      out.push({ cx, cz: (cur - cx) / this.cols })
-      cur = cameFrom[cur]
-    }
-    out.reverse()
-    return out
-  }
-
   private rebuild(): void {
     this.blocked.set(this.staticBlocked)
     for (const idx of this.cellDoors.keys()) this.refreshCell(idx)
+    this.tiles.markAllDirty()
     this.version += 1
   }
 
@@ -542,62 +459,4 @@ function distanceToSegment(px: number, pz: number, ax: number, az: number, bx: n
   const len2 = vx * vx + vz * vz
   const t = len2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * vx + (pz - az) * vz) / len2)) : 0
   return Math.hypot(px - (ax + vx * t), pz - (az + vz * t))
-}
-
-/** Heap nhị phân tối thiểu theo f-score cho A*. */
-class MinHeap {
-  private items: number[] = []
-  private scores: number[] = []
-
-  get size(): number {
-    return this.items.length
-  }
-
-  clear(): void {
-    this.items.length = 0
-    this.scores.length = 0
-  }
-
-  push(item: number, score: number): void {
-    this.items.push(item)
-    this.scores.push(score)
-    let i = this.items.length - 1
-    while (i > 0) {
-      const parent = (i - 1) >> 1
-      if (this.scores[parent] <= this.scores[i]) break
-      this.swap(i, parent)
-      i = parent
-    }
-  }
-
-  pop(): number {
-    const top = this.items[0]
-    const lastItem = this.items.pop()!
-    const lastScore = this.scores.pop()!
-    if (this.items.length > 0) {
-      this.items[0] = lastItem
-      this.scores[0] = lastScore
-      let i = 0
-      for (;;) {
-        const l = i * 2 + 1
-        const r = l + 1
-        let m = i
-        if (l < this.items.length && this.scores[l] < this.scores[m]) m = l
-        if (r < this.items.length && this.scores[r] < this.scores[m]) m = r
-        if (m === i) break
-        this.swap(i, m)
-        i = m
-      }
-    }
-    return top
-  }
-
-  private swap(a: number, b: number): void {
-    const ti = this.items[a]
-    this.items[a] = this.items[b]
-    this.items[b] = ti
-    const ts = this.scores[a]
-    this.scores[a] = this.scores[b]
-    this.scores[b] = ts
-  }
 }

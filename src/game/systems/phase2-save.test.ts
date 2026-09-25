@@ -451,7 +451,7 @@ describe('P2-S5 browser fixture (v6, saved mid-siege in Chromium)', () => {
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
     expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
     // No Rapier in Node: walls and the closed door block sight like the grid does.
-    rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
+    rt.setLineOfSightOverride({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
     let destroyed = 0
     rt.events.on('door:destroyed', () => (destroyed += 1))
     const period = GAME_CONFIG.zombie.attackWindup + GAME_CONFIG.structure.cooldown

@@ -15,7 +15,7 @@ const DT = 1 / 30
 const R = GAME_CONFIG.zombie.radius
 
 function losGrid(rt: GameRuntime): void {
-  rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
+  rt.setLineOfSightOverride({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
 }
 
 /** Deepest overlap (m) of a zombie circle with a solid box between the ankles and the head. */
@@ -123,7 +123,7 @@ describe('R2: zombie simulation owns its transform', () => {
     const rt = new GameRuntime(buildStressMap(4))
     rt.newGame(3)
     losGrid(rt)
-    rt.pathBudget = { maxPathsPerTick: 3, maxPathMs: Infinity }
+    rt.pathBudget = { maxPathsPerTick: 3, maxPathMs: Infinity, warmMs: 0 }
     // Everyone hears the player at once: a request storm.
     for (const z of rt.zombies.values()) {
       z.lastKnownTarget = { ...rt.player.position }

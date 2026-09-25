@@ -5,7 +5,6 @@ import { Color, type Group, type MeshStandardMaterial } from 'three'
 import type { DoorPlacement } from '../world/buildings'
 import { useWorldStore } from '../../stores/worldStore'
 import { runtime } from '../core/runtime'
-import { blockerData } from './blockerData'
 import { occluderRef } from './occlusionRegistry'
 import { doorLeafTransform, DOOR_LEAF_THICKNESS as LEAF_THICKNESS, DOOR_MAX_HP } from '../world/doors'
 
@@ -57,7 +56,6 @@ export function DoorView({ door }: DoorViewProps) {
       colliders="cuboid"
       position={[door.hinge.x, 0, door.hinge.z]}
       rotation={[0, angle, 0]}
-      userData={blockerData(door.id)}
     >
       <group ref={shakeRef}>
         <mesh castShadow position={[door.width / 2, door.height / 2, 0]} ref={occluderRef}>

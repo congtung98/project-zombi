@@ -1,10 +1,8 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import type { Mesh } from 'three'
 import type { WindowPlacement } from '../world/buildings'
 import { runtime } from '../core/runtime'
-import { blockerData } from './blockerData'
 import { sharedBox, sharedStandardMaterial } from './sharedResources'
 
 const GLASS_THICKNESS = 0.04
@@ -14,7 +12,7 @@ const CURTAIN = () => sharedStandardMaterial('#7d5a6e', { roughness: 0.95 })
 const CURTAIN_THICKNESS = 0.05
 
 /**
- * Window: a glass pane in the wall gap (sill and header come from `Walls`). The pane collider
+ * Window: a glass pane in the wall gap (sill and header come from the wall batches). The pane collider
  * blocks movement, zombie sight and interaction rays like the wall it replaces; the player's own
  * sight goes through it unless the curtain is closed (vision occluders, separate from lighting).
  * The curtain hangs on the inner side and is drawn only while closed.
@@ -23,7 +21,6 @@ export function WindowView({ win }: { win: WindowPlacement }) {
   const curtainRef = useRef<Mesh>(null)
   const h = win.head - win.sill
   const glass: [number, number, number] = win.alongX ? [win.width, h, GLASS_THICKNESS] : [GLASS_THICKNESS, h, win.width]
-  const half: [number, number, number] = win.alongX ? [win.width / 2, h / 2, win.thickness / 2] : [win.thickness / 2, h / 2, win.width / 2]
   const curtain: [number, number, number] = win.alongX ? [win.width + 0.1, h + 0.1, CURTAIN_THICKNESS] : [CURTAIN_THICKNESS, h + 0.1, win.width + 0.1]
   const inset = win.thickness / 2 + CURTAIN_THICKNESS
   const c = win.center
@@ -35,10 +32,6 @@ export function WindowView({ win }: { win: WindowPlacement }) {
 
   return (
     <>
-      {/* Blocker ID differs from the window ID so the curtain cannot be drawn from outside through the glass. */}
-      <RigidBody type="fixed" colliders={false} position={[c.x, c.y, c.z]} userData={blockerData(`${win.id}:pane`)}>
-        <CuboidCollider args={half} />
-      </RigidBody>
       <mesh position={[c.x, c.y, c.z]} dispose={null} geometry={sharedBox(glass)} material={GLASS()} />
       <mesh
         ref={curtainRef}

@@ -1,10 +1,25 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-25**, hoàn thành **map content M1–M2 (R3a)** sau refactor R0–R2 (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, **docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md**.
+> Cập nhật: **2026-09-25**, hoàn thành **R3b (hiệu năng theo chunk)** sau map content M1–M2 (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, **docs/refactor-r3b.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map content M1–M2 = R3a (mới nhất, chưa commit — chi tiết docs/map-editor-m1-m2.md)
+## 0. R3b: hiệu năng theo chunk (mới nhất, chưa commit — chi tiết docs/refactor-r3b.md)
+
+Save không đổi (v8), content không đổi. Thứ tự đã chốt: R3a → **R3b** → M3 (editor).
+
+- **LOS phía simulation**: `runtime.isBlocked()` → `staticColliders.segmentBlocked()` (cùng bộ hộp Rapier; test đối chiếu Rapier WASM trùng 100 %) cho tầm nhìn/đòn của zombie, tương tác, cận chiến, che spawn. `PhysicsBridge` bỏ; test thay bằng `setLineOfSightOverride` (tên cũ `registerPhysicsQuery`). Soak/perf dùng LOS thật.
+- **Render gộp theo chunk**: `rendering/StaticBatches.tsx` (`BatchedMesh` mỗi chunk: tường/vật cản, thân container, sàn, mái; màu theo instance trên một material trắng; shader trong nhà hỗ trợ batching, key `indoor-lighting-v2`); vật che là hộp + callback (`occlusionRegistry`), tường/mái mờ = ẩn instance + bản sao mờ; `RoofController` ở StaticBatches. `Walls.tsx`, `BuildingView.tsx`, `blockerData.ts` bỏ.
+- **Collider Rapier theo chunk**: `rendering/ChunkColliders.tsx` — chỉ các chunk trong `GAME_CONFIG.streaming.colliderChunkRadius` (1) quanh người chơi + hộp dài hơn chunk (Rapier chỉ còn phục vụ thân người chơi). Lá cửa vẫn body riêng.
+- **Nav theo chunk**: `world/gridSearch.ts` (A*/Dijkstra giới hạn vùng), `world/navTiles.ts` (vùng theo tile + union-find; HPA* cho đường cách ≥ 2 tile; đồ thị dựng lúc nạp map, làm nóng lại `pathfinding.warmMs` 0,5 ms/tick sau đổi cửa). Đường gần giữ A* cũ.
+- **Kết quả**: draw call 194 → 62 (thường), 335 → 106 (stress); CPU/frame stress đứng yên 10,5–10,9 → 5,2–7,6 ms, 224 zombie 12,3–14,3 → 7,6–8,5 ms; bão path stress tick tệ nhất 9,2 → 4,9 ms (cùng LOS).
+- **Mốc soak mới** (LOS thật thay LOS giả theo lưới): shelter 1800 s/3 kill/30 dmg, patrol **659 s/30 kill**. Trước khi đổi LOS, soak sau nav trùng M2 từng số.
+- **Kiểm chứng**: 396 test (+9 skip), tsc/oxlint/build sạch; Playwright dev S2–S5/vision/lighting + tường chunk xa, production S5/vision/lighting/S4 PASS.
+- **Chưa làm (dời sang streaming)**: `ChunkLifecycle` điều khiển registry/nav/WorldState, nav lưu theo tile, instancing nhân vật.
+
+Commit message gợi ý: **perf(r3b): simulation line of sight, per-chunk static batches and Rapier colliders, chunk-tiled nav with HPA\***
+
+## 0a. Map content M1–M2 = R3a (đã commit 86ce472 — chi tiết docs/map-editor-m1-m2.md)
 
 Kế hoạch: `docs/Map_Editor_Implementation_Plan.md`. Thứ tự đã chốt với chủ dự án: **R3a (M1+M2) → R3b (hiệu năng theo chunk) → M3+ (editor GUI)**.
 
@@ -12,12 +27,10 @@ Kế hoạch: `docs/Map_Editor_Implementation_Plan.md`. Thứ tự đã chốt v
 - **Mã**: `src/map/` (schema, transform, validate, resolve, loader `ChunkLifecycle`, content, format; tools `importLegacy`, `tileWorld`); `NEIGHBORHOOD_MAP = loadBundledWorld('neighborhood-50').map` (không còn BuildingDef viết tay); `MapData.buildings: BuildingInfo[]`; hằng `*_ADDED_Vn` chuyển sang `world/legacyContent.ts` (chỉ cho save cũ). `?stress=N` sinh bằng `tileWorld` qua cùng pipeline; production không chứa generator.
 - **ID ổn định**: `c-1_-1/safehouse/door`, `c0_-1/store/shelf-1`, `c-1_0/objects/park-toolbox`, `c0_0/zones/south`, `world/boundary-n`… (đoạn chunk là định danh bất biến). **Mọi test/script mới phải dùng ID này.**
 - **Save v8** (+ `contentVersion`): v1–v7 migrate qua map cũ đóng băng rồi đổi tên ID (backup `slot-1.backup-v7`); ID inventory/item không đổi.
-- **Tương đương**: test so từng thực thể với map cũ; soak trùng từng số R2 khi cùng thứ tự + khóa loot cũ. **Mốc soak mới** (thứ tự chunk, loot seed theo ID mới): shelter 1800 s/3 kill/10 dmg, patrol 970 s/42 kill.
+- **Tương đương**: test so từng thực thể với map cũ; soak trùng từng số R2 khi cùng thứ tự + khóa loot cũ. Mốc soak lúc đó (thứ tự chunk, loot seed theo ID mới, LOS giả): shelter 1800 s/3 kill/10 dmg, patrol 970 s/42 kill (R3b thay bằng mốc LOS thật).
 - **Kiểm chứng**: 380 test pass (+9 skip), tsc/oxlint/build sạch, `npm run map:check` OK; Playwright dev S2 (migrate v7/v3/v2/v1 → v8 qua Continue), S3, S4, S5, vision, lighting và production S5/vision/lighting/S4 PASS. Fixture `phase2-light-v7.json` nay đóng băng (script không ghi nữa).
 - **Sửa nội dung**: sửa JSON trong `content/maps/…` rồi `npm run map:check`; đổi bố cục khu phố = tăng `contentVersion` (test tương đương/importer tự bỏ qua khi khác 1) và viết migrate nếu trạng thái đã lưu bị ảnh hưởng.
-- **Bước tiếp**: R3b — gộp hình học tĩnh/instancing theo chunk, nav theo chunk + portal, LOS zombie phía simulation, nối `ChunkLifecycle` với register/unregister collider/occluder/nav. Sau đó M3 (editor MVP, entry riêng).
-
-Commit message gợi ý: **feat(map): data-driven map content (prefab + chunk JSON, stable IDs, validator, chunk lifecycle) and save v8**
+- Sau M1–M2 là R3b (mục 0), rồi M3 (editor MVP, entry riêng).
 
 ## 0b. Refactor kiến trúc R0–R2 (đã commit 8637897 — chi tiết docs/refactor-r0-r2.md)
 
@@ -45,8 +58,9 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 | Bổ sung: tầm nhìn người chơi | Đã commit (c4f9728, 1fc531d, 5f38d8d) |
 | Bổ sung: ánh sáng trong nhà | Đã commit (38a1469) |
 | Refactor R0–R2 (hiệu năng/kiến trúc) | Đã commit (8637897) |
-| Map content M1–M2 = R3a (prefab + chunk JSON, save v8) | Xong, chưa commit (docs/map-editor-m1-m2.md) |
-| R3b (hiệu năng theo chunk) → M3–M6 editor | Chưa làm (thứ tự đã chốt) |
+| Map content M1–M2 = R3a (prefab + chunk JSON, save v8) | Đã commit (86ce472) |
+| R3b (LOS simulation, batch + collider theo chunk, nav HPA*) | Xong, chưa commit (docs/refactor-r3b.md) |
+| M3–M6 map editor | Tiếp theo (thứ tự đã chốt) |
 | P2-S6 Barricade/tool/fuel | Tạm dừng (sau R0–R2); dùng TimedAction + tool requirement S4, hook `worldTargetId` S5 |
 | P2-S7 Building/thùng/vách/rebuild | Chưa làm |
 | P2-S8 Tích hợp/cân bằng/release | Chưa làm |
@@ -100,7 +114,7 @@ Tầm nhìn: c4f9728 → 1fc531d → **5f38d8d** (VisionOverlay), đã commit. *
 | src/game/systems/ai.ts (+ ai.test, perception.test) | FSM, `perceive` (nón nhìn + nghe), trí nhớ, lang thang/MIGRATE, vây cửa, `moveTowards` báo `blocked` |
 | src/game/entities/zombie.ts | Trường trí nhớ, lang thang, vùng, cửa mục tiêu; `UNAWARE_STATES` |
 | src/game/systems/horde.ts (+ horde.test) | `nearestZone`, `planMigration`, `migrationInterval` thuần |
-| src/game/world/navigation.ts | `componentAt` (nhãn vùng cache theo revision), `findDoorRoute` mới, `portals` có `center/sides/slots` |
+| src/game/world/navigation.ts | `componentAt` (R3b: vùng theo tile qua `navTiles.ts`), `findDoorRoute` mới, `portals` có `center/sides/slots` |
 | src/game/world/mapData.ts | `ZoneDef`, `zombieZones` map khu phố |
 | src/game/core/runtime.ts | `playerNoise`, ngữ cảnh AI (route/slot/cửa/điểm lang thang), `stepStructureHits`, `stepHorde`, lọc respawn, snapshot/load v6 |
 | src/game/core/siege.test.ts | Nghiệm thu runtime S5 (body giả trên lưới) |

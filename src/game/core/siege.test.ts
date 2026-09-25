@@ -52,7 +52,7 @@ const asBody = (b: FakeBody) => b as unknown as Parameters<GameRuntime['register
 function world(map: MapData, seed = 7) {
   const rt = new GameRuntime(map)
   rt.newGame(seed)
-  rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
+  rt.setLineOfSightOverride({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
   const player = fakeBody(rt.nav, rt.player.position.x, rt.player.position.z)
   rt.registerPlayerBody(asBody(player))
   const step = (seconds: number, each?: () => void) => {

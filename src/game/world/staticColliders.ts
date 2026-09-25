@@ -2,6 +2,7 @@ import type { Vec3 } from '../../types'
 import { SpatialHash } from '../core/spatialHash'
 import { mapWindows, type MapData } from './mapData'
 import { doorLeafTransform, type DoorStatus } from './doors'
+import { segmentBoxEntry } from './visionOccluders'
 
 /**
  * R2: the solid boxes zombies collide with, owned by the simulation (the same set Rapier gets:
@@ -9,6 +10,10 @@ import { doorLeafTransform, type DoorStatus } from './doors'
  * reads it without WebGL or Rapier, so a zombie with no physics body (NEAR/DORMANT) still stops at
  * walls. Registration goes through `registerStaticCollider` / `unregisterStaticCollider`, which is the
  * hook chunk loading (R3) will use; `Walls.tsx` renders the wall colliders from here.
+ *
+ * R3b: it also answers line-of-sight/obstruction queries (`segmentBlocked`) for zombie sight and
+ * attacks, interaction, melee and spawn hiding, which used to be Rapier raycasts. Same boxes, so the
+ * simulation no longer needs any collider of the physics engine for AI.
  */
 
 export type StaticColliderKind = 'wall' | 'container' | 'window' | 'door'
@@ -22,6 +27,8 @@ export interface StaticCollider {
   isSolid?: () => boolean
   /** Render data for colliders that also own their mesh (walls). */
   color?: string
+  /** ID an obstruction query may ignore (the object being interacted with); defaults to `id`. */
+  blockerId?: string
 }
 
 const CELL = 4
@@ -33,6 +40,9 @@ export class StaticColliderRegistry {
   version = 0
   private readonly listeners = new Set<() => void>()
   private readonly scratch: StaticCollider[] = []
+  private readonly segmentScratch: StaticCollider[] = []
+  /** Narrow-phase segment tests since the owner last reset it (perf instrumentation). */
+  segmentTests = 0
 
   registerStaticCollider(c: StaticCollider): void {
     this.byId.set(c.id, c)
@@ -68,6 +78,30 @@ export class StaticColliderRegistry {
     for (const c of out) if (!c.isSolid || c.isSolid()) out[n++] = c
     out.length = n
     return out
+  }
+
+  /**
+   * Whether a solid box crosses the segment from → to (a segment starting inside a box counts), not
+   * counting boxes whose `blockerId` is `ignoreId`. The same test Rapier's `castRay` made against the
+   * same colliders before R3b.
+   */
+  segmentBlocked(from: Vec3, to: Vec3, ignoreId?: string): boolean {
+    const minX = Math.min(from.x, to.x), maxX = Math.max(from.x, to.x)
+    const minY = Math.min(from.y, to.y), maxY = Math.max(from.y, to.y)
+    const minZ = Math.min(from.z, to.z), maxZ = Math.max(from.z, to.z)
+    const d = { x: to.x - from.x, y: to.y - from.y, z: to.z - from.z }
+    if (Math.abs(d.x) + Math.abs(d.y) + Math.abs(d.z) < 1e-4) return false
+    const out = this.segmentScratch
+    out.length = 0
+    this.index.queryAABB(minX, minZ, maxX, maxZ, out)
+    for (const c of out) {
+      if (c.max.y < minY || c.min.y > maxY || c.max.x < minX || c.min.x > maxX || c.max.z < minZ || c.min.z > maxZ) continue
+      if (ignoreId !== undefined && (c.blockerId ?? c.id) === ignoreId) continue
+      if (c.isSolid && !c.isSolid()) continue
+      this.segmentTests += 1
+      if (segmentBoxEntry(from, d, c.min, c.max) <= 1) return true
+    }
+    return false
   }
 
   subscribe(listener: () => void): () => void {
@@ -113,6 +147,7 @@ export function registerMapColliders(registry: StaticColliderRegistry, map: MapD
         min: { x: leaf.center.x - ex, y: leaf.center.y - hy, z: leaf.center.z - ez },
         max: { x: leaf.center.x + ex, y: leaf.center.y + hy, z: leaf.center.z + ez },
         isSolid: () => doorState(door.id) === pose,
+        blockerId: door.id,
       })
     }
   }

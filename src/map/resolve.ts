@@ -294,6 +294,7 @@ export function assembleMapData(world: WorldDocument, records: Iterable<Resolved
   return {
     id: world.worldId,
     contentVersion: world.contentVersion,
+    chunkSize: world.chunkSize,
     size: world.playArea.size,
     playerSpawn: { ...spawn.position },
     zombieSpawns: all.zombieSpawns,

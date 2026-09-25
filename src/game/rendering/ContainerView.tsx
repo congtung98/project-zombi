@@ -1,7 +1,5 @@
-import { RigidBody } from '@react-three/rapier'
 import type { ContainerDef } from '../world/buildings'
 import { useWorldStore } from '../../stores/worldStore'
-import { blockerData } from './blockerData'
 import { sharedBox, sharedStandardMaterial } from './sharedResources'
 
 const INDICATOR_SIZE: [number, number, number] = [0.2, 0.12, 0.2]
@@ -12,21 +10,16 @@ interface ContainerViewProps {
   container: ContainerDef
 }
 
-/** Container có ID ổn định; hiển thị dấu hiệu đã mở. Loot logic ở Sprint 4. */
+/**
+ * Container có ID ổn định; hiển thị dấu hiệu đã mở. R3b: the body is drawn by `StaticBatches` and its
+ * collider comes from `ChunkColliders`; this is only the state light on top (yellow = not opened
+ * yet, grey = opened).
+ */
 export function ContainerView({ container }: ContainerViewProps) {
   const opened = useWorldStore((s) => s.containerOpened[container.id] ?? false)
-  const h = container.size[1]
+  const p = container.position
 
   return (
-    <RigidBody
-      type="fixed"
-      colliders="cuboid"
-      position={[container.position.x, container.position.y, container.position.z]}
-      userData={blockerData(container.id)}
-    >
-      <mesh castShadow receiveShadow dispose={null} geometry={sharedBox(container.size)} material={sharedStandardMaterial(container.color)} />
-      {/* Đèn báo trạng thái trên nóc: vàng = chưa mở, xám = đã mở. */}
-      <mesh position={[0, h / 2 + 0.06, 0]} dispose={null} geometry={sharedBox(INDICATOR_SIZE)} material={opened ? INDICATOR_OPENED() : INDICATOR_NEW()} />
-    </RigidBody>
+    <mesh position={[p.x, p.y + container.size[1] / 2 + 0.06, p.z]} dispose={null} geometry={sharedBox(INDICATOR_SIZE)} material={opened ? INDICATOR_OPENED() : INDICATOR_NEW()} />
   )
 }

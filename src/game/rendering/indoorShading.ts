@@ -27,9 +27,17 @@ const VERTEX_DECL = /* glsl */ `
 #include <common>
 varying vec3 vIndoorWorld;
 `
+/** World position like `project_vertex` builds it (R3b: batched and instanced meshes included). */
 const VERTEX_APPLY = /* glsl */ `
 #include <project_vertex>
-vIndoorWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
+vec4 indoorLocal = vec4(transformed, 1.0);
+#ifdef USE_BATCHING
+indoorLocal = batchingMatrix * indoorLocal;
+#endif
+#ifdef USE_INSTANCING
+indoorLocal = instanceMatrix * indoorLocal;
+#endif
+vIndoorWorld = (modelMatrix * indoorLocal).xyz;
 `
 
 const FRAGMENT_DECL = /* glsl */ `
@@ -56,7 +64,7 @@ for (int i = 0; i < INDOOR_MAX_ROOMS; i++) {
 #include <opaque_fragment>
 `
 
-const PROGRAM_KEY = 'indoor-lighting-v1'
+const PROGRAM_KEY = 'indoor-lighting-v2'
 
 type Shader = Parameters<MeshStandardMaterial['onBeforeCompile']>[0]
 

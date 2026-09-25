@@ -84,7 +84,7 @@ async function runScenario(label: string, map: MapData, mode: Mode, extraZombies
   rt.newGame(20260925)
   const totalTicks = Math.round((WARMUP_SEC + RUN_SEC) / DT)
   const nav = rt.nav
-  rt.registerPhysicsQuery({ isBlocked: (from, to, ignore) => (ignore.length > 0 ? false : !nav.hasLineOfWalk(from, to)) })
+  // R3b: obstruction queries are the game's own (collider boxes), not a nav-grid stand-in.
 
   // Crowd: the player stands at the first tile's crossroads, extra zombies spawn in a ring around it.
   // Pathing: the player starts inside the safehouse; the ring is around its yard.

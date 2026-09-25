@@ -4,7 +4,7 @@ import { runAnimators } from './character/animators'
 import { Physics } from '@react-three/rapier'
 import { runtime } from '../core/runtime'
 import { useWorldStore } from '../../stores/worldStore'
-import { BuildingView, RoofController } from './BuildingView'
+import { RoofController, StaticBatches } from './StaticBatches'
 import { CameraRig } from './CameraRig'
 import { ContainerView } from './ContainerView'
 import { CursorProbe } from './CursorProbe'
@@ -13,7 +13,6 @@ import { GameLoop } from './GameLoop'
 import { Ground } from './Ground'
 import { Lights } from './Lights'
 import { OcclusionFader } from './OcclusionFader'
-import { PhysicsBridge } from './PhysicsBridge'
 import { PerfProbe } from './PerfProbe'
 import { PlayerVisionDebug } from './PlayerVisionDebug'
 import { VisionOverlay } from './VisionOverlay'
@@ -25,7 +24,7 @@ import { mapRooms, mapWindows } from '../world/mapData'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { PlayerView } from './PlayerView'
 import { Roads } from './Roads'
-import { Walls } from './Walls'
+import { ChunkColliders } from './ChunkColliders'
 import { ZombieBody, ZombieView } from './ZombieView'
 
 interface SceneProps {
@@ -110,14 +109,11 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <CursorProbe />
       <Roads />
       <Drops />
-      {map.buildings.map((b) => (
-        <BuildingView key={b.id} building={b} />
-      ))}
+      <StaticBatches />
       <RoofController />
       <Physics gravity={[0, -9.81, 0]} paused={paused} debug={debug} timeStep={1 / 60}>
-        <PhysicsBridge />
         <Ground />
-        <Walls />
+        <ChunkColliders />
         {map.doors.map((door) => (
           <DoorView key={door.id} door={door} />
         ))}

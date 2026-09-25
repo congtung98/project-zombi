@@ -202,7 +202,7 @@ try {
     // 5) The door breaks: leaf/collider gone (raycast passes), nav open, zombie comes in and attacks.
     await page.waitForFunction(() => window.__runtime.world.doors.get('c-1_-1/safehouse/door').state === 'destroyed', null, { timeout: 30000 })
     await hasText('đã bị zombie phá vỡ', 3000)
-    const through = await rt(() => window.__runtime.physics.isBlocked({ x: -13, y: 1.5, z: -8.5 }, { x: -13, y: 1.5, z: -11.5 }, []))
+    const through = await rt(() => window.__runtime.isBlocked({ x: -13, y: 1.5, z: -8.5 }, { x: -13, y: 1.5, z: -11.5 }, []))
     assert.equal(through, false, 'no invisible collider left in the frame')
     await shot('p2s5-broken')
     log('player inside at', await rt(() => ({ x: +window.__runtime.player.position.x.toFixed(2), z: +window.__runtime.player.position.z.toFixed(2) })))

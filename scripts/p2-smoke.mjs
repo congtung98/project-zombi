@@ -182,7 +182,7 @@ try {
     for (const state of ['closed','open','destroyed','closed']) {
       runtime.setDoorState('lab-door', state); runtime.events.flush()
       await new Promise(r => setTimeout(r, 300))
-      const blocked = runtime.physics.isBlocked({x:0,y:1.2,z:5}, {x:0,y:1.2,z:1}, [])
+      const blocked = runtime.isBlocked({x:0,y:1.2,z:5}, {x:0,y:1.2,z:1}, [])
       states.push({state, blocked, path: runtime.nav.findPath({x:0,y:0,z:5}, {x:0,y:0,z:1}) !== null})
     }
     runtime.setDoorState('lab-door', 'destroyed'); runtime.events.flush()

@@ -30,6 +30,7 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 - Vòng đời (`ChunkLifecycle`, `src/map/loader.ts`): một record còn hoạt động khi ít nhất một chunk đang nạp sở hữu hoặc tham chiếu nó (đếm tham chiếu). Nạp một chunk hai lần không có tác dụng. Thứ tự nạp không ảnh hưởng `MapData`, vì record được sắp theo thứ tự content.
 - Record là mô tả bất biến. Trạng thái đổi được (cửa, loot, đèn, rèm) nằm trong WorldState/save theo ID, nên gỡ rồi nạp lại chunk không reset được nó.
 - Tường biên vùng chơi thuộc cấp world (`world/boundary-n|s|w|e`), sinh từ `world.boundary`.
+- R3b: runtime dùng cùng lưới chunk (`MapData.chunkSize`, mặc định 32) cho batch render (`StaticBatches`), nhóm collider Rapier (`ChunkColliders`) và tile nav (`navTiles`); vật được xếp vào chunk theo tâm của nó.
 - Kích thước khu phố thực tế: vùng chơi 50 m (−25..25) nằm trên 4 chunk `c-1_-1`, `c0_-1`, `c-1_0`, `c0_0`. Ba nhà, mỗi nhà nằm gọn trong một chunk. Hai con đường, zone "Ngã tư" và tường biên cắt qua đường chia chunk, nên ownership + tham chiếu được dùng thật ngay từ đầu.
 
 ## 4. ID ổn định

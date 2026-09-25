@@ -68,10 +68,10 @@ export type ActionStartFailure = CraftFailure | 'busy' | 'dead'
 export type ActionStartResult = { ok: true; id: number } | { ok: false; reason: ActionStartFailure }
 
 /**
- * Truy vấn vật lý do tầng render (Rapier) cung cấp. Simulation không import
- * Rapier trực tiếp để logic vẫn test được không cần WASM.
+ * Obstruction query. R3b: the runtime answers it itself from `staticColliders` (the boxes Rapier
+ * was given); tests may install a stand-in with `setLineOfSightOverride`.
  */
-export interface PhysicsQuery {
+export interface LineOfSightQuery {
   /** true nếu có khối chặn (tường, cửa đóng...) giữa hai điểm, bỏ qua các ID trong `ignoreIds`. */
   isBlocked(from: Vec3, to: Vec3, ignoreIds: readonly string[]): boolean
 }
@@ -153,7 +153,8 @@ export class GameRuntime {
   private playerBody: RapierRigidBody | null = null
   /** R2: kinematic bodies of ACTIVE zombies (mounted by the view layer); positions are pushed into them. */
   private zombieBodies = new Map<EntityId, ZombieBodyProxy>()
-  private physics: PhysicsQuery | null = null
+  /** Test stand-in for the obstruction query (null = the simulation's own boxes). */
+  private losOverride: LineOfSightQuery | null = null
   private nextZombieId = 1
   private readonly zombieAIContext: ZombieAIContext
   /** Walls, tall furniture and closed doors that block the player's sight (door state read live). */
@@ -242,9 +243,8 @@ export class GameRuntime {
     // đường đi lấy từ lưới điều hướng (đi vòng tường, qua cửa mở).
     this.zombieAIContext = {
       canReach: (zombie, target) => {
-        if (!this.physics) return true
         this.perf.count('zombieRaycasts')
-        return !this.physics.isBlocked(atHeight(zombie.position, EYE_HEIGHT), atHeight(target, EYE_HEIGHT), [])
+        return !this.isBlocked(atHeight(zombie.position, EYE_HEIGHT), atHeight(target, EYE_HEIGHT), [])
       },
       // R2: the AI files path requests; A* runs in `stepPathQueue` after the AI pass (budgeted).
       requestPath: (zombie, from, to) => {
@@ -505,8 +505,15 @@ export class GameRuntime {
     else this.zombieBodies.delete(id)
   }
 
-  registerPhysicsQuery(query: PhysicsQuery | null): void {
-    this.physics = query
+  /** Replace the obstruction query (tests); null restores the simulation's own collider boxes. */
+  setLineOfSightOverride(query: LineOfSightQuery | null): void {
+    this.losOverride = query
+  }
+
+  /** Solid box between two points (walls, containers, window glass, door leaves), ignoring `ignoreIds`. */
+  isBlocked(from: Vec3, to: Vec3, ignoreIds: readonly string[]): boolean {
+    if (this.losOverride) return this.losOverride.isBlocked(from, to, ignoreIds)
+    return this.staticColliders.segmentBlocked(from, to, ignoreIds[0])
   }
 
   adjustZoom(steps: number): void {
@@ -608,12 +615,10 @@ export class GameRuntime {
       {
         playerPos: this.player.position,
         aliveZombies,
-        isHiddenFromPlayer: this.physics
-          ? (pt) => {
-              this.perf.count('otherRaycasts')
-              return this.physics!.isBlocked(playerEye, atHeight(pt, EYE_HEIGHT), [])
-            }
-          : undefined,
+        isHiddenFromPlayer: (pt) => {
+          this.perf.count('otherRaycasts')
+          return this.isBlocked(playerEye, atHeight(pt, EYE_HEIGHT), [])
+        },
         // Plan §10.5: never inside a building (a barricaded shelter stays empty) or a blocked cell.
         isAllowed: (pt) => this.nav.isWalkable(pt.x, pt.z) && this.buildingAt(pt, 0.5) === null,
       },
@@ -863,9 +868,8 @@ export class GameRuntime {
     // R1: only the interactables around the player (same order as the full list), not the whole map.
     const nearby = this.interactableIndex.queryRadius(player.position.x, player.position.z, INTERACT_RANGE + this.maxInteractRadius)
     const target = selectInteractable(player.position, player.facing, nearby, (item) => {
-      if (!this.physics) return false
       this.perf.count('otherRaycasts')
-      return this.physics.isBlocked(from, item.position, [item.id])
+      return this.isBlocked(from, item.position, [item.id])
     })
     this.currentInteractable = target
     this.interactPrompt = target ? this.describeInteraction(target) : null
@@ -1271,6 +1275,8 @@ export class GameRuntime {
       z.pathPending = false
       return true
     })
+    // R3b: spare time goes to the nav tile graph (edges of long routes); never changes a result.
+    if (this.pathQueue.size === 0) this.nav.tiles.warm(this.pathBudget.warmMs)
   }
 
   /**
@@ -1371,9 +1377,8 @@ export class GameRuntime {
   }
 
   private isTargetBlocked(target: MeleeTarget): boolean {
-    if (!this.physics) return false
     this.perf.count('otherRaycasts')
-    return this.physics.isBlocked(atHeight(this.player.position, SWING_HEIGHT), atHeight(target.position, SWING_HEIGHT), [])
+    return this.isBlocked(atHeight(this.player.position, SWING_HEIGHT), atHeight(target.position, SWING_HEIGHT), [])
   }
 
   /**

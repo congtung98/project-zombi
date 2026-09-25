@@ -78,8 +78,9 @@ src/
     world/             buildings (kiểu + generator nhà tham số cho door lab/test), mapData (kiểu MapData + nạp khu phố từ
                        content), legacyContent (map cũ đóng băng cho save v1–v7), worldState (cửa/container + loot),
                        lootTables (bảng loot đặt tay), navigation (lưới A*, cửa mở/đóng/vỡ, vùng liên thông, chọn cửa phá)
-    rendering/         Scene, CameraRig, CursorProbe, Ground, Roads, Walls, BuildingView, DoorView,
-                       ContainerView, PlayerView, ZombieView, Lights (+ daylight), OcclusionFader, PhysicsBridge, GameLoop
+    rendering/         Scene, CameraRig, CursorProbe, Ground, Roads, StaticBatches (tường/sàn/mái/container gộp theo
+                       chunk), ChunkColliders (collider Rapier quanh người chơi), DoorView, ContainerView, WindowView,
+                       PlayerView, ZombieView, Lights (+ daylight), OcclusionFader, GameLoop
       character/       rig dựng bằng code (khớp, weaponSocket), pose thuần (animation), model vũ khí, animator sau tick
   components/          HUD, Menus (main/pause/game over), Inventory (túi 12 ô + sửa), ContainerPanel (panel tủ + overlay),
                        CraftingPanel (bảng chế tạo)
@@ -95,18 +96,24 @@ Nguyên tắc:
 - **Một nguồn thời gian.** `GameClock` chỉ tiến trong `runtime.tick()`, delta time bị giới hạn bởi
   `config.loop.maxDelta`.
 - **Thứ tự tick cố định:** input → chuyển động/physics → tương tác → AI → combat → survival/clock → phát sự kiện.
-- **Physics do Rapier xử lý.** Simulation đặt vận tốc cho body, Rapier giải quyết va chạm với tường.
-- **Simulation không import Rapier.** `PhysicsBridge` đăng ký một `PhysicsQuery` (raycast) vào runtime;
-  logic tương tác/tầm nhìn/đòn đánh test được mà không cần WASM.
+- **Rapier chỉ lo thân người chơi.** Simulation đặt vận tốc cho body người chơi; collider tĩnh chỉ nạp cho các
+  chunk quanh người chơi. Zombie do simulation di chuyển (va chạm hộp), body kinematic chỉ để chặn người chơi.
+- **Simulation không import Rapier.** Che chắn (zombie thấy/đánh, tương tác, cận chiến, che spawn) là truy vấn
+  đoạn thẳng trên `StaticColliderRegistry` (cùng bộ hộp); test thay được bằng `setLineOfSightOverride`.
 - **Điều hướng không dùng physics.** `NavGrid` dựng một lần từ map data (ô 0,5 m, vật cản nới theo bán kính
-  tác nhân); trạng thái cửa chỉ đổi các ô trong khung cửa và vùng cánh cửa mở. AI nhận `findPath`/`hasLineOfWalk`
-  qua context nên test được bằng hàm giả.
+  tác nhân); trạng thái cửa chỉ đổi các ô trong khung cửa và vùng cánh cửa mở. Lưới chia tile theo chunk
+  (`navTiles`): vùng liên thông theo tile, đường xa đi đồ thị điểm chuyển tiếp (HPA*). AI nhận
+  `findPath`/`hasLineOfWalk` qua context nên test được bằng hàm giả.
 - **Map là dữ liệu.** Khu phố nằm trong `content/maps/neighborhood-50/` (prefab + chunk JSON); `src/map/` kiểm tra
   và resolve thành `MapData`. Mọi thực thể có ID ổn định `<chunk>/<instance>/<localId>` (ví dụ `c-1_-1/safehouse/door`);
   `worldState` và save (v8) giữ trạng thái theo ID này.
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### R3b: hiệu năng theo chunk (25/09/2026)
+
+- LOS phía simulation (bỏ raycast Rapier), tường/sàn/mái/container vẽ bằng một `BatchedMesh` mỗi chunk, collider Rapier chỉ quanh người chơi, nav chia tile theo chunk (HPA* cho đường xa). Draw call map stress 335 → 106, CPU/frame ~10,5 → 5–7,6 ms. Chi tiết `docs/refactor-r3b.md`.
 
 ### Map content M1–M2 / R3a (25/09/2026)
 

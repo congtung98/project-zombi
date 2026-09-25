@@ -67,7 +67,7 @@ describe('GameRuntime tick', () => {
 
   it('zombie behind a wall (physics reports blocked) never damages the player', () => {
     const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
-    rt.registerPhysicsQuery({ isBlocked: () => true })
+    rt.setLineOfSightOverride({ isBlocked: () => true })
     let damaged = 0
     rt.events.on('player:damaged', () => (damaged += 1))
     const dt = 1 / 60
@@ -147,7 +147,7 @@ describe('GameRuntime interaction', () => {
 
   it('ignores targets the physics query reports as blocked', () => {
     const rt = new GameRuntime(makeMap([]))
-    rt.registerPhysicsQuery({ isBlocked: () => true })
+    rt.setLineOfSightOverride({ isBlocked: () => true })
     rt.player.position = { x: 0, y: 0.9, z: 1.8 }
     rt.tick(1 / 60)
     expect(rt.currentInteractable).toBeNull()
@@ -240,7 +240,7 @@ describe('GameRuntime combat', () => {
     expect(zombie.health).toBe(GAME_CONFIG.zombie.health)
 
     rt.player.facing = Math.PI / 2
-    rt.registerPhysicsQuery({ isBlocked: () => true })
+    rt.setLineOfSightOverride({ isBlocked: () => true })
     for (let t = 0; t < melee.cooldown; t += DT) rt.tick(DT)
     swing(rt)
     expect(zombie.health).toBe(GAME_CONFIG.zombie.health)
@@ -267,7 +267,7 @@ describe('GameRuntime combat', () => {
   it('a zombie outside a closed hut waits, then walks through the opened door and attacks', () => {
     const rt = new GameRuntime(makeMap([{ x: 0, y: 0, z: 8 }]))
     // Tường chắn tầm nhìn xấp xỉ bằng lưới điều hướng (thay cho raycast Rapier).
-    rt.registerPhysicsQuery({ isBlocked: (a, b) => !rt.nav.hasLineOfWalk(a, b) })
+    rt.setLineOfSightOverride({ isBlocked: (a, b) => !rt.nav.hasLineOfWalk(a, b) })
     rt.player.position = { x: 0, y: 0.9, z: -1 }
     const playerBody = fakeBody(0, -1)
     rt.registerPlayerBody(asRigidBody(playerBody))

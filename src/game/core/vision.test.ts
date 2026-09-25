@@ -47,7 +47,7 @@ const asBody = (b: FakeBody) => b as unknown as Parameters<GameRuntime['register
 function world(map: MapData, seed = 11) {
   const rt = new GameRuntime(map)
   rt.newGame(seed)
-  rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
+  rt.setLineOfSightOverride({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
   const player = fakeBody(rt.nav, rt.player.position.x, rt.player.position.z)
   rt.registerPlayerBody(asBody(player))
   // R2: zombies move in the simulation; only the player has a (grid) body.
@@ -112,7 +112,7 @@ describe('player vision in the runtime', () => {
       if (!withVision) rt.vision.update = () => undefined
       const player = fakeBody(rt.nav, rt.player.position.x, rt.player.position.z)
       rt.registerPlayerBody(asBody(player))
-      rt.registerPhysicsQuery({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
+      rt.setLineOfSightOverride({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
       for (let t = 0; t < 40; t += DT) {
         rt.tick(DT)
         player.step(DT)

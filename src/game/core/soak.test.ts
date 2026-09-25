@@ -102,13 +102,10 @@ function runSoak(policy: 'shelter' | 'patrol') {
     const nav = rt.nav
     const map = rt.map
 
-    // Thay Rapier: body giả bám lưới cho người chơi; raycast = tầm đi trên lưới (tường/cửa đóng chắn).
-    // R2: zombies are moved by the simulation itself (no zombie bodies).
+    // Thay Rapier: body giả bám lưới cho người chơi. R2: zombies are moved by the simulation itself
+    // (no zombie bodies). R3b: sight/attack/interaction obstruction is the game's own (collider boxes).
     const playerBody = fakeBody(nav, rt.player.position.x, rt.player.position.z)
     rt.registerPlayerBody(asBody(playerBody))
-    rt.registerPhysicsQuery({
-      isBlocked: (from, to, ignore) => (ignore.length > 0 ? false : !nav.hasLineOfWalk(from, to)),
-    })
 
     const combos = COMBOS.map((keys) => ({
       keys,

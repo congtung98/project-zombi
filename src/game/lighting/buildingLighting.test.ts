@@ -267,7 +267,7 @@ describe('event driven updates and world interaction', () => {
   it('E on the wall switch toggles the lamp; the curtain cannot be drawn from outside through the glass', () => {
     const { rt } = world(NOON)
     // Physics stand-in for this scene: only the safehouse north wall line (z = −18, glass included) blocks.
-    rt.registerPhysicsQuery({ isBlocked: (a, b) => (a.z < -18) !== (b.z < -18) })
+    rt.setLineOfSightOverride({ isBlocked: (a, b) => (a.z < -18) !== (b.z < -18) })
     const sw = rt.interactables.find((i) => i.id === 'c0_0/house/lamp-living')!
     rt.interact(sw)
     expect(rt.world.lamps.get('c0_0/house/lamp-living')).toBe(true)

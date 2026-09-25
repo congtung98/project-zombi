@@ -270,10 +270,17 @@ export const GAME_CONFIG = {
     /** Longest move per collision sub-step (m): below the thinnest wall + zombie radius. */
     movementSubstep: 0.2,
   },
+  /** R3b: what the physics engine keeps loaded (it only collides the player's body with the world). */
+  streaming: {
+    /** Rapier colliders exist for the player's chunk and this many chunks around it (plus map-long boxes). */
+    colliderChunkRadius: 1,
+  },
   /** R2 pathfinding queue: A* searches run after the AI pass, within these budgets (at least one per tick). */
   pathfinding: {
     maxPathsPerTick: 6,
     maxPathMs: 2,
+    /** R3b: idle time per tick (queue empty) spent precomputing nav tile-graph edges. */
+    warmMs: 0.5,
   },
   /**
    * damage/range/cooldown/stamina are the Phase 1 bat baseline that `ITEMS.baseball_bat` reuses;
