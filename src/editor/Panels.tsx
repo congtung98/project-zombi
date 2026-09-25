@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { bundledWorldIds } from '../map/content'
 import { fittedPlayAreaSize, updateWorld } from '../map/editor/commands'
-import { chunkStatuses, recordAtPath, recordForEntity } from '../map/editor/document'
+import { chunkStatuses, instancesOf, prefabItemAtPath, recordAtPath, recordForEntity } from '../map/editor/document'
+import { createPrefab, deletePrefab, duplicatePrefab } from '../map/editor/prefabCommands'
+import { PREFAB_PRESETS } from '../map/editor/prefabPresets'
 import { LAYERS } from '../map/editor/layers'
 import { RECORD_PRESETS, type PresetCategory } from '../map/editor/presets'
 import { SLUG } from '../map/transform'
 import { deleteDraft } from './drafts'
-import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab } from './editorStore'
+import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab, type PrefabTab } from './editorStore'
 import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
 
 const confirmDiscard = () => !isDirty(useEditorStore.getState()) || window.confirm('Document có thay đổi chưa lưu. Bỏ các thay đổi đó?')
@@ -24,6 +26,7 @@ const DRAG_HINT = { point: 'click', line: 'click hoặc kéo (dài)', rect: 'cli
 
 function PrefabList() {
   const edit = useEditorStore((s) => s.edit)!
+  const savedDoc = useEditorStore((s) => s.savedDoc)
   const tool = useEditorStore((s) => s.tool)
   const place = useEditorStore((s) => s.place)
   const setTool = useEditorStore((s) => s.setTool)
@@ -32,6 +35,7 @@ function PrefabList() {
   const prefabs = edit.doc.world.prefabs
     .map((e) => edit.doc.prefabs.get(e.prefabId)!)
     .filter((p) => !q || p.prefabId.includes(q) || p.name.toLowerCase().includes(q))
+  const store = useEditorStore.getState
   return (
     <>
       <input className="search" placeholder="Tìm prefab…" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -39,19 +43,110 @@ function PrefabList() {
         {prefabs.map((p) => {
           const f = p.footprint
           const active = tool === 'place' && place?.kind === 'prefab' && place.prefabId === p.prefabId
+          const uses = instancesOf(edit.doc, p.prefabId).length
+          const modified = savedDoc?.prefabs.get(p.prefabId) !== p
           return (
             <li key={p.prefabId}>
               <button className={active ? 'active' : ''} onClick={() => setTool(active ? 'select' : 'place', active ? null : { kind: 'prefab', prefabId: p.prefabId })} data-prefab={p.prefabId}>
-                <strong>{p.name}</strong>
+                <strong>
+                  {p.name}
+                  {modified ? ' ●' : ''}
+                </strong>
                 <small>
-                  {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m
+                  {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m · {uses} instance
                 </small>
+              </button>
+              <div className="row tight">
+                <button onClick={() => store().enterPrefab(p.prefabId)} data-edit-prefab={p.prefabId} title="Sửa prefab gốc (mọi instance đổi theo)">
+                  Sửa
+                </button>
+                <button onClick={() => store().set({ dialog: 'duplicatePrefab', dialogPrefab: p.prefabId })}>Nhân bản</button>
+                <button className="bad" disabled={uses > 0} title={uses ? 'Còn instance dùng prefab này' : ''} onClick={() => store().run(`Xóa prefab ${p.prefabId}`, (d) => deletePrefab(d, p.prefabId))}>
+                  Xóa
+                </button>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+      <button onClick={() => store().set({ dialog: 'newPrefab' })} data-new-prefab>
+        Prefab mới…
+      </button>
+      <p className="hint">Click một prefab rồi click viewport để đặt, R xoay 90°, Esc thoát. "Sửa" mở prefab gốc: mọi instance của nó đổi theo.</p>
+    </>
+  )
+}
+
+const PREFAB_TABS: { id: PrefabTab; label: string }[] = [
+  { id: 'structure', label: 'Tường' },
+  { id: 'openings', label: 'Cửa' },
+  { id: 'furniture', label: 'Nội thất' },
+  { id: 'containers', label: 'Tủ' },
+  { id: 'rooms', label: 'Phòng' },
+]
+
+const PREFAB_HINTS: Record<PrefabTab, string> = {
+  structure: 'Tường: nhấn rồi kéo theo trục X hoặc Z. Cửa/cửa sổ đặt lên tường sẽ tự khoét khe (lanh tô, bệ cửa sổ do game dựng).',
+  openings: 'Click sát một bức tường: cửa/cửa sổ bám vào tường và quay vào phía trong nhà (cửa mở vào trong). Xa tường: đặt theo góc R.',
+  furniture: 'Nội thất là vật cản (collider, chặn đường đi). Click để đặt; quầy/khối: kéo để định kích thước.',
+  containers: 'Tủ có loot: bảng loot chọn ở Inspector. Vòng xanh = tầm tương tác trong game.',
+  rooms: 'Kéo khung phòng trên đường tâm tường. Phòng có đèn kèm công tắc (ô vàng, kéo để dời). Ánh sáng: cửa sổ và cửa nối các phòng.',
+}
+
+/** Palette of the prefab editor (M5): what goes inside the prefab being edited. */
+function PrefabPalette({ prefabId }: { prefabId: string }) {
+  const edit = useEditorStore((s) => s.edit)!
+  const tab = useEditorStore((s) => s.prefabTab)
+  const tool = useEditorStore((s) => s.tool)
+  const place = useEditorStore((s) => s.place)
+  const store = useEditorStore.getState
+  const prefab = edit.doc.prefabs.get(prefabId)
+  if (!prefab) return null
+  const uses = instancesOf(edit.doc, prefabId)
+  return (
+    <>
+      <div className="banner" data-prefab-banner>
+        <strong>Sửa PREFAB GỐC</strong>
+        <div>
+          {prefab.name} <code>{prefabId}</code>
+        </div>
+        <small>
+          Ảnh hưởng {uses.length} instance{uses.length ? `: ${uses.slice(0, 4).join(', ')}${uses.length > 4 ? ' …' : ''}` : ''}
+        </small>
+        <button onClick={() => store().exitPrefab()} data-exit-prefab>
+          ← Về world
+        </button>
+      </div>
+      <nav className="tabs">
+        {PREFAB_TABS.map((t) => (
+          <button
+            key={t.id}
+            className={tab === t.id ? 'active' : ''}
+            onClick={() => {
+              store().set({ prefabTab: t.id })
+              if (store().tool !== 'select') store().setTool('select')
+            }}
+            data-prefab-tab={t.id}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+      <ul className="palette">
+        {PREFAB_PRESETS.filter((p) => p.group === tab).map((p) => {
+          const active = tool === 'place' && place?.kind === 'prefabItem' && place.presetId === p.id
+          return (
+            <li key={p.id}>
+              <button className={active ? 'active' : ''} onClick={() => store().setTool(active ? 'select' : 'place', active ? null : { kind: 'prefabItem', presetId: p.id })} data-prefab-preset={p.id}>
+                <strong>{p.label}</strong>
+                <small>{DRAG_HINT[p.drag]}</small>
               </button>
             </li>
           )
         })}
       </ul>
-      <p className="hint">Click vào viewport để đặt, R xoay 90°, Esc thoát. Sửa prefab: M5.</p>
+      <p className="hint">{PREFAB_HINTS[tab]}</p>
+      <p className="hint">R xoay, Delete xóa, Ctrl+D nhân bản, mũi tên dịch, Esc thoát công cụ.</p>
     </>
   )
 }
@@ -165,7 +260,15 @@ function LayersPanel() {
 export function Palette() {
   const edit = useEditorStore((s) => s.edit)
   const tab = useEditorStore((s) => s.paletteTab)
+  const prefabMode = useEditorStore((s) => s.prefabMode)
   if (!edit) return <aside className="panel left" />
+  if (prefabMode) {
+    return (
+      <aside className="panel left prefab-mode">
+        <PrefabPalette prefabId={prefabMode} />
+      </aside>
+    )
+  }
   const choose = (id: PaletteTab) => {
     const s = useEditorStore.getState()
     s.set({ paletteTab: id })
@@ -267,8 +370,16 @@ export function IssuesPanel() {
   const pick = (entityId: string | undefined, path: string) => {
     const s = useEditorStore.getState()
     if (!s.edit) return
+    // An issue in a prefab file opens that prefab and selects the item (M5).
+    const inPrefab = prefabItemAtPath(s.edit.doc, path)
+    if (inPrefab) {
+      if (s.prefabMode !== inPrefab.prefabId) s.enterPrefab(inPrefab.prefabId)
+      if (inPrefab.localId) useEditorStore.getState().select([inPrefab.localId])
+      return
+    }
     const id = (entityId && recordForEntity(s.edit.doc, entityId)) || recordAtPath(s.edit.doc, path)
     if (!id) return
+    if (s.prefabMode) s.exitPrefab()
     if (editableSelection(s.edit.doc, [id], s.layers).length === 0) {
       s.setStatus(`${id} thuộc layer "${layerLabel(s.edit.doc, id)}" đang ẩn hoặc khóa — mở layer đó để chọn`, 'error')
       return
@@ -402,6 +513,90 @@ export function NewDialog() {
             Tạo
           </button>
           <button onClick={() => useEditorStore.getState().set({ dialog: null })}>Hủy</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** New prefab (M5): a starter house (four walls, a door, one room with a lamp), opened for editing. */
+export function NewPrefabDialog() {
+  const dialog = useEditorStore((s) => s.dialog)
+  const [prefabId, setPrefabId] = useState('building/new-house')
+  const [name, setName] = useState('Nhà mới')
+  const [width, setWidth] = useState('8')
+  const [depth, setDepth] = useState('6')
+  if (dialog !== 'newPrefab') return null
+  const create = () => {
+    const s = useEditorStore.getState()
+    if (s.run(`Tạo prefab ${prefabId}`, (d) => createPrefab(d, { prefabId, name, width: Number(width), depth: Number(depth) }))) {
+      s.set({ dialog: null })
+      s.enterPrefab(prefabId)
+    }
+  }
+  return (
+    <div className="modal" role="dialog">
+      <div className="box">
+        <h3>Prefab mới</h3>
+        <p className="hint">Nhà mẫu: 4 bức tường, cửa ở tường nam (mở vào trong), một phòng có đèn. Sau đó mở chế độ sửa prefab.</p>
+        <label className="field">
+          <span>prefabId</span>
+          <input value={prefabId} onChange={(e) => setPrefabId(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Tên</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Rộng X (m)</span>
+          <input type="number" value={width} onChange={(e) => setWidth(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Sâu Z (m)</span>
+          <input type="number" value={depth} onChange={(e) => setDepth(e.target.value)} />
+        </label>
+        <div className="row">
+          <button onClick={create}>Tạo</button>
+          <button onClick={() => useEditorStore.getState().set({ dialog: null })}>Hủy</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Duplicate a prefab under a new ID (a variant; placed instances keep the original). */
+export function DuplicatePrefabDialog() {
+  const dialog = useEditorStore((s) => s.dialog)
+  const source = useEditorStore((s) => s.dialogPrefab)
+  const [prefabId, setPrefabId] = useState('')
+  const [name, setName] = useState('')
+  const [shown, setShown] = useState<string | null>(null)
+  if (dialog !== 'duplicatePrefab' || !source) return null
+  if (shown !== source) {
+    setShown(source)
+    setPrefabId(`${source}-b`)
+    setName(`${useEditorStore.getState().edit?.doc.prefabs.get(source)?.name ?? source} (biến thể)`)
+  }
+  const create = () => {
+    const s = useEditorStore.getState()
+    if (s.run(`Nhân bản prefab ${source}`, (d) => duplicatePrefab(d, source, prefabId, name))) s.set({ dialog: null, dialogPrefab: null })
+  }
+  return (
+    <div className="modal" role="dialog">
+      <div className="box">
+        <h3>Nhân bản prefab {source}</h3>
+        <p className="hint">Tạo prefabId mới (biến thể). Instance đã đặt vẫn dùng prefab gốc.</p>
+        <label className="field">
+          <span>prefabId mới</span>
+          <input value={prefabId} onChange={(e) => setPrefabId(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Tên</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <div className="row">
+          <button onClick={create}>Nhân bản</button>
+          <button onClick={() => useEditorStore.getState().set({ dialog: null, dialogPrefab: null })}>Hủy</button>
         </div>
       </div>
     </div>

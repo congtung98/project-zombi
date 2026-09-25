@@ -16,9 +16,12 @@ import {
   type ChunkDocument,
   type InstanceRecord,
   type PrefabDocument,
+  type PrefabObject,
   type RecordCategory,
   type Rect,
   type StandaloneObject,
+  type WallRunObject,
+  type WindowObject,
   type WorldDocument,
   type XZ,
 } from './schema.ts'
@@ -70,6 +73,68 @@ function emptyParts(): MapParts {
   return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [] }
 }
 
+/** An opening (door or window) cut into a wall run, as an interval along the run. */
+export interface WallRunOpening {
+  localId: string
+  kind: 'door' | 'window'
+  lo: number
+  hi: number
+}
+
+/**
+ * Boxes of a wall run in the prefab's own frame (M5): solid pieces between openings, a lintel
+ * above each door (from `DOOR_HEIGHT`) and a sill + header around each window. A door/window is an
+ * opening of the run when it has the run's axis and its centre lies on the run (within half the
+ * thickness across, inside the run along it).
+ */
+export function wallRunBoxes(run: WallRunObject, objects: readonly PrefabObject[]): { boxes: (BoxFields & { part: string })[]; openings: WallRunOpening[] } {
+  const t = run.thickness
+  const H = run.height
+  const alongX = run.from.z === run.to.z
+  const along = (p: XZ) => (alongX ? p.x : p.z)
+  const across = (p: XZ) => (alongX ? p.z : p.x)
+  const line = across(run.from)
+  const a0 = Math.min(along(run.from), along(run.to)) - t / 2
+  const a1 = Math.max(along(run.from), along(run.to)) + t / 2
+  const openings: WallRunOpening[] = []
+  for (const o of objects) {
+    if (o.kind !== 'door' && o.kind !== 'window') continue
+    if (((o.quarterTurns & 1) === 0) !== alongX) continue
+    const c = along(o.position)
+    if (Math.abs(across(o.position) - line) > t / 2 + 1e-6 || c < a0 || c > a1) continue
+    const lo = Math.max(a0, c - o.width / 2)
+    const hi = Math.min(a1, c + o.width / 2)
+    if (hi > lo) openings.push({ localId: o.localId, kind: o.kind, lo, hi })
+  }
+  openings.sort((a, b) => a.lo - b.lo || a.hi - b.hi)
+  const boxes: (BoxFields & { part: string })[] = []
+  const piece = (part: string, s: number, e: number, y0: number, y1: number) => {
+    if (e - s <= 1e-6 || y1 - y0 <= 1e-6) return
+    const m = quantize((s + e) / 2)
+    const len = quantize(e - s)
+    boxes.push({
+      part,
+      position: alongX ? { x: m, y: quantize((y0 + y1) / 2), z: line } : { x: line, y: quantize((y0 + y1) / 2), z: m },
+      size: alongX ? [len, quantize(y1 - y0), t] : [t, quantize(y1 - y0), len],
+      color: run.color,
+    })
+  }
+  let cursor = a0
+  let n = 0
+  for (const o of openings) {
+    if (o.lo > cursor) piece(`${n++}`, cursor, o.lo, 0, H)
+    cursor = Math.max(cursor, o.hi)
+    if (o.kind === 'door') piece(`${o.localId}-lintel`, o.lo, o.hi, DOOR_HEIGHT, H)
+    else {
+      const w = objects.find((x) => x.localId === o.localId) as WindowObject
+      piece(`${o.localId}-sill`, o.lo, o.hi, 0, Math.min(w.sill, H))
+      piece(`${o.localId}-header`, o.lo, o.hi, w.head, H)
+    }
+  }
+  if (a1 > cursor) piece(`${n}`, cursor, a1, 0, H)
+  return { boxes, openings }
+}
+
 /** Place one prefab instance: every object, room and lamp gets `<instanceId>/<localId>`. */
 export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, origin: XZ): { parts: MapParts; bounds: Rect; entityIds: string[] } {
   const q = inst.quarterTurns
@@ -111,6 +176,15 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
   for (const o of prefab.objects) {
     entityIds.push(id(o.localId))
     switch (o.kind) {
+      case 'wallRun': {
+        // Pieces are derived (no saved state): IDs `<entity>#<part>` never collide with slugs.
+        for (const b of wallRunBoxes(o, prefab.objects).boxes) {
+          const placed = box(b)
+          parts.walls.push({ id: `${id(o.localId)}#${b.part}`, ...placed, color: b.color })
+          bounds = unionRect(bounds, boxRect(placed.position, placed.size))
+        }
+        break
+      }
       case 'wall':
       case 'prop': {
         const placed = box(o)

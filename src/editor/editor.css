@@ -377,3 +377,38 @@ h4 {
 .layers input {
   padding: 0;
 }
+
+.row.tight {
+  margin-top: 2px;
+  margin-bottom: 8px;
+  gap: 3px;
+}
+
+.row.tight button {
+  padding: 1px 6px;
+  font-size: 12px;
+}
+
+.banner {
+  border: 1px solid #ff5fd2;
+  background: #3a2436;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.banner small {
+  color: var(--muted);
+}
+
+.banner button {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.panel.left.prefab-mode {
+  border-right: 2px solid #ff5fd2;
+}

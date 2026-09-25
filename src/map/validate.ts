@@ -284,6 +284,18 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
           c.oneOf(o.openTowards, [1, -1], `${p}/openTowards`)
           if (o.initialState !== undefined) c.oneOf(o.initialState, ['open', 'closed'], `${p}/initialState`)
           break
+        case 'wallRun':
+          if (c.xz(o.from, `${p}/from`) && c.xz(o.to, `${p}/to`)) {
+            const f = o.from as Obj
+            const t = o.to as Obj
+            const alongX = f.z === t.z && f.x !== t.x
+            const alongZ = f.x === t.x && f.z !== t.z
+            if (!alongX && !alongZ) c.error('out-of-range', p, `wall run "${String(o.localId)}" must be a non-empty segment along X or Z`)
+          }
+          c.num(o.height, `${p}/height`, { positive: true })
+          c.num(o.thickness, `${p}/thickness`, { positive: true })
+          c.color(o.color, `${p}/color`)
+          break
         case 'window':
           c.str(o.name, `${p}/name`)
           c.xz(o.position, `${p}/position`)
@@ -327,6 +339,15 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
     })
   }
   if (building && doors === 0) c.issue('warning', 'building-no-entrance', '/objects', `building ${entry.prefabId} has no door`)
+  if (doc.retiredLocalIds !== undefined && c.arr(doc.retiredLocalIds, '/retiredLocalIds')) {
+    const seen = new Set<string>()
+    doc.retiredLocalIds.forEach((id, i) => {
+      if (!c.str(id, `/retiredLocalIds/${i}`, SLUG)) return
+      if (seen.has(id)) c.error('duplicate-id', `/retiredLocalIds/${i}`, `retired local ID "${id}" listed twice`)
+      seen.add(id)
+      if (localIds.has(id)) c.error('retired-id-reused', `/retiredLocalIds/${i}`, `local ID "${id}" was deleted from ${entry.prefabId} and cannot be used again`, `${entry.prefabId}:${id}`)
+    })
+  }
   return c.issues
 }
 

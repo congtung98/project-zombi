@@ -136,7 +136,24 @@ export interface WindowObject {
   thickness: number
 }
 
-export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject
+/**
+ * Straight wall along X or Z (prefab editor M5). The resolver cuts a gap wherever a door or window
+ * of the same prefab sits on it (same axis, centre on the wall line) and adds the lintel above a
+ * door and the sill/header of a window, so the GUI only draws walls and drops openings on them.
+ * `from`/`to` are points on the wall centre line; the box extends `thickness / 2` past both ends
+ * so corners close. Its pieces are plain walls with derived IDs `<entity>#<n>` (no saved state).
+ */
+export interface WallRunObject {
+  kind: 'wallRun'
+  localId: string
+  from: XZ
+  to: XZ
+  height: number
+  thickness: number
+  color: string
+}
+
+export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject
 
 export interface LampObject {
   localId: string
@@ -172,6 +189,11 @@ export interface PrefabDocument {
   building?: BuildingProps
   objects: PrefabObject[]
   rooms: RoomObject[]
+  /**
+   * Local IDs deleted or renamed in the prefab editor (M5, sorted). Never handed out again, so a
+   * save holding state for `<instance>/<old id>` can't attach it to an unrelated new object.
+   */
+  retiredLocalIds?: string[]
 }
 
 /** Prefab placement. `instanceId` = `<identityChunkId>/<name>`; positions are chunk-local. */

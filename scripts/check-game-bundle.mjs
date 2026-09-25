@@ -12,6 +12,7 @@ const MARKERS = [
   ['editor UI', 'Map Editor'],
   ['editor palette presets (M4)', 'surface/asphalt'],
   ['editor layers (M4)', 'Tường / vật cản'],
+  ['prefab editor presets (M5)', 'structure/wall-run'],
   ['tile generator', 'extraZombieSpawns'],
   ['legacy importer', 'is not a quarter turn'],
 ]

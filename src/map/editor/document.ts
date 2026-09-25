@@ -106,6 +106,22 @@ export function recordAtPath(doc: MapDocument, path: string): string | null {
   return r ? recordId(category as RecordCategory, r) : null
 }
 
+/** Prefab and item at a validator path like `prefabs/house.json#/objects/3/width` (M5). */
+export function prefabItemAtPath(doc: MapDocument, path: string): { prefabId: string; localId: string | null } | null {
+  const [file, pointer = ''] = path.split('#')
+  const entry = doc.world.prefabs.find((p) => p.path === file)
+  const prefab = entry && doc.prefabs.get(entry.prefabId)
+  if (!entry) return null
+  if (!prefab) return { prefabId: entry.prefabId, localId: null }
+  const [, list, index, sub] = pointer.split('/')
+  if (list === 'objects') return { prefabId: entry.prefabId, localId: prefab.objects[Number(index)]?.localId ?? null }
+  if (list === 'rooms') {
+    const room = prefab.rooms[Number(index)]
+    return { prefabId: entry.prefabId, localId: (sub === 'lamp' ? room?.lamp?.localId : room?.localId) ?? null }
+  }
+  return { prefabId: entry.prefabId, localId: null }
+}
+
 /** Recompute every chunk's `externalRefs` (derived data); chunks whose list is unchanged keep their object. */
 export function withExternalRefs(doc: MapDocument): MapDocument {
   const refs = computeExternalRefs(doc, resolvedRecords(doc))
@@ -123,14 +139,20 @@ export function withExternalRefs(doc: MapDocument): MapDocument {
 
 /**
  * Resolved records of the whole document, for the viewport and picking. Cached per chunk object
- * (and world/prefab identity), so an edit only re-resolves the chunks it replaced.
+ * under the world and prefab-map identity, so a chunk edit only re-resolves the chunks it replaced
+ * and a prefab edit (M5: new prefab map) re-resolves every instance.
  */
-const resolveCache = new WeakMap<object, WeakMap<ChunkDocument, ResolvedRecord[]>>()
+const resolveCache = new WeakMap<object, WeakMap<object, WeakMap<ChunkDocument, ResolvedRecord[]>>>()
 export function resolvedRecords(doc: MapDocument): ResolvedRecord[] {
-  let perWorld = resolveCache.get(doc.world)
+  let byPrefabs = resolveCache.get(doc.world)
+  if (!byPrefabs) {
+    byPrefabs = new WeakMap()
+    resolveCache.set(doc.world, byPrefabs)
+  }
+  let perWorld = byPrefabs.get(doc.prefabs)
   if (!perWorld) {
     perWorld = new WeakMap()
-    resolveCache.set(doc.world, perWorld)
+    byPrefabs.set(doc.prefabs, perWorld)
   }
   const prefab = (id: string) => {
     const p = doc.prefabs.get(id)
@@ -164,6 +186,31 @@ export function documentFiles(doc: MapDocument): [string, unknown][] {
   const extras = [...doc.extras.keys()].sort()
   for (const path of extras) files.push([path, doc.extras.get(path)])
   return files
+}
+
+/** Instance record IDs of a prefab across the world, in content order (M5: who a prefab edit affects). */
+export function instancesOf(doc: MapDocument, prefabId: string): string[] {
+  const out: string[] = []
+  for (const e of doc.world.chunks) for (const inst of doc.chunks.get(e.chunkId)?.instances ?? []) if (inst.prefabId === prefabId) out.push(inst.instanceId)
+  return out
+}
+
+/**
+ * Stable IDs a save holds state for (doors, map containers, windows/curtains, lamps, zombie
+ * zones): a save loads only when this set matches the map and the contentVersion is the same.
+ * An edit that keeps the set is compatible with existing saves (M5).
+ */
+export function statefulEntityIds(doc: MapDocument): string[] {
+  const ids: string[] = []
+  for (const r of resolvedRecords(doc)) {
+    const p = r.parts
+    for (const d of p.doors ?? []) ids.push(d.id)
+    for (const c of p.containers ?? []) ids.push(c.id)
+    for (const w of p.windows ?? []) ids.push(w.id)
+    for (const room of p.rooms ?? []) if (room.lamp) ids.push(room.lamp.id)
+    for (const z of p.zones ?? []) ids.push(z.id)
+  }
+  return ids.sort()
 }
 
 export interface ChunkStatus {

@@ -3,7 +3,8 @@ import { bundledWorldFiles, REGISTERED_LOOT_TABLES } from '../map/content'
 import type { QuarterTurns, Rect, XZ } from '../map/schema'
 import type { ValidationIssue } from '../map/validate'
 import { type CommandResult } from '../map/editor/commands'
-import { blankDocument, resolvedRecords, type MapDocument } from '../map/editor/document'
+import { blankDocument, findRecord, resolvedRecords, statefulEntityIds, type MapDocument } from '../map/editor/document'
+import { usedLocalIds } from '../map/editor/prefabCommands'
 import { defaultLayers, isEditable, LAYERS, layerOf, type LayerId, type LayerState, type LayerStates } from '../map/editor/layers'
 import { documentFromFiles, exportPack, parsePack, validateDocument } from '../map/editor/pack'
 import { applyCommand, initialEditState, redo, undo, type EditState } from '../map/editor/session'
@@ -22,7 +23,10 @@ export const DEFAULT_WORLD = 'neighborhood-50'
 export type Tool = 'select' | 'place' | 'chunk'
 
 /** What the place tool puts down: a prefab instance or a palette record (M4). */
-export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record'; presetId: string }
+export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record'; presetId: string } | { kind: 'prefabItem'; presetId: string }
+
+/** Palette tabs of the prefab editor (M5). */
+export type PrefabTab = 'structure' | 'openings' | 'furniture' | 'containers' | 'rooms'
 
 export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks'
 
@@ -56,12 +60,21 @@ interface EditorStore {
   selectedChunk: string | null
   /** Box select in progress (world rect), drawn by the viewport. */
   marquee: Rect | null
+  /** Prefab being edited (M5); null = world mode. The selection then holds its local IDs. */
+  prefabMode: string | null
+  prefabTab: PrefabTab
+  /** View-only turn of the prefab preview (0 = editable). */
+  prefabView: QuarterTurns
+  /** Draw interaction reach around containers and lamp switches. */
+  showReach: boolean
+  /** Prefab a dialog acts on (duplicate). */
+  dialogPrefab: string | null
   snapStep: number
   view: 'top' | 'iso'
   preview: Preview | null
   status: Status | null
   cursor: XZ | null
-  dialog: 'open' | 'new' | null
+  dialog: 'open' | 'new' | 'newPrefab' | 'duplicatePrefab' | null
   showIssues: boolean
   drafts: DraftRecord[]
   focusRequest: number
@@ -78,7 +91,9 @@ interface EditorStore {
   setTool(tool: Tool, place?: PlaceItem | null): void
   rotatePlacement(turns: number): void
   setLayer(id: LayerId, patch: Partial<LayerState>): void
-  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee'>>): void
+  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee' | 'prefabTab' | 'prefabView' | 'showReach' | 'dialogPrefab'>>): void
+  enterPrefab(prefabId: string): void
+  exitPrefab(): void
   requestFocus(rect?: Rect | null): void
   reject(title: string, error: string, issues: ValidationIssue[]): void
 
@@ -90,21 +105,27 @@ interface EditorStore {
   refreshDrafts(): Promise<void>
 }
 
-/** Editor-only warning: content differs from what was opened but the world keeps its contentVersion. */
+/**
+ * Editor-only warning (M3, precise since M5): the set of IDs a save holds state for (doors,
+ * containers, windows, lamps, zones) differs from the document as opened while the world keeps
+ * its contentVersion. Saves of this world would then be refused as corrupt instead of reported as
+ * another content revision. Edits that keep the set (moving, resizing, recolouring, walls, props)
+ * are compatible: saves load and keep their state.
+ */
 function editorWarnings(doc: MapDocument, baseline: MapDocument | null): ValidationIssue[] {
   if (!baseline || baseline.world.worldId !== doc.world.worldId || doc.world.contentVersion !== baseline.world.contentVersion) return []
-  const changed =
-    doc.world.chunks.some((e) => {
-      const a = doc.chunks.get(e.chunkId)
-      const b = baseline.chunks.get(e.chunkId)
-      return a !== b && JSON.stringify(a) !== JSON.stringify(b)
-    }) || doc.world.chunks.length !== baseline.world.chunks.length
-  if (!changed) return []
+  if (doc.chunks === baseline.chunks && doc.prefabs === baseline.prefabs) return []
+  const before = statefulEntityIds(baseline)
+  const after = statefulEntityIds(doc)
+  if (before.length === after.length && before.every((id, i) => id === after[i])) return []
+  const removed = before.filter((id) => !after.includes(id))
+  const added = after.filter((id) => !before.includes(id))
+  const list = (ids: string[]) => ids.slice(0, 3).join(', ') + (ids.length > 3 ? ` … (+${ids.length - 3})` : '')
   return [
     {
       severity: 'warning',
       code: 'content-changed-same-version',
-      message: `Bố cục đã khác bản mở ra nhưng contentVersion vẫn là ${doc.world.contentVersion}: save cũ của world này sẽ lệch ID. Tăng contentVersion (Inspector → World) trước khi phát hành.`,
+      message: `ID có trạng thái trong save đã đổi (${[added.length ? `thêm ${list(added)}` : '', removed.length ? `bỏ ${list(removed)}` : ''].filter(Boolean).join('; ')}) nhưng contentVersion vẫn là ${doc.world.contentVersion}: save cũ của world này sẽ bị từ chối. Tăng contentVersion (Inspector → World) trước khi phát hành.`,
       path: 'world.json#/contentVersion',
     },
   ]
@@ -119,6 +140,21 @@ export function editableSelection(doc: MapDocument, ids: readonly string[], laye
   const wanted = new Set(ids)
   const blocked = new Set(resolvedRecords(doc).filter((r) => wanted.has(r.id) && !isEditable(r, layers)).map((r) => r.id))
   return blocked.size ? ids.filter((id) => !blocked.has(id)) : [...ids]
+}
+
+/** Selection that fits the mode: local IDs of the edited prefab, or editable world records. */
+export function validSelection(doc: MapDocument, ids: readonly string[], layers: LayerStates, prefabMode: string | null): string[] {
+  if (prefabMode) {
+    const prefab = doc.prefabs.get(prefabMode)
+    if (!prefab) return []
+    const used = usedLocalIds(prefab)
+    return ids.filter((id) => used.has(id))
+  }
+  return editableSelection(
+    doc,
+    ids.filter((id) => findRecord(doc, id)),
+    layers,
+  )
 }
 
 /** Layer label of a record, for status messages. */
@@ -141,6 +177,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   layers: defaultLayers(),
   selectedChunk: null,
   marquee: null,
+  prefabMode: null,
+  prefabTab: 'structure',
+  prefabView: 0,
+  showReach: true,
+  dialogPrefab: null,
   snapStep: 0.5,
   view: 'top',
   preview: null,
@@ -166,6 +207,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       selectedChunk: null,
       marquee: null,
       focusRect: null,
+      prefabMode: null,
+      prefabView: 0,
       dialog: null,
       status: { text: `Đã mở ${doc.world.name} (${doc.world.worldId}) — ${source}`, kind: 'info' },
       focusRequest: get().focusRequest + 1,
@@ -195,8 +238,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     if (!edit || edit.past.length === 0) return
     const label = edit.past[edit.past.length - 1].label
     const back = undo(edit)
-    const next = { ...back, selection: editableSelection(back.doc, back.selection, get().layers) }
-    set({ edit: next, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Hoàn tác: ${label}`, kind: 'info' } })
+    const prefabMode = get().prefabMode && back.doc.prefabs.has(get().prefabMode!) ? get().prefabMode : null
+    const next = { ...back, selection: validSelection(back.doc, back.selection, get().layers, prefabMode) }
+    set({ edit: next, prefabMode, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Hoàn tác: ${label}`, kind: 'info' } })
   },
 
   redo() {
@@ -204,8 +248,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     if (!edit || edit.future.length === 0) return
     const label = edit.future[0].label
     const forward = redo(edit)
-    const next = { ...forward, selection: editableSelection(forward.doc, forward.selection, get().layers) }
-    set({ edit: next, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Làm lại: ${label}`, kind: 'info' } })
+    const prefabMode = get().prefabMode && forward.doc.prefabs.has(get().prefabMode!) ? get().prefabMode : null
+    const next = { ...forward, selection: validSelection(forward.doc, forward.selection, get().layers, prefabMode) }
+    set({ edit: next, prefabMode, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Làm lại: ${label}`, kind: 'info' } })
   },
 
   select(ids) {
@@ -238,6 +283,37 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   set(patch) {
     set(patch)
+  },
+
+  enterPrefab(prefabId) {
+    const { edit } = get()
+    if (!edit?.doc.prefabs.has(prefabId)) return
+    set({
+      prefabMode: prefabId,
+      prefabView: 0,
+      tool: 'select',
+      place: null,
+      preview: null,
+      marquee: null,
+      edit: { ...edit, selection: [] },
+      status: { text: `Sửa prefab gốc ${prefabId}: mọi instance của nó thay đổi theo`, kind: 'info' },
+      focusRect: null,
+      focusRequest: get().focusRequest + 1,
+    })
+  },
+
+  exitPrefab() {
+    const { edit } = get()
+    set({
+      prefabMode: null,
+      tool: 'select',
+      place: null,
+      preview: null,
+      marquee: null,
+      ...(edit ? { edit: { ...edit, selection: [] } } : {}),
+      focusRect: null,
+      focusRequest: get().focusRequest + 1,
+    })
   },
 
   requestFocus(rect = null) {

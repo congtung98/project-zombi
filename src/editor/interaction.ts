@@ -1,9 +1,21 @@
 import { addChunk, deleteRecords, duplicateRecords, moveRecords, placeInstance, placeRecord, removeChunk, rotateRecords, type CommandResult } from '../map/editor/commands'
-import { resolvedRecords, type MapDocument } from '../map/editor/document'
+import { instancesOf, resolvedRecords, type MapDocument } from '../map/editor/document'
 import { isEditable } from '../map/editor/layers'
-import { snap } from '../map/editor/picking'
+import { pickRecord, recordsInRect, snap } from '../map/editor/picking'
 import { findPreset } from '../map/editor/presets'
-import type { XZ } from '../map/schema'
+import { findPrefabPreset } from '../map/editor/prefabPresets'
+import {
+  deletePrefabItems,
+  duplicatePrefabItems,
+  isStatefulItem,
+  itemsInRect,
+  movePrefabItems,
+  pickPrefabItem,
+  placePrefabItem,
+  prefabItems,
+  rotatePrefabItems,
+} from '../map/editor/prefabCommands'
+import type { Rect, XZ } from '../map/schema'
 import { chunkIdOf, chunkIndex, chunkOrigin } from '../map/transform'
 import { useEditorStore, type PlaceItem } from './editorStore'
 
@@ -23,11 +35,64 @@ export function snapPoint(p: XZ): XZ {
 /** The place command for an item: prefabs drop at a point, records may be sized by a drag (M4). */
 function placeCommand(doc: MapDocument, item: PlaceItem, from: XZ, to: XZ | null): CommandResult {
   if (item.kind === 'prefab') return placeInstance(doc, item.prefabId, from, store().placeTurns)
+  if (item.kind === 'prefabItem') return placePrefabItem(doc, store().prefabMode ?? '', item.presetId, from, to, store().placeTurns)
   return placeRecord(doc, item.presetId, from, to)
 }
 
 export function placeLabel(item: PlaceItem): string {
-  return item.kind === 'prefab' ? `Đặt ${item.prefabId}` : `Đặt ${findPreset(item.presetId)?.label ?? item.presetId}`
+  if (item.kind === 'prefab') return `Đặt ${item.prefabId}`
+  if (item.kind === 'prefabItem') return `Đặt ${findPrefabPreset(item.presetId)?.label ?? item.presetId} (prefab)`
+  return `Đặt ${findPreset(item.presetId)?.label ?? item.presetId}`
+}
+
+/** Prefab being edited, or null in world mode (M5). */
+const prefabMode = () => store().prefabMode
+
+/**
+ * Ask before an edit that drops local IDs saves hold state for (door, container, window, lamp)
+ * in a prefab with instances: old saves of the world will no longer match (M5).
+ */
+export function confirmStateful(prefabId: string, keys: readonly string[], action: string): boolean {
+  const s = store()
+  const doc = s.edit?.doc
+  const prefab = doc?.prefabs.get(prefabId)
+  if (!doc || !prefab) return true
+  const hit = keys.filter((k) => isStatefulItem(prefab, k))
+  const n = instancesOf(doc, prefabId).length
+  if (!hit.length || !n) return true
+  return window.confirm(
+    `${action} ${hit.join(', ')} của prefab gốc ${prefabId} (${n} instance): save cũ có trạng thái cho <instance>/${hit[0]} sẽ không còn khớp — cần tăng contentVersion của world. Local ID cũ bị khóa, không dùng lại. Tiếp tục?`,
+  )
+}
+
+/** Item/record under a ground point, respecting the mode (and layers in world mode). */
+export function pickAt(g: XZ): string | null {
+  const s = store()
+  if (!s.edit) return null
+  const p = prefabMode()
+  if (p) {
+    const prefab = s.edit.doc.prefabs.get(p)
+    return prefab ? (pickPrefabItem(prefabItems(prefab), g)?.key ?? null) : null
+  }
+  return pickRecord(resolvedRecords(s.edit.doc), g, (r) => !isEditable(r, s.layers))?.id ?? null
+}
+
+/** Selection box (M4, prefab items since M5): keys entirely inside `rect`. */
+export function keysInRect(rect: Rect): string[] {
+  const s = store()
+  if (!s.edit) return []
+  const p = prefabMode()
+  if (p) {
+    const prefab = s.edit.doc.prefabs.get(p)
+    return prefab ? itemsInRect(prefabItems(prefab), rect) : []
+  }
+  return recordsInRect(resolvedRecords(s.edit.doc), rect, (r) => !isEditable(r, s.layers)).map((r) => r.id)
+}
+
+/** The move command for the mode. */
+export function moveCommand(doc: MapDocument, ids: readonly string[], delta: XZ): CommandResult {
+  const p = prefabMode()
+  return p ? movePrefabItems(doc, p, ids, delta) : moveRecords(doc, ids, delta)
 }
 
 /**
@@ -89,7 +154,7 @@ export function focusChunk(chunkId: string): void {
 export function nudge(dx: number, dz: number): void {
   const s = store()
   const step = s.snapStep || 0.25
-  s.run('Di chuyển', (doc, sel) => moveRecords(doc, sel, { x: dx * step, z: dz * step }))
+  s.run('Di chuyển', (doc, sel) => moveCommand(doc, sel, { x: dx * step, z: dz * step }))
 }
 
 export function rotateSelection(turns: number): void {
@@ -99,24 +164,36 @@ export function rotateSelection(turns: number): void {
     updatePlacePreview()
     return
   }
-  s.run('Xoay', (doc, sel) => rotateRecords(doc, sel, turns))
+  const p = prefabMode()
+  s.run('Xoay', (doc, sel) => (p ? rotatePrefabItems(doc, p, sel, turns) : rotateRecords(doc, sel, turns)))
 }
 
 export function deleteSelection(): void {
-  store().run('Xóa', (doc, sel) => deleteRecords(doc, sel))
+  const s = store()
+  const p = prefabMode()
+  if (p) {
+    if (!s.edit?.selection.length || !confirmStateful(p, s.edit.selection, 'Xóa')) return
+    s.run('Xóa (prefab)', (doc, sel) => deletePrefabItems(doc, p, sel))
+    return
+  }
+  s.run('Xóa', (doc, sel) => deleteRecords(doc, sel))
 }
 
 export function duplicateSelection(): void {
   const s = store()
+  const p = prefabMode()
   const step = Math.max(1, s.snapStep)
-  s.run('Nhân bản', (doc, sel) => duplicateRecords(doc, sel, { x: step, z: step }))
+  s.run('Nhân bản', (doc, sel) => (p ? duplicatePrefabItems(doc, p, sel, { x: step, z: step }) : duplicateRecords(doc, sel, { x: step, z: step })))
 }
 
-/** Ctrl+A: every record on a visible, unlocked layer. */
+/** Ctrl+A: every record on a visible, unlocked layer (prefab mode: every item). */
 export function selectAll(): void {
   const s = store()
   if (!s.edit) return
-  s.select(resolvedRecords(s.edit.doc).filter((r) => isEditable(r, s.layers)).map((r) => r.id))
+  const p = prefabMode()
+  const prefab = p ? s.edit.doc.prefabs.get(p) : null
+  if (prefab) s.select(prefabItems(prefab).map((it) => it.key))
+  else s.select(resolvedRecords(s.edit.doc).filter((r) => isEditable(r, s.layers)).map((r) => r.id))
 }
 
 export function cancel(): void {

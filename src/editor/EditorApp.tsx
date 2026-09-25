@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { DEFAULT_WORLD, isDirty, useEditorStore } from './editorStore'
 import { cancel, deleteSelection, duplicateSelection, nudge, rotateSelection, selectAll } from './interaction'
 import { Inspector } from './Inspector'
-import { IssuesPanel, NewDialog, OpenDialog, Palette, StatusBar, TopBar } from './Panels'
+import { DuplicatePrefabDialog, IssuesPanel, NewDialog, NewPrefabDialog, OpenDialog, Palette, StatusBar, TopBar } from './Panels'
 import { Viewport } from './Viewport'
 
 /** Hotkeys act on the editor only; typing in an input/select/textarea is never intercepted. */
@@ -88,6 +88,8 @@ export function EditorApp() {
       <StatusBar />
       <OpenDialog />
       <NewDialog />
+      <NewPrefabDialog />
+      <DuplicatePrefabDialog />
       <input
         ref={file}
         type="file"

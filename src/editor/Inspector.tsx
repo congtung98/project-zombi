@@ -1,9 +1,10 @@
 import { rotateRecords, setRecordAnchor, updateRecord, updateWorld } from '../map/editor/commands'
-import { findRecord, resolvedRecords, worldAnchor, type AnyRecord, type MapDocument } from '../map/editor/document'
+import { findRecord, instancesOf, resolvedRecords, worldAnchor, type AnyRecord, type MapDocument } from '../map/editor/document'
 import type { QuarterTurns, XYZ, XZ } from '../map/schema'
 import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
 import { NumField, ReadField, TextField } from './fields'
+import { PrefabInspector } from './PrefabInspector'
 import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
 
 /** Zones of the document as the runtime sees them (`ZoneDef`). */
@@ -89,6 +90,9 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
       {loc.category === 'instances' && (
         <>
           <ReadField label="Prefab" value={`${String(r.prefabId)} — ${doc.prefabs.get(String(r.prefabId))?.name ?? '?'}`} />
+          <button onClick={() => useEditorStore.getState().enterPrefab(String(r.prefabId))} data-open-prefab title="Sửa bản gốc: mọi instance đổi theo">
+            Sửa prefab gốc ({instancesOf(doc, String(r.prefabId)).length} instance)
+          </button>
           <label className="field">
             <span>Xoay</span>
             <select
@@ -194,7 +198,9 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
 
 export function Inspector() {
   const edit = useEditorStore((s) => s.edit)
+  const prefabMode = useEditorStore((s) => s.prefabMode)
   if (!edit) return <aside className="panel right" />
+  if (prefabMode) return <PrefabInspector prefabId={prefabMode} />
   const sel = edit.selection
   return (
     <aside className="panel right">

@@ -71,8 +71,11 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 | `container` | như hộp + `name, lootTableId?` | container có loot (seed theo ID ổn định) |
 | `door` | `localId, name, position {x,z}` (tâm khe cửa), `quarterTurns, width, openTowards ±1, initialState?` | khung q = 0: tường chạy theo X, bản lề ở x = −width/2, cánh đóng hướng +X, mở về phía Z = `openTowards`; cao `DOOR_HEIGHT` |
 | `window` | `localId, name, position {x,z}, quarterTurns, width, sill, head, thickness` | q = 0: kính chạy theo X, phía trong nhà là +Z |
+| `wallRun` (M5) | `localId, from {x,z}, to {x,z}` (song song X hoặc Z, trên đường tâm tường), `height, thickness, color` | resolver tách thành hộp tường, khoét khe ở mỗi cửa/cửa sổ cùng prefab nằm trên nó (cùng trục, tâm trên tường), thêm lanh tô trên cửa (từ `DOOR_HEIGHT`) và bệ/đầu cửa sổ; kéo dài nửa độ dày ở hai đầu để kín góc. Mảnh có ID dẫn xuất `<entity>#<phần>`, không có trạng thái |
 
 Room: `localId, name, bounds`, `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }`. Trần nhà = `building.height`.
+
+`retiredLocalIds?` (M5, sắp xếp): local ID đã xóa/đổi tên trong prefab editor; không cấp lại, dùng lại là lỗi `retired-id-reused`.
 
 **Chunk**: `schemaVersion, contentVersion, chunkId, cx, cz`, `instances [{ instanceId, prefabId, position {x,y,z}, quarterTurns }]`, `objects` (wall/prop/container, có `objectId`), `roads [{ roadId, position, size [x,z], color }]`, `zones [{ zoneId, kind: "zombiePopulation", name, shape: "circle", center, radius } | { …, shape: "rect", center, size [x,z] }]`, `spawns [{ spawnId, kind: "player"|"zombie", position }]`, `externalRefs`.
 
@@ -105,5 +108,5 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - `npm run map:check [thư-mục-world…]`: kiểm tra content trên đĩa. Cần Node ≥ 22.18 vì dùng TypeScript stripping có sẵn; các module `src/map/*` import bằng đuôi `.ts` để chạy trực tiếp.
 - `node scripts/map-tools/import-legacy.ts <legacy-map.json> <world-dir> --world-id … --name …`: chuyển một `MapData` viết tay thành prefab + chunk + bảng ID. Khu phố được sinh bằng lệnh này từ `legacy-v7-map.json`, và test khóa lại rằng file đã commit đúng là output của lệnh, chừng nào `contentVersion` còn là 1.
 - `npm run map:unpack -- <pack.json> [--out <dir>] [--force]`: ghi content pack của editor vào `content/maps/<worldId>/` sau khi validate; cần `--force` để ghi đè; file dữ liệu không đổi thì không ghi lại; file thừa trên đĩa chỉ được báo. `npm run map:pack -- <world-dir> [out.json]` làm chiều ngược lại.
-- Content pack (`<worldId>.mappack.json`): `{ format: "zombie-outbreak/map-pack", formatVersion: 1, worldId, files: { <đường dẫn tương đối>: <JSON> } }`, thứ tự ổn định, không chứa trạng thái editor. Chi tiết editor: `docs/map-editor-m3.md`, `docs/map-editor-m4.md`.
+- Content pack (`<worldId>.mappack.json`): `{ format: "zombie-outbreak/map-pack", formatVersion: 1, worldId, files: { <đường dẫn tương đối>: <JSON> } }`, thứ tự ổn định, không chứa trạng thái editor. Chi tiết editor: `docs/map-editor-m3.md`, `docs/map-editor-m4.md`, `docs/map-editor-m5.md`.
 - `src/map/tools/tileWorld.ts`: generator ghép ô N × N rồi phân lại vào lưới chunk; map stress `?stress=N` (chỉ dev) dùng nó. Bundle production không chứa generator và importer.

@@ -13,7 +13,7 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3–M4): npm run dev rồi mở http://localhost:5173/editor.html
+# Map editor (M3–M5): npm run dev rồi mở http://localhost:5173/editor.html
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/
 ```
@@ -70,8 +70,8 @@ editor.html            entry riêng của map editor
 src/
   map/                 schema, transform (xoay/chunk/ID), validate, resolve (JSON → MapData), loader (ChunkLifecycle),
                        content (nạp JSON đi kèm bundle), tools/ (importLegacy, tileWorld),
-                       editor/ (document bất biến, lệnh, lịch sử undo/redo, content pack, preset palette, layer — thuần TS)
-  editor/              UI map editor (React + R3F): viewport, palette theo tab, chunk/layer, inspector, validate, nháp IndexedDB riêng
+                       editor/ (document bất biến, lệnh world + prefab, lịch sử undo/redo, content pack, preset palette, layer — thuần TS)
+  editor/              UI map editor (React + R3F): viewport, palette theo tab, chunk/layer, chế độ sửa prefab, inspector, validate, nháp IndexedDB riêng
   app/                 App (điều hướng màn hình), GameCanvas
   game/
     core/              config, clock (ngày/đêm, restore), events, runtime (thứ tự tick, spawn, di cư, đòn vào cửa, snapshot/load)
@@ -116,6 +116,11 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M5: prefab editor (25/09/2026)
+
+- Sửa prefab gốc từ palette hoặc từ instance (banner liệt kê instance bị ảnh hưởng), prefab mới (nhà mẫu 4 tường + cửa + phòng có đèn), nhân bản thành biến thể, xóa prefab không dùng. Palette prefab: tường kéo theo trục (**`wallRun`**: game tự khoét khe cho cửa/cửa sổ đặt lên nó, dựng lanh tô/bệ cửa sổ), cửa/cửa sổ bám tường và mở vào trong, nội thất, tủ có loot, phòng kéo khung + đèn/công tắc. Xem xoay 0–270°, vòng tầm tương tác.
+- Sửa tương thích (giữ local ID) thì save cũ vẫn giữ trạng thái cửa/loot/đèn; thêm/xóa/đổi tên mục có trạng thái thì hỏi xác nhận, khóa ID cũ (`retiredLocalIds`) và cảnh báo tăng contentVersion. Save không đổi (v8). Chi tiết `docs/map-editor-m5.md`.
 
 ### Map editor M4: world authoring (25/09/2026)
 

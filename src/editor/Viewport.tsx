@@ -1,14 +1,15 @@
 import { Canvas, useThree, type RootState } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { BufferGeometry, CanvasTexture, Float32BufferAttribute, MeshBasicMaterial, SRGBColorSpace, LineBasicMaterial, Plane, Raycaster, Vector2, Vector3, type OrthographicCamera } from 'three'
-import { moveRecords } from '../map/editor/commands'
+import { LineBasicMaterial, Plane, Raycaster, Vector2, Vector3, type OrthographicCamera } from 'three'
 import { chunkStatuses, resolvedRecords, type ChunkStatus, type MapDocument } from '../map/editor/document'
-import { isEditable, isHidden } from '../map/editor/layers'
-import { pickRecord, recordsInRect, snap } from '../map/editor/picking'
+import { isHidden } from '../map/editor/layers'
+import { snap } from '../map/editor/picking'
 import type { Rect, XZ } from '../map/schema'
 import { chunkIdOf, chunkOrigin } from '../map/transform'
 import { useEditorStore } from './editorStore'
-import { chunkClick, commitPlace, snapPoint, updatePlacePreview } from './interaction'
+import { chunkClick, commitPlace, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
+import { PrefabScene } from './PrefabScene'
+import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
 import { RecordView } from './RecordView'
 
 /**
@@ -16,6 +17,7 @@ import { RecordView } from './RecordView'
  * Select tool: left click selects (Shift toggles), drags the selection (preview, one command on
  * release) or, from empty ground, draws a selection box. Place tool: click drops the ghost; a drag
  * sizes surfaces, walls, boxes and zones (M4). Chunk tool: click an empty cell to add a chunk.
+ * Prefab mode (M5): the same tools act on the edited prefab in its own frame (`PrefabScene`).
  * Right/middle drag pans, wheel zooms, F focuses. Hidden/locked layers are never picked.
  * The player, AI and game loop never run here.
  */
@@ -24,24 +26,11 @@ const ISO_OFFSET = new Vector3(20, 24, 20)
 const TOP_HEIGHT = 120
 const GROUND = new Plane(new Vector3(0, 1, 0), 0)
 
-function lineGeometry(points: number[]): BufferGeometry {
-  const g = new BufferGeometry()
-  g.setAttribute('position', new Float32BufferAttribute(points, 3))
-  return g
-}
-
-function rectPoints(r: Rect, y: number): number[] {
-  const { minX: a, minZ: b, maxX: c, maxZ: d } = r
-  return [a, y, b, c, y, b, c, y, b, c, y, d, c, y, d, a, y, d, a, y, d, a, y, b]
-}
-
-const SELECT_MAT = new LineBasicMaterial({ color: '#ffd23f' })
 const CHUNK_MAT = new LineBasicMaterial({ color: '#2b6cb0' })
 const CHUNK_MODIFIED_MAT = new LineBasicMaterial({ color: '#e0a030' })
 const CHUNK_INVALID_MAT = new LineBasicMaterial({ color: '#ff4040' })
 const CHUNK_PICKED_MAT = new LineBasicMaterial({ color: '#ffffff' })
 const CANDIDATE_MAT = new LineBasicMaterial({ color: '#8a939b', transparent: true, opacity: 0.6 })
-const MARQUEE_MAT = new LineBasicMaterial({ color: '#7fd4ff' })
 const PLAY_MAT = new LineBasicMaterial({ color: '#e05050' })
 
 function chunkMaterial(s: ChunkStatus | undefined, picked: boolean): LineBasicMaterial {
@@ -64,28 +53,6 @@ function candidateCells(doc: MapDocument): { cx: number; cz: number }[] {
   }
   return [...out.values()]
 }
-/** Chunk ID painted on the ground (a texture: DOM labels would need extra React roots). */
-const labels = new Map<string, MeshBasicMaterial>()
-function labelMaterial(text: string): MeshBasicMaterial {
-  let m = labels.get(text)
-  if (!m) {
-    const canvas = document.createElement('canvas')
-    canvas.width = 256
-    canvas.height = 64
-    const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#8fb8e8'
-    ctx.font = 'bold 40px monospace'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(text, 8, 32)
-    const texture = new CanvasTexture(canvas)
-    texture.colorSpace = SRGBColorSpace
-    m = new MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
-    labels.set(text, m)
-  }
-  return m
-}
-const GRID_MAT = new LineBasicMaterial({ color: '#56624a', transparent: true, opacity: 0.35 })
-
 function Grid({ doc, statuses, pickedChunk, candidates }: { doc: MapDocument; statuses: ChunkStatus[]; pickedChunk: string | null; candidates: boolean }) {
   const { world } = doc
   const geometry = useMemo(() => {
@@ -165,7 +132,8 @@ function Selection({ doc, ids }: { doc: MapDocument; ids: string[] }) {
   return geometry ? <lineSegments geometry={geometry} material={SELECT_MAT} renderOrder={10} /> : null
 }
 
-function Marquee() {
+/** Box select in progress. */
+export function Marquee() {
   const rect = useEditorStore((s) => s.marquee)
   const geometry = useMemo(() => (rect ? lineGeometry(rectPoints(rect, 0.1)) : null), [rect])
   return geometry ? <lineSegments geometry={geometry} material={MARQUEE_MAT} renderOrder={11} /> : null
@@ -179,7 +147,18 @@ function EditorScene() {
   const issues = useEditorStore((s) => s.issues)
   const tool = useEditorStore((s) => s.tool)
   const pickedChunk = useEditorStore((s) => s.selectedChunk)
+  const prefabMode = useEditorStore((s) => s.prefabMode)
   if (!edit) return null
+  if (prefabMode) {
+    return (
+      <group>
+        <ambientLight intensity={0.75} />
+        <directionalLight position={[30, 60, 20]} intensity={1.6} />
+        <PrefabScene prefabId={prefabMode} />
+        <Marquee />
+      </group>
+    )
+  }
   const doc = preview?.doc ?? edit.doc
   const ghosts = new Set(preview?.ghostIds ?? [])
   const records = resolvedRecords(doc).filter((r) => ghosts.has(r.id) || !isHidden(r, layers))
@@ -244,10 +223,15 @@ function Controls() {
     if (!s.edit) return
     const doc = s.edit.doc
     const wanted = new Set(s.edit.selection)
-    const picked = resolvedRecords(doc).filter((r) => wanted.has(r.id))
+    const picked = s.prefabMode ? [] : resolvedRecords(doc).filter((r) => wanted.has(r.id))
+    const prefab = s.prefabMode ? doc.prefabs.get(s.prefabMode) : null
     let rect: Rect
     if (s.focusRect) {
       rect = s.focusRect
+    } else if (prefab) {
+      // Prefab mode: its footprint (in its own frame) with some room around.
+      const f = prefab.footprint
+      rect = { minX: f.minX - 2, minZ: f.minZ - 2, maxX: f.maxX + 2, maxZ: f.maxZ + 2 }
     } else if (picked.length) {
       rect = picked.map((r) => r.bounds).reduce((a, b) => ({ minX: Math.min(a.minX, b.minX), minZ: Math.min(a.minZ, b.minZ), maxX: Math.max(a.maxX, b.maxX), maxZ: Math.max(a.maxZ, b.maxZ) }))
     } else {
@@ -307,18 +291,21 @@ function Controls() {
         updatePlacePreview(g, from)
         return
       }
-      const layers = s.layers
-      const picked = pickRecord(resolvedRecords(s.edit.doc), g, (r) => !isEditable(r, layers))
+      if (s.prefabMode && s.prefabView !== 0) {
+        s.setStatus('Đang xem prefab xoay: về 0° (Inspector → Xem xoay) để sửa', 'error')
+        return
+      }
+      const pickedId = pickAt(g)
       const selection = s.edit.selection
-      if (!picked) {
+      if (!pickedId) {
         drag.current = { kind: 'box', start: g, ids: [], delta: { x: 0, z: 0 }, additive: e.shiftKey }
         return
       }
       if (e.shiftKey) {
-        s.select(selection.includes(picked.id) ? selection.filter((id) => id !== picked.id) : [...selection, picked.id])
+        s.select(selection.includes(pickedId) ? selection.filter((id) => id !== pickedId) : [...selection, pickedId])
         return
       }
-      const ids = selection.includes(picked.id) ? selection : [picked.id]
+      const ids = selection.includes(pickedId) ? selection : [pickedId]
       if (ids !== selection) s.select(ids)
       drag.current = { kind: 'move', start: g, ids, delta: { x: 0, z: 0 } }
     }
@@ -351,7 +338,7 @@ function Controls() {
           s.setPreview(null)
           return
         }
-        const r = moveRecords(s.edit.doc, d.ids, delta)
+        const r = moveCommand(s.edit.doc, d.ids, delta)
         if (r.ok) s.setPreview({ doc: r.doc, ghostIds: [] })
         else {
           s.setPreview(null)
@@ -382,14 +369,14 @@ function Controls() {
           return
         }
         const rect = { minX: d.start.x, minZ: d.start.z, maxX: g.x, maxZ: g.z }
-        const inside = recordsInRect(resolvedRecords(s.edit.doc), rect, (r) => !isEditable(r, s.layers)).map((r) => r.id)
+        const inside = keysInRect(rect)
         s.select(d.additive ? [...new Set([...s.edit.selection, ...inside])] : inside)
         return
       }
       if (d?.kind !== 'move') return
       const { x, z } = d.delta
       if (x === 0 && z === 0) return
-      s.run('Di chuyển', (doc) => moveRecords(doc, d.ids, { x, z }))
+      s.run('Di chuyển', (doc) => moveCommand(doc, d.ids, { x, z }))
     }
 
     const wheel = (e: WheelEvent) => {
