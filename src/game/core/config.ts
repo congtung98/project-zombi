@@ -132,7 +132,8 @@ export const GAME_CONFIG = {
   },
   /**
    * Player vision (sprint "tầm nhìn"): what the player character can see, separate from the camera
-   * and from zombie perception. Only affects how zombies are drawn; AI never reads it.
+   * and from zombie perception. Only affects how zombies are drawn; AI never reads it. It is not a
+   * light: world lighting belongs to `lighting` + the day/night clock (`rendering/Lights.tsx`) only.
    * Heights are absolute (the map is flat, ground at y = 0).
    */
   playerVision: {
@@ -155,15 +156,6 @@ export const GAME_CONFIG = {
     maxRaycastsPerUpdate: 48,
     /** Walls/furniture whose top reaches this height block sight (fences, crates, cars and beds do not). */
     occluderMinHeight: 1.5,
-    /** Ground darkening outside the visible area (VisionMask); also a player setting. */
-    mask: {
-      /** Rays over the field of view (behind the player a coarser 10° step is used). */
-      coneRays: 72,
-      backStepDeg: 10,
-      /** Darkness just outside the visible area, and far away (towards `visionDistance` and beyond). */
-      outsideOpacity: 0.42,
-      farOpacity: 0.72,
-    },
     /** Debug drawing (DEBUG_PLAYER_VISION); F4 toggles it in game, `?vision=debug` starts with it on. */
     debug: false,
   },

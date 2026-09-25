@@ -18,7 +18,7 @@ const REASON_COLOR: Record<VisionReason, string> = {
   NEAR_DETECTION: '#5ec8ff',
   OUTSIDE_FOV: '#f0c24c',
   OUT_OF_RANGE: '#9a9a9a',
-  BLOCKED: '#ff5a4a',
+  BLOCKED_BY_OCCLUDER: '#ff5a4a',
 }
 
 const REASON_TEXT: Record<VisionReason, string> = {
@@ -26,7 +26,7 @@ const REASON_TEXT: Record<VisionReason, string> = {
   NEAR_DETECTION: 'NEAR DETECTION',
   OUTSIDE_FOV: 'OUTSIDE FOV',
   OUT_OF_RANGE: 'OUT OF RANGE',
-  BLOCKED: 'BLOCKED',
+  BLOCKED_BY_OCCLUDER: 'BLOCKED',
 }
 
 function circle(radius: number): BufferGeometry {

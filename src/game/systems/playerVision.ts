@@ -10,7 +10,7 @@ import type { EntityId, Vec3 } from '../../types'
  * that pass the cheap checks are raycast, and at most `maxRaycastsPerUpdate` per pass.
  */
 
-export type VisionReason = 'VISIBLE' | 'NEAR_DETECTION' | 'OUTSIDE_FOV' | 'OUT_OF_RANGE' | 'BLOCKED'
+export type VisionReason = 'VISIBLE' | 'NEAR_DETECTION' | 'OUTSIDE_FOV' | 'OUT_OF_RANGE' | 'BLOCKED_BY_OCCLUDER'
 
 /** Where the character stands and faces. `facing` is the character's yaw (forward = sin, cos), never the camera's. */
 export interface VisionObserver {
@@ -122,7 +122,7 @@ export function classifyVisibility(
   const phase = broadPhase(observer, position, cfg, cosHalfFov(cfg.fieldOfView))
   if (phase === 'OUT_OF_RANGE' || phase === 'OUTSIDE_FOV') return phase
   if (phase === 'NEAR_DETECTION' && cfg.nearDetectionThroughWalls) return 'NEAR_DETECTION'
-  if (!hasLineOfSight(eyePosition(observer, cfg), targetPoint(position, cfg))) return 'BLOCKED'
+  if (!hasLineOfSight(eyePosition(observer, cfg), targetPoint(position, cfg))) return 'BLOCKED_BY_OCCLUDER'
   return phase === 'NEAR_DETECTION' ? 'NEAR_DETECTION' : 'VISIBLE'
 }
 
@@ -236,7 +236,7 @@ export class PlayerVisionSystem {
       // Not raycast this pass: keep the previous result (never raycast = not seen yet).
       const clear = s.losPass >= 0 && s.losClear
       s.seen = clear
-      s.reason = clear ? (entry.phase === 'NEAR_DETECTION' ? 'NEAR_DETECTION' : 'VISIBLE') : 'BLOCKED'
+      s.reason = clear ? (entry.phase === 'NEAR_DETECTION' ? 'NEAR_DETECTION' : 'VISIBLE') : 'BLOCKED_BY_OCCLUDER'
     }
 
     this.stats.passes = pass

@@ -15,8 +15,6 @@ import { Lights } from './Lights'
 import { OcclusionFader } from './OcclusionFader'
 import { PhysicsBridge } from './PhysicsBridge'
 import { PlayerVisionDebug } from './PlayerVisionDebug'
-import { VisionMask } from './VisionMask'
-import { useSettingsStore } from '../../stores/settingsStore'
 import { PlayerView } from './PlayerView'
 import { Roads } from './Roads'
 import { Walls } from './Walls'
@@ -51,7 +49,6 @@ function CharacterAnimator() {
  */
 export function Scene({ paused, debug, visionDebug }: SceneProps) {
   const zombieIds = useWorldStore((s) => s.zombieIds)
-  const visionMask = useSettingsStore((s) => s.visionMask)
   const drops = useWorldStore((s) => s.drops)
   const map = runtime.map
 
@@ -87,7 +84,6 @@ export function Scene({ paused, debug, visionDebug }: SceneProps) {
         ))}
       </Physics>
       <OcclusionFader />
-      {visionMask && <VisionMask />}
       {visionDebug && <PlayerVisionDebug />}
       <GameLoop paused={paused} />
       <CharacterAnimator />

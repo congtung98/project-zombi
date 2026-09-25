@@ -1,6 +1,8 @@
-// Player vision browser check with Playwright (fresh isolated context): zombies in front / behind /
-// right behind the back, a real-key 180° turn, a closed vs open safehouse door, the fade and the
-// ground mask, debug drawing (F4). Hidden zombies keep their AI (a hidden zombie bashes the door).
+// Player vision browser check with Playwright (fresh isolated context). First: world lighting does not
+// depend on the facing (lights + measured screen brightness while turning 4 ways at 12:00, 00:00 and
+// indoors; no darkening layer exists). Then zombies in front / behind / right behind the back, a
+// real-key 180° turn, a closed vs open safehouse door, the fade, debug drawing (F4). Hidden zombies
+// keep their AI (a hidden zombie bashes the door).
 //   Dev:        BASE_URL=http://127.0.0.1:5174 node scripts/p2-vision-browser.mjs
 //   Production: BASE_URL=http://127.0.0.1:5199 node scripts/p2-vision-browser.mjs --production
 // Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
@@ -51,7 +53,7 @@ try {
     await page.keyboard.press('F3')
     await page.locator('.hud-debug').waitFor()
     await page.waitForFunction(() => /Tầm nhìn: thấy \d+ · ứng viên \d+ · raycast \d+/.test(document.querySelector('.hud-debug')?.textContent ?? ''), null, { timeout: 5000 })
-    await page.waitForFunction(() => /nhìn=(VISIBLE|OUTSIDE_FOV|OUT_OF_RANGE|BLOCKED|NEAR_DETECTION)/.test(document.querySelector('.hud-debug')?.textContent ?? ''), null, { timeout: 5000 })
+    await page.waitForFunction(() => /nhìn=(VISIBLE|OUTSIDE_FOV|OUT_OF_RANGE|BLOCKED_BY_OCCLUDER|NEAR_DETECTION)/.test(document.querySelector('.hud-debug')?.textContent ?? ''), null, { timeout: 5000 })
     const line = (await page.locator('.hud-debug').innerText()).match(/Tầm nhìn:[^\n]*/)[0]
     await page.keyboard.press('F3')
     await page.keyboard.press('F4')
@@ -88,6 +90,81 @@ try {
       const v = r.vision.get(id)
       return { reason: v?.reason, visible: v?.isVisibleToPlayer, simOpacity: +(v?.opacity ?? 0).toFixed(2), drawn: best.o.parent.parent.visible, opacity: +opacity.toFixed(2), ai: z.ai }
     }, id)
+
+    // 0) Lighting is the day/night clock's alone. All zombies parked far away (out of range, so the
+    //    set of drawn entities is constant), the player turned in place; lights and mean screen
+    //    brightness per quadrant (HUD and the player in the middle excluded) must not change.
+    const luminance = async () => {
+      const png = await page.screenshot()
+      return page.evaluate(async (b64) => {
+        const img = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob())
+        const c = new OffscreenCanvas(img.width, img.height)
+        const g = c.getContext('2d')
+        g.drawImage(img, 0, 0)
+        const { data, width, height } = g.getImageData(0, 0, img.width, img.height)
+        const sum = [0, 0, 0, 0]
+        const n = [0, 0, 0, 0]
+        for (let y = 110; y < height - 170; y += 3) {
+          for (let x = 20; x < width - 20; x += 3) {
+            if (Math.abs(x - width / 2) < 150 && Math.abs(y - height / 2) < 150) continue
+            const i = (y * width + x) * 4
+            const k = (y < height / 2 ? 0 : 2) + (x < width / 2 ? 0 : 1)
+            sum[k] += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+            n[k] += 1
+          }
+        }
+        return sum.map((v, k) => +(v / n[k]).toFixed(2))
+      }, png.toString('base64'))
+    }
+    const lights = () => rt(() => {
+      const out = []
+      window.__scene.traverse((o) => { if (o.isLight) out.push(`${o.type}:${o.intensity.toFixed(3)}`) })
+      return out.sort().join(' ')
+    })
+    const overlays = () => rt(() => {
+      let n = 0
+      window.__scene.traverse((o) => { if (o.isMesh && (o.material?.isShaderMaterial || o.material?.stencilWrite)) n += 1 })
+      return n
+    })
+    await rt(() => {
+      const r = window.__runtime
+      r.spawnTimer = 1e9
+      r.hordeTimer = 1e9
+      r.pickWanderPoint = () => null
+      let i = 0
+      for (const [id, body] of r.zombieBodies) {
+        body.setTranslation({ x: 20 + (i % 3), y: 0.9, z: 20 + Math.floor(i++ / 3) }, true)
+        r.zombies.get(id).health = 0
+      }
+    })
+    const turnAround = async (label, where, timeOfDay) => {
+      await rt(({ where, timeOfDay }) => {
+        const r = window.__runtime
+        r.playerBody.setTranslation({ x: where[0], y: 0.9, z: where[1] }, true)
+        r.clock.restore(r.clock.elapsed, timeOfDay, r.clock.day)
+      }, { where, timeOfDay })
+      await page.waitForTimeout(1500) // camera settles on the player
+      const rows = []
+      for (const facing of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+        await rt((f) => { window.__runtime.player.facing = f }, facing)
+        await page.waitForTimeout(500)
+        rows.push({ facing: +facing.toFixed(2), lights: await lights(), quadrants: await luminance() })
+        if (facing === 0 || facing === Math.PI) await shot(`vision-light-${label}-${facing === 0 ? 'north' : 'south'}`)
+      }
+      const spread = [0, 1, 2, 3].map((k) => +(Math.max(...rows.map((r) => r.quadrants[k])) - Math.min(...rows.map((r) => r.quadrants[k]))).toFixed(2))
+      const mean = +(rows[0].quadrants.reduce((a, b) => a + b, 0) / 4).toFixed(1)
+      log(`lighting ${label}`, { lights: rows[0].lights, mean, spreadPerQuadrant: spread })
+      assert.ok(rows.every((r) => r.lights === rows[0].lights), 'light intensities never follow the facing')
+      assert.ok(spread.every((d) => d < 2.5), `screen brightness per quadrant stays put while turning: ${spread}`)
+      return mean
+    }
+    assert.equal(await overlays(), 0, 'no darkening/stencil layer in the scene')
+    const noon = await turnAround('noon', [0, -8], 0.5)
+    const midnight = await turnAround('midnight', [0, -8], 0.0)
+    const indoor = await turnAround('indoor', [-14, -14], 0.5)
+    log('day vs night', { noon, midnight, indoor })
+    assert.ok(noon > midnight + 10, 'night is darker because of the clock')
+    await rt(() => window.__runtime.clock.restore(window.__runtime.clock.elapsed, 0.3, window.__runtime.clock.day))
 
     // 1) Outdoor staging north of the crossroads: player at (0, -8) facing +Z, zombies in front (8 m),
     //    behind (8 m) and right behind the back (1.8 m), all facing away (none notices the player).
@@ -152,7 +229,7 @@ try {
     await page.waitForTimeout(600)
     const closed = await drawn(doorZombie)
     log('door closed', closed)
-    assert.deepEqual([closed.reason, closed.drawn], ['BLOCKED', false])
+    assert.deepEqual([closed.reason, closed.drawn], ['BLOCKED_BY_OCCLUDER', false])
     await page.keyboard.press('KeyE')
     await page.waitForFunction((id) => window.__runtime.vision.get(id).isVisibleToPlayer, doorZombie, { timeout: 3000 })
     await page.waitForTimeout(500)
@@ -169,24 +246,8 @@ try {
     log('hidden but bashing', { ...bashing, doorHp: await rt(() => window.__runtime.world.doors.get('door-safehouse').hp) })
     assert.deepEqual([bashing.ai, bashing.drawn], ['ATTACK_STRUCTURE', false])
 
-    // 4) Mask on/off (Settings stores it; the darkness plane is renderOrder 901).
-    const maskMeshes = () => rt(() => { let n = 0; window.__scene.traverse((o) => { if (o.renderOrder === 901) n += 1 }); return n })
-    const withMask = { meshes: await maskMeshes(), calls: await rt(() => window.__renderInfo.calls) }
-    await rt(async () => {
-      const { useSettingsStore } = await import('/src/stores/settingsStore.ts')
-      useSettingsStore.getState().set({ visionMask: false })
-    })
-    await page.waitForTimeout(500)
-    const withoutMask = { meshes: await maskMeshes(), calls: await rt(() => window.__renderInfo.calls) }
-    await rt(async () => {
-      const { useSettingsStore } = await import('/src/stores/settingsStore.ts')
-      useSettingsStore.getState().set({ visionMask: true })
-    })
-    log('mask', { withMask, withoutMask })
-    assert.equal(withMask.meshes, 1)
-    assert.equal(withoutMask.meshes, 0)
     assert.equal(errors.length, 0, JSON.stringify(errors))
-    log('PASS dev', 'front/behind/near, real-key turn, closed/open door, hidden zombie bashes, mask toggle, F4 debug')
+    log('PASS dev', 'lighting independent of facing (noon/midnight/indoor), front/behind/near, real-key turn, closed/open door, hidden zombie bashes, F4 debug')
   }
 } catch (e) {
   await shot(production ? 'vision-prod-fail' : 'vision-dev-fail').catch(() => undefined)

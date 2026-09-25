@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG, type PlayerVisionConfig } from '../core/config'
 import { classifyVisibility, cosHalfFov, isInsideVisionCone, PlayerVisionSystem, type VisionObserver, type VisionTarget } from './playerVision'
-import { computeVisibilityOutline, visibilityPointCount } from './visionMask'
 import { buildVisionOccluders, createWindowOccluder, segmentBoxEntry, VisionOccluderSet } from '../world/visionOccluders'
 import { generateBuildingWalls, generateDoorPlacements, type BuildingDef } from '../world/buildings'
 import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
@@ -51,10 +50,10 @@ describe('vision cone and classification order', () => {
     const blocked = () => false
     expect(classifyVisibility(o, at(0, 25), CFG, clear)).toBe('OUT_OF_RANGE')
     expect(classifyVisibility(o, at(0, 10), CFG, clear)).toBe('VISIBLE')
-    expect(classifyVisibility(o, at(0, 10), CFG, blocked)).toBe('BLOCKED')
+    expect(classifyVisibility(o, at(0, 10), CFG, blocked)).toBe('BLOCKED_BY_OCCLUDER')
     expect(classifyVisibility(o, at(0, -6), CFG, clear)).toBe('OUTSIDE_FOV') // behind, camera may see it
     expect(classifyVisibility(o, at(0, -2), CFG, clear)).toBe('NEAR_DETECTION') // right behind the back
-    expect(classifyVisibility(o, at(0, -2), CFG, blocked)).toBe('BLOCKED')
+    expect(classifyVisibility(o, at(0, -2), CFG, blocked)).toBe('BLOCKED_BY_OCCLUDER')
     expect(classifyVisibility(o, at(0, -2), cfg({ nearDetectionThroughWalls: true }), blocked)).toBe('NEAR_DETECTION')
   })
 
@@ -216,15 +215,15 @@ describe('vision occluders (walls, doors, windows)', () => {
     const o = observer(0, -1, 0)
     const inDoorway = at(0, 6)
     const besideDoor = at(2.5, 6)
-    expect(classifyVisibility(o, inDoorway, CFG, los)).toBe('BLOCKED')
+    expect(classifyVisibility(o, inDoorway, CFG, los)).toBe('BLOCKED_BY_OCCLUDER')
     setDoor('open')
     expect(classifyVisibility(o, inDoorway, CFG, los)).toBe('VISIBLE') // the lintel above does not block
-    expect(classifyVisibility(o, besideDoor, CFG, los)).toBe('BLOCKED')
+    expect(classifyVisibility(o, besideDoor, CFG, los)).toBe('BLOCKED_BY_OCCLUDER')
     setDoor('destroyed')
     expect(classifyVisibility(o, inDoorway, CFG, los)).toBe('VISIBLE')
     // Right behind the closed door (inside the near radius): still hidden, the door is in the way.
     setDoor('closed')
-    expect(classifyVisibility(observer(0, 2, 0), at(0, 4), CFG, los)).toBe('BLOCKED')
+    expect(classifyVisibility(observer(0, 2, 0), at(0, 4), CFG, los)).toBe('BLOCKED_BY_OCCLUDER')
   })
 
   it('a low fence never blocks sight', () => {
@@ -239,24 +238,9 @@ describe('vision occluders (walls, doors, windows)', () => {
     const los = (a: Vec3, b: Vec3) => set.firstBlocker(a, b) === null
     expect(classifyVisibility(observer(0, 0), at(0, 10), CFG, los)).toBe('VISIBLE')
     curtain = true
-    expect(classifyVisibility(observer(0, 0), at(0, 10), CFG, los)).toBe('BLOCKED')
+    expect(classifyVisibility(observer(0, 0), at(0, 10), CFG, los)).toBe('BLOCKED_BY_OCCLUDER')
     set.remove('win-1')
     expect(classifyVisibility(observer(0, 0), at(0, 10), CFG, los)).toBe('VISIBLE')
-  })
-
-  it('mask outline: cut at the closed door and the back wall, open door lets the cone through', () => {
-    const { occluders, setDoor } = hutVision()
-    const o = observer(0, -1, 0)
-    const pts = computeVisibilityOutline(o, CFG, occluders)
-    expect(pts.length).toBe(visibilityPointCount(CFG) * 2)
-    const mid = CFG.mask.coneRays / 2 // straight ahead (+Z)
-    expect(pts[mid * 2 + 1]).toBeCloseTo(3 - 0.06, 2) // door leaf face
-    // Straight behind (−Z) is the near radius, cut by the north wall (inner face z = −2.85).
-    const back = CFG.mask.coneRays + 1 + Math.floor(Math.ceil((360 - CFG.fieldOfView) / CFG.mask.backStepDeg) / 2)
-    expect(pts[back * 2 + 1]).toBeCloseTo(-2.85, 2)
-    setDoor('open')
-    computeVisibilityOutline(o, CFG, occluders, pts)
-    expect(pts[mid * 2 + 1]).toBeCloseTo(-1 + CFG.visionDistance, 3)
   })
 
   it('performance: 500 zombies around the player on the full map stay well under a millisecond budget per pass', () => {
@@ -276,13 +260,30 @@ describe('vision occluders (walls, doors, windows)', () => {
       vision.updateVisibilityFade(1 / 20)
     }
     const perPass = (performance.now() - start) / passes
-    const outline = new Float32Array(visibilityPointCount(CFG) * 2)
-    const maskStart = performance.now()
-    for (let i = 0; i < passes; i++) computeVisibilityOutline(o, CFG, set, outline)
-    const perMask = (performance.now() - maskStart) / passes
-    console.log(`[vision perf] 500 zombies: ${perPass.toFixed(3)} ms/pass (${vision.stats.raycasts} raycasts, ${vision.stats.visible} visible, ${set.all.length} occluders); mask outline ${perMask.toFixed(3)} ms`)
+    console.log(`[vision perf] 500 zombies: ${perPass.toFixed(3)} ms/pass (${vision.stats.raycasts} raycasts, ${vision.stats.visible} visible, ${set.all.length} occluders)`)
     expect(vision.stats.raycasts).toBeLessThanOrEqual(CFG.maxRaycastsPerUpdate)
     expect(perPass).toBeLessThan(5)
-    expect(perMask).toBeLessThan(5)
+  })
+})
+
+describe('player vision is not world lighting', () => {
+  const sources = {
+    ...import.meta.glob<string>('./playerVision.ts', { query: '?raw', import: 'default', eager: true }),
+    ...import.meta.glob<string>('../world/visionOccluders.ts', { query: '?raw', import: 'default', eager: true }),
+  }
+  const rendering = import.meta.glob<string>(['../rendering/*.tsx', '../rendering/daylight.ts'], { query: '?raw', import: 'default', eager: true })
+
+  it('the vision modules import no three.js, rendering or lighting code', () => {
+    expect(Object.keys(sources)).toHaveLength(2)
+    for (const [file, text] of Object.entries(sources)) {
+      for (const i of text.match(/from '[^']+'/g) ?? []) expect(i, `${file}: ${i}`).not.toMatch(/three|rendering|Lights|daylight|@react-three/)
+    }
+  })
+
+  it('lighting reads only the clock, and only zombie rendering/debug read the vision state', () => {
+    expect(rendering['../rendering/Lights.tsx']).toMatch(/daylightAt\(runtime\.clock\.timeOfDay\)/)
+    for (const file of ['../rendering/Lights.tsx', '../rendering/daylight.ts']) expect(rendering[file]).not.toMatch(/vision/i)
+    const readers = Object.entries(rendering).filter(([, text]) => text.includes('runtime.vision')).map(([file]) => file.replace('../rendering/', ''))
+    expect(readers.sort()).toEqual(['PlayerVisionDebug.tsx', 'ZombieView.tsx'])
   })
 })

@@ -17,8 +17,7 @@ export function GameCanvas() {
       key={`${shadows}-${maxPixelRatio}`}
       shadows={shadows === 'off' ? false : shadows === 'low' ? 'basic' : 'percentage'}
       dpr={[1, maxPixelRatio]}
-      // Stencil buffer for the player vision mask (visible fan cuts the darkness layer).
-      gl={{ antialias: true, powerPreference: 'high-performance', stencil: true }}
+      gl={{ antialias: true, powerPreference: 'high-performance' }}
       onContextMenu={(e) => e.preventDefault()}
     >
       <Scene key={sessionId} paused={screen !== 'playing'} debug={debug} visionDebug={visionDebug} />

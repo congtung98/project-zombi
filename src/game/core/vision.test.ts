@@ -104,7 +104,7 @@ describe('player vision in the runtime', () => {
     rt.player.facing = 0
     const occluders = rt.visionOccluders
     step(0.3)
-    expect(rt.vision.get('zombie-1')!.reason).toBe('BLOCKED')
+    expect(rt.vision.get('zombie-1')!.reason).toBe('BLOCKED_BY_OCCLUDER')
     expect(rt.vision.isVisible('zombie-1')).toBe(false)
     rt.setDoorState('door-hut', 'open')
     step(0.1)
