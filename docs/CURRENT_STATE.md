@@ -1,10 +1,23 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành **map editor M10 (streaming theo chunk trong runtime)**; sprint chọn world đã commit (bf51d94). Lộ trình tiếp: M11 phòng đa giác + nhiều tầng (có thể nhiều sprint). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **map editor M11a (nhà và phòng chữ L/T/U)**; M10 đã commit (6e047f1). Lộ trình tiếp: M11b nhiều tầng (dữ liệu + mô phỏng) → M11c nhiều tầng (hiển thị + editor). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M10 — streaming theo chunk trong runtime (mới nhất, chưa commit — chi tiết docs/map-editor-m10.md)
+## 0. Map editor M11a — nhà và phòng chữ L/T/U (mới nhất, chưa commit — chi tiết docs/map-editor-m11a.md)
+
+Save không đổi (v8), content không đổi, schema map v1 + `PrefabDocument.outline?` và `RoomObject.outline?` (đa giác vuông góc: cạnh theo X/Z, vì collider/tường/xoay đều thẳng trục). M11 chia ba sprint: M11a (này), M11b nhiều tầng dữ liệu + mô phỏng, M11c nhiều tầng hiển thị + editor.
+
+- **Hình học** `src/map/polygon.ts` (thuần): `outlineProblem`, `pointInOutline`, `insideOutline`, `distanceToOutline`, `outlineRects` (mảnh chữ nhật phủ kín), `outlineCentre`, `normalizeOutline`, `rectOutline`, `outlineBounds`.
+- **Nội dung**: validator `invalid-outline`, `outline-bounds` (lỗi); `outside-footprint`, `lamp-outside-room` theo outline; resolver xoay outline → `BuildingInfo.outline`, `RoomPlacement.outline`; đèn mặc định ở tâm mảnh lớn nhất; deep check `spawn-indoors`/`container-outside-room` theo outline.
+- **Game**: `isInsideBuilding`/`isInsideRoom` theo outline (mái, spawn, lang thang, ánh sáng, HUD); `buildingPieces` (sàn/mái theo mảnh, mái chìa ra chỉ ở cạnh ngoài), `RoofController` giữ tập mảnh mái mỗi nhà; `roomSlots.ts` (`pickRoomSlots`: mỗi mảnh một ô shader, không cắt đôi phòng); debug F6 vẽ outline.
+- **Editor**: `outlines.ts` (kéo đỉnh/cạnh, khoét góc/lấp lại, khoét cạnh theo lưới 0,25 m, xoay, tường theo outline, tay cầm `v<i>`/`e<i>`); `prefabCommands` (`starterLHouse`, `buildOutlineWalls`, `updatePrefab({ outline })`, phòng: dời/xoay/nhân bản/sửa mang outline, khóa ô khung); `handles.ts` (`FOOTPRINT_KEY`, tay cầm outline); `interaction.currentHandleTarget` + store `outlineEdit` ("Sửa outline"); Inspector `OutlineEditor`; hộp thoại Prefab mới có Hình chữ L; vẽ sàn/thumbnail/viền/phòng theo outline; chọn phòng L theo cạnh/tâm.
+- **Kiểm chứng**: 519 test (+13 skip; mới `map/editor/polygon.test.ts` 8); tsc/oxlint/build/build:editor/check:bundle/map:check --deep sạch; Playwright `scripts/m11a-editor-browser.mjs` PASS; hồi quy m3–m10, worlds, p2-s2/s4/s5/lighting/vision PASS.
+- **Chưa làm**: generator sinh nhà L; "dựng tường theo outline" không xóa tường cũ; M11b, M11c.
+
+Commit message gợi ý: **feat(editor): L/T/U buildings and rooms M11a (rectilinear outlines for prefab footprints and rooms: validator, resolver, indoor tests, floors and roofs per piece, lighting shader slots per piece, editor outline editing with vertex/edge handles, corner/edge notches, walls from outline, L-shaped starter house)**
+
+## 0-M10. Map editor M10 — streaming theo chunk trong runtime (đã commit 6e047f1 — chi tiết docs/map-editor-m10.md)
 
 Save không đổi (v8), schema map v1 không đổi, content không đổi; generator vẫn v2, giới hạn 16×16 khối (`MAX_BLOCKS`).
 
@@ -16,7 +29,6 @@ Save không đổi (v8), schema map v1 không đổi, content không đổi; gen
 - **Kết quả** (GPU, 16×16): CPU/frame 10 → 3,5 ms, object 12 058 → ~1 860, menu 2,6 → 1,07 s, vào game 3,4 → 0,84 s, heap 314 → ~205 MB. Node: dựng runtime 1 741 → 154 ms.
 - **Kiểm chứng**: 510 test (+13 skip; mới `rendering/streaming.test.ts` 8, `core/scale.bench.test.ts` gated `SCALE_BENCH=1`); tsc/oxlint/build/build:editor/check:bundle/map:check --deep sạch; Playwright `scripts/m10-streaming-browser.mjs` PASS; production preview (world tải theo nhu cầu) OK; hồi quy m3–m9, worlds, p2-s2/s4/s5/lighting/vision PASS.
 
-Commit message gợi ý: **feat(game): chunk streaming M10 (camera-driven mounting of static batches, doors, containers, windows and lamps with hysteresis, per-world lazy content chunks, budgeted nav warm-up near the player and on idle frames, generator up to 16x16 blocks, scale benchmark)**
 
 ## 0-W. Chọn world trong game + khu phố đóng băng cho test (đã commit bf51d94 — chi tiết docs/world-menu.md)
 

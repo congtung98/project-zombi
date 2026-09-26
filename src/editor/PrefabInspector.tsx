@@ -1,7 +1,9 @@
-import { fitFootprint, isStatefulItem, updatePrefab, updatePrefabItem, type PrefabPatch } from '../map/editor/prefabCommands'
+import { buildOutlineWalls, fitFootprint, isStatefulItem, updatePrefab, updatePrefabItem, type PrefabPatch } from '../map/editor/prefabCommands'
+import { cutOutlineCorner, dragOutlineVertex, notchOutlineEdge } from '../map/editor/outlines'
+import { outlineCentre, rectOutline } from '../map/polygon'
 import { instancesOf, type AnyRecord, type MapDocument } from '../map/editor/document'
 import { wallRunBoxes } from '../map/resolve'
-import type { PrefabDocument, PrefabObject, QuarterTurns, RoomObject, XZ } from '../map/schema'
+import type { PrefabDocument, PrefabObject, QuarterTurns, Rect, RoomObject, XZ } from '../map/schema'
 import { OPTS, useEditorStore } from './editorStore'
 import { NumField, ReadField, TextField, TreeFields } from './fields'
 import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection } from './interaction'
@@ -40,9 +42,52 @@ function Turns({ value, onChange }: { value: number; onChange: (q: QuarterTurns)
   )
 }
 
+/**
+ * M11a: an L/T/U outline (footprint or room). A rectangle converts to 4 vertices; then vertices move
+ * by number (their edges follow), a corner becomes a notch ("Khoét góc", again on a notch fills it),
+ * an edge gets a notch in its middle third ("Khoét cạnh"). Viewport handles do the same by drag.
+ */
+function OutlineEditor({ outline, bounds, onChange }: { outline: readonly XZ[] | undefined; bounds: Rect; onChange: (label: string, outline: XZ[] | null) => void }) {
+  const setStatus = useEditorStore((s) => s.setStatus)
+  const apply = (label: string, next: XZ[] | null) => {
+    if (next) onChange(label, next)
+    else setStatus(`${label}: hình mới không hợp lệ (cạnh cắt nhau hoặc quá nhỏ)`, 'error')
+  }
+  if (!outline) {
+    return (
+      <button onClick={() => onChange('Chuyển thành đa giác', rectOutline(bounds))} data-outline-convert>
+        Chuyển thành đa giác (L, T, U…)
+      </button>
+    )
+  }
+  return (
+    <div className="outline" data-outline={outline.length}>
+      {outline.map((p, i) => (
+        <div key={i} className="outline-vertex" data-vertex={i}>
+          <b>{i + 1}</b>
+          <NumField label="X" value={p.x} onCommit={(x) => apply('Dời đỉnh', dragOutlineVertex(outline, i, { x, z: p.z }))} />
+          <NumField label="Z" value={p.z} onCommit={(z) => apply('Dời đỉnh', dragOutlineVertex(outline, i, { x: p.x, z }))} />
+          <div className="row">
+            <button title="Góc này thành chỗ khoét (góc trong của chỗ khoét: lấp lại)" onClick={() => apply('Khoét góc', cutOutlineCorner(outline, i))} data-cut-corner={i}>
+              Khoét góc
+            </button>
+            <button title={`Khoét giữa cạnh ${i + 1}→${((i + 1) % outline.length) + 1}`} onClick={() => apply('Khoét cạnh', notchOutlineEdge(outline, i))} data-notch-edge={i}>
+              Khoét cạnh {i + 1}→{((i + 1) % outline.length) + 1}
+            </button>
+          </div>
+        </div>
+      ))}
+      <button onClick={() => onChange('Về hình chữ nhật', null)} data-outline-clear>
+        Về hình chữ nhật (bounding box)
+      </button>
+    </div>
+  )
+}
+
 function PrefabProps({ doc, prefab }: { doc: MapDocument; prefab: PrefabDocument }) {
   const run = useEditorStore((s) => s.run)
   const view = useEditorStore((s) => s.prefabView)
+  const outlineEdit = useEditorStore((s) => s.outlineEdit)
   const showReach = useEditorStore((s) => s.showReach)
   const set = useEditorStore((s) => s.set)
   const id = prefab.prefabId
@@ -71,11 +116,31 @@ function PrefabProps({ doc, prefab }: { doc: MapDocument; prefab: PrefabDocument
         <span>Tầm tương tác</span>
         <input type="checkbox" checked={showReach} onChange={(e) => set({ showReach: e.target.checked })} />
       </label>
-      <h4>Footprint (mái, trong nhà)</h4>
-      {(['minX', 'minZ', 'maxX', 'maxZ'] as const).map((k) => (
-        <NumField key={k} label={k} value={f[k]} onCommit={(v) => patch('Đổi footprint', { footprint: { ...f, [k]: v } })} />
-      ))}
-      <button onClick={() => run('Khớp footprint', (d, sel) => fitFootprint(d, id, sel))}>Khớp footprint với tường</button>
+      <h4>Footprint (mái, sàn, trong nhà)</h4>
+      {prefab.outline ? (
+        <>
+          <ReadField label="Khung bao" value={`${f.minX}…${f.maxX} × ${f.minZ}…${f.maxZ}`} />
+          <label className="field">
+            <span>Sửa outline</span>
+            <input type="checkbox" checked={outlineEdit} onChange={(e) => set({ outlineEdit: e.target.checked })} data-outline-edit />
+          </label>
+        </>
+      ) : (
+        (['minX', 'minZ', 'maxX', 'maxZ'] as const).map((k) => <NumField key={k} label={k} value={f[k]} onCommit={(v) => patch('Đổi footprint', { footprint: { ...f, [k]: v } })} />)
+      )}
+      <OutlineEditor outline={prefab.outline} bounds={f} onChange={(label, outline) => patch(label, { outline })} />
+      {prefab.outline && b && (
+        <button onClick={() => run('Dựng tường theo outline', (d) => buildOutlineWalls(d, id))} data-outline-walls>
+          Dựng tường theo outline
+        </button>
+      )}
+      {!prefab.outline && <button onClick={() => run('Khớp footprint', (d, sel) => fitFootprint(d, id, sel))}>Khớp footprint với tường</button>}
+      {prefab.outline && (
+        <p className="hint">
+          Nhà chữ L/T/U: sàn, mái và phép thử "trong nhà" theo outline. Bật "Sửa outline" rồi kéo đỉnh/cạnh trong khung nhìn (khi không chọn gì). "Dựng tường theo outline" chỉ thêm tường cho
+          cạnh chưa có; tường cũ nằm ngoài outline cần xóa tay.
+        </p>
+      )}
       {b && (
         <>
           <h4>Công trình</h4>
@@ -117,7 +182,7 @@ function ItemFields({ doc, prefab, itemKey }: { doc: MapDocument; prefab: Prefab
       <TextField label="Local ID" value={itemKey} pattern={/^[a-z0-9]+(?:-[a-z0-9]+)*$/} onCommit={rename} />
       {first && <ReadField label="ID trong world" value={`${first}/${itemKey}`} />}
       {object && <ObjectFields object={object} prefab={prefab} patch={patch} />}
-      {room && <RoomFields room={room} patch={patch} />}
+      {room && <RoomFields room={room} prefab={prefab} patch={patch} />}
       {lampRoom?.lamp && (
         <>
           <ReadField label="Phòng" value={lampRoom.localId} />
@@ -249,14 +314,22 @@ function ObjectFields({ object: o, prefab, patch }: { object: PrefabObject; pref
   )
 }
 
-function RoomFields({ room, patch }: { room: RoomObject; patch: (label: string, p: AnyRecord) => void }) {
+function RoomFields({ room, prefab, patch }: { room: RoomObject; prefab: PrefabDocument; patch: (label: string, p: AnyRecord) => void }) {
   const b = room.bounds
   return (
     <>
       <TextField label="Tên" value={room.name} onCommit={(name) => patch('Đổi tên phòng', { name })} />
-      {(['minX', 'minZ', 'maxX', 'maxZ'] as const).map((k) => (
-        <NumField key={k} label={k} value={b[k]} onCommit={(v) => patch('Đổi khung phòng', { bounds: { ...b, [k]: v } })} />
-      ))}
+      {room.outline ? (
+        <ReadField label="Khung bao" value={`${b.minX}…${b.maxX} × ${b.minZ}…${b.maxZ}`} />
+      ) : (
+        (['minX', 'minZ', 'maxX', 'maxZ'] as const).map((k) => <NumField key={k} label={k} value={b[k]} onCommit={(v) => patch('Đổi khung phòng', { bounds: { ...b, [k]: v } })} />)
+      )}
+      <OutlineEditor outline={room.outline} bounds={b} onChange={(label, outline) => patch(label, { outline: outline ?? undefined })} />
+      {prefab.outline && (
+        <button onClick={() => patch('Phòng theo outline nhà', { outline: prefab.outline!.map((p) => ({ ...p })) })} data-room-fit-outline>
+          Theo outline nhà
+        </button>
+      )}
       <label className="field">
         <span>Có đèn</span>
         <input type="checkbox" checked={!!room.lamp} onChange={(e) => patch(e.target.checked ? 'Thêm đèn' : 'Bỏ đèn', { lamp: e.target.checked ? {} : null })} data-room-lamp />
@@ -268,7 +341,7 @@ function RoomFields({ room, patch }: { room: RoomObject; patch: (label: string, 
 
 /** Ceiling fixture of a lamp: `at`, or the room centre by default. */
 function lampAt(room: RoomObject): XZ {
-  return room.lamp?.at ?? { x: (room.bounds.minX + room.bounds.maxX) / 2, z: (room.bounds.minZ + room.bounds.maxZ) / 2 }
+  return room.lamp?.at ?? (room.outline ? outlineCentre(room.outline) : { x: (room.bounds.minX + room.bounds.maxX) / 2, z: (room.bounds.minZ + room.bounds.maxZ) / 2 })
 }
 
 export function PrefabInspector({ prefabId }: { prefabId: string }) {

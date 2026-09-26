@@ -478,3 +478,31 @@ h4 {
 .compat-diff .added { color: #7fd48a; }
 .compat-diff .removed { color: #e59a8f; }
 .compat-diff select { max-width: 100%; font-size: 11px; }
+
+/* M11a: vertices of an L/T/U outline (footprint or room). */
+.outline {
+  margin: 6px 0;
+}
+
+.outline-vertex {
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr;
+  gap: 4px 6px;
+  align-items: center;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+}
+
+.inspector .outline-vertex .field {
+  grid-template-columns: 14px 1fr;
+  margin: 0;
+}
+
+.outline-vertex .row {
+  grid-column: 2 / 4;
+}
+
+.outline-vertex button {
+  font-size: 11px;
+  padding: 2px 6px;
+}

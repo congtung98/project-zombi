@@ -1,5 +1,8 @@
 import { Vector3 } from 'three'
 import type { MapData } from '../world/mapData'
+import type { BuildingInfo } from '../world/buildings'
+import { outlineRects, pointInOutline } from '../../map/polygon'
+import type { Rect } from '../../map/schema'
 import type { StaticColliderRegistry } from '../world/staticColliders'
 import { TREE_TRUNK_COLOR, treeProfile } from '../world/trees'
 import { itemChunkKey } from './viewChunks'
@@ -54,17 +57,25 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     items.push({ shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false })
   }
   for (const b of map.buildings) {
-    const { w, d } = b.size
-    items.push({ shape: 'floor', center: new Vector3(b.center.x, FLOOR_Y, b.center.z), size: [w, 0, d], color: b.floorColor, occluder: false })
-    items.push({
-      shape: 'box',
-      center: new Vector3(b.center.x, b.height + ROOF_THICKNESS / 2, b.center.z),
-      size: [w + ROOF_OVERHANG * 2, ROOF_THICKNESS, d + ROOF_OVERHANG * 2],
-      color: b.roofColor,
-      // Mái cũng là vật che: khi người chơi đứng ngoài, sát tường phía trên màn hình, mái nằm giữa camera và nhân vật.
-      occluder: true,
-      roofOf: b.id,
-    })
+    // M11a: an L/T/U building is floored and roofed piece by piece (rectangles tiling its outline).
+    for (const piece of buildingPieces(b)) {
+      const w = piece.maxX - piece.minX
+      const d = piece.maxZ - piece.minZ
+      const cx = (piece.minX + piece.maxX) / 2
+      const cz = (piece.minZ + piece.maxZ) / 2
+      items.push({ shape: 'floor', center: new Vector3(cx, FLOOR_Y, cz), size: [w, 0, d], color: b.floorColor, occluder: false })
+      // The overhang grows only the piece's outer sides, so pieces never overlap (no z-fighting).
+      const o = piece.overhang
+      items.push({
+        shape: 'box',
+        center: new Vector3(cx + (o.maxX - o.minX) / 2, b.height + ROOF_THICKNESS / 2, cz + (o.maxZ - o.minZ) / 2),
+        size: [w + o.minX + o.maxX, ROOF_THICKNESS, d + o.minZ + o.maxZ],
+        color: b.roofColor,
+        // Mái cũng là vật che: khi người chơi đứng ngoài, sát tường phía trên màn hình, mái nằm giữa camera và nhân vật.
+        occluder: true,
+        roofOf: b.id,
+      })
+    }
   }
   for (const t of map.trees ?? []) {
     const f = treeProfile(t)
@@ -74,6 +85,38 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true })
   }
   return items
+}
+
+type Piece = Rect & { overhang: Rect }
+
+/**
+ * Floor/roof rectangles of a building: its footprint, or (M11a) the rectangles tiling its outline.
+ * `overhang` is how far the roof reaches past each side (0 on sides shared with another piece).
+ */
+export function buildingPieces(b: BuildingInfo): Piece[] {
+  const O = ROOF_OVERHANG
+  if (!b.outline) {
+    const r = { minX: b.center.x - b.size.w / 2, minZ: b.center.z - b.size.d / 2, maxX: b.center.x + b.size.w / 2, maxZ: b.center.z + b.size.d / 2 }
+    return [{ ...r, overhang: { minX: O, minZ: O, maxX: O, maxZ: O } }]
+  }
+  const outline = b.outline
+  const rects = outlineRects(outline)
+  // A side is outer when the point just past its middle is outside the building.
+  const out = (x: number, z: number) => !pointInOutline(outline, x, z)
+  const e = 1e-3
+  return rects.map((r) => {
+    const mx = (r.minX + r.maxX) / 2
+    const mz = (r.minZ + r.maxZ) / 2
+    return {
+      ...r,
+      overhang: {
+        minX: out(r.minX - e, mz) ? O : 0,
+        maxX: out(r.maxX + e, mz) ? O : 0,
+        minZ: out(mx, r.minZ - e) ? O : 0,
+        maxZ: out(mx, r.maxZ + e) ? O : 0,
+      },
+    }
+  })
 }
 
 /**

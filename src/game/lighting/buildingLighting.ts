@@ -80,7 +80,7 @@ export function windowContribution(outdoor: number, win: LightingWindow, curtain
 
 /** Room containing a ground point (rectangular bounds); null = outdoors. */
 export function roomAt(rooms: readonly RoomPlacement[], x: number, z: number): RoomPlacement | null {
-  for (const r of rooms) if (isInsideRoom(r.bounds, x, z)) return r
+  for (const r of rooms) if (isInsideRoom(r.bounds, x, z, r.outline)) return r
   return null
 }
 

@@ -14,6 +14,14 @@ export function rectPoints(r: Rect, y: number): number[] {
   return [a, y, b, c, y, b, c, y, b, c, y, d, c, y, d, a, y, d, a, y, d, a, y, b]
 }
 
+/** Line-segment pairs around an outline (M11a L/T/U footprints and rooms). */
+export function outlinePoints(poly: readonly { x: number; z: number }[], y: number): number[] {
+  return poly.flatMap((p, i) => {
+    const q = poly[(i + 1) % poly.length]
+    return [p.x, y, p.z, q.x, y, q.z]
+  })
+}
+
 export const SELECT_MAT = new LineBasicMaterial({ color: '#ffd23f' })
 export const MARQUEE_MAT = new LineBasicMaterial({ color: '#7fd4ff' })
 export const GRID_MAT = new LineBasicMaterial({ color: '#56624a', transparent: true, opacity: 0.35 })

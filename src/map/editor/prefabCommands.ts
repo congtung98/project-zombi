@@ -5,6 +5,8 @@ import type { CommandResult } from './commands.ts'
 import { instancesOf, withExternalRefs, type AnyRecord, type MapDocument } from './document.ts'
 import { presetPlacement, type RecordPreset } from './presets.ts'
 import { axisEnd, DEFAULT_BUILDING, DEFAULT_ROOM, dragRect, findPrefabPreset } from './prefabPresets.ts'
+import { distanceToOutline, outlineBounds, outlineCentre, outlineProblem, rectOutline } from '../polygon.ts'
+import { cutOutlineCorner, outlineWallRuns, turnOutline } from './outlines.ts'
 
 /**
  * Prefab editing commands (M5): pure functions document → document, like the world commands, so
@@ -30,6 +32,8 @@ export interface PrefabItem {
   type: string
   /** Footprint in the prefab frame (picking, box select, selection outline). */
   bounds: Rect
+  /** M11a: an L/T/U room's outline (picked near its edges or centre). */
+  outline?: XZ[]
 }
 
 /** The prefab as one instance at its pivot, turned `q` quarter turns (a neutral resolved record). */
@@ -75,7 +79,7 @@ export function objectRect(o: PrefabObject): Rect {
 export function prefabItems(prefab: PrefabDocument): PrefabItem[] {
   const out: PrefabItem[] = prefab.objects.map((o) => ({ key: o.localId, kind: 'object' as const, type: o.kind, bounds: objectRect(o) }))
   for (const r of prefab.rooms) {
-    out.push({ key: r.localId, kind: 'room', type: 'room', bounds: { ...r.bounds } })
+    out.push({ key: r.localId, kind: 'room', type: 'room', bounds: { ...r.bounds }, ...(r.outline ? { outline: r.outline.map((q) => ({ ...q })) } : {}) })
     if (!r.lamp) continue
     out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.switchAt, 2 * SWITCH_PICK, 2 * SWITCH_PICK) })
     // M7: a fixture moved off the room centre also picks its lamp (the centre picks the room).
@@ -93,7 +97,11 @@ export function pickPrefabItem(items: readonly PrefabItem[], p: XZ): PrefabItem 
   let bestArea = Infinity
   for (const it of items) {
     const b = it.bounds
-    if (it.kind === 'room') {
+    if (it.kind === 'room' && it.outline) {
+      const nearEdge = distanceToOutline(it.outline, p.x, p.z) <= ROOM_EDGE
+      const c = outlineCentre(it.outline)
+      if (!(nearEdge || Math.hypot(p.x - c.x, p.z - c.z) <= 0.6)) continue
+    } else if (it.kind === 'room') {
       const inX = p.x >= b.minX - ROOM_EDGE && p.x <= b.maxX + ROOM_EDGE
       const inZ = p.z >= b.minZ - ROOM_EDGE && p.z <= b.maxZ + ROOM_EDGE
       const nearEdge = Math.min(Math.abs(p.x - b.minX), Math.abs(p.x - b.maxX), Math.abs(p.z - b.minZ), Math.abs(p.z - b.maxZ)) <= ROOM_EDGE
@@ -167,6 +175,8 @@ export interface NewPrefabOptions {
   /** Outer size of the starter house (wall centre lines), metres. */
   width?: number
   depth?: number
+  /** M11a: `L` = the north-east quarter cut away (L-shaped footprint, walls and room). */
+  shape?: 'rect' | 'L'
 }
 
 function uniquePrefabPath(doc: MapDocument, prefabId: string): string {
@@ -213,6 +223,25 @@ export function starterHouse(prefabId: string, name: string, width = 8, depth = 
   }
 }
 
+/**
+ * M11a starter L house: the starter house with its north-east quarter cut away. The footprint
+ * outline, one wall run per outline edge, the south door and one L-shaped room with its lamp.
+ */
+export function starterLHouse(prefabId: string, name: string, width = 10, depth = 8): PrefabDocument {
+  const base = starterHouse(prefabId, name, width, depth)
+  const b = DEFAULT_BUILDING
+  const hx = width / 2
+  const hz = depth / 2
+  const outline = cutOutlineCorner(rectOutline(base.footprint), 1)!
+  const walls = outlineWallRuns(outline, { height: b.height, thickness: b.wallThickness, color: b.wallColor }, (n) => `wall-${n + 1}`)
+  return {
+    ...base,
+    outline,
+    objects: [...walls, { kind: 'door', localId: 'door', name: `Cửa ${name}`, position: { x: quantize(-hx / 2), z: hz }, quarterTurns: 2, width: 1.2, openTowards: 1 }],
+    rooms: [{ ...base.rooms[0], outline: outline.map((p) => ({ ...p })), lamp: { ...base.rooms[0].lamp!, switchAt: { x: quantize(-hx / 2 + 1), z: quantize(hz - 0.25) } } }],
+  }
+}
+
 /** Add a new prefab to the world's library (manifest + file). */
 export function createPrefab(doc: MapDocument, opts: NewPrefabOptions): CommandResult {
   if (!PREFAB_ID.test(opts.prefabId)) return fail(`prefabId "${opts.prefabId}": chữ thường, số, gạch nối, phân cách bằng /`)
@@ -221,7 +250,7 @@ export function createPrefab(doc: MapDocument, opts: NewPrefabOptions): CommandR
   const w = opts.width ?? 8
   const d = opts.depth ?? 6
   if (!(w >= 2 && d >= 2)) return fail('Nhà mẫu cần ít nhất 2 × 2 m')
-  const prefab = starterHouse(opts.prefabId, opts.name.trim(), w, d)
+  const prefab = opts.shape === 'L' ? starterLHouse(opts.prefabId, opts.name.trim(), w, d) : starterHouse(opts.prefabId, opts.name.trim(), w, d)
   const world = { ...doc.world, prefabs: [...doc.world.prefabs, { prefabId: prefab.prefabId, contentVersion: 1, path: uniquePrefabPath(doc, prefab.prefabId) }] }
   return { ok: true, doc: withPrefab(doc, prefab, world), selection: [], note: `Tạo prefab ${prefab.prefabId}` }
 }
@@ -254,6 +283,8 @@ export interface PrefabPatch {
   contentVersion?: number
   pivot?: PrefabDocument['pivot']
   footprint?: Rect
+  /** M11a: the footprint outline (the footprint becomes its bounding box); null = back to the rectangle. */
+  outline?: XZ[] | null
   building?: Partial<NonNullable<PrefabDocument['building']>>
 }
 
@@ -269,7 +300,15 @@ export function updatePrefab(doc: MapDocument, prefabId: string, patch: PrefabPa
   if (patch.footprint) {
     const f = patch.footprint
     if (!(f.minX < f.maxX && f.minZ < f.maxZ)) return fail('Footprint: min phải nhỏ hơn max')
+    if (src.outline && patch.outline === undefined) return fail('Footprint đang theo outline: sửa đỉnh/cạnh, hoặc bỏ outline')
     next.footprint = { ...f }
+  }
+  if (patch.outline === null) delete next.outline
+  else if (patch.outline) {
+    const problem = outlineProblem(patch.outline)
+    if (problem) return fail(`Outline không hợp lệ: ${problem}`)
+    next.outline = patch.outline.map((p) => ({ x: quantize(p.x), z: quantize(p.z) }))
+    next.footprint = outlineBounds(next.outline)
   }
   if (patch.pivot) next.pivot = { ...patch.pivot }
   if (patch.building) {
@@ -287,10 +326,33 @@ export function updatePrefab(doc: MapDocument, prefabId: string, patch: PrefabPa
   return { ok: true, doc: withPrefab(doc, next, world), selection }
 }
 
+/**
+ * M11a: a wall run along every footprint outline edge that has none yet (same end points, either
+ * direction), with the building's height, thickness and colour. Existing walls are left alone.
+ */
+export function buildOutlineWalls(doc: MapDocument, prefabId: string): CommandResult {
+  const p = getPrefab(doc, prefabId)
+  if (!p) return fail(`Không có prefab ${prefabId}`)
+  if (!p.outline || !p.building) return fail('Cần một công trình có outline')
+  const same = (a: XZ, b: XZ) => a.x === b.x && a.z === b.z
+  const has = (r: WallRunObject) => p.objects.some((o) => o.kind === 'wallRun' && ((same(o.from, r.from) && same(o.to, r.to)) || (same(o.from, r.to) && same(o.to, r.from))))
+  const taken = new Set<string>()
+  const runs = outlineWallRuns(p.outline, { height: p.building.height, thickness: p.building.wallThickness, color: p.building.wallColor }, () => '').filter((r) => !has(r))
+  if (runs.length === 0) return fail('Mọi cạnh outline đã có tường')
+  const next = copyPrefab(p)
+  for (const r of runs) {
+    const localId = freshLocalId(p, 'wall', taken)
+    taken.add(localId)
+    next.objects.push({ ...r, localId })
+  }
+  return { ok: true, doc: withPrefab(doc, next), selection: [...taken] }
+}
+
 /** Footprint = bounding box of the wall-run centre lines (else of every object). */
 export function fitFootprint(doc: MapDocument, prefabId: string, selection: string[] = []): CommandResult {
   const p = getPrefab(doc, prefabId)
   if (!p) return fail(`Không có prefab ${prefabId}`)
+  if (p.outline) return fail('Footprint đang theo outline (bounding box của nó)')
   const runs = p.objects.filter((o): o is WallRunObject => o.kind === 'wallRun')
   const rects = runs.length ? runs.flatMap((r) => [r.from, r.to].map((q) => ({ minX: q.x, minZ: q.z, maxX: q.x, maxZ: q.z }))) : p.objects.map(objectRect)
   if (!rects.length) return fail('Prefab chưa có object')
@@ -417,7 +479,7 @@ export function movePrefabItems(doc: MapDocument, prefabId: string, keys: readon
     const moveLamp = r.lamp && (moveRoom || want.has(r.lamp.localId))
     if (!moveRoom && !moveLamp) return r
     const lamp = r.lamp && moveLamp ? { ...r.lamp, switchAt: shift(r.lamp.switchAt, d), ...(r.lamp.at ? { at: shift(r.lamp.at, d) } : {}) } : r.lamp
-    return { ...r, ...(moveRoom ? { bounds: shiftRect(r.bounds, d) } : {}), ...(lamp ? { lamp } : {}) }
+    return { ...r, ...(moveRoom ? { bounds: shiftRect(r.bounds, d), ...(r.outline ? { outline: r.outline.map((p) => shift(p, d)) } : {}) } : {}), ...(lamp ? { lamp } : {}) }
   })
   return { ok: true, doc: withPrefab(doc, next), selection: [...want] }
 }
@@ -454,6 +516,12 @@ export function rotatePrefabItems(doc: MapDocument, prefabId: string, keys: read
     return { ...o, size: [o.size[2], o.size[1], o.size[0]] as [number, number, number] }
   })
   next.rooms = prefab.rooms.map((r) => {
+    if (want.has(r.localId) && r.outline && turns % 4 !== 0) {
+      // M11a: an L room turns about its bounding box centre (any quarter turn changes it).
+      const outline = turnOutline(r.outline, { x: (r.bounds.minX + r.bounds.maxX) / 2, z: (r.bounds.minZ + r.bounds.maxZ) / 2 }, turns)
+      count++
+      return { ...r, outline, bounds: outlineBounds(outline) }
+    }
     if (!want.has(r.localId) || !odd) return r
     const cx = (r.bounds.minX + r.bounds.maxX) / 2
     const cz = (r.bounds.minZ + r.bounds.maxZ) / 2
@@ -520,7 +588,7 @@ export function duplicatePrefabItems(doc: MapDocument, prefabId: string, keys: r
   }
   for (const r of prefab.rooms) {
     if (!keys.includes(r.localId)) continue
-    const copy: RoomObject = { ...structuredClone(r), localId: fresh(r.localId), bounds: shiftRect(r.bounds, offset) }
+    const copy: RoomObject = { ...structuredClone(r), localId: fresh(r.localId), bounds: shiftRect(r.bounds, offset), ...(r.outline ? { outline: r.outline.map((p) => shift(p, offset)) } : {}) }
     if (copy.lamp) copy.lamp = { ...copy.lamp, localId: fresh(copy.lamp.localId), switchAt: shift(copy.lamp.switchAt, offset), ...(copy.lamp.at ? { at: shift(copy.lamp.at, offset) } : {}) }
     next.rooms.push(copy)
     created.push(copy.localId)
@@ -555,6 +623,7 @@ export function updatePrefabItem(doc: MapDocument, prefabId: string, key: string
   }
   const retired: string[] = rename ? [key] : []
   let found = false
+  let problem: string | null = null
   next.objects = prefab.objects.map((o) => {
     if (o.localId !== key) return o
     found = true
@@ -563,7 +632,20 @@ export function updatePrefabItem(doc: MapDocument, prefabId: string, key: string
   next.rooms = prefab.rooms.map((r) => {
     if (r.localId === key) {
       found = true
+      if (r.outline && patch.bounds !== undefined && !('outline' in patch)) {
+        problem = 'Phòng đa giác: sửa bằng đỉnh/cạnh, hoặc bỏ outline'
+        return r
+      }
       let room = apply(r as unknown as AnyRecord) as unknown as RoomObject
+      if (room.outline) {
+        // M11a: the rectangle always follows the outline (its bounding box).
+        const bad = outlineProblem(room.outline)
+        if (bad) {
+          problem = `Outline không hợp lệ: ${bad}`
+          return r
+        }
+        room = { ...room, outline: room.outline.map((p) => ({ x: quantize(p.x), z: quantize(p.z) })), bounds: outlineBounds(room.outline) }
+      }
       if (patch.lamp === null && r.lamp) {
         retired.push(r.lamp.localId)
         const { lamp: _removed, ...rest } = room
@@ -584,6 +666,7 @@ export function updatePrefabItem(doc: MapDocument, prefabId: string, key: string
     return r
   })
   if (!found) return fail(`Không tìm thấy ${key} trong ${prefabId}`)
+  if (problem) return fail(problem)
   next.retiredLocalIds = retire(prefab, retired)
   if (next.retiredLocalIds === undefined) delete next.retiredLocalIds
   return { ok: true, doc: withPrefab(doc, next), selection: [rename ?? key] }

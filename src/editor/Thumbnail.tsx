@@ -19,7 +19,13 @@ export const PrefabThumbnail = memo(function PrefabThumbnail({ prefab, size = 56
   const { view, p } = shapes
   return (
     <svg className="thumb" width={size} height={size} viewBox={view} aria-hidden data-thumb={prefab.prefabId}>
-      {p.buildings?.map((b) => <rect key={b.id} x={b.center.x - b.size.w / 2} y={b.center.z - b.size.d / 2} width={b.size.w} height={b.size.d} fill={b.floorColor} />)}
+      {p.buildings?.map((b) =>
+        b.outline ? (
+          <polygon key={b.id} points={b.outline.map((q) => `${q.x},${q.z}`).join(' ')} fill={b.floorColor} />
+        ) : (
+          <rect key={b.id} x={b.center.x - b.size.w / 2} y={b.center.z - b.size.d / 2} width={b.size.w} height={b.size.d} fill={b.floorColor} />
+        ),
+      )}
       {p.walls?.map((w) => <rect key={w.id} x={w.position.x - w.size[0] / 2} y={w.position.z - w.size[2] / 2} width={w.size[0]} height={w.size[2]} fill={w.color ?? '#8a8580'} />)}
       {p.containers?.map((c) => <rect key={c.id} x={c.position.x - c.size[0] / 2} y={c.position.z - c.size[2] / 2} width={c.size[0]} height={c.size[2]} fill="#e0b040" />)}
       {p.windows?.map((w) => (

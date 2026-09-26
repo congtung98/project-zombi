@@ -107,8 +107,11 @@ class BatchedPiece {
   }
 }
 
-/** Roof pieces by building ID for the roof controller (bumped version = re-sync). */
-const roofs = new Map<string, BatchedPiece>()
+/**
+ * Roof pieces by building ID for the roof controller (bumped version = re-sync). M11a: several
+ * pieces for an L/T/U building, possibly in different chunks.
+ */
+const roofs = new Map<string, Set<BatchedPiece>>()
 let roofsVersion = 0
 
 interface ChunkBatch {
@@ -152,7 +155,11 @@ function attachBatches(batches: ChunkBatch[]): () => void {
     b.attached = true
     for (const piece of b.pieces) {
       const { item } = piece
-      if (item.roofOf) roofs.set(item.roofOf, piece)
+      if (item.roofOf) {
+        let set = roofs.get(item.roofOf)
+        if (!set) roofs.set(item.roofOf, (set = new Set()))
+        set.add(piece)
+      }
       const half = new Vector3(item.size[0] / 2, item.size[1] / 2, item.size[2] / 2)
       occlusionRegistry.register(piece, {
         box: new Box3(item.center.clone().sub(half), item.center.clone().add(half)),
@@ -167,7 +174,8 @@ function attachBatches(batches: ChunkBatch[]): () => void {
       for (const p of b.pieces) {
         occlusionRegistry.unregister(p)
         p.dispose()
-        if (p.item.roofOf && roofs.get(p.item.roofOf) === p) roofs.delete(p.item.roofOf)
+        const set = p.item.roofOf ? roofs.get(p.item.roofOf) : undefined
+        if (set?.delete(p) && set.size === 0) roofs.delete(p.item.roofOf!)
       }
       b.attached = false
     }
@@ -223,10 +231,10 @@ export function RoofController() {
     const s = last.current
     if (hidden === s.hidden && roofsVersion === s.version) return
     if (roofsVersion !== s.version) {
-      for (const [id, roof] of roofs) roof.setHidden(id === hidden)
+      for (const [id, pieces] of roofs) for (const roof of pieces) roof.setHidden(id === hidden)
     } else {
-      if (s.hidden) roofs.get(s.hidden)?.setHidden(false)
-      if (hidden) roofs.get(hidden)?.setHidden(true)
+      if (s.hidden) for (const roof of roofs.get(s.hidden) ?? []) roof.setHidden(false)
+      if (hidden) for (const roof of roofs.get(hidden) ?? []) roof.setHidden(true)
     }
     s.hidden = hidden
     s.version = roofsVersion

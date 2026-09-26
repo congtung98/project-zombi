@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { runtime } from '../core/runtime'
 import { hexToRgb } from '../lighting/buildingLighting'
-import type { RoomPlacement } from '../world/buildings'
 import { INDOOR_MAX_ROOMS, indoorUniforms, installIndoorShading } from './indoorShading'
+import { pickRoomSlots, slotCount, type RoomSlot } from './roomSlots'
 
 const CFG = runtime.config.buildingLighting
 /** Room shade eases towards its new value (lamp switch, door) in about 0.15 s instead of snapping. */
@@ -11,13 +11,6 @@ const EASE = 12
 
 // Every MeshStandardMaterial created from now on compiles with the indoor patch (no scene traversal).
 installIndoorShading()
-
-/** Distance from a point to a room rectangle on the ground (0 inside). */
-function roomDistance(r: RoomPlacement, x: number, z: number): number {
-  const dx = Math.max(r.bounds.minX - x, 0, x - r.bounds.maxX)
-  const dz = Math.max(r.bounds.minZ - z, 0, z - r.bounds.maxZ)
-  return Math.hypot(dx, dz)
-}
 
 /**
  * Applies building lighting to the scene: uploads room rectangles and shade uniforms when
@@ -28,13 +21,14 @@ function roomDistance(r: RoomPlacement, x: number, z: number): number {
  * The shader handles `maxShaderRooms` rooms. A map with more rooms uploads the ones nearest to the
  * player's position, re-picked after the player moved `shaderRoomRepickDistance` (R1; the stress map
  * has 64 rooms). A room entering the subset starts at its current value (no fade from another room).
+ * M11a: the shader holds rectangles (slots); an L/T/U room takes one slot per piece (`roomSlots.ts`).
  */
 export function IndoorLighting() {
   const target = useRef<Float32Array>(new Float32Array(INDOOR_MAX_ROOMS * 3))
   const state = useRef({
     revision: -1,
     primed: false,
-    slots: [] as RoomPlacement[],
+    slots: [] as RoomSlot[],
     pickedAt: null as { x: number; z: number } | null,
   })
 
@@ -55,19 +49,17 @@ export function IndoorLighting() {
     const p = runtime.player.position
     let snap = !s.primed
     // Pick the rooms the shader gets: all of them when they fit (map order), else the nearest ones.
-    const repick = s.pickedAt === null || (rooms.length > INDOOR_MAX_ROOMS && Math.hypot(p.x - s.pickedAt.x, p.z - s.pickedAt.z) >= CFG.shaderRoomRepickDistance)
+    const repick = s.pickedAt === null || (slotCount(rooms) > INDOOR_MAX_ROOMS && Math.hypot(p.x - s.pickedAt.x, p.z - s.pickedAt.z) >= CFG.shaderRoomRepickDistance)
     if (repick) {
-      const chosen = rooms.length <= INDOOR_MAX_ROOMS
-        ? rooms.slice()
-        : rooms.map((r) => ({ r, d: roomDistance(r, p.x, p.z) })).sort((a, b) => a.d - b.d).slice(0, INDOOR_MAX_ROOMS).map((e) => e.r)
-      const changed = chosen.length !== s.slots.length || chosen.some((r, i) => s.slots[i] !== r)
+      const chosen = pickRoomSlots(rooms, p.x, p.z, INDOOR_MAX_ROOMS)
+      const changed = chosen.length !== s.slots.length || chosen.some((c, i) => s.slots[i].room !== c.room || s.slots[i].rect !== c.rect)
       s.pickedAt = { x: p.x, z: p.z }
       if (changed) {
         s.slots = chosen
         indoorUniforms.uRoomCount.value = chosen.length
-        chosen.forEach((r, i) => {
-          indoorUniforms.uRoomRect.value[i].set(r.bounds.minX, r.bounds.maxX, r.bounds.minZ, r.bounds.maxZ)
-          indoorUniforms.uRoomShade.value[i].w = r.height
+        chosen.forEach(({ room, rect }, i) => {
+          indoorUniforms.uRoomRect.value[i].set(rect.minX, rect.maxX, rect.minZ, rect.maxZ)
+          indoorUniforms.uRoomShade.value[i].w = room.height
         })
         s.revision = -1
         snap = true
@@ -78,7 +70,7 @@ export function IndoorLighting() {
     if (runtime.lighting.revision !== s.revision) {
       s.revision = runtime.lighting.revision
       for (let i = 0; i < count; i++) {
-        const light = runtime.lighting.getRoomLight(s.slots[i].id)
+        const light = runtime.lighting.getRoomLight(s.slots[i].room.id)
         const level = light?.finalLightLevel ?? CFG.minIndoorLight
         const shade = CFG.indoorShadeMin + (CFG.indoorShadeMax - CFG.indoorShadeMin) * level
         const color = light?.color ?? hexToRgb(CFG.daylightColor)

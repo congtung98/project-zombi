@@ -79,6 +79,8 @@ interface EditorStore {
   prefabTab: PrefabTab
   /** View-only turn of the prefab preview (0 = editable). */
   prefabView: QuarterTurns
+  /** M11a: the footprint outline's handles show (prefab editor, nothing selected). */
+  outlineEdit: boolean
   /** Draw interaction reach around containers and lamp switches. */
   showReach: boolean
   /** Prefab a dialog acts on (duplicate). */
@@ -110,7 +112,7 @@ interface EditorStore {
   setTool(tool: Tool, place?: PlaceItem | null): void
   rotatePlacement(turns: number): void
   setLayer(id: LayerId, patch: Partial<LayerState>): void
-  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee' | 'prefabTab' | 'prefabView' | 'showReach' | 'dialogPrefab' | 'playHour'>>): void
+  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee' | 'prefabTab' | 'prefabView' | 'outlineEdit' | 'showReach' | 'dialogPrefab' | 'playHour'>>): void
   /** Play From Here: snapshot the document and open the playtest frame (never touches saves or drafts). */
   startPlaytest(spawn: XZ): boolean
   stopPlaytest(): void
@@ -214,6 +216,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   prefabMode: null,
   prefabTab: 'structure',
   prefabView: 0,
+  outlineEdit: false,
   showReach: true,
   dialogPrefab: null,
   playHour: 9,
@@ -246,6 +249,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       focusRect: null,
       prefabMode: null,
       prefabView: 0,
+      outlineEdit: false,
       dialog: null,
       status: { text: `Đã mở ${doc.world.name} (${doc.world.worldId}) — ${source}`, kind: 'info' },
       focusRequest: get().focusRequest + 1,
@@ -370,6 +374,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     set({
       prefabMode: prefabId,
       prefabView: 0,
+      outlineEdit: false,
       tool: 'select',
       place: null,
       preview: null,

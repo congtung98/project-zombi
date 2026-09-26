@@ -223,7 +223,10 @@ export interface LampObject {
 export interface RoomObject {
   localId: string
   name: string
+  /** Rectangle, or the bounding box of `outline`. */
   bounds: Rect
+  /** M11a: L/T/U-shaped room: rectilinear outline (edges along X or Z), bounding box = `bounds`. */
+  outline?: XZ[]
   lamp?: LampObject
 }
 
@@ -234,8 +237,13 @@ export interface PrefabDocument {
   name: string
   /** Local point placed at the instance position; rotation turns about it. */
   pivot: XYZ
-  /** Outline used for roof/indoor tests and bounds. */
+  /** Outline used for roof/indoor tests and bounds (the bounding box of `outline` when it is set). */
   footprint: Rect
+  /**
+   * M11a: non-rectangular building (L, T, U, notches): rectilinear outline on the wall centre lines,
+   * edges along X or Z. Floors, roofs and indoor tests follow it; its bounding box is `footprint`.
+   */
+  outline?: XZ[]
   /** Present for enterable buildings (floor, roof, lighting); absent for plain prop groups. */
   building?: BuildingProps
   objects: PrefabObject[]

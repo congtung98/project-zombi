@@ -1,5 +1,6 @@
 import type { Vec3 } from '../../types'
 import type { DoorStatus } from './doors'
+import { insideOutline, pointInOutline } from '../../map/polygon.ts'
 
 export type Side = 'N' | 'S' | 'E' | 'W'
 
@@ -98,6 +99,9 @@ export interface RoomDef {
   lamp?: LampDef
 }
 
+/** M11a: a rectilinear outline (edges along X or Z) in world space; see `src/map/polygon.ts`. */
+export type Outline = readonly { x: number; z: number }[]
+
 /** Resolved building: footprint and looks (what floor/roof, indoor tests, nav and lighting use). */
 export interface BuildingInfo {
   id: string
@@ -109,6 +113,8 @@ export interface BuildingInfo {
   wallColor: string
   roofColor: string
   floorColor: string
+  /** M11a: non-rectangular footprint (L, T, U…); `center`/`size` are its bounding box. */
+  outline?: Outline
 }
 
 /**
@@ -173,6 +179,8 @@ export interface RoomPlacement {
   name: string
   buildingId: string
   bounds: RoomBounds
+  /** M11a: non-rectangular room; `bounds` is its bounding box. */
+  outline?: Outline
   /** Ceiling height (walls); above it (roof) is outdoors. */
   height: number
   lamp: LampPlacement | null
@@ -391,9 +399,11 @@ function partitionDoor(b: BuildingDef, p: PartitionDef, door: NonNullable<Partit
 export function isInsideBuilding(b: BuildingInfo, x: number, z: number, margin = 0): boolean {
   const hw = b.size.w / 2 + margin
   const hd = b.size.d / 2 + margin
-  return Math.abs(x - b.center.x) <= hw && Math.abs(z - b.center.z) <= hd
+  if (!(Math.abs(x - b.center.x) <= hw && Math.abs(z - b.center.z) <= hd)) return false
+  return !b.outline || insideOutline(b.outline, x, z, margin)
 }
 
-export function isInsideRoom(bounds: RoomBounds, x: number, z: number): boolean {
-  return x >= bounds.minX && x <= bounds.maxX && z >= bounds.minZ && z <= bounds.maxZ
+export function isInsideRoom(bounds: RoomBounds, x: number, z: number, outline?: Outline): boolean {
+  if (!(x >= bounds.minX && x <= bounds.maxX && z >= bounds.minZ && z <= bounds.maxZ)) return false
+  return !outline || pointInOutline(outline, x, z)
 }

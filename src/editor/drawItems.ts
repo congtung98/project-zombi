@@ -1,5 +1,6 @@
 import { BatchedMesh, BoxGeometry, Color, ConeGeometry, CylinderGeometry, DoubleSide, Euler, FrontSide, Matrix4, MeshStandardMaterial, PlaneGeometry, Quaternion, RingGeometry, SphereGeometry, Vector3, type BufferGeometry, type Material } from 'three'
 import type { ResolvedRecord } from '../map/resolve'
+import { outlineRects } from '../map/polygon'
 import { TREE_TRUNK_COLOR, treeProfile } from '../game/world/trees'
 
 /**
@@ -62,7 +63,11 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
   const out: DrawItem[] = []
   const add = (geometry: GeometryKey, pass: Pass, color: string, position: [number, number, number], scale: [number, number, number] = [1, 1, 1], rotationY = 0) =>
     out.push({ geometry, pass, color, position, rotationY, scale })
-  for (const b of p.buildings ?? []) add('plane', 'solid', b.floorColor, [b.center.x, 0.02, b.center.z], [b.size.w, 1, b.size.d])
+  for (const b of p.buildings ?? []) {
+    // M11a: an L/T/U building is floored rectangle by rectangle, like in the game.
+    if (b.outline) for (const r of outlineRects(b.outline)) add('plane', 'solid', b.floorColor, [(r.minX + r.maxX) / 2, 0.02, (r.minZ + r.maxZ) / 2], [r.maxX - r.minX, 1, r.maxZ - r.minZ])
+    else add('plane', 'solid', b.floorColor, [b.center.x, 0.02, b.center.z], [b.size.w, 1, b.size.d])
+  }
   for (const r of p.roads ?? []) add('plane', 'solid', r.color, [r.position.x, roadY(r.layer), r.position.z], [r.size[0], 1, r.size[1]])
   const trunks = new Set((p.trees ?? []).map((t) => t.id))
   for (const w of p.walls ?? []) if (!trunks.has(w.id)) add('box', 'solid', w.color ?? '#8a8580', [w.position.x, w.position.y, w.position.z], [...w.size])

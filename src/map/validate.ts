@@ -17,6 +17,7 @@ import {
 import { TREE_LIMITS } from '../game/world/trees.ts'
 import { contentMigrationPath, contentMigrationShapeProblems, renameProblems, statefulIds, type ContentMigration } from './contentMigration.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
+import { outlineBounds, outlineProblem, pointInOutline } from './polygon.ts'
 import { resolveChunk, type ResolvedRecord } from './resolve.ts'
 import { zoneContains, zoneFor } from '../game/world/zones.ts'
 
@@ -281,6 +282,26 @@ function checkContainerFields(c: Checker, o: Obj, p: string, opts: ValidationOpt
   }
 }
 
+/**
+ * M11a outline: rectilinear, simple, with `bounds` (the footprint or room rectangle) as its bounding
+ * box. Returns the outline when usable (for point tests), else null.
+ */
+function checkOutline(c: Checker, v: unknown, path: string, bounds: Rect | null, what: string): XZ[] | null {
+  if (!c.arr(v, path)) return null
+  if (!v.every((p, i) => c.xz(p, `${path}/${i}`))) return null
+  const poly = v as XZ[]
+  const problem = outlineProblem(poly)
+  if (problem) {
+    c.error('invalid-outline', path, `${what} outline ${problem}`)
+    return null
+  }
+  const box = outlineBounds(poly)
+  if (bounds && (box.minX !== bounds.minX || box.minZ !== bounds.minZ || box.maxX !== bounds.maxX || box.maxZ !== bounds.maxZ)) {
+    c.error('outline-bounds', path, `${what} rectangle must be the bounding box of its outline (${box.minX}…${box.maxX} × ${box.minZ}…${box.maxZ})`)
+  }
+  return poly
+}
+
 export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: ValidationOptions = {}, file = entry.path): ValidationIssue[] {
   const c = new Checker(file)
   if (!c.obj(doc, '')) return c.issues
@@ -292,6 +313,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
   c.str(doc.name, '/name')
   c.xyz(doc.pivot, '/pivot')
   const footprintOk = c.rect(doc.footprint, '/footprint')
+  const outline = doc.outline === undefined ? null : checkOutline(c, doc.outline, '/outline', footprintOk ? (doc.footprint as Rect) : null, 'footprint')
   const building = doc.building !== undefined && c.obj(doc.building, '/building') ? doc.building : null
   if (building) {
     c.num(building.height, '/building/height', { positive: true })
@@ -361,7 +383,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
         const f = doc.footprint as Obj
         const x = o.position.x as number
         const z = o.position.z as number
-        if (x < (f.minX as number) || x > (f.maxX as number) || z < (f.minZ as number) || z > (f.maxZ as number)) {
+        if (x < (f.minX as number) || x > (f.maxX as number) || z < (f.minZ as number) || z > (f.maxZ as number) || (outline && !pointInOutline(outline, x, z))) {
           c.issue('warning', 'outside-footprint', `${p}/position`, `${o.kind} "${String(o.localId)}" lies outside the footprint`)
         }
       }
@@ -375,6 +397,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       claim(r.localId, `${p}/localId`)
       c.str(r.name, `${p}/name`)
       const boundsOk = c.rect(r.bounds, `${p}/bounds`)
+      const roomOutline = r.outline === undefined ? null : checkOutline(c, r.outline, `${p}/outline`, boundsOk ? (r.bounds as Rect) : null, `room "${String(r.localId)}"`)
       if (r.lamp === undefined || !c.obj(r.lamp, `${p}/lamp`)) return
       const l = r.lamp
       claim(l.localId, `${p}/lamp/localId`)
@@ -386,7 +409,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       if (l.at !== undefined && c.xz(l.at, `${p}/lamp/at`) && boundsOk) {
         const b = r.bounds as Rect
         const at = l.at as XZ
-        if (at.x < b.minX || at.x > b.maxX || at.z < b.minZ || at.z > b.maxZ) c.issue('warning', 'lamp-outside-room', `${p}/lamp/at`, `lamp "${String(l.localId)}" hangs outside room "${String(r.localId)}"`)
+        if (at.x < b.minX || at.x > b.maxX || at.z < b.minZ || at.z > b.maxZ || (roomOutline && !pointInOutline(roomOutline, at.x, at.z))) c.issue('warning', 'lamp-outside-room', `${p}/lamp/at`, `lamp "${String(l.localId)}" hangs outside room "${String(r.localId)}"`)
       }
     })
   }

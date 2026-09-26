@@ -3,7 +3,9 @@ import { quantize } from '../transform.ts'
 import { TREE_LIMITS } from '../../game/world/trees.ts'
 import { moveRecords, updateRecord, type CommandResult } from './commands.ts'
 import { findRecord, worldAnchor, type AnyRecord, type MapDocument } from './document.ts'
-import { updatePrefabItem } from './prefabCommands.ts'
+import { updatePrefab, updatePrefabItem } from './prefabCommands.ts'
+import { dragOutlineEdge, dragOutlineVertex, outlineHandles, parseOutlineHandle, type OutlineHandleKey } from './outlines.ts'
+import { outlineCentre } from '../polygon.ts'
 
 /**
  * Resize handles (M7). Pure: the handles of the one selected record or prefab item, and the
@@ -13,13 +15,18 @@ import { updatePrefabItem } from './prefabCommands.ts'
  *   the opposite edge stays put and the size never drops below the kind's minimum (no flipping);
  * - circle zones: one radius handle east of the centre;
  * - wall runs (prefab): both ends, sliding along the run's axis;
- * - lamps (prefab): the ceiling fixture (`lamp.at`, default the room centre).
+ * - lamps (prefab): the ceiling fixture (`lamp.at`, default the room centre);
+ * - M11a outlines (L/T/U rooms, the footprint `FOOTPRINT_KEY` when nothing is selected): every
+ *   vertex (`v<i>`) and edge middle (`e<i>`), see `outlines.ts`.
  *
  * North is −Z: `n` is the `minZ` edge, `w` the `minX` edge. World handles are in world metres,
  * prefab handles in the prefab frame; the caller snaps the pointer before calling.
  */
 
-export type HandleKey = 'n' | 's' | 'w' | 'e' | 'nw' | 'ne' | 'sw' | 'se' | 'radius' | 'from' | 'to' | 'fixture'
+export type HandleKey = 'n' | 's' | 'w' | 'e' | 'nw' | 'ne' | 'sw' | 'se' | 'radius' | 'from' | 'to' | 'fixture' | OutlineHandleKey
+
+/** Pseudo item of the prefab footprint outline (M11a): its handles show when nothing is selected. */
+export const FOOTPRINT_KEY = '@footprint'
 
 export interface Handle {
   key: HandleKey
@@ -116,6 +123,7 @@ export function dragRecordHandle(doc: MapDocument, id: string, key: HandleKey, p
 
 /** Handles of one prefab item, in the prefab frame (boxes, wall runs, rooms, lamp fixtures). */
 export function prefabItemHandles(prefab: PrefabDocument, key: string): Handle[] {
+  if (key === FOOTPRINT_KEY) return prefab.outline ? outlineHandles(prefab.outline) : []
   const o = prefab.objects.find((x) => x.localId === key)
   if (o) {
     if (o.kind === 'wallRun') return [{ key: 'from', at: { ...o.from } }, { key: 'to', at: { ...o.to } }]
@@ -124,20 +132,35 @@ export function prefabItemHandles(prefab: PrefabDocument, key: string): Handle[]
     return rectHandles(centred(o.position, o.size[0], o.size[2]))
   }
   const room = prefab.rooms.find((r) => r.localId === key)
-  if (room) return rectHandles(room.bounds)
+  if (room) return room.outline ? outlineHandles(room.outline) : rectHandles(room.bounds)
   const lampRoom = prefab.rooms.find((r) => r.lamp?.localId === key)
-  if (lampRoom?.lamp) return [{ key: 'fixture', at: lampRoom.lamp.at ?? roomCentre(lampRoom.bounds) }]
+  if (lampRoom?.lamp) return [{ key: 'fixture', at: lampRoom.lamp.at ?? roomCentre(lampRoom.bounds, lampRoom.outline) }]
   return []
 }
 
-function roomCentre(b: Rect): XZ {
-  return { x: quantize((b.minX + b.maxX) / 2), z: quantize((b.minZ + b.maxZ) / 2) }
+/** Default lamp position: the room centre (M11a: of the biggest part of an L room, like the resolver). */
+function roomCentre(b: Rect, outline?: readonly XZ[]): XZ {
+  const c = outline ? outlineCentre(outline) : { x: (b.minX + b.maxX) / 2, z: (b.minZ + b.maxZ) / 2 }
+  return { x: quantize(c.x), z: quantize(c.z) }
+}
+
+/** New outline after dragging handle `key` to `p`, or an error. */
+function dragOutline(outline: readonly XZ[], key: HandleKey, p: XZ): XZ[] | string {
+  const h = parseOutlineHandle(key)
+  if (!h) return 'Hình đa giác chỉ có tay cầm đỉnh và cạnh'
+  const next = h.kind === 'v' ? dragOutlineVertex(outline, h.index, p) : dragOutlineEdge(outline, h.index, p)
+  return next ?? 'Các cạnh sẽ cắt nhau hoặc chồng lên nhau'
 }
 
 /** Commit a handle drag on a prefab item (one `updatePrefabItem`, local ID unchanged). */
 export function dragPrefabHandle(doc: MapDocument, prefabId: string, key: string, handle: HandleKey, p: XZ): CommandResult {
   const prefab = doc.prefabs.get(prefabId)
   if (!prefab) return fail(`Không có prefab ${prefabId}`)
+  if (key === FOOTPRINT_KEY) {
+    if (!prefab.outline) return fail('Footprint chưa có outline')
+    const outline = dragOutline(prefab.outline, handle, p)
+    return typeof outline === 'string' ? fail(outline) : updatePrefab(doc, prefabId, { outline })
+  }
   const o = prefab.objects.find((x) => x.localId === key)
   if (o?.kind === 'wallRun') {
     if (handle !== 'from' && handle !== 'to') return fail('Tường chạy chỉ có tay cầm hai đầu')
@@ -160,13 +183,17 @@ export function dragPrefabHandle(doc: MapDocument, prefabId: string, key: string
     return updatePrefabItem(doc, prefabId, key, { position, size: [quantize(next.maxX - next.minX), o.size[1], quantize(next.maxZ - next.minZ)] })
   }
   const room = prefab.rooms.find((r) => r.localId === key)
+  if (room?.outline) {
+    const outline = dragOutline(room.outline, handle, p)
+    return typeof outline === 'string' ? fail(outline) : updatePrefabItem(doc, prefabId, key, { outline })
+  }
   if (room) return updatePrefabItem(doc, prefabId, key, { bounds: dragEdge(room.bounds, handle, p, MIN_SIZE.room) })
   const lampRoom = prefab.rooms.find((r) => r.lamp?.localId === key)
   if (lampRoom?.lamp) {
     if (handle !== 'fixture') return fail('Đèn chỉ có tay cầm vị trí')
     const b = lampRoom.bounds
     const at = { x: quantize(Math.min(b.maxX, Math.max(b.minX, p.x))), z: quantize(Math.min(b.maxZ, Math.max(b.minZ, p.z))) }
-    const centre = roomCentre(b)
+    const centre = roomCentre(b, lampRoom.outline)
     // Back at the centre: drop `at` (the default), so the file stays as before.
     return updatePrefabItem(doc, prefabId, key, { at: at.x === centre.x && at.z === centre.z ? undefined : at })
   }

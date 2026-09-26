@@ -702,10 +702,11 @@ export function NewPrefabDialog() {
   const [name, setName] = useState('Nhà mới')
   const [width, setWidth] = useState('8')
   const [depth, setDepth] = useState('6')
+  const [shape, setShape] = useState<'rect' | 'L'>('rect')
   if (dialog !== 'newPrefab') return null
   const create = () => {
     const s = useEditorStore.getState()
-    if (s.run(`Tạo prefab ${prefabId}`, (d) => createPrefab(d, { prefabId, name, width: Number(width), depth: Number(depth) }))) {
+    if (s.run(`Tạo prefab ${prefabId}`, (d) => createPrefab(d, { prefabId, name, width: Number(width), depth: Number(depth), shape }))) {
       s.set({ dialog: null })
       s.enterPrefab(prefabId)
     }
@@ -714,7 +715,7 @@ export function NewPrefabDialog() {
     <div className="modal" role="dialog">
       <div className="box">
         <h3>Prefab mới</h3>
-        <p className="hint">Nhà mẫu: 4 bức tường, cửa ở tường nam (mở vào trong), một phòng có đèn. Sau đó mở chế độ sửa prefab.</p>
+        <p className="hint">Nhà mẫu: tường bao, cửa ở tường nam (mở vào trong), một phòng có đèn. Chữ L: góc đông bắc bị khoét, tường và phòng theo hình L. Sau đó mở chế độ sửa prefab.</p>
         <label className="field">
           <span>prefabId</span>
           <input value={prefabId} onChange={(e) => setPrefabId(e.target.value)} />
@@ -722,6 +723,13 @@ export function NewPrefabDialog() {
         <label className="field">
           <span>Tên</span>
           <input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Hình</span>
+          <select value={shape} onChange={(e) => setShape(e.target.value as 'rect' | 'L')} data-prefab-shape>
+            <option value="rect">Chữ nhật</option>
+            <option value="L">Chữ L</option>
+          </select>
         </label>
         <label className="field">
           <span>Rộng X (m)</span>

@@ -1,6 +1,6 @@
 import { GameRuntime } from '../game/core/runtime'
 import { INTERACT_RANGE } from '../game/systems/interaction'
-import { isInsideBuilding } from '../game/world/buildings'
+import { isInsideBuilding, isInsideRoom } from '../game/world/buildings'
 import type { MapData } from '../game/world/mapData'
 import { ChunkLifecycle } from './loader'
 import { resolveAll, type ValidationIssue, type WorldDocuments } from './validate'
@@ -147,7 +147,7 @@ function containersOutsideRooms(map: MapData, add: Add): void {
     for (const c of map.containers) {
       if (!c.id.startsWith(`${b.id}/`)) continue
       const p = c.position
-      if (!own.some((r) => p.x >= r.bounds.minX && p.x <= r.bounds.maxX && p.z >= r.bounds.minZ && p.z <= r.bounds.maxZ)) {
+      if (!own.some((r) => isInsideRoom(r.bounds, p.x, p.z, r.outline))) {
         add('container-outside-room', c.id, `${c.name} (${c.id}) is in building ${b.id} but in none of its rooms`)
       }
     }

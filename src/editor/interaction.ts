@@ -16,7 +16,7 @@ import {
   rotatePrefabItems,
 } from '../map/editor/prefabCommands'
 import type { Rect, XZ } from '../map/schema'
-import { dragPrefabHandle, dragRecordHandle, prefabItemHandles, recordHandles, type Handle, type HandleKey } from '../map/editor/handles'
+import { dragPrefabHandle, dragRecordHandle, FOOTPRINT_KEY, prefabItemHandles, recordHandles, type Handle, type HandleKey } from '../map/editor/handles'
 import { chunkIdOf, chunkIndex, chunkOrigin } from '../map/transform'
 import { useEditorStore, type PlaceItem } from './editorStore'
 
@@ -96,14 +96,26 @@ export function keysInRect(rect: Rect): string[] {
  */
 export function currentHandles(doc: MapDocument | undefined = store().edit?.doc): Handle[] {
   const s = store()
-  if (!doc || !s.edit || s.tool !== 'select' || s.edit.selection.length !== 1) return []
-  const id = s.edit.selection[0]
+  const id = currentHandleTarget()
+  if (!doc || !s.edit || s.tool !== 'select' || id === null) return []
   const p = prefabMode()
   if (p) {
     const prefab = doc.prefabs.get(p)
     return prefab && s.prefabView === 0 ? prefabItemHandles(prefab, id) : []
   }
   return recordHandles(doc, id)
+}
+
+/**
+ * Whose handles show: the one selected record/item, or (M11a) in the prefab editor with nothing
+ * selected and "Sửa outline" on, the footprint outline of an L/T/U building (`FOOTPRINT_KEY`).
+ */
+export function currentHandleTarget(): string | null {
+  const s = store()
+  if (!s.edit) return null
+  if (s.edit.selection.length === 1) return s.edit.selection[0]
+  const p = prefabMode()
+  return p && s.outlineEdit && s.edit.selection.length === 0 && s.edit.doc.prefabs.get(p)?.outline ? FOOTPRINT_KEY : null
 }
 
 /** The handle-drag command for the mode (the selected record/item, handle `key`, pointer `at`). */
@@ -116,6 +128,8 @@ export function handleLabel(key: HandleKey): string {
   if (key === 'fixture') return 'Dời đèn'
   if (key === 'from' || key === 'to') return 'Kéo dài tường'
   if (key === 'radius') return 'Đổi bán kính'
+  if (/^v\d+$/.test(key)) return 'Kéo đỉnh'
+  if (/^e\d+$/.test(key)) return 'Kéo cạnh'
   return 'Đổi kích thước'
 }
 

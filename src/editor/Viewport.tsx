@@ -9,7 +9,7 @@ import type { Rect, XZ } from '../map/schema'
 import { chunkIdOf, chunkOrigin, playAreaRect } from '../map/transform'
 import { useEditorStore } from './editorStore'
 import { handleAt, handlesUsable, type HandleKey } from '../map/editor/handles'
-import { chunkClick, commitPlace, currentHandles, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
+import { chunkClick, commitPlace, currentHandles, currentHandleTarget, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
 import { PrefabScene } from './PrefabScene'
 import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
 import { ChunkBatch, RecordView } from './RecordView'
@@ -358,7 +358,7 @@ function Controls() {
       }
       const handle = usableHandleAt(g, camera().zoom)
       if (handle) {
-        drag.current = { kind: 'handle', start: g, ids: [s.edit.selection[0]], delta: { x: 0, z: 0 }, handle: handle.key }
+        drag.current = { kind: 'handle', start: g, ids: [currentHandleTarget()!], delta: { x: 0, z: 0 }, handle: handle.key }
         return
       }
       const pickedId = pickAt(g)

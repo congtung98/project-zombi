@@ -5,6 +5,7 @@ import { BufferAttribute, BufferGeometry, LineBasicMaterial, LineSegments } from
 import { runtime } from '../core/runtime'
 import { OUTDOOR, doorTransmission, windowContribution } from '../lighting/buildingLighting'
 import { mapWindows } from '../world/mapData'
+import { outlineCentre } from '../../map/polygon'
 
 const Y = 0.09
 const CFG = runtime.config.buildingLighting
@@ -33,8 +34,8 @@ export function BuildingLightingDebug() {
   const edges = useMemo(() => buildings.flatMap((b) => b.edges), [buildings])
 
   const lines = useMemo(() => {
-    // Room outlines (4 segments each) + graph (2 segments per edge).
-    const segments = rooms.length * 4 + edges.length * 2
+    // Room outlines (4 segments each, M11a: one per outline edge) + graph (2 segments per edge).
+    const segments = rooms.reduce((n, r) => n + (r.outline?.length ?? 4), 0) + edges.length * 2
     const geo = new BufferGeometry()
     geo.setAttribute('position', new BufferAttribute(new Float32Array(segments * 6), 3))
     geo.setAttribute('color', new BufferAttribute(new Float32Array(segments * 6), 3))
@@ -51,7 +52,8 @@ export function BuildingLightingDebug() {
 
   const centerOf = (id: string) => {
     const r = rooms.find((x) => x.id === id)
-    return r ? { x: (r.bounds.minX + r.bounds.maxX) / 2, z: (r.bounds.minZ + r.bounds.maxZ) / 2 } : null
+    if (!r) return null
+    return r.outline ? outlineCentre(r.outline) : { x: (r.bounds.minX + r.bounds.maxX) / 2, z: (r.bounds.minZ + r.bounds.maxZ) / 2 }
   }
 
   useFrame(() => {
@@ -71,10 +73,15 @@ export function BuildingLightingDebug() {
       const c = levelColor(light?.finalLightLevel ?? 0)
       const b = r.bounds
       const e = 0.12 // inset so neighbouring rooms stay distinct
-      seg(b.minX + e, b.minZ + e, b.maxX - e, b.minZ + e, c)
-      seg(b.maxX - e, b.minZ + e, b.maxX - e, b.maxZ - e, c)
-      seg(b.maxX - e, b.maxZ - e, b.minX + e, b.maxZ - e, c)
-      seg(b.minX + e, b.maxZ - e, b.minX + e, b.minZ + e, c)
+      if (r.outline) {
+        const o = r.outline
+        o.forEach((a, k) => seg(a.x, a.z, o[(k + 1) % o.length].x, o[(k + 1) % o.length].z, c))
+      } else {
+        seg(b.minX + e, b.minZ + e, b.maxX - e, b.minZ + e, c)
+        seg(b.maxX - e, b.minZ + e, b.maxX - e, b.maxZ - e, c)
+        seg(b.maxX - e, b.maxZ - e, b.minX + e, b.maxZ - e, c)
+        seg(b.minX + e, b.maxZ - e, b.minX + e, b.minZ + e, c)
+      }
       const el = roomLabels.current[i]
       if (el && light) {
         el.textContent = `${r.name}\nDirect: ${light.directOutdoorLight.toFixed(2)}\nPropagated: ${light.propagatedLight.toFixed(2)}\nArtificial: ${light.artificialLight.toFixed(2)}\nFinal: ${light.finalLightLevel.toFixed(2)}`
@@ -113,7 +120,7 @@ export function BuildingLightingDebug() {
     <>
       <primitive object={lines} />
       {rooms.map((r, i) => (
-        <Html key={r.id} position={[(r.bounds.minX + r.bounds.maxX) / 2, 2.6, (r.bounds.minZ + r.bounds.maxZ) / 2]} center zIndexRange={[4, 0]} style={{ pointerEvents: 'none' }}>
+        <Html key={r.id} position={[centerOf(r.id)!.x, 2.6, centerOf(r.id)!.z]} center zIndexRange={[4, 0]} style={{ pointerEvents: 'none' }}>
           <div ref={(el) => { roomLabels.current[i] = el }} className="lighting-debug-label" />
         </Html>
       ))}

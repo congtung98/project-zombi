@@ -28,6 +28,7 @@ import {
   type XZ,
 } from './schema.ts'
 import { addQuarterTurns, chunkOrigin, playAreaRect, quantize, quarterAngle, rotateRect, rotateSize, rotateXZ, unionRect } from './transform.ts'
+import { outlineCentre } from './polygon.ts'
 
 /**
  * Resolver: content documents → neutral descriptors in world space (the `MapData` pieces every
@@ -174,6 +175,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       wallColor: b.wallColor,
       roofColor: b.roofColor,
       floorColor: b.floorColor,
+      ...(prefab.outline ? { outline: prefab.outline.map(point) } : {}),
     })
   }
 
@@ -256,6 +258,9 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
   for (const r of prefab.rooms) {
     entityIds.push(id(r.localId))
     const rb = rect(r.bounds)
+    const outline = r.outline?.map(point)
+    // Default fixture: the room centre (M11a: the middle of the biggest part of an L-shaped room).
+    const centre = outline ? outlineCentre(outline) : { x: (rb.minX + rb.maxX) / 2, z: (rb.minZ + rb.maxZ) / 2 }
     const ceiling = b?.height ?? 0
     let lamp: RoomPlacement['lamp'] = null
     if (r.lamp) {
@@ -271,13 +276,13 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         ...(at ? { at } : {}),
         roomId: id(r.localId),
         position: {
-          x: at?.x ?? quantize((rb.minX + rb.maxX) / 2),
+          x: at?.x ?? quantize(centre.x),
           y: height(ceiling - LAMP_DROP),
-          z: at?.z ?? quantize((rb.minZ + rb.maxZ) / 2),
+          z: at?.z ?? quantize(centre.z),
         },
       }
     }
-    parts.rooms.push({ id: id(r.localId), name: r.name, buildingId: inst.instanceId, bounds: rb, height: ceiling, lamp })
+    parts.rooms.push({ id: id(r.localId), name: r.name, buildingId: inst.instanceId, bounds: rb, ...(outline ? { outline } : {}), height: ceiling, lamp })
     bounds = unionRect(bounds, rb)
   }
   return { parts, bounds, entityIds }

@@ -6,7 +6,8 @@ import { prefabItems, resolvePrefab } from '../map/editor/prefabCommands'
 import { INTERACT_RANGE } from '../game/systems/interaction'
 import { useEditorStore } from './editorStore'
 import { RecordView } from './RecordView'
-import { GRID_MAT, labelMaterial, lineGeometry, rectPoints, SELECT_MAT } from './sceneHelpers'
+import { GRID_MAT, labelMaterial, lineGeometry, outlinePoints, rectPoints, SELECT_MAT } from './sceneHelpers'
+import { outlineCentre, outlineRects } from '../map/polygon'
 
 /**
  * Prefab editor scene (M5): the edited prefab in its own frame (local coordinates, pivot where it
@@ -57,7 +58,8 @@ function Overlays({ record, showReach }: { record: ResolvedRecord; showReach: bo
   const geometry = useMemo(() => {
     const footprint: number[] = []
     for (const b of p.buildings ?? []) {
-      footprint.push(...rectPoints({ minX: b.center.x - b.size.w / 2, minZ: b.center.z - b.size.d / 2, maxX: b.center.x + b.size.w / 2, maxZ: b.center.z + b.size.d / 2 }, 0.06))
+      if (b.outline) footprint.push(...outlinePoints(b.outline, 0.06))
+      else footprint.push(...rectPoints({ minX: b.center.x - b.size.w / 2, minZ: b.center.z - b.size.d / 2, maxX: b.center.x + b.size.w / 2, maxZ: b.center.z + b.size.d / 2 }, 0.06))
     }
     // Door swing: the leaf end sweeping from closed to open around the hinge.
     const swing: number[] = []
@@ -79,15 +81,23 @@ function Overlays({ record, showReach }: { record: ResolvedRecord; showReach: bo
       <lineSegments geometry={geometry.swing} material={SWING_MAT} />
       {rooms.map((r, i) => {
         const b = r.bounds
-        const w = b.maxX - b.minX
-        const d = b.maxZ - b.minZ
-        const labelW = Math.min(w - 0.4, 4)
+        // M11a: an L/T/U room is tinted piece by piece and outlined along its outline; its label
+        // sits in its biggest piece.
+        const pieces = r.outline ? outlineRects(r.outline) : [b]
+        const main = r.outline ? pieces.reduce((a, c) => ((c.maxX - c.minX) * (c.maxZ - c.minZ) > (a.maxX - a.minX) * (a.maxZ - a.minZ) ? c : a)) : b
+        const labelW = Math.min(main.maxX - main.minX - 0.4, 4)
+        const centre = r.outline ? outlineCentre(r.outline) : null
         return (
           <group key={r.id}>
-            <mesh geometry={PLANE} material={roomMats[i % roomMats.length]} position={[(b.minX + b.maxX) / 2, 0.04, (b.minZ + b.maxZ) / 2]} scale={[w, 1, d]} />
-            <lineSegments geometry={lineGeometry(rectPoints({ minX: b.minX + 0.08, minZ: b.minZ + 0.08, maxX: b.maxX - 0.08, maxZ: b.maxZ - 0.08 }, 0.05))} material={roomLines[i % roomLines.length]} />
+            {pieces.map((q, k) => (
+              <mesh key={k} geometry={PLANE} material={roomMats[i % roomMats.length]} position={[(q.minX + q.maxX) / 2, 0.04, (q.minZ + q.maxZ) / 2]} scale={[q.maxX - q.minX, 1, q.maxZ - q.minZ]} />
+            ))}
+            <lineSegments
+              geometry={lineGeometry(r.outline ? outlinePoints(r.outline, 0.05) : rectPoints({ minX: b.minX + 0.08, minZ: b.minZ + 0.08, maxX: b.maxX - 0.08, maxZ: b.maxZ - 0.08 }, 0.05))}
+              material={roomLines[i % roomLines.length]}
+            />
             {labelW > 0.5 && (
-              <mesh position={[b.minX + 0.2 + labelW / 2, 0.08, b.maxZ - 0.25 - labelW / 8]} rotation={[-Math.PI / 2, 0, 0]} material={labelMaterial(r.name, '#ffffff')}>
+              <mesh position={centre ? [centre.x, 0.08, centre.z + labelW / 4] : [b.minX + 0.2 + labelW / 2, 0.08, b.maxZ - 0.25 - labelW / 8]} rotation={[-Math.PI / 2, 0, 0]} material={labelMaterial(r.name, '#ffffff')}>
                 <planeGeometry args={[labelW, labelW / 4]} />
               </mesh>
             )}
@@ -120,7 +130,7 @@ function Selection({ prefab, keys }: { prefab: PrefabDocument; keys: string[] })
     const wanted = new Set(keys)
     const pts = prefabItems(prefab)
       .filter((it) => wanted.has(it.key))
-      .flatMap((it) => rectPoints({ minX: it.bounds.minX - 0.08, minZ: it.bounds.minZ - 0.08, maxX: it.bounds.maxX + 0.08, maxZ: it.bounds.maxZ + 0.08 }, 3.2))
+      .flatMap((it) => (it.outline ? outlinePoints(it.outline, 3.2) : rectPoints({ minX: it.bounds.minX - 0.08, minZ: it.bounds.minZ - 0.08, maxX: it.bounds.maxX + 0.08, maxZ: it.bounds.maxZ + 0.08 }, 3.2)))
     return pts.length ? lineGeometry(pts) : null
   }, [prefab, keys])
   return geometry ? <lineSegments geometry={geometry} material={SELECT_MAT} renderOrder={10} /> : null
