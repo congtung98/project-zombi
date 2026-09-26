@@ -4,14 +4,17 @@ import {
   RECORD_NAMESPACES,
   RESERVED_INSTANCE_NAMES,
   recordId,
+  SURFACE_LAYER_MAX,
   type ChunkDocument,
   type ChunkEntry,
   type ExternalRef,
   type PrefabDocument,
   type PrefabEntry,
+  type Rect,
   type WorldDocument,
+  type XZ,
 } from './schema.ts'
-import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, PREFAB_ID, SLUG } from './transform.ts'
+import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
 import { resolveChunk, type ResolvedRecord } from './resolve.ts'
 import { zoneContains, zoneFor } from '../game/world/zones.ts'
 
@@ -178,7 +181,12 @@ export function validateWorldDocument(doc: unknown, file = 'world.json'): Valida
   c.num(doc.contentVersion, '/contentVersion', { int: true, min: 1 })
   c.num(doc.chunkSize, '/chunkSize', { positive: true })
   c.oneOf(doc.coordinateSystem, ['y-up-xz-meters'], '/coordinateSystem')
-  if (c.obj(doc.playArea, '/playArea')) c.num(doc.playArea.size, '/playArea/size', { positive: true })
+  if (c.obj(doc.playArea, '/playArea')) {
+    const a = doc.playArea
+    c.num(a.size, '/playArea/size', { positive: true })
+    if (a.depth !== undefined) c.num(a.depth, '/playArea/depth', { positive: true })
+    if (a.center !== undefined) c.xz(a.center, '/playArea/center')
+  }
   if (doc.boundary !== null && c.obj(doc.boundary, '/boundary')) {
     c.num(doc.boundary.height, '/boundary/height', { positive: true })
     c.num(doc.boundary.thickness, '/boundary/thickness', { positive: true })
@@ -346,7 +354,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       if (!c.obj(r, p)) return
       claim(r.localId, `${p}/localId`)
       c.str(r.name, `${p}/name`)
-      c.rect(r.bounds, `${p}/bounds`)
+      const boundsOk = c.rect(r.bounds, `${p}/bounds`)
       if (r.lamp === undefined || !c.obj(r.lamp, `${p}/lamp`)) return
       const l = r.lamp
       claim(l.localId, `${p}/lamp/localId`)
@@ -355,7 +363,11 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       c.color(l.color, `${p}/lamp/color`)
       c.bool(l.requiresElectricity, `${p}/lamp/requiresElectricity`)
       c.xz(l.switchAt, `${p}/lamp/switchAt`)
-      if (l.at !== undefined) c.xz(l.at, `${p}/lamp/at`)
+      if (l.at !== undefined && c.xz(l.at, `${p}/lamp/at`) && boundsOk) {
+        const b = r.bounds as Rect
+        const at = l.at as XZ
+        if (at.x < b.minX || at.x > b.maxX || at.z < b.minZ || at.z > b.maxZ) c.issue('warning', 'lamp-outside-room', `${p}/lamp/at`, `lamp "${String(l.localId)}" hangs outside room "${String(r.localId)}"`)
+      }
     })
   }
   if (building && doors === 0) c.issue('warning', 'building-no-entrance', '/objects', `building ${entry.prefabId} has no door`)
@@ -421,6 +433,7 @@ export function validateChunkDocument(doc: unknown, entry: ChunkEntry, world: Wo
           if (c.xz(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
           c.size(r.size, `${p}/size`, 2)
           c.color(r.color, `${p}/color`)
+          if (r.layer !== undefined) c.num(r.layer, `${p}/layer`, { int: true, min: 0, max: SURFACE_LAYER_MAX })
           break
         case 'zones':
           c.oneOf(r.kind, ['zombiePopulation'], `${p}/kind`)
@@ -516,7 +529,7 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
     })
   }
 
-  const half = world.playArea.size / 2
+  const play = playAreaRect(world.playArea)
   const solids = lowSolids(records)
   let player = false
   for (const r of records) {
@@ -524,7 +537,7 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
     const p = r.parts.playerSpawns?.[0]?.position ?? r.parts.zombieSpawns![0]
     const path = `${chunkPath(r.ownerChunkId)}#/spawns/${r.order[2]}`
     if (r.id === world.playerSpawn) player = !!r.parts.playerSpawns?.length
-    if (Math.abs(p.x) > half || Math.abs(p.z) > half) add('error', 'spawn-outside-play-area', path, `spawn (${p.x}, ${p.z}) is outside the play area`, r.id)
+    if (p.x < play.minX || p.x > play.maxX || p.z < play.minZ || p.z > play.maxZ) add('error', 'spawn-outside-play-area', path, `spawn (${p.x}, ${p.z}) is outside the play area`, r.id)
     const blocker = blockingSolid(solids, p)
     if (blocker) add('error', 'spawn-blocked', path, `spawn (${p.x}, ${p.z}) is inside ${blocker.id}`, r.id)
   }
@@ -542,22 +555,24 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
     }
   }
 
-  // Road surfaces share one height: differently coloured overlaps flicker (z-fighting) in the game.
+  // Surfaces of one layer share one height: differently coloured overlaps flicker (z-fighting) in the game.
   const roads = records.filter((r) => r.parts.roads?.length)
   for (let i = 0; i < roads.length; i++) {
     for (let j = i + 1; j < roads.length; j++) {
       const a = roads[i]
       const b = roads[j]
-      if (a.parts.roads![0].color === b.parts.roads![0].color) continue
+      const ra = a.parts.roads![0]
+      const rb = b.parts.roads![0]
+      if (ra.color === rb.color || (ra.layer ?? 0) !== (rb.layer ?? 0)) continue
       const overlaps = a.bounds.minX < b.bounds.maxX && b.bounds.minX < a.bounds.maxX && a.bounds.minZ < b.bounds.maxZ && b.bounds.minZ < a.bounds.maxZ
-      if (overlaps) add('warning', 'surface-overlap', `${chunkPath(b.ownerChunkId)}#/roads/${b.order[2]}`, `${b.id} overlaps ${a.id} with another colour (surfaces share one height and flicker)`, b.id)
+      if (overlaps) add('warning', 'surface-overlap', `${chunkPath(b.ownerChunkId)}#/roads/${b.order[2]}`, `${b.id} overlaps ${a.id} with another colour on the same layer (they share one height and flicker; set a different layer)`, b.id)
     }
   }
 
   for (const r of records) {
     if (r.category === 'spawns') continue
     const b = r.bounds
-    if (b.minX < -half || b.maxX > half || b.minZ < -half || b.maxZ > half) {
+    if (b.minX < play.minX || b.maxX > play.maxX || b.minZ < play.minZ || b.maxZ > play.maxZ) {
       add('warning', 'outside-play-area', `${chunkPath(r.ownerChunkId)}#/${r.category}/${r.order[2]}`, `${r.id} extends beyond the play area`, r.id)
     }
   }

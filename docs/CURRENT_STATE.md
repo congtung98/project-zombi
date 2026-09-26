@@ -1,10 +1,23 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, sau M6: **Lưu thành world mới** trong editor + world thử nghiệm `neighborhood-50-lab` — kế hoạch map editor M1–M6 xong (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **map editor M7 (hoàn thiện editor)**, trước đó **Lưu thành world mới** + world thử nghiệm `neighborhood-50-lab`. Kế hoạch M1–M6 xong; lộ trình tiếp: M8 migration nội dung cho save → M9 generator biến thể + cây → M10 streaming chunk → M11 phòng đa giác + nhiều tầng. Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Lưu thành world mới (mới nhất, chưa commit)
+## 0. Map editor M7 — hoàn thiện editor (mới nhất, chưa commit — chi tiết docs/map-editor-m7.md)
+
+Save không đổi (v8), content `neighborhood-50` không đổi từng byte, schema map vẫn v1 (thêm tùy chọn `playArea.depth/center`, `roads[].layer`).
+
+- **Gộp mesh viewport**: `src/editor/drawItems.ts` (`drawItems`, `buildBatches`), `ChunkBatch`/`RecordView` trong `RecordView.tsx`, `resolvedChunks(doc)` trong `document.ts` (danh sách mỗi chunk ổn định theo cache resolver). Thị trấn 4×4: 1 495 → 135 draw call; khu phố 26.
+- **Tay cầm** `src/map/editor/handles.ts` (thuần): `recordHandles`/`dragRecordHandle` (khối, đường, zone chữ nhật; bán kính zone tròn; tâm vượt chunk thì chuyển chủ, giữ ID), `prefabItemHandles`/`dragPrefabHandle` (khối, phòng, 2 đầu tường chạy, vị trí đèn `at`), `dragEdge` (không lật, `MIN_SIZE`), `handlesUsable` (ẩn khi vật < 36 px). Viewport: `Handles`, drag kind `handle`; `interaction.ts`: `currentHandles`, `handleCommand`.
+- **Lớp vẽ mặt nền**: `roads[].layer` 0..4 (`SURFACE_LAYER_MAX`), game `roadY()` trong `mapData.ts` (+1 mm/lớp, dưới sàn 0,02); `surface-overlap` chỉ khi cùng lớp; Inspector "Lớp vẽ".
+- **Đèn**: kéo ô vàng / Inspector Đèn X/Z / "Đèn về tâm phòng"; cảnh báo `lamp-outside-room`; đèn dời khỏi tâm cũng chọn được bằng click.
+- **Vùng chơi lệch tâm**: `playArea { size, depth?, center? }`, `playAreaRect` (`transform.ts`), `mapBounds` (`mapData.ts`) dùng ở NavGrid, `Ground`, `boundaryWalls`, validator, playtest, save (túi rơi). Editor `fittedPlayArea`/`normalizePlayArea`/`samePlayArea` (thay `fittedPlayAreaSize`), Inspector X/Z/tâm.
+- **Kiểm chứng**: 472 test (+10 skip; mới `polish.test.ts` 9); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright `scripts/m7-editor-browser.mjs` PASS; hồi quy m3/m4 (kỳ vọng vùng chơi chữ nhật)/m5/m6, p2-s5, p2-s2 PASS.
+
+Commit message gợi ý: **feat(editor): editor polish M7 (per-chunk batched viewport, resize handles, road draw layers, lamp position, off-centre rectangular play area)**
+
+## 0-SA. Lưu thành world mới (đã commit 630b99c)
 
 Save không đổi (v8), `neighborhood-50` không đổi (đã trả về bản commit ef15bdd), schema map vẫn v1.
 
@@ -16,7 +29,6 @@ Save không đổi (v8), `neighborhood-50` không đổi (đã trả về bản 
 - **Kiểm chứng**: 463 test (+10 skip; `production.test.ts` +2); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright (kịch bản tạm) Lưu thành → tiêu đề/nháp/Export `<id>.mappack.json`, trùng repo/nháp bị từ chối, game `?world=neighborhood-50-lab` có `c0_0/new-house-1`, map mặc định vẫn 3 nhà; hồi quy m3/m4/m5/m6 PASS.
 - Hướng dẫn: `docs/map-editor-guide.md` (Lưu thành…, khởi động lại dev server khi không thấy thay đổi, cảnh báo sửa `neighborhood-50`).
 
-Commit message gợi ý: **feat(editor): save as new world (fork with new worldId, editor dialog + map:unpack --world-id) and move neighborhood-50 experiments to neighborhood-50-lab**
 
 ## 0-M6. Map editor M6 — công cụ sản xuất (đã commit ef15bdd — chi tiết docs/map-editor-m6.md)
 

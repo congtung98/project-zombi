@@ -86,6 +86,15 @@ export function chunksOverlapping(r: Rect, chunkSize: number): { cx: number; cz:
   return out
 }
 
+/** World rectangle of a play area (`world.playArea` or the same fields on `MapData`). */
+export function playAreaRect(p: { size: number; depth?: number; center?: XZ }): Rect {
+  const hx = p.size / 2
+  const hz = (p.depth ?? p.size) / 2
+  const cx = p.center?.x ?? 0
+  const cz = p.center?.z ?? 0
+  return { minX: cx - hx, minZ: cz - hz, maxX: cx + hx, maxZ: cz + hz }
+}
+
 export function unionRect(a: Rect | null, b: Rect): Rect {
   if (!a) return { ...b }
   return { minX: Math.min(a.minX, b.minX), minZ: Math.min(a.minZ, b.minZ), maxX: Math.max(a.maxX, b.maxX), maxZ: Math.max(a.maxZ, b.maxZ) }

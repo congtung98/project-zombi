@@ -1,16 +1,18 @@
-import { Canvas, useThree, type RootState } from '@react-three/fiber'
+import { Canvas, useFrame, useThree, type RootState } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { LineBasicMaterial, Plane, Raycaster, Vector2, Vector3, type OrthographicCamera } from 'three'
-import { chunkStatuses, resolvedRecords, type ChunkStatus, type MapDocument } from '../map/editor/document'
-import { isHidden } from '../map/editor/layers'
+import { BoxGeometry, LineBasicMaterial, MeshBasicMaterial, Plane, Raycaster, Vector2, Vector3, type Group, type OrthographicCamera } from 'three'
+import { chunkStatuses, resolvedChunks, resolvedRecords, type ChunkStatus, type MapDocument } from '../map/editor/document'
+import { isHidden, type LayerStates } from '../map/editor/layers'
+import type { ResolvedRecord } from '../map/resolve'
 import { snap } from '../map/editor/picking'
 import type { Rect, XZ } from '../map/schema'
-import { chunkIdOf, chunkOrigin } from '../map/transform'
+import { chunkIdOf, chunkOrigin, playAreaRect } from '../map/transform'
 import { useEditorStore } from './editorStore'
-import { chunkClick, commitPlace, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
+import { handleAt, handlesUsable, type HandleKey } from '../map/editor/handles'
+import { chunkClick, commitPlace, currentHandles, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
 import { PrefabScene } from './PrefabScene'
 import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
-import { RecordView } from './RecordView'
+import { ChunkBatch, RecordView } from './RecordView'
 
 /**
  * Authoring viewport: orthographic top-down (north up) or isometric like the game camera.
@@ -74,10 +76,7 @@ function Grid({ doc, statuses, pickedChunk, candidates }: { doc: MapDocument; st
       return { id: c.chunkId, o, geometry: lineGeometry(rectPoints({ minX: o.x, minZ: o.z, maxX: o.x + S, maxZ: o.z + S }, 0.03)) }
     })
   }, [world.chunkSize, world.chunks])
-  const play = useMemo(() => {
-    const h = world.playArea.size / 2
-    return lineGeometry(rectPoints({ minX: -h, minZ: -h, maxX: h, maxZ: h }, 0.04))
-  }, [world.playArea.size])
+  const play = useMemo(() => lineGeometry(rectPoints(playAreaRect(world.playArea), 0.04)), [world.playArea])
   const empty = useMemo(() => {
     if (!candidates) return null
     const S = world.chunkSize
@@ -132,11 +131,62 @@ function Selection({ doc, ids }: { doc: MapDocument; ids: string[] }) {
   return geometry ? <lineSegments geometry={geometry} material={SELECT_MAT} renderOrder={10} /> : null
 }
 
+/** Handle squares keep this size on screen (px) and are picked within `HANDLE_REACH_PX`. */
+const HANDLE_PX = 9
+const HANDLE_REACH_PX = 10
+const HANDLE_GEO = new BoxGeometry(1, 0.02, 1)
+const HANDLE_MAT = new MeshBasicMaterial({ color: '#ffffff', depthTest: false })
+const HANDLE_EDGE_MAT = new MeshBasicMaterial({ color: '#1d2124', depthTest: false })
+
+/** Handle under a ground point, if the handles are big enough on screen to use at this zoom. */
+function usableHandleAt(g: XZ, zoom: number) {
+  const handles = currentHandles()
+  return handlesUsable(handles, zoom) ? handleAt(handles, g, HANDLE_REACH_PX / zoom) : null
+}
+
+/** Resize handles of the single selected record/item (M7), sized to the zoom every frame. */
+export function Handles() {
+  const edit = useEditorStore((s) => s.edit)
+  const preview = useEditorStore((s) => s.preview)
+  useEditorStore((s) => s.tool)
+  useEditorStore((s) => s.prefabView)
+  const group = useRef<Group>(null)
+  const handles = currentHandles(preview?.doc ?? edit?.doc)
+  useFrame(({ camera }) => {
+    const zoom = (camera as OrthographicCamera).zoom
+    const s = HANDLE_PX / zoom
+    if (group.current) group.current.visible = handlesUsable(handles, zoom)
+    for (const child of group.current?.children ?? []) {
+      const outer = child.userData.edge ? 1.5 : 1
+      child.scale.set(s * outer, 1, s * outer)
+    }
+  })
+  if (!handles.length) return null
+  return (
+    <group ref={group}>
+      {handles.flatMap((h) => [
+        <mesh key={`${h.key}-edge`} geometry={HANDLE_GEO} material={HANDLE_EDGE_MAT} position={[h.at.x, 0.15, h.at.z]} renderOrder={12} userData={{ edge: true }} />,
+        <mesh key={h.key} geometry={HANDLE_GEO} material={h.key === 'fixture' ? LAMP_HANDLE_MAT : HANDLE_MAT} position={[h.at.x, 0.16, h.at.z]} renderOrder={13} />,
+      ])}
+    </group>
+  )
+}
+const LAMP_HANDLE_MAT = new MeshBasicMaterial({ color: '#ffd23f', depthTest: false })
+
 /** Box select in progress. */
 export function Marquee() {
   const rect = useEditorStore((s) => s.marquee)
   const geometry = useMemo(() => (rect ? lineGeometry(rectPoints(rect, 0.1)) : null), [rect])
   return geometry ? <lineSegments geometry={geometry} material={MARQUEE_MAT} renderOrder={11} /> : null
+}
+
+/** A chunk's records on visible layers, less placement ghosts, drawn as one batch per pass (M7). */
+function VisibleChunk({ records, layers, ghostKey }: { records: readonly ResolvedRecord[]; layers: LayerStates; ghostKey: string }) {
+  const shown = useMemo(() => {
+    const ghost = new Set(ghostKey ? ghostKey.split('|') : [])
+    return records.filter((r) => !ghost.has(r.id) && !isHidden(r, layers))
+  }, [records, layers, ghostKey])
+  return <ChunkBatch records={shown} />
 }
 
 function EditorScene() {
@@ -155,36 +205,44 @@ function EditorScene() {
         <ambientLight intensity={0.75} />
         <directionalLight position={[30, 60, 20]} intensity={1.6} />
         <PrefabScene prefabId={prefabMode} />
+        <Handles />
         <Marquee />
       </group>
     )
   }
   const doc = preview?.doc ?? edit.doc
-  const ghosts = new Set(preview?.ghostIds ?? [])
-  const records = resolvedRecords(doc).filter((r) => ghosts.has(r.id) || !isHidden(r, layers))
+  const ghostIds = preview?.ghostIds ?? []
+  const ghosts = resolvedRecords(doc).filter((r) => ghostIds.includes(r.id))
   const statuses = chunkStatuses(edit.doc, savedDoc, issues)
   return (
     <group>
       <ambientLight intensity={0.75} />
       <directionalLight position={[30, 60, 20]} intensity={1.6} />
       <Grid doc={doc} statuses={statuses} pickedChunk={tool === 'chunk' ? pickedChunk : null} candidates={tool === 'chunk'} />
-      {records.map((r) => (
-        <RecordView key={r.id} record={r} ghost={ghosts.has(r.id)} />
+      {resolvedChunks(doc).map((c) => (
+        <VisibleChunk key={c.chunkId} records={c.records} layers={layers} ghostKey={ghostIds.join('|')} />
+      ))}
+      {ghosts.map((r) => (
+        <RecordView key={r.id} record={r} ghost />
       ))}
       <Selection doc={doc} ids={preview?.ghostIds.length ? preview.ghostIds : edit.selection} />
+      <Handles />
       <Marquee />
     </group>
   )
 }
 
 interface Drag {
-  /** move: selection; pan: camera; box: selection rectangle; place: sizing a new record. */
-  kind: 'move' | 'pan' | 'box' | 'place'
+  /** move: selection; pan: camera; box: selection rectangle; place: sizing a new record; handle: resizing (M7). */
+  kind: 'move' | 'pan' | 'box' | 'place' | 'handle'
   start: XZ
   ids: string[]
   delta: XZ
   /** box: Shift held (add to the selection). */
   additive?: boolean
+  /** handle: which one, and the last (snapped) point it was dragged to. */
+  handle?: HandleKey
+  at?: XZ
 }
 
 /** A box smaller than this (m) is a plain click on empty ground. */
@@ -235,8 +293,7 @@ function Controls() {
     } else if (picked.length) {
       rect = picked.map((r) => r.bounds).reduce((a, b) => ({ minX: Math.min(a.minX, b.minX), minZ: Math.min(a.minZ, b.minZ), maxX: Math.max(a.maxX, b.maxX), maxZ: Math.max(a.maxZ, b.maxZ) }))
     } else {
-      const h = doc.world.playArea.size / 2
-      rect = { minX: -h, minZ: -h, maxX: h, maxZ: h }
+      rect = playAreaRect(doc.world.playArea)
     }
     target.current.set((rect.minX + rect.maxX) / 2, 0, (rect.minZ + rect.maxZ) / 2)
     const extent = Math.max(rect.maxX - rect.minX, rect.maxZ - rect.minZ, 8) * 1.3
@@ -299,6 +356,11 @@ function Controls() {
         s.setStatus('Đang xem prefab xoay: về 0° (Inspector → Xem xoay) để sửa', 'error')
         return
       }
+      const handle = usableHandleAt(g, camera().zoom)
+      if (handle) {
+        drag.current = { kind: 'handle', start: g, ids: [s.edit.selection[0]], delta: { x: 0, z: 0 }, handle: handle.key }
+        return
+      }
       const pickedId = pickAt(g)
       const selection = s.edit.selection
       if (!pickedId) {
@@ -334,6 +396,16 @@ function Controls() {
         updatePlacePreview(g, d.start)
         return
       }
+      if (d?.kind === 'handle' && s.edit) {
+        const at = snapPoint(g)
+        if (d.at && d.at.x === at.x && d.at.z === at.z) return
+        d.at = at
+        const r = handleCommand(s.edit.doc, d.ids[0], d.handle!, at)
+        if (r.ok) s.setPreview({ doc: r.doc, ghostIds: [] })
+        else s.setStatus(r.error, 'error')
+        return
+      }
+      if (!d) el.style.cursor = usableHandleAt(g, camera().zoom) ? 'crosshair' : ''
       if (d?.kind === 'move' && s.edit) {
         const delta = { x: snap(g.x - d.start.x, s.snapStep), z: snap(g.z - d.start.z, s.snapStep) }
         if (delta.x === d.delta.x && delta.z === d.delta.z) return
@@ -375,6 +447,12 @@ function Controls() {
         const rect = { minX: d.start.x, minZ: d.start.z, maxX: g.x, maxZ: g.z }
         const inside = keysInRect(rect)
         s.select(d.additive ? [...new Set([...s.edit.selection, ...inside])] : inside)
+        return
+      }
+      if (d?.kind === 'handle') {
+        const at = d.at
+        if (!at) return
+        s.run(handleLabel(d.handle!), (doc) => handleCommand(doc, d.ids[0], d.handle!, at))
         return
       }
       if (d?.kind !== 'move') return

@@ -55,7 +55,7 @@ const state = () =>
       worldId: doc?.world.worldId,
       chunks: doc?.world.chunks.map((c) => c.chunkId) ?? [],
       chunkBounds: doc?.world.chunkBounds,
-      playArea: doc?.world.playArea.size,
+      playArea: doc?.world.playArea,
       selection: s.edit?.selection ?? [],
       past: s.edit?.past.map((e) => e.label) ?? [],
       errors: s.issues.filter((i) => i.severity === 'error').map((i) => i.code),
@@ -181,8 +181,9 @@ try {
   assert.match(await page.locator('[data-chunk="c1_0"]').innerText(), /● sửa/)
   await page.getByRole('button', { name: 'Khớp vùng chơi với chunk' }).click()
   s = await state()
-  assert.equal(s.playArea, 124)
-  log('chunk tool', `${s.chunks.length} chunks, play area ${s.playArea} m`)
+  // M7: the play area follows the chunks (off-centre rectangle), no longer a square around the origin.
+  assert.deepEqual(s.playArea, { size: 92, depth: 60, center: { x: 16, z: 0 } })
+  log('chunk tool', `${s.chunks.length} chunks, play area ${JSON.stringify(s.playArea)}`)
 
   // 3. A house across the x = 32 line: one owner, a reference in the other chunk.
   await tab('prefabs')
@@ -280,7 +281,7 @@ try {
     const east = [...rt.zombies.values()].find((z) => z.home.x === 56 && z.home.z === 24)
     return {
       map: rt.map.id,
-      size: rt.map.size,
+      area: [rt.map.size, rt.map.depth, rt.map.center],
       doors: rt.map.doors.filter((d) => d.id === 'c1_0/house-1/door').length,
       zone: zone && { center: zone.center, halfSize: zone.halfSize },
       eastZone: east?.zoneId ?? null,
@@ -289,7 +290,7 @@ try {
     }
   })
   assert.equal(game.map, TEST_WORLD)
-  assert.equal(game.size, 124)
+  assert.deepEqual(game.area, [92, 60, { x: 16, z: 0 }])
   assert.equal(game.doors, 1)
   assert.deepEqual(game.zone, { center: { x: 55, y: 0, z: 21 }, halfSize: { x: 5, z: 7 } })
   assert.equal(game.eastZone, 'c1_0/zones/zone-1')

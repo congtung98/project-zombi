@@ -1,7 +1,7 @@
 import { ITEMS, type ItemId } from '../entities/items'
 import { addItem, createInventory, type Inventory } from './inventory'
 import { DOOR_MAX_HP } from '../world/doors'
-import { NEIGHBORHOOD_MAP, mapRooms, mapWindows, type MapData } from '../world/mapData'
+import { NEIGHBORHOOD_MAP, mapBounds, mapRooms, mapWindows, type MapData } from '../world/mapData'
 import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, WALL_PREFIXES_ADDED_V7, legacyContentFor, type LegacyContent } from '../world/legacyContent'
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
@@ -158,7 +158,8 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
       const fixed = knownMap.containers.some((d) => d.id === c.id)
       if (fixed ? c.position !== undefined : legacyV1 || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
       if (c.items.slots.length !== (fixed ? GAME_CONFIG.inventory.containerSlots : 1)) return corrupt('container capacity')
-      if (c.position && (Math.abs(c.position.x) > knownMap.size / 2 || Math.abs(c.position.z) > knownMap.size / 2)) return corrupt('drop outside map')
+      const area = mapBounds(knownMap)
+      if (c.position && (c.position.x < area.minX || c.position.x > area.maxX || c.position.z < area.minZ || c.position.z > area.maxZ)) return corrupt('drop outside map')
     }
   }
   if (legacyV1) return migratePhase1(data, expectedMapId, current)

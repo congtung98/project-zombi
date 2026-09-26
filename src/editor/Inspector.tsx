@@ -1,6 +1,6 @@
 import { rotateRecords, setRecordAnchor, updateRecord, updateWorld } from '../map/editor/commands'
 import { findRecord, instancesOf, resolvedRecords, worldAnchor, type AnyRecord, type MapDocument } from '../map/editor/document'
-import type { QuarterTurns, XYZ, XZ } from '../map/schema'
+import { SURFACE_LAYER_MAX, type QuarterTurns, type XYZ, type XZ } from '../map/schema'
 import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
 import { NumField, ReadField, TextField } from './fields'
@@ -38,7 +38,10 @@ function WorldInspector({ doc }: { doc: MapDocument }) {
       <TextField label="Tên" value={w.name} onCommit={(name) => run('Đổi tên world', (d, sel) => updateWorld(d, { name }, sel))} />
       <NumField label="contentVersion" value={w.contentVersion} step={1} min={1} onCommit={(v) => run('Đổi contentVersion', (d, sel) => updateWorld(d, { contentVersion: v }, sel))} />
       <ReadField label="Chunk" value={`${w.chunks.length} × ${w.chunkSize} m`} />
-      <NumField label="Vùng chơi (m)" value={w.playArea.size} step={1} min={1} onCommit={(size) => run('Đổi vùng chơi', (d, sel) => updateWorld(d, { playArea: { size } }, sel))} />
+      <NumField label="Vùng chơi X (m)" value={w.playArea.size} step={1} min={1} onCommit={(size) => run('Đổi vùng chơi', (d, sel) => updateWorld(d, { playArea: { ...d.world.playArea, size } }, sel))} />
+      <NumField label="Vùng chơi Z (m)" value={w.playArea.depth ?? w.playArea.size} step={1} min={1} onCommit={(depth) => run('Đổi vùng chơi', (d, sel) => updateWorld(d, { playArea: { ...d.world.playArea, depth } }, sel))} />
+      <NumField label="Tâm X" value={w.playArea.center?.x ?? 0} step={1} onCommit={(x) => run('Dời vùng chơi', (d, sel) => updateWorld(d, { playArea: { ...d.world.playArea, center: { x, z: d.world.playArea.center?.z ?? 0 } } }, sel))} />
+      <NumField label="Tâm Z" value={w.playArea.center?.z ?? 0} step={1} onCommit={(z) => run('Dời vùng chơi', (d, sel) => updateWorld(d, { playArea: { ...d.world.playArea, center: { x: d.world.playArea.center?.x ?? 0, z } } }, sel))} />
       <label className="field">
         <span>Hàng rào biên</span>
         <input
@@ -53,7 +56,7 @@ function WorldInspector({ doc }: { doc: MapDocument }) {
           <NumField label="Rào dày" value={w.boundary.thickness} min={0.1} onCommit={(thickness) => run('Đổi hàng rào biên', (d, sel) => updateWorld(d, { boundary: { ...d.world.boundary!, thickness } }, sel))} />
         </>
       )}
-      <p className="hint">Vùng chơi luôn là hình vuông tâm (0, 0) (lưới nav của game giả định vậy); tab Chunk có nút khớp với các chunk.</p>
+      <p className="hint">Vùng chơi (khung đỏ) là hình chữ nhật đặt tâm tùy ý; lưới nav, mặt đất và hàng rào biên của game theo nó. Tab Chunk có nút khớp với các chunk.</p>
       <ReadField label="Prefab" value={String(w.prefabs.length)} />
       <ReadField label="Record" value={String(counts)} />
       <ReadField label="Spawn người chơi" value={w.playerSpawn} />
@@ -148,6 +151,16 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
             <NumField key={i} label={`Kích thước ${'XZ'[i]}`} value={v} min={0.1} onCommit={(n) => patch('Đổi kích thước', { size: (r.size as number[]).map((s, j) => (j === i ? n : s)) })} />
           ))}
           <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />
+          <label className="field" title="Chỗ hai mặt nền chồng nhau, lớp cao hơn nằm trên">
+            <span>Lớp vẽ</span>
+            <select value={String(r.layer ?? 0)} onChange={(e) => patch('Đổi lớp vẽ', { layer: Number(e.target.value) || undefined })} data-road-layer>
+              {Array.from({ length: SURFACE_LAYER_MAX + 1 }, (_, i) => (
+                <option key={i} value={i}>
+                  {i === 0 ? '0 (dưới cùng)' : i}
+                </option>
+              ))}
+            </select>
+          </label>
         </>
       )}
 

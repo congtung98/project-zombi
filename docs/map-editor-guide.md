@@ -25,9 +25,10 @@ Chuột: trái để chọn/kéo; phải hoặc giữa để kéo camera; lăn �
 2. **Tường**: nhấn rồi kéo theo trục X hoặc Z. Tường không cần tự chừa khe.
 3. **Cửa/cửa sổ**: click sát một bức tường, cửa tự bám vào tường và quay vào trong nhà. Game tự khoét khe, dựng lanh tô, bệ và đầu cửa sổ. Hướng mở và trạng thái ban đầu chỉnh ở Inspector.
 4. **Nội thất, tủ**: click để đặt. Bảng loot của tủ chọn ở Inspector. Vòng xanh là tầm tương tác trong game (phím E).
-5. **Phòng**: kéo khung trên đường tâm tường. Phòng có đèn đi kèm công tắc (ô vàng, kéo để dời). Ánh sáng tính theo phòng: cửa sổ chiếu vào, cửa mở truyền sang phòng bên.
-6. Inspector (khi không chọn gì): **Xem xoay** 90/180/270° để thấy instance xoay trông ra sao (chỉ xem), **Khớp footprint với tường**, màu tường/mái/sàn.
-7. **← Về world**.
+5. **Phòng**: kéo khung trên đường tâm tường. Phòng có đèn đi kèm công tắc (ô vàng, kéo để dời). Chọn đèn (bấm công tắc) rồi kéo ô vuông vàng để dời bóng đèn trên trần; Inspector có nút **Đèn về tâm phòng**. Ánh sáng tính theo phòng: cửa sổ chiếu vào, cửa mở truyền sang phòng bên.
+6. **Đổi kích thước bằng tay cầm**: chọn một mục, kéo các ô vuông trắng. Khối/phòng có 8 ô (cạnh và góc; cạnh đối diện đứng yên), tường chạy có 2 ô ở hai đầu (trượt theo trục của tường). Vật quá nhỏ trên màn hình thì không hiện tay cầm: phóng to để đổi kích thước, còn kéo thân vật thì vẫn là di chuyển.
+7. Inspector (khi không chọn gì): **Xem xoay** 90/180/270° để thấy instance xoay trông ra sao (chỉ xem), **Khớp footprint với tường**, màu tường/mái/sàn.
+8. **← Về world**.
 
 Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
 
@@ -35,7 +36,9 @@ Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
 
 - Tab **Prefab**: click một prefab (có hình thu nhỏ), R để xoay, click lên viewport để đặt, Esc để thoát.
 - Tab **Object / Nền / Zone / Spawn**: tường và hàng rào (kéo dài), thùng, xe, đống phế liệu có loot, đường/vỉa hè (kéo khung), zone zombie (chữ nhật: kéo khung; tròn: kéo bán kính), spawn zombie/người chơi. Spawn người chơi chọn làm điểm xuất phát ở Inspector.
-- Tab **Chunk**: click ô xám để thêm chunk 32 m, rồi bấm **Khớp vùng chơi với chunk**.
+- **Tay cầm**: chọn một khối, đường, zone rồi kéo các ô vuông trắng để đổi kích thước (zone tròn: một ô bán kính). Mỗi lần kéo là một bước Hoàn tác; ID giữ nguyên, vật có thể được chuyển sang chunk khác khi tâm vượt ranh giới.
+- **Lớp vẽ** (Inspector của đường/nền): chỗ hai mặt nền chồng nhau, lớp cao hơn nằm trên (0–4).
+- Tab **Chunk**: click ô xám để thêm chunk 32 m, rồi bấm **Khớp vùng chơi với chunk**: vùng chơi thành hình chữ nhật phủ các chunk (trừ lề 2 m), không cần đối xứng quanh gốc. Kích thước X/Z và tâm cũng sửa được ở Inspector → World.
 - **Layer** (panel trái): ẩn/khóa theo loại, chỉ có tác dụng trong editor. Kéo từ chỗ nền trống để chọn theo khung; Ctrl+A chọn tất cả.
 
 ## 3. Kiểm tra
@@ -91,5 +94,5 @@ npm run map:generate -- --seed 42 --blocks 2x2 --dry                    # chỉ 
   - nhân bản tạo ID mới;
   - ID đã xóa không bao giờ được cấp lại (`retiredIds`, `retiredLocalIds`).
 - **Sửa prefab gốc** thì mọi instance đổi theo; muốn biến thể thì **Nhân bản** prefab.
-- Vùng chơi luôn là hình vuông tâm (0, 0).
-- Hai mặt đường khác màu chồng nhau sẽ nhấp nháy trong game (cảnh báo `surface-overlap`).
+- Vùng chơi là hình chữ nhật, đặt tâm tùy ý (M7); mặt đất, lưới nav và hàng rào biên theo nó.
+- Hai mặt đường khác màu **cùng lớp** chồng nhau sẽ nhấp nháy trong game (cảnh báo `surface-overlap`): đặt **Lớp vẽ** khác cho một trong hai.

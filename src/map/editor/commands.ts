@@ -1,4 +1,4 @@
-import { MAP_SCHEMA_VERSION, RECORD_NAMESPACES, RESERVED_INSTANCE_NAMES, recordId, type ChunkDocument, type QuarterTurns, type RecordCategory, type WorldDocument, type XZ } from '../schema.ts'
+import { MAP_SCHEMA_VERSION, RECORD_NAMESPACES, RESERVED_INSTANCE_NAMES, recordId, type ChunkDocument, type PlayArea, type QuarterTurns, type RecordCategory, type Rect, type WorldDocument, type XZ } from '../schema.ts'
 import { addQuarterTurns, chunkIdOf, chunkIndex, chunkOrigin, parseRecordId, quantize } from '../transform.ts'
 import { allRecordIds, anchorKey, findRecord, ID_KEY, withExternalRefs, worldAnchor, type AnyRecord, type MapDocument } from './document.ts'
 import { findPreset, presetPlacement, type PresetCategory } from './presets.ts'
@@ -246,14 +246,32 @@ export function removeChunk(doc: MapDocument, chunkId: string, selection: string
   return { ok: true, doc: withExternalRefs({ ...doc, world, chunks }), selection, note: `Xóa chunk ${chunkId}` }
 }
 
+/** Play area in canonical form: `depth` only when it differs from `size`, `center` only off the origin. */
+export function normalizePlayArea(p: PlayArea): PlayArea {
+  const out: PlayArea = { size: quantize(p.size) }
+  if (p.depth !== undefined && quantize(p.depth) !== out.size) out.depth = quantize(p.depth)
+  if (p.center && (quantize(p.center.x) !== 0 || quantize(p.center.z) !== 0)) out.center = { x: quantize(p.center.x), z: quantize(p.center.z) }
+  return out
+}
+
+/** Play area as a rectangle (M7: off-centre and non-square allowed), in canonical form. */
+export function playAreaFromRect(r: Rect): PlayArea {
+  return normalizePlayArea({ size: r.maxX - r.minX, depth: r.maxZ - r.minZ, center: { x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 } })
+}
+
 /**
- * Play-area size (a square centred on the origin, as the nav grid expects) that covers every chunk
- * of the world, less a 2 m margin on each side like the neighbourhood and blank worlds.
+ * Play area covering the rectangle of the world's chunks, less a 2 m margin on each side like the
+ * neighbourhood and blank worlds (M7: it follows the chunks instead of a square around the origin).
  */
-export function fittedPlayAreaSize(world: WorldDocument): number {
+export function fittedPlayArea(world: WorldDocument): PlayArea {
   const S = world.chunkSize
-  const half = Math.max(...world.chunks.flatMap((c) => [Math.abs(c.cx * S), Math.abs((c.cx + 1) * S), Math.abs(c.cz * S), Math.abs((c.cz + 1) * S)]))
-  return Math.max(S / 2, 2 * half - 4)
+  const b = tightChunkBounds(world.chunks)
+  const margin = Math.min(2, S / 4)
+  return playAreaFromRect({ minX: b.minCx * S + margin, minZ: b.minCz * S + margin, maxX: (b.maxCx + 1) * S - margin, maxZ: (b.maxCz + 1) * S - margin })
+}
+
+export function samePlayArea(a: PlayArea, b: PlayArea): boolean {
+  return JSON.stringify(normalizePlayArea(a)) === JSON.stringify(normalizePlayArea(b))
 }
 
 /** Delete records; their IDs are retired. The manifest's player spawn cannot be deleted. */
@@ -330,7 +348,12 @@ export function updateWorld(doc: MapDocument, patch: WorldPatch, selection: stri
   }
   if (patch.contentVersion !== undefined && !(Number.isInteger(patch.contentVersion) && patch.contentVersion >= 1)) return fail('contentVersion phải là số nguyên ≥ 1')
   const positive = (v: number) => Number.isFinite(v) && v > 0
-  if (patch.playArea !== undefined && !positive(patch.playArea.size)) return fail('Kích thước vùng chơi phải > 0')
+  if (patch.playArea !== undefined) {
+    const a = patch.playArea
+    if (!positive(a.size) || (a.depth !== undefined && !positive(a.depth))) return fail('Kích thước vùng chơi phải > 0')
+    if (a.center && !(Number.isFinite(a.center.x) && Number.isFinite(a.center.z))) return fail('Tâm vùng chơi không hợp lệ')
+    patch = { ...patch, playArea: normalizePlayArea(a) }
+  }
   if (patch.boundary && !(positive(patch.boundary.height) && positive(patch.boundary.thickness))) return fail('Hàng rào biên: cao và dày phải > 0')
   return { ok: true, doc: { ...doc, world: { ...doc.world, ...patch } }, selection }
 }

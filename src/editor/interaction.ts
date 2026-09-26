@@ -16,6 +16,7 @@ import {
   rotatePrefabItems,
 } from '../map/editor/prefabCommands'
 import type { Rect, XZ } from '../map/schema'
+import { dragPrefabHandle, dragRecordHandle, prefabItemHandles, recordHandles, type Handle, type HandleKey } from '../map/editor/handles'
 import { chunkIdOf, chunkIndex, chunkOrigin } from '../map/transform'
 import { useEditorStore, type PlaceItem } from './editorStore'
 
@@ -87,6 +88,35 @@ export function keysInRect(rect: Rect): string[] {
     return prefab ? itemsInRect(prefabItems(prefab), rect) : []
   }
   return recordsInRect(resolvedRecords(s.edit.doc), rect, (r) => !isEditable(r, s.layers)).map((r) => r.id)
+}
+
+/**
+ * Resize handles of the one selected record or prefab item (M7), in the frame the viewport draws.
+ * Only the select tool shows them, and never on the rotated (view-only) prefab preview.
+ */
+export function currentHandles(doc: MapDocument | undefined = store().edit?.doc): Handle[] {
+  const s = store()
+  if (!doc || !s.edit || s.tool !== 'select' || s.edit.selection.length !== 1) return []
+  const id = s.edit.selection[0]
+  const p = prefabMode()
+  if (p) {
+    const prefab = doc.prefabs.get(p)
+    return prefab && s.prefabView === 0 ? prefabItemHandles(prefab, id) : []
+  }
+  return recordHandles(doc, id)
+}
+
+/** The handle-drag command for the mode (the selected record/item, handle `key`, pointer `at`). */
+export function handleCommand(doc: MapDocument, id: string, key: HandleKey, at: XZ): CommandResult {
+  const p = prefabMode()
+  return p ? dragPrefabHandle(doc, p, id, key, at) : dragRecordHandle(doc, id, key, at)
+}
+
+export function handleLabel(key: HandleKey): string {
+  if (key === 'fixture') return 'Dời đèn'
+  if (key === 'from' || key === 'to') return 'Kéo dài tường'
+  if (key === 'radius') return 'Đổi bán kính'
+  return 'Đổi kích thước'
 }
 
 /** The move command for the mode. */
@@ -192,7 +222,7 @@ export function selectAll(): void {
   if (!s.edit) return
   const p = prefabMode()
   const prefab = p ? s.edit.doc.prefabs.get(p) : null
-  if (prefab) s.select(prefabItems(prefab).map((it) => it.key))
+  if (prefab) s.select([...new Set(prefabItems(prefab).map((it) => it.key))])
   else s.select(resolvedRecords(s.edit.doc).filter((r) => isEditable(r, s.layers)).map((r) => r.id))
 }
 

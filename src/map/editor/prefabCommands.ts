@@ -73,7 +73,10 @@ export function prefabItems(prefab: PrefabDocument): PrefabItem[] {
   const out: PrefabItem[] = prefab.objects.map((o) => ({ key: o.localId, kind: 'object' as const, type: o.kind, bounds: objectRect(o) }))
   for (const r of prefab.rooms) {
     out.push({ key: r.localId, kind: 'room', type: 'room', bounds: { ...r.bounds } })
-    if (r.lamp) out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.switchAt, 2 * SWITCH_PICK, 2 * SWITCH_PICK) })
+    if (!r.lamp) continue
+    out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.switchAt, 2 * SWITCH_PICK, 2 * SWITCH_PICK) })
+    // M7: a fixture moved off the room centre also picks its lamp (the centre picks the room).
+    if (r.lamp.at) out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.at, 2 * SWITCH_PICK, 2 * SWITCH_PICK) })
   }
   return out
 }
@@ -108,7 +111,7 @@ export function itemsInRect(items: readonly PrefabItem[], r: Rect): string[] {
   const x1 = Math.max(r.minX, r.maxX)
   const z0 = Math.min(r.minZ, r.maxZ)
   const z1 = Math.max(r.minZ, r.maxZ)
-  return items.filter((it) => it.bounds.minX >= x0 && it.bounds.maxX <= x1 && it.bounds.minZ >= z0 && it.bounds.maxZ <= z1).map((it) => it.key)
+  return [...new Set(items.filter((it) => it.bounds.minX >= x0 && it.bounds.maxX <= x1 && it.bounds.minZ >= z0 && it.bounds.maxZ <= z1).map((it) => it.key))]
 }
 
 /** Every local ID in use (objects, rooms, lamps). */

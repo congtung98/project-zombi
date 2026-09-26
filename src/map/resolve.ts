@@ -25,7 +25,7 @@ import {
   type WorldDocument,
   type XZ,
 } from './schema.ts'
-import { addQuarterTurns, chunkOrigin, quantize, quarterAngle, rotateRect, rotateSize, rotateXZ, unionRect } from './transform.ts'
+import { addQuarterTurns, chunkOrigin, playAreaRect, quantize, quarterAngle, rotateRect, rotateSize, rotateXZ, unionRect } from './transform.ts'
 
 /**
  * Resolver: content documents → neutral descriptors in world space (the `MapData` pieces every
@@ -303,7 +303,7 @@ export function resolveRecord(world: WorldDocument, chunk: ChunkDocument, catego
     case 'roads': {
       const road = chunk.roads[index]
       const p = at(road.position)
-      return { ...base, bounds: boxRect(p, road.size), entityIds: [id], parts: { roads: [{ id, position: p, size: [...road.size], color: road.color }] } }
+      return { ...base, bounds: boxRect(p, road.size), entityIds: [id], parts: { roads: [{ id, position: p, size: [...road.size], color: road.color, ...(road.layer ? { layer: road.layer } : {}) }] } }
     }
     case 'zones': {
       const z = chunk.zones[index]
@@ -343,15 +343,17 @@ export function compareRecords(a: ResolvedRecord, b: ResolvedRecord): number {
 /** Fence around the play area (world-level, not owned by a chunk). */
 export function boundaryWalls(world: WorldDocument): WallDef[] {
   if (!world.boundary) return []
-  const size = world.playArea.size
-  const half = size / 2
+  const r = playAreaRect(world.playArea)
+  const cx = (r.minX + r.maxX) / 2
+  const cz = (r.minZ + r.maxZ) / 2
   const { height: h, thickness: t } = world.boundary
-  const along = size + 2 * t
+  const alongX = r.maxX - r.minX + 2 * t
+  const alongZ = r.maxZ - r.minZ + 2 * t
   return [
-    { id: 'world/boundary-n', position: { x: 0, y: h / 2, z: -half - t / 2 }, size: [along, h, t] },
-    { id: 'world/boundary-s', position: { x: 0, y: h / 2, z: half + t / 2 }, size: [along, h, t] },
-    { id: 'world/boundary-w', position: { x: -half - t / 2, y: h / 2, z: 0 }, size: [t, h, along] },
-    { id: 'world/boundary-e', position: { x: half + t / 2, y: h / 2, z: 0 }, size: [t, h, along] },
+    { id: 'world/boundary-n', position: { x: cx, y: h / 2, z: r.minZ - t / 2 }, size: [alongX, h, t] },
+    { id: 'world/boundary-s', position: { x: cx, y: h / 2, z: r.maxZ + t / 2 }, size: [alongX, h, t] },
+    { id: 'world/boundary-w', position: { x: r.minX - t / 2, y: h / 2, z: cz }, size: [t, h, alongZ] },
+    { id: 'world/boundary-e', position: { x: r.maxX + t / 2, y: h / 2, z: cz }, size: [t, h, alongZ] },
   ]
 }
 
@@ -376,6 +378,8 @@ export function assembleMapData(world: WorldDocument, records: Iterable<Resolved
     contentVersion: world.contentVersion,
     chunkSize: world.chunkSize,
     size: world.playArea.size,
+    ...(world.playArea.depth !== undefined ? { depth: world.playArea.depth } : {}),
+    ...(world.playArea.center ? { center: { ...world.playArea.center } } : {}),
     playerSpawn: { ...spawn.position },
     zombieSpawns: all.zombieSpawns,
     zombieZones: all.zones,

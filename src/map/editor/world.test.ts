@@ -4,10 +4,12 @@ import { formatJson } from '../format'
 import { ChunkLifecycle } from '../loader'
 import { checkWorldDocuments, hasErrors } from '../validate'
 import { GameRuntime } from '../../game/core/runtime'
+import { validateSaveGame } from '../../game/systems/save'
+import { addItem, createInventory } from '../../game/systems/inventory'
 import { nearestZone } from '../../game/systems/horde'
 import type { ZoneDef } from '../../game/world/mapData'
 import { zoneFor } from '../../game/world/zones'
-import { addChunk, fittedPlayAreaSize, moveRecords, placeInstance, placeRecord, removeChunk, rotateRecords, updateRecord, updateWorld, type CommandResult } from './commands'
+import { addChunk, fittedPlayArea, moveRecords, placeInstance, placeRecord, removeChunk, rotateRecords, updateRecord, updateWorld, type CommandResult } from './commands'
 import { blankDocument, chunkStatuses, documentFiles, findRecord, resolvedRecords, worldAnchor, type MapDocument } from './document'
 import { defaultLayers, isEditable, layerOf } from './layers'
 import { documentFromFiles, exportPack, parsePack } from './pack'
@@ -102,14 +104,17 @@ describe('chunks (M4)', () => {
     expect(s.doc).toBe(start)
   })
 
-  it('fits the centred play area to the chunks', () => {
+  it('fits the play area to the chunks (M7: off-centre rectangle, canonical form)', () => {
     const doc = blank()
-    expect(fittedPlayAreaSize(doc.world)).toBe(60)
+    expect(fittedPlayArea(doc.world)).toEqual({ size: 60 })
     const grown = ok(addChunk(doc, 1, 0)).doc
-    expect(fittedPlayAreaSize(grown.world)).toBe(124)
-    const fitted = ok(updateWorld(grown, { playArea: { size: 124 } })).doc
-    expect(fitted.world.playArea).toEqual({ size: 124 })
+    expect(fittedPlayArea(grown.world)).toEqual({ size: 92, depth: 60, center: { x: 16, z: 0 } })
+    const fitted = ok(updateWorld(grown, { playArea: fittedPlayArea(grown.world) })).doc
+    expect(fitted.world.playArea).toEqual({ size: 92, depth: 60, center: { x: 16, z: 0 } })
+    // Canonical: a square at the origin keeps the M1 form, byte for byte.
+    expect(ok(updateWorld(grown, { playArea: { size: 50, depth: 50, center: { x: 0, z: 0 } } })).doc.world.playArea).toEqual({ size: 50 })
     expect(updateWorld(grown, { playArea: { size: 0 } }).ok).toBe(false)
+    expect(updateWorld(grown, { playArea: { size: 10, depth: -1 } }).ok).toBe(false)
     expect(updateWorld(grown, { boundary: { height: 0, thickness: 1 } }).ok).toBe(false)
     expect(ok(updateWorld(grown, { boundary: null })).doc.world.boundary).toBeNull()
   })
@@ -359,7 +364,7 @@ describe('an editor-made multi-chunk world plays in the game (M4)', () => {
     let doc = blank()
     doc = ok(addChunk(doc, 1, -1)).doc
     doc = ok(addChunk(doc, 1, 0)).doc
-    doc = ok(updateWorld(doc, { playArea: { size: fittedPlayAreaSize(doc.world) } })).doc
+    doc = ok(updateWorld(doc, { playArea: fittedPlayArea(doc.world) })).doc
     doc = ok(placeInstance(doc, 'building/safehouse', { x: 32, z: -6 }, 0)).doc
     doc = ok(placeRecord(doc, 'surface/asphalt', { x: 44, z: -40 }, { x: 48, z: 40 })).doc
     doc = ok(placeRecord(doc, 'object/fence', { x: 50, z: 10 }, { x: 58, z: 10 })).doc
@@ -373,7 +378,11 @@ describe('an editor-made multi-chunk world plays in the game (M4)', () => {
     expect(doc.chunks.get('c0_-1')!.externalRefs.map((r) => r.id)).toContain('c1_-1/safehouse-1')
 
     const { map } = loadExported(doc)
-    expect(map.size).toBe(124)
+    expect(map).toMatchObject({ size: 92, depth: 60, center: { x: 16, z: 0 } })
+    // Fence around the off-centre rectangle (x −30…62, z −30…30, 1 m thick).
+    const fence = Object.fromEntries(map.walls.filter((w) => w.id.startsWith('world/boundary-')).map((w) => [w.id.slice(15), { ...w.position, size: w.size }]))
+    expect(fence.n).toEqual({ x: 16, y: 1, z: -30.5, size: [94, 2, 1] })
+    expect(fence.e).toEqual({ x: 62.5, y: 1, z: 0, size: [1, 2, 62] })
     expect(map.doors.filter((d) => d.id === 'c1_-1/safehouse-1/door')).toHaveLength(1)
     expect(map.containers.some((c) => c.id === 'c1_0/objects/scrap-1' && c.loot === 'scrap-pile')).toBe(true)
     expect(map.walls.some((w) => w.id === 'c1_0/objects/fence-1')).toBe(true)
@@ -384,6 +393,11 @@ describe('an editor-made multi-chunk world plays in the game (M4)', () => {
     rt.newGame(11)
     rt.pathBudget.maxPathMs = Infinity
     rt.setLineOfSightOverride(null)
+    // The nav grid covers the off-centre area (x up to 62) and stops at the fence.
+    expect(rt.nav.isWalkable(58, -20)).toBe(true)
+    expect(rt.nav.isWalkable(-29, 29)).toBe(true)
+    expect(rt.nav.isWalkable(62.5, 0)).toBe(false)
+    expect(rt.nav.findPath({ x: 0, y: 0, z: 0 }, { x: 58, y: 0, z: -20 })).not.toBeNull()
     const east = [...rt.zombies.values()].find((z) => z.home.x === 56 && z.home.z === 24)!
     expect(east.zoneId).toBe('c1_0/zones/zone-1')
     for (let i = 0; i < 900; i++) rt.tick(1 / 60)
@@ -391,5 +405,16 @@ describe('an editor-made multi-chunk world plays in the game (M4)', () => {
     expect(rt.world.containers.has('c1_0/objects/scrap-1')).toBe(true)
     expect(rt.world.containers.get('c1_0/objects/scrap-1')!.items.slots.some((s) => s !== null)).toBe(true)
     expect(hasErrors(loadExported(doc).issues)).toBe(false)
+
+    // Saves: a drop anywhere inside the off-centre area is valid, outside it is corrupt.
+    const withDrop = (x: number) => {
+      const snap = rt.createSnapshot()
+      const bag = createInventory(1, 'drop-1')
+      addItem(bag, 'water', 1)
+      snap.containers.push({ id: 'drop:1', opened: false, items: bag, position: { x, y: 0, z: -20 } })
+      return validateSaveGame(snap, map.id, map)
+    }
+    expect(withDrop(58)).toMatchObject({ ok: true })
+    expect(withDrop(64)).toMatchObject({ ok: false, reason: 'corrupt' })
   })
 })

@@ -17,7 +17,7 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 ## 2. Tọa độ và đơn vị
 
 - 1 đơn vị = 1 m; Y hướng lên; mặt đất là XZ (`coordinateSystem: "y-up-xz-meters"`).
-- Vùng chơi hình vuông `playArea.size`, tâm tại gốc tọa độ (NavGrid và kiểm tra túi đồ rơi dựa vào điều này).
+- Vùng chơi là hình chữ nhật `playArea.size` (X) × `playArea.depth` (Z, mặc định bằng `size`) quanh `playArea.center` (mặc định gốc tọa độ). Từ M7 nó có thể lệch tâm; NavGrid, mặt đất, hàng rào biên, kiểm tra spawn và kiểm tra túi đồ rơi trong save đều dùng hình chữ nhật này (`playAreaRect`, `mapBounds`).
 - `quarterTurns` q ∈ {0, 1, 2, 3}: xoay +90°·q quanh +Y, cùng quy ước `rotation.y` của Three.js; q = 1 biến (x, z) thành (z, −x). Phép xoay dùng hoán vị chính xác, không dùng lượng giác.
 - Vị trí thế giới = `gốc chunk + vị trí instance + xoay(local − pivot, q)`, sau đó **lượng tử hóa 1 µm** (`quantize`). Nhờ vậy cùng một điểm luôn cho cùng một giá trị, dù cách chia chunk/instance khác nhau; −0 được chuẩn hóa thành 0.
 - Hộp (tường, đồ vật, container) luôn song song trục: q lẻ thì hoán đổi kích thước X và Z. Cửa và cửa sổ cộng q của object với q của instance.
@@ -60,7 +60,7 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 
 ## 6. Tài liệu JSON
 
-**world.json**: `schemaVersion, worldId, name, contentVersion, chunkSize, coordinateSystem, playArea { size }, boundary { height, thickness } | null, chunkBounds { minCx, maxCx, minCz, maxCz }` (tính cả biên), `chunks [{ chunkId, cx, cz, path }]`, `prefabs [{ prefabId, contentVersion, path }]`, `playerSpawn` (ID spawn), `gameplay? { maxActiveZombies? }`, `retiredIds? [string]` (M3), `generator? { name, version, seed, params, catalog }` (M6: truy vết world sinh tự động; `map:generate` dùng để phát hiện sửa tay).
+**world.json**: `schemaVersion, worldId, name, contentVersion, chunkSize, coordinateSystem, playArea { size, depth?, center? {x,z} } (M7: bỏ `depth`/`center` khi là hình vuông tâm gốc), boundary { height, thickness } | null, chunkBounds { minCx, maxCx, minCz, maxCz }` (tính cả biên), `chunks [{ chunkId, cx, cz, path }]`, `prefabs [{ prefabId, contentVersion, path }]`, `playerSpawn` (ID spawn), `gameplay? { maxActiveZombies? }`, `retiredIds? [string]` (M3), `generator? { name, version, seed, params, catalog }` (M6: truy vết world sinh tự động; `map:generate` dùng để phát hiện sửa tay).
 
 **Prefab**: `schemaVersion, prefabId` (vd. `building/store`), `contentVersion, name, pivot {x,y,z}, footprint {minX,minZ,maxX,maxZ}`, `building? { height, wallThickness, wallColor, roofColor, floorColor }` (có thì là nhà: sàn, mái, ánh sáng), `objects[]`, `rooms[]`. Các object phân biệt bằng `kind`:
 
@@ -73,11 +73,11 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 | `window` | `localId, name, position {x,z}, quarterTurns, width, sill, head, thickness` | q = 0: kính chạy theo X, phía trong nhà là +Z |
 | `wallRun` (M5) | `localId, from {x,z}, to {x,z}` (song song X hoặc Z, trên đường tâm tường), `height, thickness, color` | resolver tách thành hộp tường, khoét khe ở mỗi cửa/cửa sổ cùng prefab nằm trên nó (cùng trục, tâm trên tường), thêm lanh tô trên cửa (từ `DOOR_HEIGHT`) và bệ/đầu cửa sổ; kéo dài nửa độ dày ở hai đầu để kín góc. Mảnh có ID dẫn xuất `<entity>#<phần>`, không có trạng thái |
 
-Room: `localId, name, bounds`, `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }`. Trần nhà = `building.height`.
+Room: `localId, name, bounds`, `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }` (`at`: vị trí đèn trên trần, mặc định tâm phòng; M7 sửa được trong editor, ánh sáng vẫn tính theo cả phòng). Trần nhà = `building.height`.
 
 `retiredLocalIds?` (M5, sắp xếp): local ID đã xóa/đổi tên trong prefab editor; không cấp lại, dùng lại là lỗi `retired-id-reused`.
 
-**Chunk**: `schemaVersion, contentVersion, chunkId, cx, cz`, `instances [{ instanceId, prefabId, position {x,y,z}, quarterTurns }]`, `objects` (wall/prop/container, có `objectId`), `roads [{ roadId, position, size [x,z], color }]`, `zones [{ zoneId, kind: "zombiePopulation", name, shape: "circle", center, radius } | { …, shape: "rect", center, size [x,z] }]`, `spawns [{ spawnId, kind: "player"|"zombie", position }]`, `externalRefs`.
+**Chunk**: `schemaVersion, contentVersion, chunkId, cx, cz`, `instances [{ instanceId, prefabId, position {x,y,z}, quarterTurns }]`, `objects` (wall/prop/container, có `objectId`), `roads [{ roadId, position, size [x,z], color, layer? 0..4 }]` (M7: `layer` là thứ tự vẽ, lớp cao nằm trên chỗ chồng nhau, mỗi lớp cao hơn 1 mm và luôn dưới sàn nhà; mặc định 0, không ghi), `zones [{ zoneId, kind: "zombiePopulation", name, shape: "circle", center, radius } | { …, shape: "rect", center, size [x,z] }]`, `spawns [{ spawnId, kind: "player"|"zombie", position }]`, `externalRefs`.
 
 - Không có mảng `terrain`: mặt đất vẫn là một mặt phẳng cấp world như trước.
 - Zone chỉ có loại `zombiePopulation` (loại duy nhất có consumer: horde director), hình tròn hoặc chữ nhật (M4). Zone chồng nhau được phép. Luật gán (`game/world/zones.ts`, dùng chung cho runtime và validator): điểm nằm trong zone chữ nhật thuộc zone chữ nhật nhỏ nhất chứa nó, nếu không thì thuộc zone có tâm gần nhất (luật S5; map chỉ có zone tròn không đổi hành vi). Zone chữ nhật lang thang trong hình chữ nhật.
@@ -91,7 +91,7 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 
 - **Lỗi** (chặn nạp/export): `unsupported-schema`, `schema`, `not-finite`, `out-of-range`, `invalid-rect`, `invalid-id`, `invalid-path`, `missing-file`, `duplicate-id`, `manifest-mismatch`, `version-mismatch`, `unknown-kind`, `unknown-prefab`, `unknown-loot-table`, `rooms-need-building`, `chunk-outside-bounds`, `owner-mismatch`, `missing-external-ref`, `stale-external-ref`, `missing-player-spawn`, `spawn-outside-play-area`, `spawn-blocked` (spawn cách một collider thấp dưới 0,4 m), `retired-id-reused`.
 - `checkWorldDocuments` là bản không ném lỗi của `loadWorldDocuments` (editor dùng cho bảng Validate và bản nháp).
-- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu chồng nhau, sẽ nhấp nháy) — hai cái sau từ M4.
+- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu **cùng lớp** chồng nhau, sẽ nhấp nháy; M7: đặt lớp khác để hết) — hai cái sau từ M4; `lamp-outside-room` (M7: đèn `at` nằm ngoài phòng của nó).
 - **Kiểm tra sâu** (M6, `src/map/analysis.ts`, cảnh báo): `interaction-unreachable`, `spawn-unreachable`, `spawn-indoors`, `zone-unreachable`, `start-not-walkable`, `collider-overlap`, `container-outside-room`. Dùng NavGrid/interactable/LOS của game nên chạy trong editor, test và `npm run map:check -- --deep` (qua Vite), không trong validator Node thuần. Chưa có: zone quá dày.
 
 ## 8. Save

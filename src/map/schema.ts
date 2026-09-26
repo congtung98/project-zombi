@@ -53,8 +53,11 @@ export interface WorldDocument {
   /** Chunk edge in metres; chunk (cx, cz) covers [cx·S, (cx+1)·S) × [cz·S, (cz+1)·S). */
   chunkSize: number
   coordinateSystem: 'y-up-xz-meters'
-  /** Playable square centred on the origin (the nav grid and the drop check assume this). */
-  playArea: { size: number }
+  /**
+   * Playable rectangle: `size` (X) × `depth` (Z, default `size`) around `center` (default the
+   * origin). Nav grid, ground, fence, drop check and spawn checks all use it (M7: off-centre).
+   */
+  playArea: PlayArea
   /** Fence around the play area (collider + nav), or none. */
   boundary: { height: number; thickness: number } | null
   /** Inclusive chunk index range; every listed chunk lies inside it. */
@@ -74,6 +77,15 @@ export interface WorldDocument {
    * only: the files are the content; `map:generate` uses it to detect hand edits before overwriting.
    */
   generator?: GeneratorInfo
+}
+
+export interface PlayArea {
+  /** Extent along X (m). */
+  size: number
+  /** Extent along Z (m); omitted = `size` (a square). */
+  depth?: number
+  /** Centre; omitted = the origin. */
+  center?: XZ
 }
 
 export interface GeneratorInfo {
@@ -230,7 +242,14 @@ export interface RoadRecord {
   /** [X, Z] */
   size: [number, number]
   color: string
+  /**
+   * Draw order 0…`SURFACE_LAYER_MAX` (M7, default 0): a higher layer is drawn on top where
+   * surfaces overlap (each layer sits 1 mm higher, all below building floors).
+   */
+  layer?: number
 }
+
+export const SURFACE_LAYER_MAX = 4
 
 interface ZoneBase {
   zoneId: string

@@ -1,5 +1,5 @@
 import type { Vec3 } from '../../types'
-import { mapChunkSize, mapWindows, type MapData } from './mapData'
+import { mapBounds, mapChunkSize, mapWindows, type MapData } from './mapData'
 import type { DoorPlacement } from './buildings'
 import { DOOR_LEAF_THICKNESS, type DoorStatus } from './doors'
 import { GridSearch, type CellBounds } from './gridSearch'
@@ -83,11 +83,12 @@ export class NavGrid {
 
   constructor(map: MapData, opts: NavGridOptions) {
     this.cellSize = opts.cellSize
-    const extent = map.size + 2
-    this.cols = Math.ceil(extent / opts.cellSize)
-    this.rows = this.cols
-    this.originX = -map.size / 2 - 1
-    this.originZ = -map.size / 2 - 1
+    // One metre of margin around the play area (the fence stands there).
+    const area = mapBounds(map)
+    this.cols = Math.ceil((area.maxX - area.minX + 2) / opts.cellSize)
+    this.rows = Math.ceil((area.maxZ - area.minZ + 2) / opts.cellSize)
+    this.originX = area.minX - 1
+    this.originZ = area.minZ - 1
     this.staticBlocked = new Uint8Array(this.cols * this.rows)
     this.blocked = new Uint8Array(this.cols * this.rows)
     this.search = new GridSearch(this.cols, this.rows, this.blocked)

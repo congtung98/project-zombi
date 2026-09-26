@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { bundledWorldIds } from '../map/content'
-import { fittedPlayAreaSize, updateWorld } from '../map/editor/commands'
+import { fittedPlayArea, samePlayArea, updateWorld } from '../map/editor/commands'
 import { chunkStatuses, instancesOf, prefabItemAtPath, recordAtPath, recordForEntity, resolvedRecords } from '../map/editor/document'
 import { createPrefab, deletePrefab, duplicatePrefab } from '../map/editor/prefabCommands'
 import { PREFAB_PRESETS } from '../map/editor/prefabPresets'
 import { LAYERS } from '../map/editor/layers'
 import { RECORD_PRESETS, type PresetCategory } from '../map/editor/presets'
-import { SLUG } from '../map/transform'
+import type { Rect } from '../map/schema'
+import { playAreaRect, SLUG } from '../map/transform'
 import { deleteDraft } from './drafts'
 import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab, type PrefabTab } from './editorStore'
 import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
@@ -195,7 +196,10 @@ function ChunkPanel() {
   const run = useEditorStore((s) => s.run)
   const statuses = chunkStatuses(edit.doc, savedDoc, issues)
   const w = edit.doc.world
-  const fit = fittedPlayAreaSize(w)
+  const fit = fittedPlayArea(w)
+  const r = playAreaRect(w.playArea)
+  const f = playAreaRect(fit)
+  const describe = (a: Rect) => `${a.maxX - a.minX} × ${a.maxZ - a.minZ} m, x ${a.minX}…${a.maxX}, z ${a.minZ}…${a.maxZ}`
   return (
     <>
       <p className="hint">Click ô trống viền xám quanh world để thêm chunk {w.chunkSize} m; click chunk có sẵn để chọn. Viền: xanh = đã lưu, cam ● = đã sửa, đỏ ✕ = có lỗi.</p>
@@ -219,9 +223,9 @@ function ChunkPanel() {
         ))}
       </ul>
       <p className="hint">
-        Vùng chơi (đỏ) là hình vuông tâm gốc tọa độ: {w.playArea.size} m. Vừa với mọi chunk: {fit} m.
+        Vùng chơi (đỏ): {describe(r)}. Vừa với các chunk: {describe(f)}.
       </p>
-      <button disabled={fit === w.playArea.size} onClick={() => run('Khớp vùng chơi', (d, sel) => updateWorld(d, { playArea: { size: fittedPlayAreaSize(d.world) } }, sel))}>
+      <button disabled={samePlayArea(fit, w.playArea)} onClick={() => run('Khớp vùng chơi', (d, sel) => updateWorld(d, { playArea: fittedPlayArea(d.world) }, sel))} data-fit-play>
         Khớp vùng chơi với chunk
       </button>
     </>

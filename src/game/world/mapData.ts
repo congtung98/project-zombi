@@ -1,5 +1,7 @@
 import type { Vec3 } from '../../types'
 import { loadBundledWorld } from '../../map/content'
+import type { Rect } from '../../map/schema'
+import { playAreaRect } from '../../map/transform'
 import {
   generateRooms,
   generateWindowPlacements,
@@ -20,6 +22,13 @@ export interface RoadDef {
   /** [rộng X, sâu Z] */
   size: [number, number]
   color: string
+  /** Draw order (M7): higher is drawn on top of overlapping surfaces; omitted = 0. */
+  layer?: number
+}
+
+/** Height of a road surface: 1 mm per layer above the base, always below building floors (0.02). */
+export function roadY(road: { layer?: number }): number {
+  return 0.015 + (road.layer ?? 0) * 0.001
 }
 
 /**
@@ -43,7 +52,12 @@ export interface MapData {
   contentVersion?: number
   /** Chunk edge (m) for render batches, collider groups and nav tiles; omitted = `DEFAULT_CHUNK_SIZE`. */
   chunkSize?: number
+  /** Play area extent along X (m); a square unless `depth` is set. */
   size: number
+  /** Play area extent along Z (M7); omitted = `size`. */
+  depth?: number
+  /** Play area centre (M7); omitted = the origin. Use `mapBounds`. */
+  center?: { x: number; z: number }
   playerSpawn: Vec3
   zombieSpawns: Vec3[]
   /** Wander/migration zones; maps without zones wander around each spawn point, no migration. */
@@ -65,6 +79,11 @@ export interface MapData {
 
 /** Chunk edge of content worlds (world.json `chunkSize`) and the default for hand-made maps. */
 export const DEFAULT_CHUNK_SIZE = 32
+
+/** Play area of a map as a world rectangle (M7: may be off-centre and non-square). */
+export function mapBounds(map: MapData): Rect {
+  return playAreaRect(map)
+}
 
 export function mapChunkSize(map: MapData): number {
   return map.chunkSize ?? DEFAULT_CHUNK_SIZE

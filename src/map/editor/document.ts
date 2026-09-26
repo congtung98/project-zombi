@@ -144,6 +144,14 @@ export function withExternalRefs(doc: MapDocument): MapDocument {
  */
 const resolveCache = new WeakMap<object, WeakMap<object, WeakMap<ChunkDocument, ResolvedRecord[]>>>()
 export function resolvedRecords(doc: MapDocument): ResolvedRecord[] {
+  return resolvedChunks(doc).flatMap((c) => c.records)
+}
+
+/**
+ * Resolved records per owner chunk, in manifest order (M7: the viewport batches per chunk). A
+ * chunk's list is the same array while the chunk object, prefabs and world are unchanged.
+ */
+export function resolvedChunks(doc: MapDocument): { chunkId: string; records: readonly ResolvedRecord[] }[] {
   let byPrefabs = resolveCache.get(doc.world)
   if (!byPrefabs) {
     byPrefabs = new WeakMap()
@@ -159,7 +167,7 @@ export function resolvedRecords(doc: MapDocument): ResolvedRecord[] {
     if (!p) throw new Error(`Unknown prefab ${id}`)
     return p
   }
-  const out: ResolvedRecord[] = []
+  const out: { chunkId: string; records: readonly ResolvedRecord[] }[] = []
   for (const entry of doc.world.chunks) {
     const chunk = doc.chunks.get(entry.chunkId)
     if (!chunk) continue
@@ -168,7 +176,7 @@ export function resolvedRecords(doc: MapDocument): ResolvedRecord[] {
       list = resolveChunk(doc.world, chunk, prefab)
       perWorld.set(chunk, list)
     }
-    out.push(...list)
+    out.push({ chunkId: entry.chunkId, records: list })
   }
   return out
 }

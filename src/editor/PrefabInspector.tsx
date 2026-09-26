@@ -1,7 +1,7 @@
 import { fitFootprint, isStatefulItem, updatePrefab, updatePrefabItem, type PrefabPatch } from '../map/editor/prefabCommands'
 import { instancesOf, type AnyRecord, type MapDocument } from '../map/editor/document'
 import { wallRunBoxes } from '../map/resolve'
-import type { PrefabDocument, PrefabObject, QuarterTurns, RoomObject } from '../map/schema'
+import type { PrefabDocument, PrefabObject, QuarterTurns, RoomObject, XZ } from '../map/schema'
 import { OPTS, useEditorStore } from './editorStore'
 import { NumField, ReadField, TextField } from './fields'
 import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection } from './interaction'
@@ -130,6 +130,15 @@ function ItemFields({ doc, prefab, itemKey }: { doc: MapDocument; prefab: Prefab
           </label>
           <NumField label="Công tắc X" value={lampRoom.lamp.switchAt.x} onCommit={(x) => patch('Dời công tắc', { switchAt: { ...lampRoom.lamp!.switchAt, x } })} />
           <NumField label="Công tắc Z" value={lampRoom.lamp.switchAt.z} onCommit={(z) => patch('Dời công tắc', { switchAt: { ...lampRoom.lamp!.switchAt, z } })} />
+          <NumField label="Đèn X" value={lampAt(lampRoom).x} onCommit={(x) => patch('Dời đèn', { at: { ...lampAt(lampRoom), x } })} />
+          <NumField label="Đèn Z" value={lampAt(lampRoom).z} onCommit={(z) => patch('Dời đèn', { at: { ...lampAt(lampRoom), z } })} />
+          {lampRoom.lamp.at ? (
+            <button onClick={() => patch('Đèn về tâm phòng', { at: undefined })} data-lamp-centre>
+              Đèn về tâm phòng
+            </button>
+          ) : (
+            <p className="hint">Đèn ở tâm phòng (mặc định). Kéo ô vàng trong viewport để dời; ánh sáng vẫn tính theo cả phòng.</p>
+          )}
           <p className="hint">Công tắc là điểm tương tác (E) trong game; đặt sát tường, trong phòng.</p>
         </>
       )}
@@ -246,6 +255,11 @@ function RoomFields({ room, patch }: { room: RoomObject; patch: (label: string, 
       <p className="hint">Khung phòng nằm trên đường tâm tường. Ánh sáng tính theo phòng: cửa sổ chiếu trực tiếp, cửa mở truyền sang phòng bên.</p>
     </>
   )
+}
+
+/** Ceiling fixture of a lamp: `at`, or the room centre by default. */
+function lampAt(room: RoomObject): XZ {
+  return room.lamp?.at ?? { x: (room.bounds.minX + room.bounds.maxX) / 2, z: (room.bounds.minZ + room.bounds.maxZ) / 2 }
 }
 
 export function PrefabInspector({ prefabId }: { prefabId: string }) {
