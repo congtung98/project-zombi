@@ -13,16 +13,17 @@ import {
   Matrix4,
   Mesh,
   MeshBasicMaterial,
-  MeshStandardMaterial,
   PlaneGeometry,
   Quaternion,
   Vector3,
+  Vector4,
 } from 'three'
 import { runtime } from '../core/runtime'
 import { mapChunkSize } from '../world/mapData'
 import { cutaway, pieceShow, type PieceShow } from './cutaway'
 import { FADED_OPACITY, occlusionRegistry } from './occlusionRegistry'
-import { fadedVariant, sharedBox, sharedStandardMaterial } from './sharedResources'
+import { fadedVariant } from './sharedResources'
+import { batchSurfaceMaterial, surfaceMaterial } from './surfaces/surfaceMaterial'
 import { collectStaticItems, groupByChunk, type Shape, type StaticItem } from './staticBatchData'
 import { WIDE_KEY } from './viewChunks'
 import { useViewChunks } from './viewChunkStore'
@@ -33,7 +34,9 @@ import { useViewChunks } from './viewChunkStore'
  * walls and props (from `runtime.staticColliders`), container bodies, building floors and roofs.
  * One multi-draw per visible chunk (plus its shadow pass) replaces hundreds of draw calls; three.js
  * still culls per instance. Colours are per instance on one shared white material, so the indoor
- * lighting patch (world position incl. the batching matrix) applies unchanged.
+ * lighting patch (world position incl. the batching matrix) applies unchanged. G1: that material is
+ * the surface material (`surfaces/surfaceMaterial.ts`); each instance's surface code rides in the
+ * alpha of its colour, so textures add no draw call.
  *
  * Walls at least `OCCLUDER_MIN_HEIGHT` tall and roofs register as box occluders: the fader hides
  * the instance and shows a faded copy (a plain mesh with the shared faded material) in its place.
@@ -57,8 +60,8 @@ const UNIT: Record<Shape, BufferGeometry> = {
   crown: new SphereGeometry(0.5, 9, 6),
   cone: new ConeGeometry(0.5, 1, 10),
 }
-/** One material for every batch: white, tinted per instance. */
-const BATCH_MATERIAL = new MeshStandardMaterial({ color: '#ffffff' })
+/** One material for every batch: white, tinted per instance, surfaces per instance (G1). */
+const BATCH_MATERIAL = batchSurfaceMaterial()
 /** Casts a shadow, draws nothing (a cut or hidden piece keeps its shadow). */
 const SHADOW_ONLY = new MeshBasicMaterial({ colorWrite: false, depthWrite: false })
 /** Dev switch for the browser check (shadows with and without the proxies); always on in the game. */
@@ -133,10 +136,11 @@ class BatchedPiece {
     this.shadowBatch?.setVisibleAt(this.instance, !whole && shadowProxies)
     const showOverlay = this.faded && whole
     if (showOverlay && !this.overlay) {
-      const box = this.item.shape === 'box'
-      const m = new Mesh(box ? sharedBox(this.item.size) : UNIT[this.item.shape], fadedVariant(sharedStandardMaterial(this.item.color), FADED_OPACITY))
-      m.position.copy(this.item.center)
-      if (!box) m.scale.set(...this.item.size)
+      // G1: the same unit shape and surfaces as the batch instance, so the faded copy keeps the texture where it was.
+      const { shape, size, center, color, surface } = this.item
+      const m = new Mesh(UNIT[shape], fadedVariant(surfaceMaterial(surface, color, true), FADED_OPACITY))
+      m.position.copy(center)
+      m.scale.set(size[0], shape === 'floor' ? 1 : size[1], size[2])
       m.castShadow = true
       m.receiveShadow = true
       this.overlay = m
@@ -190,6 +194,7 @@ const matrix = new Matrix4()
 const identity = new Quaternion()
 const scale = new Vector3()
 const color = new Color()
+const colorAndSurface = new Vector4()
 
 /** One chunk's items as one batch. */
 function buildBatch(list: readonly StaticItem[], overlays: Group): ChunkBatch {
@@ -214,7 +219,8 @@ function buildBatch(list: readonly StaticItem[], overlays: Group): ChunkBatch {
     const instance = mesh.addInstance(geometry.get(item.shape)!)
     scale.set(item.size[0], item.shape === 'floor' ? 1 : item.size[1], item.size[2])
     mesh.setMatrixAt(instance, matrix.compose(item.center, identity, scale))
-    mesh.setColorAt(instance, color.set(item.color))
+    color.set(item.color)
+    mesh.setColorAt(instance, colorAndSurface.set(color.r, color.g, color.b, item.surface))
     if (shadow) {
       const twin = shadow.addInstance(shadowGeometry!.get(item.shape)!)
       shadow.setMatrixAt(twin, matrix)

@@ -8,6 +8,8 @@ import type { Rect } from '../../map/schema'
 import type { StaticColliderRegistry } from '../world/staticColliders'
 import { TREE_TRUNK_COLOR, treeProfile } from '../world/trees'
 import { itemChunkKey } from './viewChunks'
+import { packSurface } from './surfaces/catalog'
+import { outdoorSurface, PIECE_SURFACES, SLAB_SURFACE, wallSurface } from './surfaces/surfaceRules'
 
 /**
  * R3b: what `StaticBatches` draws, as plain data: every wall/prop box (from the collider registry),
@@ -43,6 +45,8 @@ export interface StaticItem {
   role?: ArchRole
   /** Source ID (walls, props, containers, slabs), for tests and the debug. */
   id?: string
+  /** G1: packed surfaces (`surfaces/catalog.packSurface`): which detail texture each face reads. */
+  surface: number
 }
 
 /** Ground cell size of the building lookup below (m). */
@@ -91,10 +95,14 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   // Tree trunks are walls (collider, nav, sight) but are drawn as trees below.
   const trunks = new Set((map.trees ?? []).map((t) => t.id))
   const props = new Set(map.walls.filter((w) => w.prop).map((w) => w.id))
+  const buildingById = new Map(map.buildings.map((b) => [b.id, b]))
   for (const w of colliders.list('wall')) {
     if (trunks.has(w.id)) continue
     const size: [number, number, number] = [round(w.max.x - w.min.x), round(w.max.y - w.min.y), round(w.max.z - w.min.z)]
     const center = new Vector3((w.min.x + w.max.x) / 2, (w.min.y + w.max.y) / 2, (w.min.z + w.max.z) / 2)
+    const buildingId = memberOf(w.id, center.x, center.z)
+    const prop = props.has(w.id)
+    const building = buildingId ? buildingById.get(buildingId) : undefined
     items.push({
       shape: 'box',
       center,
@@ -102,11 +110,12 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       color: w.color ?? DEFAULT_WALL_COLOR,
       occluder: size[1] >= OCCLUDER_MIN_HEIGHT,
       id: w.id,
-      ...member(memberOf(w.id, center.x, center.z), props.has(w.id) ? 'prop' : 'wall'),
+      surface: packSurface(prop ? PIECE_SURFACES.furniture : building ? wallSurface(center, size, building) : outdoorSurface(w.id)),
+      ...member(buildingId, prop ? 'prop' : 'wall'),
     })
   }
   for (const c of map.containers) {
-    items.push({ shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false, id: c.id, ...member(memberOf(c.id, c.position.x, c.position.z), 'container') })
+    items.push({ shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false, id: c.id, surface: packSurface(PIECE_SURFACES.furniture), ...member(memberOf(c.id, c.position.x, c.position.z), 'container') })
   }
   for (const b of map.buildings) {
     // M11a: an L/T/U building is floored and roofed piece by piece (rectangles tiling its outline).
@@ -115,7 +124,7 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       const d = piece.maxZ - piece.minZ
       const cx = (piece.minX + piece.maxX) / 2
       const cz = (piece.minZ + piece.maxZ) / 2
-      items.push({ shape: 'floor', center: new Vector3(cx, FLOOR_Y, cz), size: [w, 0, d], color: b.floorColor, occluder: false, buildingId: b.id, role: 'floor' })
+      items.push({ shape: 'floor', center: new Vector3(cx, FLOOR_Y, cz), size: [w, 0, d], color: b.floorColor, occluder: false, buildingId: b.id, role: 'floor', surface: packSurface(PIECE_SURFACES.floor) })
       // The overhang grows only the piece's outer sides, so pieces never overlap (no z-fighting).
       const o = piece.overhang
       items.push({
@@ -128,6 +137,7 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
         roofOf: b.id,
         buildingId: b.id,
         role: 'roof',
+        surface: packSurface(PIECE_SURFACES.roof),
       })
     }
   }
@@ -137,17 +147,17 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   for (const s of map.floors ?? []) {
     const w = s.rect.maxX - s.rect.minX
     const d = s.rect.maxZ - s.rect.minZ
-    items.push({ shape: 'box', center: new Vector3((s.rect.minX + s.rect.maxX) / 2, s.y - SLAB_THICKNESS / 2, (s.rect.minZ + s.rect.maxZ) / 2), size: [w, SLAB_THICKNESS, d], color: floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR, occluder: true, id: s.id, buildingId: s.buildingId, role: 'slab' })
+    items.push({ shape: 'box', center: new Vector3((s.rect.minX + s.rect.maxX) / 2, s.y - SLAB_THICKNESS / 2, (s.rect.minZ + s.rect.maxZ) / 2), size: [w, SLAB_THICKNESS, d], color: floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR, occluder: true, id: s.id, buildingId: s.buildingId, role: 'slab', surface: packSurface(SLAB_SURFACE) })
   }
   for (const s of map.stairs ?? []) {
     for (const t of stairTreads(s, floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR)) items.push({ ...t, buildingId: s.buildingId, role: 'stairs' })
   }
   for (const t of map.trees ?? []) {
     const f = treeProfile(t)
-    items.push({ shape: 'trunk', center: new Vector3(t.position.x, f.trunkHeight / 2, t.position.z), size: [2 * t.trunk, f.trunkHeight, 2 * t.trunk], color: TREE_TRUNK_COLOR, occluder: false })
+    items.push({ shape: 'trunk', center: new Vector3(t.position.x, f.trunkHeight / 2, t.position.z), size: [2 * t.trunk, f.trunkHeight, 2 * t.trunk], color: TREE_TRUNK_COLOR, occluder: false, surface: packSurface(PIECE_SURFACES.trunk) })
     const depth = f.canopyTop - f.canopyBottom
     // The canopy fades like a roof when it hides the player; it blocks nothing.
-    items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true })
+    items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true, surface: packSurface(PIECE_SURFACES.canopy) })
   }
   return items
 }
@@ -174,7 +184,7 @@ export function stairTreads(s: StairPlacement, color: string): StaticItem[] {
     const along = -s.length / 2 + (i + 0.5) * run
     const c = s.axis === 'x' ? new Vector3(cx + s.dir * along, s.bottomY + top / 2, cz) : new Vector3(cx, s.bottomY + top / 2, cz + s.dir * along)
     const size: [number, number, number] = s.axis === 'x' ? [round(run), round(top), s.width] : [s.width, round(top), round(run)]
-    out.push({ shape: 'box', center: c, size, color, occluder: false })
+    out.push({ shape: 'box', center: c, size, color, occluder: false, surface: packSurface(PIECE_SURFACES.stairs) })
   }
   return out
 }

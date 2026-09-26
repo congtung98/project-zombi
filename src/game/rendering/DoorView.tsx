@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody } from '@react-three/rapier'
-import { Color, type Group, type Mesh, type MeshStandardMaterial } from 'three'
+import { Color, type Group, type Mesh } from 'three'
 import type { DoorPlacement } from '../world/buildings'
 import { useWorldStore } from '../../stores/worldStore'
 import { runtime } from '../core/runtime'
 import { occluderRef } from './occlusionRegistry'
 import { doorLeafTransform, DOOR_LEAF_THICKNESS as LEAF_THICKNESS, DOOR_MAX_HP } from '../world/doors'
 import { cutaway, pieceShow, type Box3Like } from './cutaway'
+import { SurfaceMaterial } from './surfaces/surfaceMaterial'
 
 /** The doorway (closed leaf plane, a wall's thickness deep) as a box, for the cutaway rules. */
 function doorwayBox(door: DoorPlacement): Box3Like {
@@ -34,11 +35,14 @@ const DAMAGED_COLOR = new Color('#2e2118')
  * collider was built from the rest pose and does not move).
  * M11c-1A: the cutaway hides the leaf above the observed storey and cuts it down with its wall
  * (drawing only: the body and the collider stay).
+ * G1: wood surface in the leaf's own coordinates (the grain turns with the leaf and runs up it).
  */
 export function DoorView({ door }: DoorViewProps) {
   const state = useWorldStore((s) => s.doorStates[door.id] ?? 'closed')
   const shakeRef = useRef<Group>(null)
-  const materialRef = useRef<MeshStandardMaterial>(null)
+  // One material per leaf (its colour follows the door's HP); freed with the view.
+  const material = useMemo(() => new SurfaceMaterial({ color: '#6b4a2e' }, { surface: { a: 'wood' }, box: [door.width, door.height, LEAF_THICKNESS] }), [door.width, door.height])
+  useEffect(() => () => material.dispose(), [material])
   const leafRef = useRef<Mesh>(null)
   const knobRef = useRef<Mesh>(null)
   const cutVersion = useRef(-1)
@@ -60,8 +64,7 @@ export function DoorView({ door }: DoorViewProps) {
 
   useFrame((_, delta) => {
     const group = shakeRef.current
-    const material = materialRef.current
-    if (!group || !material) return
+    if (!group) return
     if (cutVersion.current !== cutaway.version && leafRef.current && knobRef.current) {
       cutVersion.current = cutaway.version
       const limit = cutaway.limit(door.buildingId, doorway, 'opening')
@@ -90,9 +93,8 @@ export function DoorView({ door }: DoorViewProps) {
       rotation={[0, angle, 0]}
     >
       <group ref={shakeRef}>
-        <mesh castShadow position={[door.width / 2, door.height / 2, 0]} ref={leafCallback}>
+        <mesh castShadow position={[door.width / 2, door.height / 2, 0]} ref={leafCallback} material={material}>
           <boxGeometry args={[door.width, door.height, LEAF_THICKNESS]} />
-          <meshStandardMaterial ref={materialRef} color={open ? '#8a6a45' : '#6b4a2e'} />
         </mesh>
         {/* Tay nắm cửa, phía xa bản lề. */}
         <mesh ref={knobRef} position={[door.width - 0.18, door.height / 2, LEAF_THICKNESS / 2 + 0.03]}>

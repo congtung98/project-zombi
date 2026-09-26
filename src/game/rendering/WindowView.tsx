@@ -5,11 +5,14 @@ import type { WindowPlacement } from '../world/buildings'
 import { runtime } from '../core/runtime'
 import { sharedBox, sharedStandardMaterial } from './sharedResources'
 import { cutaway, pieceShow } from './cutaway'
+import { packSurface } from './surfaces/catalog'
+import { surfaceMaterial } from './surfaces/surfaceMaterial'
 
 const GLASS_THICKNESS = 0.04
 /** R1: one glass and one curtain material for every window. */
 const GLASS = () => sharedStandardMaterial('#a9d2ea', { transparent: true, opacity: 0.32, roughness: 0.08, metalness: 0.1, depthWrite: false })
-const CURTAIN = () => sharedStandardMaterial('#7d5a6e', { roughness: 0.95 })
+/** G1: fabric surface (shared, like every curtain before). */
+const CURTAIN = () => surfaceMaterial(packSurface({ a: 'fabric' }), '#7d5a6e')
 const CURTAIN_THICKNESS = 0.05
 
 /**

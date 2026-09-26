@@ -3,6 +3,8 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { runtime } from '../core/runtime'
 import { useHudStore } from '../../stores/hudStore'
 import { useUiStore } from '../../stores/uiStore'
+import { indoorUniforms } from './indoorShading'
+import { surfaceDebug } from './surfaces/surfaceMaterial'
 
 interface GameLoopProps {
   paused: boolean
@@ -23,13 +25,16 @@ export function GameLoop({ paused }: GameLoopProps) {
 
   useFrame((_, delta) => {
     // Dev only: last frame's renderer stats for scripts/p2-render-bench.mjs (not a GPU benchmark);
-    // G0: the renderer itself for scripts/g0-graphics-baseline.mjs (config, memory counts).
+    // G0: the renderer itself for scripts/g0-graphics-baseline.mjs (config, memory counts); G1: the
+    // textures held in module uniforms (not on materials) and the surface stats.
     if (import.meta.env.DEV) {
       const r = gl.info.render
-      const w = window as unknown as { __renderInfo: object; __scene: object; __gl: object }
+      const w = window as unknown as { __renderInfo: object; __scene: object; __gl: object; __surfaces: object; __indoorMask: object }
       w.__renderInfo = { calls: r.calls, triangles: r.triangles, fps: fps.current }
       w.__scene = scene
       w.__gl = gl
+      w.__surfaces = surfaceDebug
+      w.__indoorMask = () => indoorUniforms.uVisMap.value
     }
     fpsFrames.current += 1
     fpsTime.current += delta

@@ -11,6 +11,7 @@
 //   --headed           visible browser window (frame pacing closer to a player's browser)
 //   --shadows=high|low|off, --dpr=1|1.5|2   game settings (default: high, 1)
 //   --warmup=<ms> --sample=<ms>              per scene (default 3000 / 6000)
+//   --menu-wait=<ms>   stay on the main menu this long before New Game (default 0)
 //   --compare=<dir>    pixel difference of each screenshot against another run's (reproducibility,
 //                      or before/after)
 // Needs the dev server (window.__runtime, __scene, __gl). Against a production build (vite preview)
@@ -43,25 +44,48 @@ const dpr = Number(opt('dpr', '1'))
 const warmupMs = Number(opt('warmup', '3000'))
 const sampleMs = Number(opt('sample', '6000'))
 const compareDir = opt('compare', null)
+// G1: time on the main menu before New Game (a player reads the menu; idle work such as the surface
+// textures runs meanwhile). 0 = click at once, as in G0.
+const menuWaitMs = Number(opt('menu-wait', '0'))
 const VIEWPORT = { width: 1280, height: 800 }
-const WORLD = 'graphics-lab'
 const A = 'c0_0/house-a'
 
-/** Zombies frozen for every scene (street, yard, A's kitchen, B's yard); see src/map/graphicsLab.test.ts. */
-const ZOMBIES = [[20, 23.5], [26, 25], [30, 22.5], [9, 25.5], [18, 6.2], [20.3, 9.2], [41, 36], [36, 28]]
 /**
- * Scenes: player feet (x, y, z), facing (rad, 0 = +Z), time of day, zoom, lamps switched on. Outside
- * the player faces the street (the zombies there are in sight; facing house A would look into it
- * through a window and cut it away, M11c-1B); inside it faces north.
+ * Per world: zombies frozen for every scene, and the scenes (player feet x, y, z; facing, rad, 0 = +Z;
+ * time of day; zoom; lamps switched on). `graphics-lab` is the comparison scene of the graphics plan
+ * (positions checked by src/map/graphicsLab.test.ts): outside the player faces the street (the zombies
+ * there are in sight; facing house A would look into it through a window and cut it away, M11c-1B),
+ * inside it faces north. `neighborhood-50` (G1: `--world=neighborhood-50`) is the check before rollout.
  */
-const SCENES = [
-  { name: 'day-outside', at: [15, 0, 20.3], facing: Math.PI / 4, time: 0.5 },
-  { name: 'day-inside', at: [13, 0, 13.5], facing: Math.PI, time: 0.5 },
-  { name: 'day-upstairs', at: [15, 3, 13.5], facing: Math.PI, time: 0.5 },
-  { name: 'day-wide', at: [24, 0, 24], facing: Math.PI / 4, time: 0.5, zoom: 14 },
-  { name: 'night-outside', at: [15, 0, 20.3], facing: Math.PI / 4, time: 0.0 },
-  { name: 'night-inside-lamp', at: [13, 0, 13.5], facing: Math.PI, time: 0.0, lamps: [`${A}/lamp-living`, `${A}/lamp-kitchen`] },
-]
+const WORLDS = {
+  'graphics-lab': {
+    zombies: [[20, 23.5], [26, 25], [30, 22.5], [9, 25.5], [18, 6.2], [20.3, 9.2], [41, 36], [36, 28]],
+    scenes: [
+      { name: 'day-outside', at: [15, 0, 20.3], facing: Math.PI / 4, time: 0.5 },
+      { name: 'day-inside', at: [13, 0, 13.5], facing: Math.PI, time: 0.5 },
+      { name: 'day-upstairs', at: [15, 3, 13.5], facing: Math.PI, time: 0.5 },
+      { name: 'day-wide', at: [24, 0, 24], facing: Math.PI / 4, time: 0.5, zoom: 14 },
+      { name: 'night-outside', at: [15, 0, 20.3], facing: Math.PI / 4, time: 0.0 },
+      { name: 'night-inside-lamp', at: [13, 0, 13.5], facing: Math.PI, time: 0.0, lamps: [`${A}/lamp-living`, `${A}/lamp-kitchen`] },
+      // G1: the closest zoom (60 px/m) at A's front path, for texture scale and filtering.
+      { name: 'day-close', at: [16.5, 0, 18.3], facing: Math.PI / 4, time: 0.5, zoom: 60 },
+    ],
+  },
+  'neighborhood-50': {
+    zombies: [[4, 6], [7, 3], [-3, 7], [6, -5]],
+    scenes: [
+      { name: 'n-day-street', at: [3, 0, 3], facing: Math.PI / 4, time: 0.5 },
+      { name: 'n-day-safehouse', at: [-13, 0, -13], facing: Math.PI, time: 0.5 },
+      { name: 'n-day-house', at: [11, 0, 12], facing: Math.PI, time: 0.5 },
+      { name: 'n-day-wide', at: [0, 0, 0], facing: Math.PI / 4, time: 0.5, zoom: 14 },
+      { name: 'n-night-street', at: [3, 0, 3], facing: Math.PI / 4, time: 0.0 },
+    ],
+  },
+}
+const WORLD = opt('world', 'graphics-lab')
+if (!WORLDS[WORLD]) throw new Error(`no scenes for world ${WORLD} (${Object.keys(WORLDS).join(', ')})`)
+const ZOMBIES = WORLDS[WORLD].zombies
+const SCENES = WORLDS[WORLD].scenes
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const launchArgs = gpu
@@ -94,9 +118,11 @@ function pageResources() {
     if (!t || !t.isTexture || textures.has(t.uuid)) return
     const w = t.image?.width ?? 0
     const h = t.image?.height ?? 0
+    // Array textures (G1 surfaces): every layer.
+    const layers = t.isDataArrayTexture ? (t.image?.depth ?? 1) : 1
     const texel = t.type === 1020 ? 4 : (channels[t.format] ?? 4) * (bytesPerChannel[t.type] ?? 1)
     const mip = t.generateMipmaps && MIPMAP.has(t.minFilter) ? 4 / 3 : 1
-    textures.set(t.uuid, { source, w, h, bytes: Math.round(w * h * texel * mip) })
+    textures.set(t.uuid, { source, w, h, bytes: Math.round(w * h * layers * texel * mip) })
   }
   const geometries = new Set()
   const materials = new Set()
@@ -137,7 +163,11 @@ function pageResources() {
       if (m.uniforms) for (const u of Object.values(m.uniforms)) addTex(u?.value, 'uniform')
     }
   })
-  for (const t of window.__g0ExtraTextures ?? []) addTex(t, 'indoor-mask')
+  // G1 dev hooks: the mask and the surface texture array (placeholder until generated) as held now.
+  if (window.__indoorMask) addTex(window.__indoorMask(), 'indoor-mask')
+  else for (const t of window.__g0ExtraTextures ?? []) addTex(t, 'indoor-mask')
+  const surfaces = window.__surfaces?.() ?? null
+  if (surfaces?.texture) addTex(surfaces.texture, 'surfaces')
   let geometryBytes = 0
   for (const g of geometries) {
     for (const a of Object.values(g.attributes)) geometryBytes += a.array?.byteLength ?? 0
@@ -159,6 +189,7 @@ function pageResources() {
       geometry: geometryBytes,
     },
     jsHeapBytes: performance.memory?.usedJSHeapSize ?? null,
+    surfaces: surfaces ? { ...surfaces, texture: surfaces.texture ? [surfaces.texture.image.width, surfaces.texture.image.depth ?? 1] : null } : null,
   }
 }
 
@@ -278,6 +309,8 @@ try {
   await page.reload()
   await menu()
   report.load.warm = { menuMs: Date.now() - t, ...(await transfer()) }
+  if (menuWaitMs) await page.waitForTimeout(menuWaitMs)
+  report.load.menuWaitMs = menuWaitMs
   t = Date.now()
   await page.getByRole('button', { name: 'New Game', exact: true }).click()
   await page.waitForFunction(() => document.body.innerText.includes('Tạo nhân vật'))
@@ -290,8 +323,11 @@ try {
   if (!dev) {
     report.note = 'No dev hooks (production build): load only.'
   } else {
-    // The indoor mask texture lives in a module uniform, not on a material: hand it to the counter.
+    // The indoor mask texture lives in a module uniform, not on a material: builds without the G1 dev
+    // hook (__indoorMask) hand it to the counter here. Imported by URL, so only reliable on a
+    // freshly started dev server (edited modules are served with ?t=… and would be other instances).
     await page.evaluate(async () => {
+      if (window.__indoorMask) return
       const { indoorUniforms } = await import('/src/game/rendering/indoorShading.ts')
       window.__g0ExtraTextures = [indoorUniforms.uVisMap.value]
     })
@@ -364,10 +400,11 @@ try {
       console.log(`${scene.name.padEnd(18)} frame median ${entry.frameMs?.median} p95 ${entry.frameMs?.p95} ms | cpu median ${entry.cpuMs?.median} | calls ${entry.drawCalls?.median} | tris ${entry.triangles?.median} | textures ${resources.rendererMemory.textures} geometries ${resources.rendererMemory.geometries}${entry.compare ? ` | diff ${entry.compare.changedShare}%` : ''}`)
     }
 
-    // Lifecycle: in and out of house A ten times, day and night; renderer counts must come back.
+    // Lifecycle: the first three scenes (in and out of a building) ten times, day and night; renderer
+    // counts must come back.
     const before = await page.evaluate(() => ({ ...window.__gl.info.memory, programs: window.__gl.info.programs?.length ?? null }))
     for (let i = 0; i < 10; i++) {
-      for (const [x, y, z, time] of [[13, 0, 13.5, 0.5], [15, 3, 13.5, 0.0], [15, 0, 20.3, 0.5]]) {
+      for (const [x, y, z, time] of SCENES.slice(0, 3).map((s, j) => [...s.at, j === 1 ? 0.0 : 0.5])) {
         await page.evaluate(([x, y, z, time]) => {
           const rt = window.__runtime
           rt.player.position = { x, y, z }

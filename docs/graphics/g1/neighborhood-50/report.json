@@ -1,0 +1,688 @@
+{
+  "label": "g1-n50",
+  "date": "2026-09-26T16:37:23.696Z",
+  "world": "neighborhood-50",
+  "environment": {
+    "machine": {
+      "cpu": "11th Gen Intel(R) Core(TM) i5-11500 @ 2.70GHz",
+      "cores": 12,
+      "memoryGB": 16,
+      "os": "win32 10.0.26200"
+    },
+    "browser": {
+      "version": "154.0.8037.57",
+      "headless": true,
+      "gpuMode": "ANGLE D3D11 (hardware)",
+      "args": [
+        "--use-angle=d3d11",
+        "--enable-gpu",
+        "--ignore-gpu-blocklist"
+      ]
+    },
+    "server": "http://127.0.0.1:5173",
+    "three": "0.186.0",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "deviceScaleFactor": 1,
+    "settings": {
+      "shadows": "high",
+      "maxPixelRatio": 1,
+      "visionOverlay": true
+    },
+    "warmupMs": 3000,
+    "sampleMs": 6000,
+    "zombies": 4,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+    "gpuRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002504) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "gpuVendor": "Google Inc. (NVIDIA)",
+    "devicePixelRatio": 1,
+    "renderer": {
+      "pixelRatio": 1,
+      "drawingBuffer": [
+        1280,
+        800
+      ],
+      "msaaSamples": 4,
+      "maxTextureSize": 16384,
+      "toneMapping": "ACESFilmic",
+      "toneMappingExposure": 1,
+      "outputColorSpace": "srgb",
+      "shadowMap": {
+        "enabled": true,
+        "type": "PCF"
+      }
+    },
+    "camera": {
+      "offset": {
+        "x": 20,
+        "y": 24,
+        "z": 20
+      },
+      "zoomDefault": 28,
+      "projection": "orthographic (px per m = zoom)"
+    }
+  },
+  "load": {
+    "cold": {
+      "menuMs": 660,
+      "requests": 161,
+      "transferBytes": 32046051,
+      "encodedBytes": 31997751,
+      "decodedBytes": 31997751,
+      "domContentLoadedMs": 173,
+      "loadEventMs": 175
+    },
+    "warm": {
+      "menuMs": 237,
+      "requests": 161,
+      "transferBytes": 43500,
+      "encodedBytes": 28733975,
+      "decodedBytes": 28733975,
+      "domContentLoadedMs": 43,
+      "loadEventMs": 44
+    },
+    "startGameMs": 1200
+  },
+  "scenes": [
+    {
+      "scene": "n-day-street",
+      "screenshot": "docs\\graphics\\g1\\neighborhood-50\\n-day-street.jpg",
+      "state": {
+        "player": {
+          "x": 3,
+          "y": 0,
+          "z": 3
+        },
+        "zoom": 28,
+        "timeOfDay": 0.501,
+        "zombiesAlive": 4,
+        "cutaway": {
+          "building": null,
+          "level": null,
+          "floorY": null,
+          "ceilingY": null,
+          "wallTopY": null,
+          "peeks": [
+            "c0_0/house"
+          ],
+          "version": 11,
+          "hidden": 2,
+          "cut": 4,
+          "shadows": 6,
+          "ms": 0.29999999701976776
+        }
+      },
+      "frameMs": {
+        "n": 965,
+        "mean": 6.24,
+        "median": 6.1,
+        "p95": 9,
+        "p99": 11.3,
+        "max": 15.3
+      },
+      "fpsFromMean": 160.3,
+      "cpuMs": {
+        "n": 965,
+        "mean": 3.98,
+        "median": 3.6,
+        "p95": 7.3,
+        "p99": 8.5,
+        "max": 9.4
+      },
+      "drawCalls": {
+        "n": 965,
+        "mean": 118,
+        "median": 118,
+        "p95": 118,
+        "p99": 118,
+        "max": 118
+      },
+      "triangles": {
+        "n": 965,
+        "mean": 2948,
+        "median": 2948,
+        "p95": 2948,
+        "p99": 2948,
+        "max": 2948
+      },
+      "counts": {
+        "objects": 492,
+        "meshes": 211,
+        "visibleMeshes": 99,
+        "batchedMeshes": 8,
+        "batchedInstances": 138,
+        "instancedMeshes": 0,
+        "lights": 3,
+        "shadowLights": 1,
+        "shadowCasters": 70,
+        "transparentMeshes": 7,
+        "uniqueGeometries": 60,
+        "uniqueMaterials": 113,
+        "uniqueTextures": 26
+      },
+      "rendererMemory": {
+        "geometries": 32,
+        "textures": 27,
+        "programs": 12
+      },
+      "estimateBytes": {
+        "textures": 39077132,
+        "texturesBySource": {
+          "shadow-map": 16777216,
+          "shadow-depth": 16777216,
+          "batch-matrices": 15104,
+          "batch-colors": 1408,
+          "batch-indirect": 652,
+          "uniform": 512,
+          "indoor-mask": 262144,
+          "surfaces": 5242880
+        },
+        "framebuffer": 36864000,
+        "geometry": 48440
+      },
+      "jsHeapBytes": 89242152,
+      "surfaces": {
+        "layers": 15,
+        "size": 256,
+        "buildMs": 186.69999998807907,
+        "blockingMs": 0.09999999403953552,
+        "warmedLayers": 15,
+        "bytes": 5242880,
+        "builds": 1,
+        "materials": 4,
+        "texture": [
+          256,
+          15
+        ]
+      },
+      "compare": {
+        "against": "node_modules\\.tmp\\graphics\\g0-n50-before\\n-day-street.png",
+        "sameSize": true,
+        "changedShare": 0.31,
+        "meanAbsDiff": 3.51
+      }
+    },
+    {
+      "scene": "n-day-safehouse",
+      "screenshot": "docs\\graphics\\g1\\neighborhood-50\\n-day-safehouse.jpg",
+      "state": {
+        "player": {
+          "x": -13,
+          "y": 0,
+          "z": -13
+        },
+        "zoom": 28,
+        "timeOfDay": 0.501,
+        "zombiesAlive": 4,
+        "cutaway": {
+          "building": "c-1_-1/safehouse",
+          "level": 0,
+          "floorY": 0,
+          "ceilingY": 2.8,
+          "wallTopY": 0.6,
+          "peeks": [],
+          "version": 13,
+          "hidden": 3,
+          "cut": 5,
+          "shadows": 8,
+          "ms": 0
+        }
+      },
+      "frameMs": {
+        "n": 976,
+        "mean": 6.16,
+        "median": 6.1,
+        "p95": 8,
+        "p99": 11.5,
+        "max": 17.5
+      },
+      "fpsFromMean": 162.5,
+      "cpuMs": {
+        "n": 976,
+        "mean": 3.39,
+        "median": 3.1,
+        "p95": 6.1,
+        "p99": 7.1,
+        "max": 7.4
+      },
+      "drawCalls": {
+        "n": 976,
+        "mean": 51,
+        "median": 51,
+        "p95": 51,
+        "p99": 51,
+        "max": 51
+      },
+      "triangles": {
+        "n": 976,
+        "mean": 1974,
+        "median": 1974,
+        "p95": 1974,
+        "p99": 1974,
+        "max": 1974
+      },
+      "counts": {
+        "objects": 289,
+        "meshes": 112,
+        "visibleMeshes": 56,
+        "batchedMeshes": 8,
+        "batchedInstances": 138,
+        "instancedMeshes": 0,
+        "lights": 3,
+        "shadowLights": 1,
+        "shadowCasters": 38,
+        "transparentMeshes": 6,
+        "uniqueGeometries": 44,
+        "uniqueMaterials": 57,
+        "uniqueTextures": 26
+      },
+      "rendererMemory": {
+        "geometries": 32,
+        "textures": 27,
+        "programs": 12
+      },
+      "estimateBytes": {
+        "textures": 39077132,
+        "texturesBySource": {
+          "shadow-map": 16777216,
+          "shadow-depth": 16777216,
+          "batch-matrices": 15104,
+          "batch-colors": 1408,
+          "batch-indirect": 652,
+          "uniform": 512,
+          "indoor-mask": 262144,
+          "surfaces": 5242880
+        },
+        "framebuffer": 36864000,
+        "geometry": 35000
+      },
+      "jsHeapBytes": 94271433,
+      "surfaces": {
+        "layers": 15,
+        "size": 256,
+        "buildMs": 186.69999998807907,
+        "blockingMs": 0.09999999403953552,
+        "warmedLayers": 15,
+        "bytes": 5242880,
+        "builds": 1,
+        "materials": 4,
+        "texture": [
+          256,
+          15
+        ]
+      },
+      "compare": {
+        "against": "node_modules\\.tmp\\graphics\\g0-n50-before\\n-day-safehouse.png",
+        "sameSize": true,
+        "changedShare": 0.26,
+        "meanAbsDiff": 2.85
+      }
+    },
+    {
+      "scene": "n-day-house",
+      "screenshot": "docs\\graphics\\g1\\neighborhood-50\\n-day-house.jpg",
+      "state": {
+        "player": {
+          "x": 11,
+          "y": 0,
+          "z": 12
+        },
+        "zoom": 28,
+        "timeOfDay": 0.501,
+        "zombiesAlive": 4,
+        "cutaway": {
+          "building": "c0_0/house",
+          "level": 0,
+          "floorY": 0,
+          "ceilingY": 2.8,
+          "wallTopY": 0.6,
+          "peeks": [],
+          "version": 14,
+          "hidden": 2,
+          "cut": 4,
+          "shadows": 6,
+          "ms": 0.09999999403953552
+        }
+      },
+      "frameMs": {
+        "n": 973,
+        "mean": 6.17,
+        "median": 6.1,
+        "p95": 8,
+        "p99": 10.9,
+        "max": 13.8
+      },
+      "fpsFromMean": 162.1,
+      "cpuMs": {
+        "n": 973,
+        "mean": 3.46,
+        "median": 3.2,
+        "p95": 6.2,
+        "p99": 7,
+        "max": 8.6
+      },
+      "drawCalls": {
+        "n": 973,
+        "mean": 55,
+        "median": 55,
+        "p95": 55,
+        "p99": 55,
+        "max": 55
+      },
+      "triangles": {
+        "n": 973,
+        "mean": 2082,
+        "median": 2082,
+        "p95": 2082,
+        "p99": 2082,
+        "max": 2082
+      },
+      "counts": {
+        "objects": 289,
+        "meshes": 112,
+        "visibleMeshes": 57,
+        "batchedMeshes": 8,
+        "batchedInstances": 138,
+        "instancedMeshes": 0,
+        "lights": 3,
+        "shadowLights": 1,
+        "shadowCasters": 38,
+        "transparentMeshes": 7,
+        "uniqueGeometries": 44,
+        "uniqueMaterials": 57,
+        "uniqueTextures": 26
+      },
+      "rendererMemory": {
+        "geometries": 32,
+        "textures": 27,
+        "programs": 12
+      },
+      "estimateBytes": {
+        "textures": 39077132,
+        "texturesBySource": {
+          "shadow-map": 16777216,
+          "shadow-depth": 16777216,
+          "batch-matrices": 15104,
+          "batch-colors": 1408,
+          "batch-indirect": 652,
+          "uniform": 512,
+          "indoor-mask": 262144,
+          "surfaces": 5242880
+        },
+        "framebuffer": 36864000,
+        "geometry": 35000
+      },
+      "jsHeapBytes": 91733174,
+      "surfaces": {
+        "layers": 15,
+        "size": 256,
+        "buildMs": 186.69999998807907,
+        "blockingMs": 0.09999999403953552,
+        "warmedLayers": 15,
+        "bytes": 5242880,
+        "builds": 1,
+        "materials": 4,
+        "texture": [
+          256,
+          15
+        ]
+      },
+      "compare": {
+        "against": "node_modules\\.tmp\\graphics\\g0-n50-before\\n-day-house.png",
+        "sameSize": true,
+        "changedShare": 0.28,
+        "meanAbsDiff": 2.85
+      }
+    },
+    {
+      "scene": "n-day-wide",
+      "screenshot": "docs\\graphics\\g1\\neighborhood-50\\n-day-wide.jpg",
+      "state": {
+        "player": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "zoom": 14,
+        "timeOfDay": 0.501,
+        "zombiesAlive": 4,
+        "cutaway": {
+          "building": null,
+          "level": null,
+          "floorY": null,
+          "ceilingY": null,
+          "wallTopY": null,
+          "peeks": [],
+          "version": 15,
+          "hidden": 0,
+          "cut": 0,
+          "shadows": 0,
+          "ms": 0.20000000298023224
+        }
+      },
+      "frameMs": {
+        "n": 971,
+        "mean": 6.19,
+        "median": 6.1,
+        "p95": 8.2,
+        "p99": 10.2,
+        "max": 13.3
+      },
+      "fpsFromMean": 161.5,
+      "cpuMs": {
+        "n": 971,
+        "mean": 3.72,
+        "median": 3.4,
+        "p95": 6.7,
+        "p99": 7.4,
+        "max": 8.2
+      },
+      "drawCalls": {
+        "n": 971,
+        "mean": 96,
+        "median": 96,
+        "p95": 96,
+        "p99": 96,
+        "max": 96
+      },
+      "triangles": {
+        "n": 971,
+        "mean": 2708,
+        "median": 2708,
+        "p95": 2708,
+        "p99": 2708,
+        "max": 2708
+      },
+      "counts": {
+        "objects": 289,
+        "meshes": 112,
+        "visibleMeshes": 78,
+        "batchedMeshes": 8,
+        "batchedInstances": 138,
+        "instancedMeshes": 0,
+        "lights": 3,
+        "shadowLights": 1,
+        "shadowCasters": 38,
+        "transparentMeshes": 7,
+        "uniqueGeometries": 44,
+        "uniqueMaterials": 57,
+        "uniqueTextures": 26
+      },
+      "rendererMemory": {
+        "geometries": 33,
+        "textures": 27,
+        "programs": 12
+      },
+      "estimateBytes": {
+        "textures": 39077132,
+        "texturesBySource": {
+          "shadow-map": 16777216,
+          "shadow-depth": 16777216,
+          "batch-matrices": 15104,
+          "batch-colors": 1408,
+          "batch-indirect": 652,
+          "uniform": 512,
+          "indoor-mask": 262144,
+          "surfaces": 5242880
+        },
+        "framebuffer": 36864000,
+        "geometry": 35000
+      },
+      "jsHeapBytes": 107722655,
+      "surfaces": {
+        "layers": 15,
+        "size": 256,
+        "buildMs": 186.69999998807907,
+        "blockingMs": 0.09999999403953552,
+        "warmedLayers": 15,
+        "bytes": 5242880,
+        "builds": 1,
+        "materials": 4,
+        "texture": [
+          256,
+          15
+        ]
+      },
+      "compare": {
+        "against": "node_modules\\.tmp\\graphics\\g0-n50-before\\n-day-wide.png",
+        "sameSize": true,
+        "changedShare": 0.33,
+        "meanAbsDiff": 2.33
+      }
+    },
+    {
+      "scene": "n-night-street",
+      "screenshot": "docs\\graphics\\g1\\neighborhood-50\\n-night-street.jpg",
+      "state": {
+        "player": {
+          "x": 3,
+          "y": 0,
+          "z": 3
+        },
+        "zoom": 28,
+        "timeOfDay": 0.001,
+        "zombiesAlive": 4,
+        "cutaway": {
+          "building": null,
+          "level": null,
+          "floorY": null,
+          "ceilingY": null,
+          "wallTopY": null,
+          "peeks": [
+            "c0_0/house"
+          ],
+          "version": 16,
+          "hidden": 2,
+          "cut": 4,
+          "shadows": 6,
+          "ms": 0.20000000298023224
+        }
+      },
+      "frameMs": {
+        "n": 970,
+        "mean": 6.21,
+        "median": 6.1,
+        "p95": 8.5,
+        "p99": 11.3,
+        "max": 15.7
+      },
+      "fpsFromMean": 161.1,
+      "cpuMs": {
+        "n": 970,
+        "mean": 3.72,
+        "median": 3.5,
+        "p95": 6.6,
+        "p99": 7.4,
+        "max": 9.3
+      },
+      "drawCalls": {
+        "n": 970,
+        "mean": 88,
+        "median": 88,
+        "p95": 88,
+        "p99": 88,
+        "max": 88
+      },
+      "triangles": {
+        "n": 970,
+        "mean": 2588,
+        "median": 2588,
+        "p95": 2588,
+        "p99": 2588,
+        "max": 2588
+      },
+      "counts": {
+        "objects": 289,
+        "meshes": 112,
+        "visibleMeshes": 77,
+        "batchedMeshes": 8,
+        "batchedInstances": 138,
+        "instancedMeshes": 0,
+        "lights": 3,
+        "shadowLights": 1,
+        "shadowCasters": 38,
+        "transparentMeshes": 7,
+        "uniqueGeometries": 44,
+        "uniqueMaterials": 57,
+        "uniqueTextures": 26
+      },
+      "rendererMemory": {
+        "geometries": 33,
+        "textures": 27,
+        "programs": 12
+      },
+      "estimateBytes": {
+        "textures": 39077132,
+        "texturesBySource": {
+          "shadow-map": 16777216,
+          "shadow-depth": 16777216,
+          "batch-matrices": 15104,
+          "batch-colors": 1408,
+          "batch-indirect": 652,
+          "uniform": 512,
+          "indoor-mask": 262144,
+          "surfaces": 5242880
+        },
+        "framebuffer": 36864000,
+        "geometry": 35000
+      },
+      "jsHeapBytes": 96152366,
+      "surfaces": {
+        "layers": 15,
+        "size": 256,
+        "buildMs": 186.69999998807907,
+        "blockingMs": 0.09999999403953552,
+        "warmedLayers": 15,
+        "bytes": 5242880,
+        "builds": 1,
+        "materials": 4,
+        "texture": [
+          256,
+          15
+        ]
+      },
+      "compare": {
+        "against": "node_modules\\.tmp\\graphics\\g0-n50-before\\n-night-street.png",
+        "sameSize": true,
+        "changedShare": 8.24,
+        "meanAbsDiff": 5.08
+      }
+    }
+  ],
+  "lifecycle": {
+    "cycles": 10,
+    "before": {
+      "geometries": 33,
+      "textures": 27,
+      "programs": 12
+    },
+    "after": {
+      "geometries": 33,
+      "textures": 27,
+      "programs": 12
+    }
+  },
+  "errors": []
+}

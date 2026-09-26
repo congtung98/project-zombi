@@ -112,11 +112,16 @@ for (int i = 0; i < INDOOR_MAX_ROOMS; i++) {
 #include <opaque_fragment>
 `
 
-const PROGRAM_KEY = 'indoor-lighting-v4'
+export const INDOOR_PROGRAM_KEY = 'indoor-lighting-v4'
+const PROGRAM_KEY = INDOOR_PROGRAM_KEY
 
 type Shader = Parameters<MeshStandardMaterial['onBeforeCompile']>[0]
 
-function applyIndoorShader(shader: Shader): void {
+/**
+ * The patch itself. G1: a material with its own `onBeforeCompile` (the surface materials) calls it
+ * first and sets `chainsIndoorShading`, so it keeps the room light and the interior mask.
+ */
+export function applyIndoorShader(shader: Shader): void {
   Object.assign(shader.uniforms, indoorUniforms)
   shader.vertexShader = shader.vertexShader.replace('#include <common>', VERTEX_DECL).replace('#include <project_vertex>', VERTEX_APPLY)
   shader.fragmentShader = shader.fragmentShader.replace('#include <common>', FRAGMENT_DECL).replace('#include <opaque_fragment>', FRAGMENT_APPLY)
@@ -139,5 +144,5 @@ export function installIndoorShading(): void {
 
 /** True when this material compiles with the indoor patch (the prototype's, not its own hook). */
 export function hasIndoorShading(material: MeshStandardMaterial): boolean {
-  return installed && material.onBeforeCompile === applyIndoorShader
+  return installed && (material.onBeforeCompile === applyIndoorShader || (material as { chainsIndoorShading?: boolean }).chainsIndoorShading === true)
 }
