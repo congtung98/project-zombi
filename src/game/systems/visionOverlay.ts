@@ -51,7 +51,8 @@ export function computeSectorDistances(
   out: Float32Array,
 ): Float32Array {
   const range = sectorRange(vision)
-  const y = (vision.playerEyeHeight + vision.zombieTargetHeight) / 2
+  // M11c-1A: from the storey the player stands on (feet height), not from the ground.
+  const y = position.y + (vision.playerEyeHeight + vision.zombieTargetHeight) / 2
   const from: Vec3 = { x: position.x, y, z: position.z }
   const to: Vec3 = { x: 0, y, z: 0 }
   for (let i = 0; i < out.length; i++) {

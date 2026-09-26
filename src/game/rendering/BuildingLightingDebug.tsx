@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
-import { BufferAttribute, BufferGeometry, LineBasicMaterial, LineSegments } from 'three'
+import { BufferAttribute, BufferGeometry, LineBasicMaterial, LineSegments, type Group } from 'three'
 import { runtime } from '../core/runtime'
 import { OUTDOOR, doorTransmission, windowContribution } from '../lighting/buildingLighting'
 import { mapWindows } from '../world/mapData'
 import type { LightingEdge } from '../lighting/buildingLighting'
 import { outlineCentre } from '../../map/polygon'
+import { cutaway } from './cutaway'
 
 const Y = 0.09
 const CFG = runtime.config.buildingLighting
@@ -23,6 +24,8 @@ function levelColor(level: number): [number, number, number] {
  * propagated, artificial, final), per door (transmission, rooms joined) and per window (exposure),
  * and the room graph (room centre → door → room centre / outdoors). Reads lighting only; mounted
  * only while enabled. Plain lines (no lights, no lit materials).
+ * M11c-1A: only the storey the player looks at (the cutaway's; the ground floor of other buildings),
+ * plus a label on the player with the cutaway state (building, storey, heights, pieces, room).
  */
 export function BuildingLightingDebug() {
   const buildings = useMemo(() => Array.from(runtime.lighting.allBuildings()), [])
@@ -31,8 +34,10 @@ export function BuildingLightingDebug() {
   const roomLabels = useRef<(HTMLDivElement | null)[]>([])
   const doorLabels = useRef<(HTMLDivElement | null)[]>([])
   const windowLabels = useRef<(HTMLDivElement | null)[]>([])
-  const revision = useRef(-1)
+  const revision = useRef({ lighting: -1, cutaway: -1 })
   const edges = useMemo(() => buildings.flatMap((b) => b.edges), [buildings])
+  const cutawayLabel = useRef<HTMLDivElement | null>(null)
+  const cutawayAnchor = useRef<Group>(null)
 
   const lines = useMemo(() => {
     // Room outlines (4 segments each, M11a: one per outline edge) + graph (2 segments per edge).
@@ -66,9 +71,27 @@ export function BuildingLightingDebug() {
     return { name: 'Cầu thang', center, alongX: s.axis === 'z' }
   }
 
+  const roomShown = (id: string) => {
+    const r = rooms.find((x) => x.id === id)
+    return !r || cutaway.storeyShown(r.buildingId, r.floorY ?? 0)
+  }
+
   useFrame(() => {
-    if (runtime.lighting.revision === revision.current) return
-    revision.current = runtime.lighting.revision
+    const p = runtime.player.position
+    cutawayAnchor.current?.position.set(p.x, p.y + 2.3, p.z)
+    const rev = revision.current
+    if (cutawayLabel.current) {
+      const v = cutaway.view
+      const room = runtime.lighting.getRoomAtPosition(p)
+      const s = cutaway.stats
+      const text = v
+        ? `Cắt lớp: ${v.buildingId} · tầng ${v.level} (sàn ${v.floorY.toFixed(1)})\nẩn từ ${v.ceilingY.toFixed(1)} m · tường cắt ở ${v.wallTopY.toFixed(1)} m\nmảnh ẩn ${s.hidden} · cắt ${s.cut} · giữ bóng ${s.shadows} (${s.ms.toFixed(2)} ms)\nphòng: ${room?.name ?? '—'}`
+        : `Cắt lớp: không (ngoài nhà)\nphòng: ${room?.name ?? '—'}`
+      if (cutawayLabel.current.textContent !== text) cutawayLabel.current.textContent = text
+    }
+    if (runtime.lighting.revision === rev.lighting && cutaway.version === rev.cutaway) return
+    rev.lighting = runtime.lighting.revision
+    rev.cutaway = cutaway.version
     const pos = lines.geometry.getAttribute('position') as BufferAttribute
     const col = lines.geometry.getAttribute('color') as BufferAttribute
     let v = 0
@@ -80,6 +103,14 @@ export function BuildingLightingDebug() {
     }
     rooms.forEach((r, i) => {
       const light = runtime.lighting.getRoomLight(r.id)
+      const shown = roomShown(r.id)
+      const el = roomLabels.current[i]
+      if (el) el.style.display = shown ? '' : 'none'
+      if (!shown) {
+        // Degenerate segments keep the buffer layout.
+        for (let k = 0; k < (r.outline?.length ?? 4); k++) seg(0, 0, 0, 0, [0, 0, 0], -1000)
+        return
+      }
       const c = levelColor(light?.finalLightLevel ?? 0)
       const b = r.bounds
       const e = 0.12 // inset so neighbouring rooms stay distinct
@@ -93,13 +124,21 @@ export function BuildingLightingDebug() {
         seg(b.maxX - e, b.maxZ - e, b.minX + e, b.maxZ - e, c, y)
         seg(b.minX + e, b.maxZ - e, b.minX + e, b.minZ + e, c, y)
       }
-      const el = roomLabels.current[i]
       if (el && light) {
         el.textContent = `${r.name}\nDirect: ${light.directOutdoorLight.toFixed(2)}\nPropagated: ${light.propagatedLight.toFixed(2)}\nArtificial: ${light.artificialLight.toFixed(2)}\nFinal: ${light.finalLightLevel.toFixed(2)}`
       }
     })
     edges.forEach((edge, i) => {
       const door = openingOf(edge)
+      // A stairwell joins two storeys: drawn from either.
+      const shown = [edge.a, edge.b].filter((id) => id !== OUTDOOR).some(roomShown)
+      const label = doorLabels.current[i]
+      if (label) label.style.display = shown ? '' : 'none'
+      if (!shown) {
+        seg(0, 0, 0, 0, [0, 0, 0], -1000)
+        seg(0, 0, 0, 0, [0, 0, 0], -1000)
+        return
+      }
       const state = runtime.world.doors.get(edge.doorId)?.state ?? 'open'
       const t = edge.transmission ?? doorTransmission(state, CFG)
       const c: [number, number, number] = t >= 0.5 ? [0.45, 0.8, 1] : [0.55, 0.55, 0.6]
@@ -122,6 +161,9 @@ export function BuildingLightingDebug() {
       const lw = buildings.flatMap((b) => b.windows).find((x) => x.id === w.id)
       const el = windowLabels.current[i]
       if (!el || !lw) return
+      const shown = cutaway.storeyShown(w.buildingId, w.center.y - (w.sill + w.head) / 2)
+      el.style.display = shown ? '' : 'none'
+      if (!shown) return
       const closed = runtime.world.curtains.get(w.id) === true
       el.textContent = `${w.name}\nexposure ${windowContribution(outdoor, lw, closed, 1, CFG).toFixed(2)}${closed ? ' (rèm)' : ''}`
     })
@@ -130,6 +172,11 @@ export function BuildingLightingDebug() {
   return (
     <>
       <primitive object={lines} />
+      <group ref={cutawayAnchor}>
+        <Html center zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+          <div ref={cutawayLabel} className="lighting-debug-label cutaway-debug-label" />
+        </Html>
+      </group>
       {rooms.map((r, i) => (
         <Html key={r.id} position={[centerOf(r.id)!.x, floorOf(r.id) + 2.6, centerOf(r.id)!.z]} center zIndexRange={[4, 0]} style={{ pointerEvents: 'none' }}>
           <div ref={(el) => { roomLabels.current[i] = el }} className="lighting-debug-label" />

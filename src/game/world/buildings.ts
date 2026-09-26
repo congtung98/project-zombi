@@ -12,6 +12,8 @@ export interface WallDef {
   /** Kích thước đầy đủ [rộng X, cao Y, sâu Z]. */
   size: [number, number, number]
   color?: string
+  /** M11c-1A: furniture (a prefab `prop`), not a wall: the cutaway never cuts it down. */
+  prop?: boolean
 }
 
 export interface DoorDef {

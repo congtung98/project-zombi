@@ -1,10 +1,26 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành **map editor M11b (nhiều tầng: dữ liệu + mô phỏng)**; M11a đã commit (e13ed46). Lộ trình tiếp: M11c nhiều tầng (hiển thị + editor). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **M11c-1A (cắt lớp công trình trên nền nhiều tầng)**; M11b đã commit (62fb037). Lộ trình tiếp (người dùng chọn): **M11c-1B** tầm nhìn nội thất (mask làm tối nội thất chưa thấy kiểu PZ, chỉ trong nhà; nhìn qua cửa/cửa sổ; ghi nhớ vùng đã khám phá; nghiệm thu bắt buộc "nhìn qua cửa sổ thấy một phần phòng, phòng kín kế bên không lộ") → **M11c-2** editor (sửa từng tầng, đặt cầu thang bằng chuột, nhà hai tầng mẫu). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M11b — nhiều tầng: dữ liệu + mô phỏng (mới nhất, chưa commit — chi tiết docs/map-editor-m11b.md)
+## 0. M11c-1A — cắt lớp công trình trên nền nhiều tầng (mới nhất, chưa commit — chi tiết docs/map-editor-m11c1a.md)
+
+Theo `docs/Building_Cutaway_Visibility_Fix_Plan.md` (M1–M4 của tài liệu đó). Save, schema map, `neighborhood-50` không đổi. World thử mới `content/maps/cutaway-lab` (ẩn; bản đông cứng `src/test/fixtures/maps/cutaway-lab`): ba bản nhà hai tầng hai phòng (một bản xoay 90°).
+
+- **Audit code cũ**: `RoofController` ẩn cả mái khi đứng trong khung nhà hoặc sát tường ngoài 0,4 m (không xét tầm nhìn/tầng); tầng trên (sàn, tường, đồ, đèn) vẫn vẽ khi ở tầng trệt, chỉ mờ theo 3 tia camera → nhân vật bị che; `setVisibleAt(false)` làm mất bóng mái. Hai lỗi M11b ở lớp phủ tầm nhìn (tia mask theo độ cao tuyệt đối; shader chiếu xuống y = 0) đã sửa.
+- **Metadata**: `StaticItem.buildingId/role/id` (`buildingMembership`: theo ID rồi theo vị trí), `WallDef.prop` (resolver) — suy ra lúc chạy, bản sao cùng prefab không dính nhau.
+- **`rendering/cutaway.ts`** (thuần): `observedLevel` (trễ 0,75 tầng trên cầu thang), `viewFor`, `wallSide` (camera/far/inner/free theo hình học, đúng mọi góc xoay), `displayLimit`, `pieceShow`, `CutawayState` + singleton `cutaway` (`update` vào khi qua tường 0,2 m, ra khi cách 0,3 m; `limit`, `hidesPoint`, `storeyShown`, `stats`).
+- **`StaticBatches`**: `CutawayController` thay `RoofController`; `BatchedPiece` là điểm quyết định duy nhất (cắt lớp nguyên/cắt/ẩn → rồi làm mờ); mảnh cắt = cùng instance với ma trận thấp hơn, mảnh cắt/ẩn bật instance trong batch bóng song sinh của chunk (`SHADOW_ONLY`, không thêm draw call theo mảnh); fader chỉ mờ mảnh nguyên. Cửa (cánh thu thấp/ẩn), kính + rèm, đèn trần/công tắc, dấu thùng, zombie, túi đồ theo cùng `cutaway`.
+- **Quy tắc**: chỉ nhà nhân vật đang ở trong; ẩn mọi thứ từ trần tầng quan sát lên (mái, tấm sàn, tường, cửa, cửa sổ, đồ, đèn tầng trên); tường phía camera (+X/+Z) và vách trong của tầng cắt còn 0,6 m; tường quay lưng camera nguyên; nhà khác nguyên; đứng ngoài không cắt gì (chưa lộ qua cửa sổ — M11c-1B).
+- **Độc lập**: collider, vật chắn tầm nhìn, nav, AI, save, ánh sáng không đọc `cutaway`; đèn cảnh/ánh sáng phòng không đổi khi cắt; bóng giữ nhờ proxy.
+- **F6**: chỉ tầng đang quan sát (nhà khác: tầng trệt; ô cầu thang từ cả hai tầng) + nhãn cắt lớp theo nhân vật (nhà, tầng, độ cao, số mảnh ẩn/cắt/giữ bóng, ms, phòng).
+- **Kiểm chứng**: xem mục "Kiểm chứng" trong docs/map-editor-m11c1a.md.
+- **Giới hạn**: chưa lộ nội thất qua cửa sổ, fader vẫn lộ mờ nội thất nhà khác khi nhà che nhân vật (M11c-1B); đèn trần tầng đang xem vẫn vẽ; cánh cửa ẩn mất bóng nhỏ; chưa fade/dither; chưa có mái hiên.
+
+Commit message gợi ý: **feat(game): building cutaway M11c-1A (per-building pieces with roles, one visibility composer replacing the roof controller, observed storey with stair hysteresis, camera-side and inner walls cut down, upper storeys hidden with their doors, windows, lamps, zombies and drops, shadow-only proxies keep the shadows, per-storey F6 and cutaway label, vision overlay on the player's floor, cutaway lab world)**
+
+## 0-M11b. Map editor M11b — nhiều tầng: dữ liệu + mô phỏng (đã commit 62fb037 — chi tiết docs/map-editor-m11b.md)
 
 **Save v9** (`y` = độ cao chân; v8 → v9 đưa mọi độ cao về 0). Schema map v1 + `building.storeys?`, `level?` trên object/phòng, object `stairs`. World thử `content/maps/floors-lab` (ẩn; bản đông cứng cho test ở `src/test/fixtures/maps/floors-lab`).
 
@@ -15,9 +31,8 @@
 - **Hiển thị tối thiểu**: tấm sàn (làm mờ khi che), bậc thang, mái trên tầng cao nhất, camera/con trỏ theo độ cao, zombie/túi/thân ở đúng độ cao, shader `uRoomFloor`. Editor: đọc/ghi trường mới, Inspector cầu thang; chưa có chọn tầng (M11c).
 - **Sửa sau thử bằng mắt**: cánh cửa (vẽ + collider + vật che) và công tắc đèn tầng trên đứng trên sàn tầng đó (`doorLeafTransform` theo `hinge.y`, `LampPlacement.floorY`, `SWITCH_HEIGHT`); F6 không sập với cạnh ánh sáng của cầu thang, nhãn theo tầng.
 - **Kiểm chứng**: 537 test (+13 skip; mới `world/floors.test.ts` 18); tsc/oxlint/build/build:editor/check:bundle/map:check --deep sạch; Playwright `scripts/m11b-floors-browser.mjs` PASS; hồi quy m3–m9, m11a, worlds, m10, p2-s2/s3/s4/s5/lighting/vision PASS (script đổi save 8 → 9).
-- **Chưa làm (M11c)**: cắt lớp tầng trên, ánh sáng hiển thị/F6 theo tầng, editor sửa từng tầng + đặt cầu thang bằng chuột + nhà hai tầng mẫu; generator nhà nhiều tầng.
+- **Chưa làm lúc đó (M11c)**: cắt lớp tầng trên (xong ở M11c-1A), editor sửa từng tầng + đặt cầu thang bằng chuột + nhà hai tầng mẫu (M11c-2); generator nhà nhiều tầng.
 
-Commit message gợi ý: **feat(game): storeys M11b (multi-storey buildings with levels, enclosed stairs and upper floor slabs; floor rule, layered nav joined by stairs, player and zombies climbing, per-storey sight, blows, interaction and lighting, save v9 feet heights, floors lab world)**
 
 ## 0-M11a. Map editor M11a — nhà và phòng chữ L/T/U (đã commit e13ed46 — chi tiết docs/map-editor-m11a.md)
 

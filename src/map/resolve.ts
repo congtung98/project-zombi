@@ -243,7 +243,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       case 'wall':
       case 'prop': {
         const placed = box(o, lift(o))
-        parts.walls.push({ id: id(o.localId), ...placed, color: o.color })
+        parts.walls.push({ id: id(o.localId), ...placed, color: o.color, ...(o.kind === 'prop' ? { prop: true } : {}) })
         bounds = unionRect(bounds, boxRect(placed.position, placed.size))
         break
       }

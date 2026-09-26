@@ -1,10 +1,11 @@
-import { memo, useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo, useRef } from 'react'
+import type { Mesh } from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { runAnimators } from './character/animators'
 import { Physics } from '@react-three/rapier'
 import { runtime } from '../core/runtime'
 import { useWorldStore } from '../../stores/worldStore'
-import { RoofController, StaticBatches } from './StaticBatches'
+import { CutawayController, StaticBatches } from './StaticBatches'
 import { CameraRig } from './CameraRig'
 import { ContainerView } from './ContainerView'
 import { CursorProbe } from './CursorProbe'
@@ -29,6 +30,8 @@ import { PlayerView } from './PlayerView'
 import { Roads } from './Roads'
 import { ChunkColliders } from './ChunkColliders'
 import { ZombieBody, ZombieView } from './ZombieView'
+import { cutaway } from './cutaway'
+import type { Vec3 } from '../../types'
 
 interface SceneProps {
   paused: boolean
@@ -81,15 +84,26 @@ function ZombieBodies() {
   )
 }
 
+/** A dropped bag; M11c-1A: hidden on a storey the cutaway hides. */
+function DropView({ position }: { position: Vec3 }) {
+  const ref = useRef<Mesh>(null)
+  useFrame(() => {
+    if (ref.current) ref.current.visible = !cutaway.hidesPoint(position)
+  })
+  return (
+    <mesh ref={ref} position={[position.x, position.y + 0.18, position.z]}>
+      <boxGeometry args={[0.45, 0.36, 0.45]} />
+      <meshStandardMaterial color="#d5ac54" />
+    </mesh>
+  )
+}
+
 function Drops() {
   const drops = useWorldStore((s) => s.drops)
   return (
     <>
       {drops.map((drop) => (
-        <mesh key={drop.id} position={[drop.position.x, drop.position.y + 0.18, drop.position.z]}>
-          <boxGeometry args={[0.45, 0.36, 0.45]} />
-          <meshStandardMaterial color="#d5ac54" />
-        </mesh>
+        <DropView key={drop.id} position={drop.position} />
       ))}
     </>
   )
@@ -147,7 +161,8 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <Roads />
       <Drops />
       <StaticBatches />
-      <RoofController />
+      {/* M11c-1A: cuts the building the player is in (presentation only, before the fader). */}
+      <CutawayController />
       <Physics gravity={[0, -9.81, 0]} paused={paused} debug={debug} timeStep={1 / 60}>
         <Ground />
         <ChunkColliders />

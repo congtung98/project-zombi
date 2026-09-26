@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "building/cutaway-house",
+  "contentVersion": 1,
+  "name": "Nhà hai tầng hai phòng",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -5, "minZ": -4, "maxX": 5, "maxZ": 4 },
+  "building": {
+    "height": 3,
+    "storeys": 2,
+    "wallThickness": 0.3,
+    "wallColor": "#b9a58c",
+    "roofColor": "#6b3a2e",
+    "floorColor": "#8a7560"
+  },
+  "objects": [
+    { "kind": "wallRun", "localId": "wall-n", "from": { "x": -5, "z": -4 }, "to": { "x": 5, "z": -4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "localId": "wall-s", "from": { "x": -5, "z": 4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "localId": "wall-w", "from": { "x": -5, "z": -4 }, "to": { "x": -5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "localId": "wall-e", "from": { "x": 5, "z": -4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "localId": "wall-mid", "from": { "x": 1, "z": -4 }, "to": { "x": 1, "z": 4 }, "height": 3, "thickness": 0.2, "color": "#c9b89f" },
+    { "kind": "door", "localId": "door", "name": "Cửa chính", "position": { "x": -5, "z": 1 }, "quarterTurns": 1, "width": 1.2, "openTowards": 1 },
+    { "kind": "door", "localId": "door-store", "name": "Cửa kho", "position": { "x": 5, "z": 2 }, "quarterTurns": 1, "width": 1, "openTowards": -1 },
+    { "kind": "window", "localId": "win-s", "name": "Cửa sổ phòng khách", "position": { "x": -2.5, "z": 4 }, "quarterTurns": 2, "width": 1.4, "sill": 0.9, "head": 2.1, "thickness": 0.3 },
+    { "kind": "window", "localId": "win-store-n", "name": "Cửa sổ kho", "position": { "x": 3, "z": -4 }, "quarterTurns": 0, "width": 1, "sill": 0.9, "head": 2.1, "thickness": 0.3 },
+    { "kind": "container", "localId": "cupboard", "name": "Tủ bếp", "position": { "x": -4.2, "y": 0.5, "z": 3.4 }, "size": [1, 1, 0.6], "color": "#7a6a58", "lootTableId": "house-kitchen" },
+    { "kind": "prop", "localId": "table", "position": { "x": -1.5, "y": 0.4, "z": 1 }, "size": [1.6, 0.8, 1], "color": "#8b6f5c" },
+    { "kind": "container", "localId": "crate", "name": "Thùng kho", "position": { "x": 3.5, "y": 0.45, "z": -3.2 }, "size": [1, 0.9, 0.8], "color": "#7d6a4f", "lootTableId": "house-kitchen" },
+    { "kind": "prop", "localId": "shelf", "position": { "x": 4.4, "y": 1, "z": -0.5 }, "size": [0.5, 2, 1.6], "color": "#6f5a45" },
+    { "kind": "stairs", "localId": "stairs", "position": { "x": -1.2, "z": -3.1 }, "quarterTurns": 0, "width": 1.2, "length": 4 },
+    { "kind": "wallRun", "level": 1, "localId": "wall-n-1", "from": { "x": -5, "z": -4 }, "to": { "x": 5, "z": -4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-s-1", "from": { "x": -5, "z": 4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-w-1", "from": { "x": -5, "z": -4 }, "to": { "x": -5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-e-1", "from": { "x": 5, "z": -4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-mid-1", "from": { "x": -5, "z": -1 }, "to": { "x": 5, "z": -1 }, "height": 3, "thickness": 0.2, "color": "#c9b89f" },
+    { "kind": "door", "level": 1, "localId": "door-bedroom", "name": "Cửa phòng ngủ", "position": { "x": 3, "z": -1 }, "quarterTurns": 0, "width": 1, "openTowards": 1, "initialState": "open" },
+    { "kind": "window", "level": 1, "localId": "win-s-1", "name": "Cửa sổ phòng ngủ", "position": { "x": 2, "z": 4 }, "quarterTurns": 2, "width": 1.2, "sill": 0.9, "head": 2.1, "thickness": 0.3 },
+    { "kind": "container", "level": 1, "localId": "wardrobe", "name": "Tủ quần áo", "position": { "x": -4.2, "y": 0.9, "z": 3.4 }, "size": [1, 1.8, 0.6], "color": "#6f5a45", "lootTableId": "house-wardrobe" },
+    { "kind": "prop", "level": 1, "localId": "bed", "position": { "x": -0.5, "y": 0.3, "z": 2.2 }, "size": [2, 0.6, 1.6], "color": "#8b6f5c" }
+  ],
+  "rooms": [
+    {
+      "localId": "living",
+      "name": "Phòng khách",
+      "bounds": { "minX": -5, "minZ": -4, "maxX": 1, "maxZ": 4 },
+      "lamp": { "localId": "lamp-living", "name": "Đèn phòng khách", "intensity": 0.8, "color": "#ffd9a0", "requiresElectricity": true, "switchAt": { "x": -4.6, "z": 2.4 } }
+    },
+    {
+      "localId": "store",
+      "name": "Phòng kho",
+      "bounds": { "minX": 1, "minZ": -4, "maxX": 5, "maxZ": 4 },
+      "lamp": { "localId": "lamp-store", "name": "Đèn kho", "intensity": 0.7, "color": "#ffe2b8", "requiresElectricity": true, "switchAt": { "x": 4.6, "z": 0.8 } }
+    },
+    {
+      "level": 1,
+      "localId": "landing",
+      "name": "Hành lang tầng trên",
+      "bounds": { "minX": -5, "minZ": -4, "maxX": 5, "maxZ": -1 },
+      "lamp": { "localId": "lamp-landing", "name": "Đèn hành lang", "intensity": 0.6, "color": "#ffe2b8", "requiresElectricity": true, "switchAt": { "x": 4.6, "z": -2 } }
+    },
+    {
+      "level": 1,
+      "localId": "bedroom",
+      "name": "Phòng ngủ tầng trên",
+      "bounds": { "minX": -5, "minZ": -1, "maxX": 5, "maxZ": 4 },
+      "lamp": { "localId": "lamp-bedroom", "name": "Đèn phòng ngủ", "intensity": 0.7, "color": "#ffe2b8", "requiresElectricity": true, "switchAt": { "x": 3.8, "z": -0.8 } }
+    }
+  ]
+}

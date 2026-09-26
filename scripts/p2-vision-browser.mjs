@@ -263,8 +263,15 @@ try {
     await page.keyboard.press('F4')
 
     // 2) Real keys: W+D walks/turns towards −Z (screen axes) → the zombie behind fades in, the one in front out.
+    // Held 250 ms and at least 3 frames: on a slow software renderer (≈ 6 fps, 0.1 s per simulated
+    // step) 250 ms may cover a single step, which turns the character only three quarters of the way.
     await page.keyboard.down('KeyW'); await page.keyboard.down('KeyD')
     await page.waitForTimeout(250)
+    await page.evaluate(() => new Promise((resolve) => {
+      let n = 0
+      const step = () => (++n >= 3 ? resolve() : requestAnimationFrame(step))
+      requestAnimationFrame(step)
+    }))
     await page.keyboard.up('KeyW'); await page.keyboard.up('KeyD')
     const turned = await rt(() => +window.__runtime.player.facing.toFixed(2))
     await page.waitForFunction((id) => window.__runtime.vision.get(id).isVisibleToPlayer, ids.behind, { timeout: 2000 })

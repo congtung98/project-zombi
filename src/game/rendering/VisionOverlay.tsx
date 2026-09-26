@@ -37,15 +37,17 @@ const FRAGMENT = /* glsl */ `
   uniform float uSectorRange;
   uniform float uDebug;
   uniform vec3 uDebugColor;
+  uniform float uFloorY;
   varying vec2 vNdc;
 
   void main() {
-    // The ground point under this pixel (world space, so zoom and resolution do not matter).
+    // The floor point under this pixel (world space, so zoom and resolution do not matter). M11c-1A:
+    // on the storey the player stands on (uFloorY), not the ground.
     vec4 a = uInvViewProj * vec4(vNdc, -1.0, 1.0);
     vec4 b = uInvViewProj * vec4(vNdc, 1.0, 1.0);
     a /= a.w;
     b /= b.w;
-    vec2 p = mix(a.xz, b.xz, a.y / (a.y - b.y));
+    vec2 p = mix(a.xz, b.xz, (a.y - uFloorY) / (a.y - b.y));
     vec2 off = p - uPlayer;
     float d = length(off);
     vec2 dir = d > 1e-4 ? off / d : uForward;
@@ -102,6 +104,7 @@ class OverlayPass {
         uSectorRange: { value: sectorRange(VISION) },
         uDebug: { value: 0 },
         uDebugColor: { value: new Color('#ff2bd6') },
+        uFloorY: { value: 0 },
       },
       transparent: true,
       depthTest: false,
@@ -120,6 +123,7 @@ class OverlayPass {
     const u = this.material.uniforms
     ;(u.uInvViewProj.value as Matrix4).copy(this.invViewProj)
     ;(u.uPlayer.value as Vector2).set(p.position.x, p.position.z)
+    u.uFloorY.value = p.position.y
     ;(u.uForward.value as Vector2).set(Math.sin(facing), Math.cos(facing))
     u.uStrength.value = strength
     u.uDebug.value = debug || CFG.debug ? 1 : 0

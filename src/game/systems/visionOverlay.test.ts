@@ -96,7 +96,8 @@ describe('VisionOverlay LOS sector mask', () => {
   it('inside the hut: the cone past a closed door gets the blocked shade, an open door clears it', () => {
     let door: DoorStatus = 'closed'
     const occluders = buildVisionOccluders(hutMap, () => door, VISION.occluderMinHeight)
-    const player = { x: 0, y: 0.9, z: -1 }
+    // M11c-1A: positions are feet heights (M11b); the rays start at the eye/target mid height above them.
+    const player = { x: 0, y: 0, z: -1 }
     const sectors = computeSectorDistances(player, occluders, VISION, new Float32Array(CFG.losRays))
     const v: OverlayView = { x: 0, z: -1, facing: 0, strength: DAY }
     const outside = { x: 0, z: 12 }

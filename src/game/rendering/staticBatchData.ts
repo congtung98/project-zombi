@@ -1,6 +1,7 @@
 import { Vector3 } from 'three'
 import type { MapData } from '../world/mapData'
-import { roofHeight, type BuildingInfo } from '../world/buildings'
+import { isInsideBuilding, roofHeight, type BuildingInfo } from '../world/buildings'
+import type { ArchRole } from './cutaway'
 import { SLAB_THICKNESS, type StairPlacement } from '../world/floors'
 import { outlineRects, pointInOutline } from '../../map/polygon'
 import type { Rect } from '../../map/schema'
@@ -34,28 +35,78 @@ export interface StaticItem {
   color: string
   /** Tall wall or roof: fades when it hides the player. */
   occluder: boolean
-  /** Roof of this building (hidden while the player is inside it). */
+  /** Roof of this building. */
   roofOf?: string
+  /** M11c-1A: building this piece belongs to (the cutaway cuts or hides it with the building). */
+  buildingId?: string
+  /** M11c-1A: what the piece is, for the cutaway rules; set on building pieces. */
+  role?: ArchRole
+  /** Source ID (walls, props, containers, slabs), for tests and the debug. */
+  id?: string
+}
+
+/** Ground cell size of the building lookup below (m). */
+const MEMBER_CELL = 16
+/** A piece whose centre is this close outside a footprint still belongs to it (walls on the edge). */
+const MEMBER_MARGIN = 0.2
+
+/**
+ * M11c-1A: which building a static piece belongs to. By ID first (resolved prefab parts are
+ * `<instance>/<local>` or `<instance>#<part>`, parametric ones `<building>-…`), else by position
+ * (its centre in or on the edge of a footprint), for pieces whose ID says nothing.
+ */
+export function buildingMembership(buildings: readonly BuildingInfo[]): (id: string, x: number, z: number) => string | undefined {
+  const ids = new Set(buildings.map((b) => b.id))
+  const cells = new Map<string, BuildingInfo[]>()
+  for (const b of buildings) {
+    const x0 = Math.floor((b.center.x - b.size.w / 2 - MEMBER_MARGIN) / MEMBER_CELL)
+    const x1 = Math.floor((b.center.x + b.size.w / 2 + MEMBER_MARGIN) / MEMBER_CELL)
+    const z0 = Math.floor((b.center.z - b.size.d / 2 - MEMBER_MARGIN) / MEMBER_CELL)
+    const z1 = Math.floor((b.center.z + b.size.d / 2 + MEMBER_MARGIN) / MEMBER_CELL)
+    for (let cx = x0; cx <= x1; cx++) {
+      for (let cz = z0; cz <= z1; cz++) {
+        const key = `${cx},${cz}`
+        const list = cells.get(key)
+        if (list) list.push(b)
+        else cells.set(key, [b])
+      }
+    }
+  }
+  return (id, x, z) => {
+    for (let i = id.length - 1; i > 0; i--) {
+      const c = id[i]
+      if ((c === '/' || c === '#' || c === '-') && ids.has(id.slice(0, i))) return id.slice(0, i)
+    }
+    for (const b of cells.get(`${Math.floor(x / MEMBER_CELL)},${Math.floor(z / MEMBER_CELL)}`) ?? []) {
+      if (isInsideBuilding(b, x, z, MEMBER_MARGIN)) return b.id
+    }
+    return undefined
+  }
 }
 
 /** Everything static to draw, from runtime data (colliders, containers, buildings). */
 export function collectStaticItems(map: MapData, colliders: StaticColliderRegistry): StaticItem[] {
   const items: StaticItem[] = []
+  const memberOf = buildingMembership(map.buildings)
   // Tree trunks are walls (collider, nav, sight) but are drawn as trees below.
   const trunks = new Set((map.trees ?? []).map((t) => t.id))
+  const props = new Set(map.walls.filter((w) => w.prop).map((w) => w.id))
   for (const w of colliders.list('wall')) {
     if (trunks.has(w.id)) continue
     const size: [number, number, number] = [round(w.max.x - w.min.x), round(w.max.y - w.min.y), round(w.max.z - w.min.z)]
+    const center = new Vector3((w.min.x + w.max.x) / 2, (w.min.y + w.max.y) / 2, (w.min.z + w.max.z) / 2)
     items.push({
       shape: 'box',
-      center: new Vector3((w.min.x + w.max.x) / 2, (w.min.y + w.max.y) / 2, (w.min.z + w.max.z) / 2),
+      center,
       size,
       color: w.color ?? DEFAULT_WALL_COLOR,
       occluder: size[1] >= OCCLUDER_MIN_HEIGHT,
+      id: w.id,
+      ...member(memberOf(w.id, center.x, center.z), props.has(w.id) ? 'prop' : 'wall'),
     })
   }
   for (const c of map.containers) {
-    items.push({ shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false })
+    items.push({ shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false, id: c.id, ...member(memberOf(c.id, c.position.x, c.position.z), 'container') })
   }
   for (const b of map.buildings) {
     // M11a: an L/T/U building is floored and roofed piece by piece (rectangles tiling its outline).
@@ -64,7 +115,7 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       const d = piece.maxZ - piece.minZ
       const cx = (piece.minX + piece.maxX) / 2
       const cz = (piece.minZ + piece.maxZ) / 2
-      items.push({ shape: 'floor', center: new Vector3(cx, FLOOR_Y, cz), size: [w, 0, d], color: b.floorColor, occluder: false })
+      items.push({ shape: 'floor', center: new Vector3(cx, FLOOR_Y, cz), size: [w, 0, d], color: b.floorColor, occluder: false, buildingId: b.id, role: 'floor' })
       // The overhang grows only the piece's outer sides, so pieces never overlap (no z-fighting).
       const o = piece.overhang
       items.push({
@@ -75,6 +126,8 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
         // Mái cũng là vật che: khi người chơi đứng ngoài, sát tường phía trên màn hình, mái nằm giữa camera và nhân vật.
         occluder: true,
         roofOf: b.id,
+        buildingId: b.id,
+        role: 'roof',
       })
     }
   }
@@ -84,9 +137,11 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   for (const s of map.floors ?? []) {
     const w = s.rect.maxX - s.rect.minX
     const d = s.rect.maxZ - s.rect.minZ
-    items.push({ shape: 'box', center: new Vector3((s.rect.minX + s.rect.maxX) / 2, s.y - SLAB_THICKNESS / 2, (s.rect.minZ + s.rect.maxZ) / 2), size: [w, SLAB_THICKNESS, d], color: floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR, occluder: true })
+    items.push({ shape: 'box', center: new Vector3((s.rect.minX + s.rect.maxX) / 2, s.y - SLAB_THICKNESS / 2, (s.rect.minZ + s.rect.maxZ) / 2), size: [w, SLAB_THICKNESS, d], color: floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR, occluder: true, id: s.id, buildingId: s.buildingId, role: 'slab' })
   }
-  for (const s of map.stairs ?? []) items.push(...stairTreads(s, floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR))
+  for (const s of map.stairs ?? []) {
+    for (const t of stairTreads(s, floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR)) items.push({ ...t, buildingId: s.buildingId, role: 'stairs' })
+  }
   for (const t of map.trees ?? []) {
     const f = treeProfile(t)
     items.push({ shape: 'trunk', center: new Vector3(t.position.x, f.trunkHeight / 2, t.position.z), size: [2 * t.trunk, f.trunkHeight, 2 * t.trunk], color: TREE_TRUNK_COLOR, occluder: false })
@@ -95,6 +150,11 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true })
   }
   return items
+}
+
+/** Membership fields of a building piece (none outside buildings). */
+function member(buildingId: string | undefined, role: ArchRole): Pick<StaticItem, 'buildingId' | 'role'> {
+  return buildingId ? { buildingId, role } : {}
 }
 
 /** Tread height of drawn stairs (m); the count follows the rise. */

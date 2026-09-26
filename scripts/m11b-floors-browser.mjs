@@ -98,14 +98,15 @@ try {
       if (!o.isMesh || !g) return
       const p = o.getWorldPosition(o.position.clone())
       const at = [Math.round(p.x * 10) / 10, Math.round(p.y * 100) / 100, Math.round(p.z * 10) / 10]
-      if (g.depth === 0.12 && g.height >= 1.9) out.leaves.push(at)
+      // Leaf foot (M11c-1A: the cutaway may draw a leaf shorter, never off its floor).
+      if (g.depth === 0.12 && g.height >= 1.9) out.leaves.push([at[0], Math.round((p.y - (g.height * o.getWorldScale(o.position.clone()).y) / 2) * 100) / 100, at[2]])
       if (g.width === 0.1 && g.height === 0.14 && g.depth === 0.1) out.switches.push(at)
     })
     return out
   })
   log('door leaves / switches', drawn)
-  // Front door (ground): centre 1.1 m up; bedroom door (upper floor): 4.1 m. Switches 1.3 / 4.3 m.
-  assert.deepEqual(drawn.leaves.map((l) => l[1]).sort(), [1.1, 4.1])
+  // Front door (ground) stands on 0, bedroom door (upper floor) on 3. Switches 1.3 / 4.3 m.
+  assert.deepEqual(drawn.leaves.map((l) => Math.abs(l[1])).sort(), [0, 3])
   assert.deepEqual(drawn.switches.map((s) => s[1]).sort(), [1.3, 4.3])
   await page.screenshot({ path: `${tmp}/m11b-door-switch.png` })
 

@@ -121,6 +121,11 @@ Nguyên tắc:
 
 ## Trạng thái theo kế hoạch
 
+### M11c-1A: cắt lớp công trình trên nền nhiều tầng (26/09/2026)
+
+- Vào nhà: mái và mọi thứ của tầng trên bị ẩn, tường phía camera và vách trong cắt còn chân tường 0,6 m, tường phía xa giữ nguyên; lên tầng 2 thì tầng quan sát đổi ở 3/4 cầu thang (không nhấp nháy). Chỉ là trình bày: va chạm, tầm nhìn, ánh sáng, save không đổi; bóng mái/tầng trên vẫn đổ.
+- F6 theo tầng + nhãn cắt lớp. World thử `?world=cutaway-lab`. Tiếp theo: M11c-1B (tầm nhìn nội thất, nhìn qua cửa sổ), M11c-2 (editor theo tầng). Chi tiết `docs/map-editor-m11c1a.md`.
+
 ### Map editor M11b: nhiều tầng — dữ liệu và mô phỏng (26/09/2026)
 
 - Nhà nhiều tầng (`building.storeys`, `level` trên object/phòng, object `stairs`): tấm sàn tầng trên, luật độ cao chung (`FloorField`), điều hướng mỗi tầng một lưới nối qua cầu thang (`NavWorld`), người chơi/zombie lên xuống cầu thang, tầm nhìn/đòn đánh/tương tác/ánh sáng theo tầng.

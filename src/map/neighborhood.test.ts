@@ -46,7 +46,12 @@ describe('neighbourhood content v1 (M2)', () => {
   it.runIf(v1)('reproduces every legacy wall, door, window, room, container, road, zone and spawn', () => {
     const walls = byId(map.walls)
     expect(map.walls).toHaveLength(legacy.walls.length)
-    for (const w of legacy.walls) close(walls.get(ids.walls[w.id]), { ...w, id: ids.walls[w.id] }, w.id)
+    // M11c-1A: resolved props carry `prop: true` (the cutaway never cuts furniture); the hand-coded
+    // map had no such flag, so it is left out of the comparison.
+    for (const w of legacy.walls) {
+      const { prop: _prop, ...resolved } = walls.get(ids.walls[w.id])!
+      close(resolved, { ...w, id: ids.walls[w.id] }, w.id)
+    }
 
     const doors = byId(map.doors)
     expect(map.doors).toHaveLength(legacy.doors.length)

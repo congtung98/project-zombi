@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import type { Group, Mesh } from 'three'
 import { runtime } from '../core/runtime'
+import { cutaway } from './cutaway'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { computePose, createPose } from './character/pose'
 import { registerAnimator } from './character/animators'
@@ -72,8 +73,9 @@ export function ZombieView({ id }: ZombieViewProps) {
     }
 
     // Player vision decides what is drawn; a hidden zombie skips posing (gait/timers above keep going).
+    // M11c-1A: never on a storey the cutaway hides (above the one the player looks at).
     const opacity = runtime.vision.opacity(id)
-    visual.visible = opacity > 0.01
+    visual.visible = opacity > 0.01 && !cutaway.hidesPoint(z.position)
     if (!visual.visible) return
     setCharacterOpacity(rig, opacity)
 

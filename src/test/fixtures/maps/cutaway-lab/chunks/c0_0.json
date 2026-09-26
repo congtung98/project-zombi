@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_0",
+  "cx": 0,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c0_0/house-a",
+      "prefabId": "building/cutaway-house",
+      "position": { "x": 12, "y": 0, "z": 12 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c0_0/house-b",
+      "prefabId": "building/cutaway-house",
+      "position": { "x": 28, "y": 0, "z": 12 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c0_0/house-c",
+      "prefabId": "building/cutaway-house",
+      "position": { "x": 20, "y": 0, "z": 31 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [],
+  "roads": [
+    { "roadId": "c0_0/roads/street", "position": { "x": 22, "z": 20.5 }, "size": [40, 3], "color": "#6d6a62" }
+  ],
+  "zones": [],
+  "spawns": [
+    { "spawnId": "c0_0/spawns/player-start", "kind": "player", "position": { "x": 8, "z": 20 } }
+  ],
+  "externalRefs": []
+}
