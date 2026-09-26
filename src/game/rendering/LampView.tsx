@@ -8,6 +8,8 @@ import { cutaway, type Box3Like } from './cutaway'
 
 /** How far from its wall a switch may stand (m). */
 const SWITCH_WALL_REACH = 0.45
+/** Half the switch box's height: a switch on a cut wall sits on the wall's top. */
+const SWITCH_HALF = 0.07
 
 /** The wall a switch is mounted on: the nearest wall box around it at its height (null: none). */
 function switchWall(lamp: LampPlacement): Box3Like | null {
@@ -35,8 +37,10 @@ const SWITCH_OFF = new Color('#3b3f45')
  * Ceiling lamp fixture (glows while lit: switched on and powered) and its wall switch (the E
  * interaction point). Visual only: the room's brightness comes from building lighting, there is no
  * Three.js light per lamp.
- * M11c-1A: the fixture is hidden on a storey the cutaway hides; the switch also when its wall is cut
- * below it (the switch stays usable: E does not depend on drawing).
+ * M11c-1A: the fixture and the switch are hidden on a storey the cutaway hides. A switch whose wall
+ * is cut below it stays drawn (its on/off colour is what shows the lamp's state): it moves down onto
+ * the top of what is left of the wall, over its wall line. Drawing only: E still reaches it where it
+ * is (`runtime` interactables), whatever the cutaway.
  */
 export function LampView({ lamp }: { lamp: LampPlacement }) {
   const fixtureRef = useRef<MeshStandardMaterial>(null)
@@ -55,7 +59,18 @@ export function LampView({ lamp }: { lamp: LampPlacement }) {
       const storeyHidden = cutaway.hidesPoint(floor)
       fixtureMesh.current.visible = !storeyHidden
       const limit = wall ? cutaway.limit(buildingId, wall, 'wall') : Infinity
-      switchMesh.current.visible = !storeyHidden && floor.y + SWITCH_HEIGHT <= limit
+      const mesh = switchMesh.current
+      mesh.visible = !storeyHidden
+      if (wall && floor.y + SWITCH_HEIGHT > limit) {
+        // On the cut wall's top, at the point of the wall nearest the switch.
+        mesh.position.set(
+          Math.min(wall.max.x, Math.max(wall.min.x, lamp.switchAt.x)),
+          Math.max(floor.y, limit) + SWITCH_HALF,
+          Math.min(wall.max.z, Math.max(wall.min.z, lamp.switchAt.z)),
+        )
+      } else {
+        mesh.position.set(lamp.switchAt.x, floor.y + SWITCH_HEIGHT, lamp.switchAt.z)
+      }
     }
     const on = runtime.world.lamps.get(lamp.id) === true
     const lit = on && (!lamp.requiresElectricity || runtime.world.electricity)

@@ -186,6 +186,38 @@ export const GAME_CONFIG = {
     debug: false,
   },
   /**
+   * M11c-1B: interior visibility (presentation only, like the player vision it builds on). Indoor
+   * fragments the character does not see now are darkened: remembered cells (seen before) dimmed
+   * and greyed, never-seen cells near black. Outdoors is never touched; lighting is not changed (a
+   * factor applied after it). Cells seen through a door or window from outside also cut the
+   * building away (peek), so the seen part shows while the rest stays dark.
+   */
+  interiorVisibility: {
+    /** Dev switch (scripts that measure lighting turn it off); the game always has it on. */
+    enabled: true,
+    /** Grid cell (m) of the visibility and exploration memory. */
+    cell: 0.25,
+    /** Seconds between two visibility passes (doors and curtains are picked up at the next). */
+    updateInterval: 0.1,
+    /** Rays of the visibility fan around the eye (1° each). */
+    rays: 360,
+    /** A cell is seen when its centre is at most this far past where the ray stops (wall faces). */
+    wallTolerance: 0.19,
+    /** Final colour factor of a never-seen cell / a remembered one, and how grey a remembered one is. */
+    unexploredLevel: 0.07,
+    rememberedLevel: 0.45,
+    rememberedDesaturation: 0.6,
+    /** Seconds a cell takes to light up or fade to memory. */
+    fadeSeconds: 0.25,
+    /** Side (m) of the square around the player the shader's mask texture covers. */
+    maskSize: 64,
+    /** Peek: a building whose interior is seen from outside (≥ this many cells within this range) is cut away… */
+    peekMinCells: 4,
+    peekDistance: 14,
+    /** …and stays cut this long after it is not seen any more (no flicker at a window edge). */
+    peekHold: 0.8,
+  },
+  /**
    * Building lighting (room graph): how light each room is, from windows, doors/openings and lamps.
    * It consumes the day/night `outdoorLightLevel` and never reads the player's facing or vision.
    */
@@ -403,6 +435,9 @@ export type PlayerVisionConfig = typeof PLAYER_VISION_CONFIG
 
 export const VISION_OVERLAY_CONFIG = GAME_CONFIG.visionOverlay
 export type VisionOverlayConfig = typeof VISION_OVERLAY_CONFIG
+
+export const INTERIOR_VISIBILITY_CONFIG = GAME_CONFIG.interiorVisibility
+export type InteriorVisibilityConfig = typeof INTERIOR_VISIBILITY_CONFIG
 
 export const BUILDING_LIGHTING_CONFIG = GAME_CONFIG.buildingLighting
 export type BuildingLightingConfig = typeof BUILDING_LIGHTING_CONFIG

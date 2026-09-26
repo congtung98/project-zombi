@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { runtime } from '../core/runtime'
 import { hexToRgb } from '../lighting/buildingLighting'
-import { INDOOR_MAX_ROOMS, indoorUniforms, installIndoorShading } from './indoorShading'
+import { INDOOR_MAX_ROOMS, indoorSlots, indoorUniforms, installIndoorShading } from './indoorShading'
 import { pickRoomSlots, slotCount, type RoomSlot } from './roomSlots'
 
 const CFG = runtime.config.buildingLighting
@@ -56,6 +56,8 @@ export function IndoorLighting() {
       s.pickedAt = { x: p.x, z: p.z }
       if (changed) {
         s.slots = chosen
+        indoorSlots.rooms = chosen.map((c) => c.room)
+        indoorSlots.version += 1
         indoorUniforms.uRoomCount.value = chosen.length
         chosen.forEach(({ room, rect }, i) => {
           indoorUniforms.uRoomRect.value[i].set(rect.minX, rect.maxX, rect.minZ, rect.maxZ)

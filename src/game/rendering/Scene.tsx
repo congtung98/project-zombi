@@ -18,6 +18,7 @@ import { PerfProbe } from './PerfProbe'
 import { PlayerVisionDebug } from './PlayerVisionDebug'
 import { VisionOverlay } from './VisionOverlay'
 import { IndoorLighting } from './IndoorLighting'
+import { InteriorMask } from './InteriorMask'
 import { WindowView } from './WindowView'
 import { LampView } from './LampView'
 import { BuildingLightingDebug } from './BuildingLightingDebug'
@@ -175,6 +176,8 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <OcclusionFader />
       {/* Building lighting: indoor fragments take the room light; outdoor ones keep the day/night lights. */}
       <IndoorLighting />
+      {/* M11c-1B: indoor cells not seen now are darkened (a factor after the light; F4 tints). */}
+      <InteriorMask debug={visionDebug} />
       {lightingDebug && <BuildingLightingDebug />}
       {/* Perception shade over the finished frame; never a light (see VisionOverlay). */}
       {visionOverlay && <VisionOverlay debug={visionDebug} />}

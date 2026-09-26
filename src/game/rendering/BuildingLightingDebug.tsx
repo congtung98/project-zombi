@@ -87,7 +87,10 @@ export function BuildingLightingDebug() {
       const text = v
         ? `Cắt lớp: ${v.buildingId} · tầng ${v.level} (sàn ${v.floorY.toFixed(1)})\nẩn từ ${v.ceilingY.toFixed(1)} m · tường cắt ở ${v.wallTopY.toFixed(1)} m\nmảnh ẩn ${s.hidden} · cắt ${s.cut} · giữ bóng ${s.shadows} (${s.ms.toFixed(2)} ms)\nphòng: ${room?.name ?? '—'}`
         : `Cắt lớp: không (ngoài nhà)\nphòng: ${room?.name ?? '—'}`
-      if (cutawayLabel.current.textContent !== text) cutawayLabel.current.textContent = text
+      // M11c-1B: buildings seen into from outside (cut too).
+      const peeks = cutaway.peekIds
+      const full = peeks.length ? `${text}\nnhìn vào từ ngoài: ${peeks.join(', ')}` : text
+      if (cutawayLabel.current.textContent !== full) cutawayLabel.current.textContent = full
     }
     if (runtime.lighting.revision === rev.lighting && cutaway.version === rev.cutaway) return
     rev.lighting = runtime.lighting.revision

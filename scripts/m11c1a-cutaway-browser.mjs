@@ -110,7 +110,7 @@ try {
     log(name, { player: await page.evaluate(() => window.__runtime.player.position), view: state })
     await shot(name)
     if (baseline) continue
-    // Outside (even right at the window, 1A reveals nothing through it) nothing is cut.
+    // Outside, the player is in no building (M11c-1B may still cut one it looks into: `peeks`).
     assert.deepEqual([state.building, state.level], expected[name], name)
     if (state.building) assert.equal(state.shadows, state.hidden + state.cut, `${name}: every cut or hidden piece keeps its shadow`)
   }
@@ -171,9 +171,14 @@ try {
     // Panes: the south (camera-side) and upstairs ones hidden, the store's north window drawn.
     assert.deepEqual(drawn.panes.filter((p) => p.shown).map((p) => [p.x, p.z]), [[15, 8]])
     // Ceiling lamps: the ground floor's drawn, the upper floor's hidden. Switches: on the west (far)
-    // wall drawn, on the east (camera-side, cut) wall and upstairs hidden.
+    // wall drawn where it is; on the east (camera-side) wall, cut to 0.6 m, drawn on the wall's top
+    // (x 16.85..17.15, y 0.6 + 0.07); upstairs hidden.
     assert.deepEqual(drawn.fixtures.filter((f) => f.shown).map((f) => f.y < 3), [true, true])
-    assert.deepEqual(drawn.switches.filter((s) => s.shown).map((s) => [s.x, s.z]), [[7.4, 14.4]])
+    const switches = drawn.switches.filter((s) => s.shown)
+    assert.equal(switches.length, 2, JSON.stringify(drawn.switches))
+    assert.deepEqual([switches[0].x, switches[0].y, switches[0].z], [7.4, 1.3, 14.4])
+    assert.ok(switches[1].x >= 16.8 && switches[1].x <= 17.2 && Math.abs(switches[1].y - 0.67) < 0.01 && switches[1].z === 12.8, `store switch on the cut wall: ${JSON.stringify(switches[1])}`)
+    assert.ok(drawn.switches.filter((s) => s.y > 3).every((s) => !s.shown), 'upstairs switches hidden')
 
     // 2. Real keys through the front door (S + D walks +X, W + A walks −X), the view sampled every frame.
     const trace = async (keys, ms) => {
@@ -224,6 +229,15 @@ try {
     // both pictures. (b) Cut away, the shadow-only proxies are what keeps the storey's shadow: with
     // them off (dev switch) the grass behind the house lights up.
     const patches = async (points) => {
+    // The follow camera lags the player (a lot at a few frames per second): let it settle first, or
+    // the points are projected with a camera that has moved by the time of the screenshot.
+    await page.waitForFunction(() => {
+      let cam = null
+      window.__scene.traverse((o) => { if (o.isCamera && !cam) cam = o })
+      const p = window.__runtime.player.position
+      const o = window.__runtime.config.camera.offset
+      return Math.abs(cam.position.x - p.x - o.x) < 0.01 && Math.abs(cam.position.z - p.z - o.z) < 0.01 && Math.abs(cam.position.y - p.y - o.y) < 0.01
+    }, null, { timeout: 20000 })
       const coords = await page.evaluate((points) => {
         let cam = null
         window.__scene.traverse((o) => { if (o.isCamera && !cam) cam = o })
@@ -338,12 +352,14 @@ try {
     // (b) All grass visible in the cut-away pictures, with and without the shadow proxies.
     const seen = grid.map((_, i) => i).filter((i) => cut.grass[i] !== null && noProxy.grass[i] !== null)
     const b = { measured: seen.length, withProxies: seen.filter((i) => cut.grass[i]).length, without: seen.filter((i) => noProxy.grass[i]).length, lostWithout: seen.filter((i) => cut.grass[i] && !noProxy.grass[i]).length }
+    // The grass shaded only by the storey that is not drawn: lit once its proxies are off.
+    b.upperOnlyLitWithout = region.filter(([p, i]) => upperOnly(p) && noProxy.grass[i] === false).length
     log('shadow / lights', { cutAway: a, proxies: b, whole: { lights: whole.lights, room: whole.room }, cut: { lights: cut.lights, room: cut.room } })
     assert.deepEqual([whole.view, cut.view], [null, A])
     assert.ok(a.measured > 40 && a.predicted > 10, `the house shades some visible grass: ${JSON.stringify(a)}`)
     assert.ok(a.agree >= a.measured * 0.9, `shaded where the whole house's shadow falls: ${JSON.stringify(a)}`)
     assert.ok(a.upperOnly >= 5 && a.upperOnlyShaded >= a.upperOnly * 0.8, `the hidden storey still shades: ${JSON.stringify(a)}`)
-    assert.ok(b.withProxies > 15 && b.lostWithout > b.withProxies * 0.3, `the proxies keep the cut storey's shadow: ${JSON.stringify(b)}`)
+    assert.ok(b.lostWithout >= 8 && b.upperOnlyLitWithout >= a.upperOnly * 0.8, `the proxies keep the cut storey's shadow: ${JSON.stringify({ a, b })}`)
     // Lighting never follows the cutaway: same lights, same room light.
     assert.deepEqual(cut.lights, whole.lights)
     assert.equal(cut.room, whole.room)

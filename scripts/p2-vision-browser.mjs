@@ -151,6 +151,9 @@ try {
         z.health = 0
       }
     })
+    // M11c-1B: the interior mask follows what the character sees (on purpose); this part measures
+    // world lighting and the overlay, so the mask is off until the zoom checks are done.
+    await rt(() => { window.__runtime.config.interiorVisibility.enabled = false })
     const place = async (where, timeOfDay, zoom = 28) => {
       await rt(({ where, timeOfDay, zoom }) => {
         const r = window.__runtime
@@ -223,6 +226,7 @@ try {
       assert.ok(Math.min(...r) >= 0.85 && Math.max(...r) <= 1.01)
     }
     await rt(() => { window.__runtime.cameraZoom = 28 })
+    await rt(() => { window.__runtime.config.interiorVisibility.enabled = true })
 
     // Debug tint (F4) for the screenshot only.
     await page.keyboard.press('F4')

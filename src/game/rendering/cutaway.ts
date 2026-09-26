@@ -11,6 +11,8 @@ import { SLAB_THICKNESS } from '../world/floors'
  *   outside faces the camera, inner walls) are cut down to `WALL_CUT_HEIGHT`; outer walls facing
  *   away from the camera stay whole (the camera sees their inner face).
  * The observed storey follows the floor the player stands on, with hysteresis on the stairs.
+ * M11c-1B: a building the player sees into from outside (through a door or window) is cut the same
+ * way at the player's storey; the interior mask keeps its unseen parts dark.
  *
  * Nothing here touches the simulation: colliders, vision occluders, navigation, lighting and the
  * save never read it. Pieces keep casting their full shadow (`StaticBatches` shadow proxies).
@@ -126,9 +128,18 @@ export function pieceShow(box: Box3Like, limit: number): PieceShow {
   return 'cut'
 }
 
+/** A building seen into from outside (M11c-1B), cut like the one the player is in until `until`. */
+interface Peek {
+  building: BuildingInfo
+  view: CutawayView
+  until: number
+}
+
 /**
- * The scene's current cutaway: which building (if any) and which storey. `update` runs every frame
- * (`CutawayController`); `version` bumps when the view changes, so readers recompute only then.
+ * The scene's current cutaway: the building the player is in (`building`/`view`, which storey) and,
+ * M11c-1B, the buildings the player sees into from outside through a door or window (`peeks`, cut
+ * at the player's storey; the interior mask keeps what is not seen dark). `update` runs every frame
+ * (`CutawayController`); `version` bumps when any view changes, so readers recompute only then.
  */
 export class CutawayState {
   view: CutawayView | null = null
@@ -136,13 +147,22 @@ export class CutawayState {
   version = 0
   /** Last composition, for the F6 debug: pieces hidden, cut and shadow proxies kept, time spent. */
   stats = { hidden: 0, cut: 0, shadows: 0, ms: 0 }
+  private readonly peeks = new Map<string, Peek>()
   private camera: CameraSide = { x: 1, z: 1 }
   private findBuilding: (p: Vec3, margin: number) => BuildingInfo | null = () => null
+  private buildingById: (id: string) => BuildingInfo | null = () => null
+  private peekHold = 0
 
-  /** Wire to a world (the building lookup) and the camera side; resets the view. */
-  attach(findBuilding: (p: Vec3, margin: number) => BuildingInfo | null, camera: CameraSide): void {
+  /**
+   * Wire to a world (building lookups), the camera side and how long a peek outlives its last
+   * sighting (seconds); resets the views.
+   */
+  attach(findBuilding: (p: Vec3, margin: number) => BuildingInfo | null, camera: CameraSide, buildingById: (id: string) => BuildingInfo | null = () => null, peekHold = 0): void {
     this.findBuilding = findBuilding
+    this.buildingById = buildingById
+    this.peekHold = peekHold
     this.camera = { x: Math.sign(camera.x), z: Math.sign(camera.z) }
+    this.peeks.clear()
     this.set(null, null)
   }
 
@@ -150,8 +170,71 @@ export class CutawayState {
     return this.camera
   }
 
-  /** Follow the player (feet position); true when the view changed. */
-  update(p: Vec3): boolean {
+  /** Buildings seen into from outside, cut now. */
+  get peekIds(): string[] {
+    return [...this.peeks.keys()]
+  }
+
+  /** Every building cut now (the one the player is in first). */
+  get cutIds(): string[] {
+    return [...(this.view ? [this.view.buildingId] : []), ...this.peeks.keys()]
+  }
+
+  /**
+   * Follow the player (feet position) and the buildings it sees into (`seenInto`, at time `now` in
+   * seconds); true when any view changed.
+   */
+  update(p: Vec3, seenInto: readonly string[] = [], now = 0): boolean {
+    let changed = this.updateInside(p)
+    for (const id of seenInto) {
+      if (id === this.view?.buildingId) continue
+      const b = this.buildingById(id)
+      if (!b || p.y >= roofHeight(b)) continue
+      const level = observedLevel(null, p.y, b)
+      const peek = this.peeks.get(id)
+      if (peek && peek.view.level === level) {
+        peek.until = now + this.peekHold
+        continue
+      }
+      this.peeks.set(id, { building: b, view: viewFor(b, level), until: now + this.peekHold })
+      changed = true
+    }
+    for (const [id, peek] of this.peeks) {
+      if (peek.until >= now && id !== this.view?.buildingId) continue
+      this.peeks.delete(id)
+      changed = true
+    }
+    if (changed) this.version += 1
+    return changed
+  }
+
+  /** Height a piece is drawn up to (Infinity: whole, including every piece of an uncut building). */
+  limit(buildingId: string | undefined, box: Box3Like, role: ArchRole): number {
+    const cut = this.cutOf(buildingId)
+    return cut ? displayLimit(cut.view, cut.building, box, role, this.camera) : Infinity
+  }
+
+  /** Whether an entity standing at `p` (feet) is on a hidden storey of a cut building. */
+  hidesPoint(p: Vec3): boolean {
+    if (this.view && this.building && hides(this.building, this.view, p)) return true
+    for (const peek of this.peeks.values()) if (hides(peek.building, peek.view, p)) return true
+    return false
+  }
+
+  /** Whether a storey floor of a building is the one the player looks at (ground floor elsewhere). */
+  storeyShown(buildingId: string | undefined, floorY: number): boolean {
+    const shown = this.cutOf(buildingId)?.view.floorY ?? 0
+    return Math.abs(floorY - shown) < 0.5
+  }
+
+  private cutOf(buildingId: string | undefined): { building: BuildingInfo; view: CutawayView } | null {
+    if (!buildingId) return null
+    if (this.view && this.building && buildingId === this.view.buildingId) return { building: this.building, view: this.view }
+    return this.peeks.get(buildingId) ?? null
+  }
+
+  /** The building the player is in; true when it or its storey changed. */
+  private updateInside(p: Vec3): boolean {
     let b = this.building
     // Keep the building until the player is clearly out of it (doorways never flicker).
     if (b && !(isInsideBuilding(b, p.x, p.z, LEAVE_MARGIN) && p.y < roofHeight(b))) b = null
@@ -159,38 +242,27 @@ export class CutawayState {
       const found = this.findBuilding(p, -ENTER_DEPTH)
       b = found && p.y < roofHeight(found) ? found : null
     }
-    if (!b) return this.set(null, null)
+    if (!b) return this.assign(null, null)
     const level = observedLevel(b === this.building && this.view ? this.view.level : null, p.y, b)
     if (b === this.building && this.view?.level === level) return false
-    return this.set(b, viewFor(b, level))
+    return this.assign(b, viewFor(b, level))
   }
 
-  /** Height a piece is drawn up to (Infinity: whole, including every piece of other buildings). */
-  limit(buildingId: string | undefined, box: Box3Like, role: ArchRole): number {
-    if (!this.view || !this.building || buildingId !== this.view.buildingId) return Infinity
-    return displayLimit(this.view, this.building, box, role, this.camera)
-  }
-
-  /** Whether an entity standing at `p` (feet) is on a hidden storey of the view building. */
-  hidesPoint(p: Vec3): boolean {
-    const v = this.view
-    return !!v && !!this.building && p.y >= v.ceilingY - 0.1 && isInsideBuilding(this.building, p.x, p.z)
-  }
-
-  /** Whether a storey floor of a building is the one the player looks at (ground floor elsewhere). */
-  storeyShown(buildingId: string | undefined, floorY: number): boolean {
-    const v = this.view
-    const shown = v && buildingId === v.buildingId ? v.floorY : 0
-    return Math.abs(floorY - shown) < 0.5
-  }
-
-  private set(b: BuildingInfo | null, view: CutawayView | null): boolean {
+  private assign(b: BuildingInfo | null, view: CutawayView | null): boolean {
     if (this.building === b && this.view === view) return false
     this.building = b
     this.view = view
-    this.version += 1
     return true
   }
+
+  private set(b: BuildingInfo | null, view: CutawayView | null): void {
+    this.assign(b, view)
+    this.version += 1
+  }
+}
+
+function hides(b: BuildingInfo, v: CutawayView, p: Vec3): boolean {
+  return p.y >= v.ceilingY - 0.1 && isInsideBuilding(b, p.x, p.z)
 }
 
 export const cutaway = new CutawayState()

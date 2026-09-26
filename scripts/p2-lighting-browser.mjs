@@ -127,6 +127,8 @@ try {
       }
       const { useSettingsStore } = await import('/src/stores/settingsStore.ts')
       useSettingsStore.getState().set({ visionOverlay: false })
+      // M11c-1B: nor the interior mask (what the character sees indoors, not lighting).
+      r.config.interiorVisibility.enabled = false
     })
 
     // Mean luminance of a 7×7 px patch around each world point (projected with the scene camera).

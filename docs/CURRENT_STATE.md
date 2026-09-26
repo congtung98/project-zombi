@@ -1,10 +1,25 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành **M11c-1A (cắt lớp công trình trên nền nhiều tầng)**; M11b đã commit (62fb037). Lộ trình tiếp (người dùng chọn): **M11c-1B** tầm nhìn nội thất (mask làm tối nội thất chưa thấy kiểu PZ, chỉ trong nhà; nhìn qua cửa/cửa sổ; ghi nhớ vùng đã khám phá; nghiệm thu bắt buộc "nhìn qua cửa sổ thấy một phần phòng, phòng kín kế bên không lộ") → **M11c-2** editor (sửa từng tầng, đặt cầu thang bằng chuột, nhà hai tầng mẫu). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **M11c-1B (tầm nhìn nội thất: mask kiểu PZ, nhìn qua cửa/cửa sổ, ghi nhớ vùng đã khám phá)**; M11c-1A đã commit (f24212e). Lộ trình tiếp: **M11c-2** editor (sửa từng tầng, đặt cầu thang bằng chuột, nhà hai tầng mẫu). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. M11c-1A — cắt lớp công trình trên nền nhiều tầng (mới nhất, chưa commit — chi tiết docs/map-editor-m11c1a.md)
+## 0. M11c-1B — tầm nhìn nội thất (mới nhất, chưa commit — chi tiết docs/map-editor-m11c1b.md)
+
+Save v9 + trường tùy chọn `exploration` (không tăng phiên bản: dữ liệu trình bày; thiếu = chưa khám phá, sai hình dạng/phòng đổi = bỏ qua). Schema map, nội dung không đổi.
+
+- **`systems/interiorVisibility.ts`** (thuần, trạng thái trình bày như tầm nhìn người chơi): lưới 0,25 m mỗi phòng; mỗi 0,1 s (bỏ qua khi vị trí/hướng/`lighting.revision` không đổi) quạt 360 tia qua vision occluders từ độ cao chân + tầm mắt → ô đang thấy (tầm 20 m, nón 110° hoặc gần 2,5 m, dừng ở tường/cửa đóng/rèm; kính/cửa mở cho qua) và đã khám phá; `peeks` = nhà nhìn vào từ ngoài (≥ 4 ô trong 14 m); `serialize/restore/isSavedExploration`. `runtime.interior`.
+- **Mask** `indoorShading` v4 (`uRoomMask/uVisMap/uVisWindow/uVisLevels`, `indoorSlots`) + `rendering/InteriorMask.tsx`: sau ánh sáng phòng — đang thấy nguyên, nhớ 45 % + xám 60 %, chưa thấy 7 %; chỉ fragment trong phòng; ô mượt 0,25 s; texture 64 m quanh nhân vật, lọc nearest; phòng tầng khác dùng hằng "đã khám phá". F4 tô màu mask.
+- **Peek** (`CutawayState` nhiều nhà: `peekIds`, `cutIds`, `update(p, seenInto, now)`): nhà được nhìn vào qua cửa/cửa sổ bị cắt như khi ở trong (tầng của nhân vật), giữ 0,8 s; F6 ghi "nhìn vào từ ngoài".
+- **Sửa kèm**: `FloorField.follow` — độ cao người chơi theo quãng đường đã đi (bước ≤ 0,25 m; > 4 m = dịch chuyển), sửa lỗi đi xuyên dưới cầu thang khi một frame chậm đẩy thân > 1 m.
+- **Script**: `p2-lighting`/`p2-vision` tắt mask khi đo ánh sáng (`runtime.config.interiorVisibility.enabled`, công tắc dev); `m11c1a` chờ camera đứng yên trước khi đo pixel, kiểm proxy bóng theo đúng ô chỉ trong bóng tầng ẩn.
+- **Kiểm chứng**: xem docs/map-editor-m11c1b.md mục 6 (nghiệm thu bắt buộc: qua cửa sổ phần thấy 83,7, phần còn lại của phòng 5,6, phòng kho kín 3,4, cỏ 65,6).
+- **Sửa sau thử bằng mắt**: công tắc đèn trên tường bị cắt không còn biến mất, được hạ xuống đỉnh chân tường (giữ màu bật/tắt); chỉ ẩn khi cả tầng ẩn.
+- **Giới hạn**: ô 0,25 m thành bậc ở mép; tường < 0,19 m có thể lộ một dải ô; chỉ 16 slot phòng gần nhất có mask; peek chỉ tầng của nhân vật; chưa bỏ vẽ đồ bị che hết; chưa có mái hiên.
+
+Commit message gợi ý: **feat(game): interior visibility M11c-1B (PZ-style mask after the room light: seen, remembered and never-seen interior cells from a ray fan through doors and windows, outdoors untouched; buildings seen into from outside cut away with a hold; explored cells kept in the save as an optional field; player climbs along its path at low frame rates)**
+
+## 0-M11c-1A. M11c-1A — cắt lớp công trình trên nền nhiều tầng (đã commit f24212e — chi tiết docs/map-editor-m11c1a.md)
 
 Theo `docs/Building_Cutaway_Visibility_Fix_Plan.md` (M1–M4 của tài liệu đó). Save, schema map, `neighborhood-50` không đổi. World thử mới `content/maps/cutaway-lab` (ẩn; bản đông cứng `src/test/fixtures/maps/cutaway-lab`): ba bản nhà hai tầng hai phòng (một bản xoay 90°).
 
@@ -18,7 +33,6 @@ Theo `docs/Building_Cutaway_Visibility_Fix_Plan.md` (M1–M4 của tài liệu �
 - **Kiểm chứng**: xem mục "Kiểm chứng" trong docs/map-editor-m11c1a.md.
 - **Giới hạn**: chưa lộ nội thất qua cửa sổ, fader vẫn lộ mờ nội thất nhà khác khi nhà che nhân vật (M11c-1B); đèn trần tầng đang xem vẫn vẽ; cánh cửa ẩn mất bóng nhỏ; chưa fade/dither; chưa có mái hiên.
 
-Commit message gợi ý: **feat(game): building cutaway M11c-1A (per-building pieces with roles, one visibility composer replacing the roof controller, observed storey with stair hysteresis, camera-side and inner walls cut down, upper storeys hidden with their doors, windows, lamps, zombies and drops, shadow-only proxies keep the shadows, per-storey F6 and cutaway label, vision overlay on the player's floor, cutaway lab world)**
 
 ## 0-M11b. Map editor M11b — nhiều tầng: dữ liệu + mô phỏng (đã commit 62fb037 — chi tiết docs/map-editor-m11b.md)
 

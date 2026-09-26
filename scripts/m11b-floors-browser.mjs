@@ -107,7 +107,11 @@ try {
   log('door leaves / switches', drawn)
   // Front door (ground) stands on 0, bedroom door (upper floor) on 3. Switches 1.3 / 4.3 m.
   assert.deepEqual(drawn.leaves.map((l) => Math.abs(l[1])).sort(), [0, 3])
-  assert.deepEqual(drawn.switches.map((s) => s[1]).sort(), [1.3, 4.3])
+  // The bedroom switch is on the upper inner wall, which the cutaway cuts down while the player is
+  // upstairs: it sits on that wall's top then (3.6 + 0.07), still on its storey.
+  const [low, high] = drawn.switches.map((s) => s[1]).sort()
+  assert.equal(low, 1.3)
+  assert.ok(high === 4.3 || high === 3.67, `upstairs switch on its storey: ${high}`)
   await page.screenshot({ path: `${tmp}/m11b-door-switch.png` })
 
   // 2. Upstairs, E reaches the wardrobe, not the cupboard right below it.

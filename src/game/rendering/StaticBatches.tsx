@@ -306,43 +306,45 @@ export function StaticBatches() {
   )
 }
 
-/** Apply the cutaway to one building's pieces (whole again when it is not the view's). */
-function applyCutaway(buildingId: string): void {
-  const inView = cutaway.view?.buildingId === buildingId
+/** Apply the cutaway to one building's pieces (whole again when it is not cut any more). */
+function applyCutaway(buildingId: string, cut: boolean): void {
   for (const piece of members.get(buildingId) ?? []) {
     const { item } = piece
-    piece.setLimit(inView ? cutaway.limit(item.buildingId, piece.box, item.role ?? 'prop') : Infinity)
+    piece.setLimit(cut ? cutaway.limit(item.buildingId, piece.box, item.role ?? 'prop') : Infinity)
   }
 }
 
-function countCutaway(buildingId: string | undefined, ms: number): void {
+function countCutaway(buildingIds: readonly string[], ms: number): void {
   const stats = { hidden: 0, cut: 0, shadows: 0, ms }
-  for (const piece of (buildingId ? members.get(buildingId) : undefined) ?? []) {
-    if (piece.show === 'hidden') stats.hidden += 1
-    if (piece.show === 'cut') stats.cut += 1
-    if (piece.hasShadowProxy) stats.shadows += 1
+  for (const id of buildingIds) {
+    for (const piece of members.get(id) ?? []) {
+      if (piece.show === 'hidden') stats.hidden += 1
+      if (piece.show === 'cut') stats.cut += 1
+      if (piece.hasShadowProxy) stats.shadows += 1
+    }
   }
   cutaway.stats = stats
 }
 
 /**
  * M11c-1A (replaces the R1 roof controller): follows the player with the shared `cutaway` state
- * (one building lookup per frame) and re-limits the pieces of the building it leaves and the one it
- * enters, and the view building's again after chunks (un)mount (new pieces start whole, so no other
- * building needs a pass).
+ * (one building lookup per frame) and re-limits the pieces of the buildings that stop or start being
+ * cut, and the cut ones again after chunks (un)mount (new pieces start whole, so no other building
+ * needs a pass). M11c-1B: also the buildings the player sees into from outside (`runtime.interior`).
  */
 export function CutawayController() {
-  const last = useRef<{ building: string | null; version: number; members: number }>({ building: null, version: -1, members: -1 })
+  const last = useRef<{ cut: string[]; version: number; members: number }>({ cut: [], version: -1, members: -1 })
 
   useEffect(() => {
+    const byId = new Map(runtime.map.buildings.map((b) => [b.id, b]))
     cutaway.attach((p, margin) => {
       const id = runtime.buildingAt(p, margin)
-      return id ? runtime.map.buildings.find((b) => b.id === id) ?? null : null
-    }, runtime.config.camera.offset)
+      return id ? byId.get(id) ?? null : null
+    }, runtime.config.camera.offset, (id) => byId.get(id) ?? null, runtime.config.interiorVisibility.peekHold)
     if (import.meta.env.DEV) {
       ;(window as unknown as { __cutaway: object }).__cutaway = {
         state: cutaway,
-        debugState: () => ({ building: cutaway.view?.buildingId ?? null, level: cutaway.view?.level ?? null, floorY: cutaway.view?.floorY ?? null, ceilingY: cutaway.view?.ceilingY ?? null, wallTopY: cutaway.view?.wallTopY ?? null, version: cutaway.version, ...cutaway.stats }),
+        debugState: () => ({ building: cutaway.view?.buildingId ?? null, level: cutaway.view?.level ?? null, floorY: cutaway.view?.floorY ?? null, ceilingY: cutaway.view?.ceilingY ?? null, wallTopY: cutaway.view?.wallTopY ?? null, peeks: cutaway.peekIds, version: cutaway.version, ...cutaway.stats }),
         setShadowProxies: (on: boolean) => {
           shadowProxies = on
           for (const set of members.values()) for (const p of set) p.refresh()
@@ -354,15 +356,16 @@ export function CutawayController() {
   }, [])
 
   useFrame(() => {
-    cutaway.update(runtime.player.position)
+    const seenInto = runtime.config.interiorVisibility.enabled ? runtime.interior.peeks : []
+    cutaway.update(runtime.player.position, seenInto, performance.now() / 1000)
     const s = last.current
-    const building = cutaway.view?.buildingId ?? null
     if (cutaway.version === s.version && membersVersion === s.members) return
     const start = performance.now()
-    if (s.building && s.building !== building) applyCutaway(s.building)
-    if (building) applyCutaway(building)
-    countCutaway(building ?? undefined, performance.now() - start)
-    s.building = building
+    const cut = cutaway.cutIds
+    for (const id of s.cut) if (!cut.includes(id)) applyCutaway(id, false)
+    for (const id of cut) applyCutaway(id, true)
+    countCutaway(cut, performance.now() - start)
+    s.cut = cut
     s.version = cutaway.version
     s.members = membersVersion
   })

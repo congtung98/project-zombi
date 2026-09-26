@@ -121,6 +121,11 @@ Nguyên tắc:
 
 ## Trạng thái theo kế hoạch
 
+### M11c-1B: tầm nhìn nội thất (26/09/2026)
+
+- Nội thất nhân vật không thấy bị làm tối kiểu Project Zomboid (chỗ từng thấy: mờ xám; chưa bao giờ thấy: gần đen), ngoài trời không bao giờ tối, ánh sáng không đổi. Nhìn qua cửa/cửa sổ từ ngoài: nhà đó được cắt lớp và chỉ phần thấy qua ô cửa sáng lên. Vùng đã khám phá được lưu trong save.
+- F4 tô màu mask. Chi tiết `docs/map-editor-m11c1b.md`. Tiếp theo: M11c-2 (editor theo tầng).
+
 ### M11c-1A: cắt lớp công trình trên nền nhiều tầng (26/09/2026)
 
 - Vào nhà: mái và mọi thứ của tầng trên bị ẩn, tường phía camera và vách trong cắt còn chân tường 0,6 m, tường phía xa giữ nguyên; lên tầng 2 thì tầng quan sát đổi ở 3/4 cầu thang (không nhấp nháy). Chỉ là trình bày: va chạm, tầm nhìn, ánh sáng, save không đổi; bóng mái/tầng trên vẫn đổ.

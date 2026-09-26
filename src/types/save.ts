@@ -79,6 +79,18 @@ export interface SaveGame {
   /** v7: lighting inputs only (room light is recomputed after load). */
   lighting: SavedLighting
   cameraZoom: number
+  /**
+   * M11c-1B: explored interior cells (the memory of what the character has seen indoors). Optional
+   * without a schema bump: it is presentation only, a save without it (or with a malformed one, or
+   * rooms that changed) simply remembers nothing there.
+   */
+  exploration?: SavedExploration
+}
+
+/** Explored cells per room: a base64 bitset over the room's `cell` grid (row-major, bounds origin). */
+export interface SavedExploration {
+  cell: number
+  rooms: { id: string; bits: string }[]
 }
 
 export interface SavedLighting {

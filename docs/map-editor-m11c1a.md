@@ -73,7 +73,7 @@ Chỉ áp dụng cho **nhà nhân vật đang đứng bên trong**:
 | Tường ngoài quay lưng camera (−X, −Z) | nguyên (tới trần) | nguyên |
 | Cửa trong tường bị cắt | cánh thu còn 0,6 m | tương tự |
 | Kính cửa sổ và rèm trong tường bị cắt | ẩn (bệ 0,9 m > 0,6 m) | tương tự |
-| Công tắc trên tường bị cắt | ẩn (bấm E vẫn được) | tương tự |
+| Công tắc trên tường bị cắt | hạ xuống nằm trên đỉnh chân tường, vẫn thấy màu bật/tắt (sửa sau M11c-1B; lúc đầu bị ẩn) | tương tự |
 | Đèn trần của tầng đang xem | vẫn vẽ (như trước) | vẫn vẽ |
 | Zombie, túi đồ, dấu thùng ở tầng bị ẩn | ẩn | — |
 | Nhà khác (kể cả bản sao cùng prefab) | nguyên | nguyên |
@@ -118,7 +118,7 @@ World ẩn khỏi menu, mở bằng `?world=cutaway-lab`; bản đông cứng ch
   - nhà khác không bị ảnh hưởng.
 - **Trình duyệt** `scripts/m11c1a-cutaway-browser.mjs`:
   - nhà và tầng được cắt ở 7 cảnh;
-  - những gì vẽ ở tầng trệt: cửa chính nguyên, cửa kho cắt còn 0,6 m, cửa phòng ngủ ẩn, kính phía nam và tầng trên ẩn, đèn tầng trệt vẽ, công tắc trên tường xa vẽ và trên tường đã cắt ẩn;
+  - những gì vẽ ở tầng trệt: cửa chính nguyên, cửa kho cắt còn 0,6 m, cửa phòng ngủ ẩn, kính phía nam và tầng trên ẩn, đèn tầng trệt vẽ, công tắc trên tường xa vẽ tại chỗ, trên tường đã cắt vẽ trên đỉnh chân tường (0,67 m);
   - phím thật qua cửa chính và lên/xuống cầu thang, lấy mẫu mỗi frame: đổi đúng một lần mỗi chiều;
   - bóng: so điểm cỏ với dự đoán hình học của cả khối nhà, kèm phép so bật/tắt proxy;
   - đèn và ánh sáng phòng giống nhau trong và ngoài nhà;

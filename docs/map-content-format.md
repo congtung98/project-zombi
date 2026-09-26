@@ -118,7 +118,7 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 
 ## 8. Save
 
-- Save v8 dùng ID ổn định và ghi `contentVersion`. Save v9 (M11b): `y` của mọi vị trí (người chơi, zombie, ký ức, túi đồ rơi) là độ cao chân; bước v8 → v9 đưa về 0 (trước đó chỉ có một tầng).
+- Save v8 dùng ID ổn định và ghi `contentVersion`. Save v9 (M11b): `y` của mọi vị trí (người chơi, zombie, ký ức, túi đồ rơi) là độ cao chân; bước v8 → v9 đưa về 0 (trước đó chỉ có một tầng). M11c-1B: trường tùy chọn `exploration { cell, rooms: [{ id, bits }] }` (ô nội thất đã khám phá, bitset base64 trên lưới bounds của phòng), không tăng phiên bản; thiếu hoặc sai = chưa khám phá, phòng đổi lưới = bỏ qua.
 - Save v1–v7 được kiểm tra và migrate bằng **map cũ đóng băng** (`migrations/legacy-v7-map.json`, đúng bản trước M2). Nhờ vậy các bước migrate cũ và các hằng `CONTAINERS_ADDED_V3/V5`, `DOORS_ADDED_V7`, `WALL_PREFIXES_ADDED_V7` (nay ở `world/legacyContent.ts`) chạy y như trước.
 - Bước v7 → v8 đổi tên qua `migrations/legacy-v7-ids.json` cho cửa, container cố định, rèm (cửa sổ), đèn, zone của zombie và cửa đang bị vây, rồi xếp lại theo thứ tự map.
 - Túi đồ rơi giữ ID `drop:…`. ID inventory và item **không đổi**, nên vật phẩm vẫn mang tên tủ cũ, ví dụ `loot:…:ct-safehouse-closet:1`. Việc này không ảnh hưởng gì vì ID chỉ cần duy nhất.

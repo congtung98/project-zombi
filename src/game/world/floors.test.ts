@@ -150,6 +150,17 @@ describe('the floor rule (FloorField)', () => {
     expect(field.surfaceAt(18.4, 16.95, 0)).toBe(0) // under the top end, from the ground: stays down
   })
 
+  it('follows the way a body went: a long step (slow frame) still climbs; a teleport does not (M11c-1B)', () => {
+    // From the foot (x 14) to 16.5 m in one step: the flight is already 1.5 m high there.
+    expect(field.surfaceAt(16.5, 16.95, 0)).toBe(0) // one jump: would pass under the flight
+    expect(field.follow(14, 16.95, 16.5, 16.95, 0)).toBeCloseTo(1.5) // along the way: on it
+    expect(field.follow(14, 16.95, 14.2, 16.95, 0)).toBe(0) // a short step on the ground
+    expect(field.follow(12, 12, 16, 12, 3)).toBe(3) // walking the upper floor
+    // Further than a walk can go in one step: the destination alone (under the upper floor: ground).
+    expect(field.follow(8, 16.95, 16.5, 16.95, 0)).toBe(0)
+    expect(new FloorField().follow(0, 0, 3, 4, 7)).toBe(0)
+  })
+
   it('subtracts rectangles into strips', () => {
     const a = { minX: 0, minZ: 0, maxX: 10, maxZ: 10 }
     const strips = subtractRect(a, { minX: 2, minZ: 3, maxX: 4, maxZ: 5 })

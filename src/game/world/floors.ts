@@ -113,6 +113,11 @@ const CELL = 8
  * Walkable surfaces of a map: the ground (y = 0 everywhere), slabs and stairs. A map without upper
  * floors answers 0 at once, so single-storey worlds pay nothing.
  */
+/** Longest stretch `FloorField.follow` checks at once (m). */
+const FOLLOW_STEP = 0.25
+/** A move longer than this in one step is a teleport (scripts, load), not a walk (m). */
+const TELEPORT_DISTANCE = 4
+
 export class FloorField {
   readonly slabs: readonly FloorSlab[]
   readonly stairs: readonly StairPlacement[]
@@ -154,6 +159,22 @@ export class FloorField {
       if (y <= limit && y > best) best = y
     }
     return best
+  }
+
+  /**
+   * M11c-1B: the surface after moving from (fromX, fromZ) to (toX, toZ) with feet at `feetY`,
+   * applying the step-up rule every `FOLLOW_STEP` along the way. A body that moves far in one step
+   * (a slow frame: the physics moved it more than a metre) still climbs a flight instead of passing
+   * under it. A move longer than `TELEPORT_DISTANCE` is a teleport: the destination alone decides.
+   */
+  follow(fromX: number, fromZ: number, toX: number, toZ: number, feetY: number): number {
+    if (this.flat) return 0
+    const len = Math.hypot(toX - fromX, toZ - fromZ)
+    if (len > TELEPORT_DISTANCE) return this.surfaceAt(toX, toZ, feetY)
+    const steps = Math.max(1, Math.ceil(len / FOLLOW_STEP))
+    let y = feetY
+    for (let i = 1; i <= steps; i++) y = this.surfaceAt(fromX + ((toX - fromX) * i) / steps, fromZ + ((toZ - fromZ) * i) / steps, y)
+    return y
   }
 
   /** Flights whose index cell holds the point (a coarse filter). */

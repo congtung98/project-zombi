@@ -38,6 +38,7 @@ import { STRESS_TILES, buildStressMap } from '../world/stressMap'
 import { startupWorld } from '../world/worldChoice'
 import { playtestSession } from '../world/playtest'
 import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOccluders'
+import { InteriorVisibility, isSavedExploration } from '../systems/interiorVisibility'
 import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
 import { BuildingLightingSystem, buildLightingBuildings, outdoorLightLevel } from '../lighting/buildingLighting'
 import { mapRooms, mapWindows } from '../world/mapData'
@@ -179,6 +180,8 @@ export class GameRuntime {
    * the tick and never feeds the AI; hidden zombies keep wandering, chasing and bashing doors.
    */
   readonly vision: PlayerVisionSystem
+  /** M11c-1B: interior cells seen now and explored (render-facing, saved as memory). */
+  readonly interior: InteriorVisibility
   /**
    * Building lighting (room graph): derived room light from windows, doors, lamps and power. World
    * state only drives it through dirty marks; it never reads the player's facing or vision.
@@ -249,6 +252,7 @@ export class GameRuntime {
       lampOn: (id) => this.world.lamps.get(id) === true,
       electricity: () => this.world.electricity,
     }, buildLightingBuildings(map, GAME_CONFIG.buildingLighting))
+    this.interior = new InteriorVisibility(mapRooms(map), GAME_CONFIG.interiorVisibility, GAME_CONFIG.playerVision)
     this.vision = new PlayerVisionSystem(GAME_CONFIG.playerVision, {
       getNearbyEntities: (center, radius) => this.getNearbyZombies(center, radius),
       hasLineOfSight: (from, to) => {
@@ -354,6 +358,7 @@ export class GameRuntime {
     this.hordeCounter = 0
     this.doorSlots.clear()
     this.vision.clear()
+    this.interior.clear()
     this.lighting.markAllDirty()
     this.aiRng = createRng(hashSeed(seed, 'ai'))
     for (const spawn of this.map.zombieSpawns) this.spawnZombie(spawn)
@@ -394,6 +399,7 @@ export class GameRuntime {
         structureTargetId: z.structureTargetId,
       })
     }
+    const exploration = this.interior.serialize()
     return {
       schemaVersion: SAVE_SCHEMA_VERSION,
       savedAt: Date.now(),
@@ -425,6 +431,7 @@ export class GameRuntime {
         electricity: this.world.electricity,
       },
       cameraZoom: this.cameraZoom,
+      ...(exploration ? { exploration } : {}),
     }
   }
 
@@ -472,6 +479,8 @@ export class GameRuntime {
     for (const l of save.lighting.lamps) if (this.world.lamps.has(l.id)) this.world.lamps.set(l.id, l.on)
     this.world.electricity = save.lighting.electricity
     this.lighting.markAllDirty()
+    // M11c-1B: the interior memory (a malformed one is dropped: it is only a view).
+    this.interior.restore(isSavedExploration(save.exploration) ? save.exploration : undefined)
     for (const c of save.containers) {
       if (c.position) {
         this.world.containers.set(c.id, { ...c, position: { ...c.position }, items: cloneInventory(c.items) })
@@ -570,6 +579,8 @@ export class GameRuntime {
     // Player vision last: reads final positions this tick, writes only render-facing state.
     t = perf.begin()
     this.vision.update(dt, this.player)
+    // M11c-1B: interior cells seen (throttled), after the player moved; `inside` rules out peeks.
+    if (GAME_CONFIG.interiorVisibility.enabled) this.interior.step(dt, this.player, this.visionOccluders, this.buildingAt(this.player.position, -0.2), this.lighting.revision)
     perf.end('vision', t)
     this.clock.advance(dt)
     this.events.flush()
@@ -823,14 +834,17 @@ export class GameRuntime {
   private stepPlayerMovement(dt: number): void {
     const body = this.playerBody
     const player = this.player
+    const fromX = player.position.x
+    const fromZ = player.position.z
     if (body) {
       const t = body.translation()
       player.position.x = t.x
       player.position.z = t.z
     }
     // M11b: the simulation owns the player's height (feet on the ground, a slab or a flight); the
-    // body only resolves walls sideways and floats just above that floor (no gravity).
-    player.position.y = this.floors.surfaceAt(player.position.x, player.position.z, player.position.y)
+    // body only resolves walls sideways and floats just above that floor (no gravity). M11c-1B: along
+    // the way the body went, so a slow frame's long move still climbs a flight.
+    player.position.y = this.floors.follow(fromX, fromZ, player.position.x, player.position.z, player.position.y)
     if (body) {
       const t = body.translation()
       const y = player.position.y + GAME_CONFIG.player.height / 2 + PLAYER_HOVER
