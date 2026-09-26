@@ -74,6 +74,8 @@ class OverlayPass {
   readonly material: ShaderMaterial
   private readonly sectors: DataTexture
   private readonly sectorData = new Float32Array(CFG.losRays)
+  /** G6: what the sector mask was last computed for (position, doors/curtains, occluders); same = skip. */
+  private sectorKey = ''
   private readonly invViewProj = new Matrix4()
 
   constructor() {
@@ -128,7 +130,11 @@ class OverlayPass {
     u.uStrength.value = strength
     u.uDebug.value = debug || CFG.debug ? 1 : 0
 
-    if (CFG.losAware) {
+    // G6: the rays only change when the player moves or a door or curtain does (the lighting
+    // revision counts those, as for the interior mask); a player standing still costs nothing.
+    const key = CFG.losAware ? `${p.position.x.toFixed(3)},${p.position.y.toFixed(3)},${p.position.z.toFixed(3)},${runtime.lighting.revision},${runtime.visionOccluders.all.length}` : ''
+    if (CFG.losAware && key !== this.sectorKey) {
+      this.sectorKey = key
       computeSectorDistances(p.position, runtime.visionOccluders, VISION, this.sectorData)
       const range = sectorRange(VISION)
       const texel = this.sectors.image.data as Uint8Array

@@ -18,6 +18,10 @@ import { mapBounds, type MapData } from '../world/mapData'
  * banded by `STOREY` metres (every building so far has 3 m storeys).
  */
 
+/** Darkening at full occupancy (Medium and High tiers). */
+const CONTACT_STRENGTH_DEFAULT = 0.4
+export const CONTACT_STRENGTH = CONTACT_STRENGTH_DEFAULT
+
 /** Cell of the map (m). */
 export const CONTACT_CELL = 0.125
 /** Largest side of the map in cells (bigger worlds get coarser cells). */
@@ -127,7 +131,7 @@ function boxBlur(src: Float32Array, dst: Float32Array, width: number, height: nu
 export const contactUniforms = {
   uContactMap: { value: placeholderTexture() },
   uContactWindow: { value: new Vector4(0, 0, 0, 0) },
-  uContactOpt: { value: new Vector4(0.4, STOREY, 0.45, 0) },
+  uContactOpt: { value: new Vector4(CONTACT_STRENGTH_DEFAULT, STOREY, 0.45, 0) },
 }
 
 function placeholderTexture(): DataTexture {

@@ -1,5 +1,5 @@
 import { sfx } from '../game/audio/sfx'
-import { useSettingsStore, type ShadowQuality } from '../stores/settingsStore'
+import { GRAPHICS_PRESETS, useSettingsStore, type GraphicsQuality, type ShadowQuality } from '../stores/settingsStore'
 
 /** Panel cài đặt dùng chung cho menu chính và menu pause; lưu localStorage ngay khi đổi. */
 export function SettingsPanel({ onBack }: { onBack: () => void }) {
@@ -24,6 +24,23 @@ export function SettingsPanel({ onBack }: { onBack: () => void }) {
         <span>Tắt tiếng</span>
         <input type="checkbox" checked={s.muted} onChange={(e) => s.set({ muted: e.target.checked })} />
         <span className="setting-value">{s.muted ? 'Đang tắt' : 'Đang bật'}</span>
+      </label>
+      <label className="setting-row">
+        <span>Chất lượng đồ họa</span>
+        <select
+          value={s.graphics}
+          onChange={(e) => {
+            const graphics = e.target.value as GraphicsQuality
+            const p = GRAPHICS_PRESETS[graphics]
+            s.set({ graphics, shadows: p.shadows, maxPixelRatio: p.maxPixelRatio })
+          }}
+          data-graphics-quality
+        >
+          <option value="low">Thấp (máy yếu)</option>
+          <option value="medium">Vừa</option>
+          <option value="high">Cao</option>
+        </select>
+        <span className="setting-value muted">chỉ đổi hình, không đổi gameplay</span>
       </label>
       <label className="setting-row">
         <span>Bóng đổ</span>

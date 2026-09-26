@@ -176,7 +176,8 @@ export class NavGrid {
     // R3b: build the tile graph now (like loading a chunk) so the first long route is not the one to pay.
     // M10: within a budget on big worlds, around the start first (a 500 m town takes ~1.5 s in full).
     if (opts.warmFrom) this.prioritizeWarm(opts.warmFrom)
-    this.tiles.warm(opts.initialWarmMs ?? Infinity)
+    // G6: the start's tile always completes (the budget only bounds the rest).
+    this.tiles.warm(opts.initialWarmMs ?? Infinity, opts.warmFrom ? 1 : 0)
     // Slots that fall on blocked cells (furniture, walls) use the side point instead.
     for (const portal of this.portals.values()) {
       portal.slots = portal.slots.map((list, i) => list.map((p) => (this.staticWalkable(p) ? p : { ...portal.sides[i] }))) as [Vec3[], Vec3[]]

@@ -12,7 +12,35 @@
       "quarterTurns": 0
     }
   ],
-  "objects": [],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-1_-1/objects/safehouse-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 13.2, "y": 0, "z": 21.5 },
+      "yaw": 20
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-1_-1/objects/safehouse-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 22.8, "y": 0, "z": 14.8 },
+      "yaw": 120
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-1_-1/objects/safehouse-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 15, "y": 0, "z": 13.2 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-1_-1/objects/safehouse-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 21, "y": 0, "z": 23 },
+      "yaw": 70
+    }
+  ],
   "roads": [],
   "zones": [
     {

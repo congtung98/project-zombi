@@ -41,19 +41,21 @@ export interface DecorInfo {
   color: string
   /** Lies flat on the floor (drawn just above the floor layers, never casts a shadow). */
   flat?: boolean
+  /** G6: very small detail (a few pixels at the gameplay zoom): left out at the Low graphics tier. */
+  small?: boolean
 }
 
 export const DECOR: Record<DecorId, DecorInfo> = {
-  'decor/cup': { label: 'Cốc', size: [0.09, 0.1, 0.09], color: '#d8d2c4' },
-  'decor/plate': { label: 'Đĩa', size: [0.24, 0.03, 0.24], color: '#e2ddd2' },
+  'decor/cup': { label: 'Cốc', size: [0.09, 0.1, 0.09], color: '#d8d2c4', small: true },
+  'decor/plate': { label: 'Đĩa', size: [0.24, 0.03, 0.24], color: '#e2ddd2', small: true },
   'decor/pot': { label: 'Nồi', size: [0.38, 0.17, 0.26], color: '#5c6064' },
-  'decor/cutting-board': { label: 'Thớt + bánh mì', size: [0.42, 0.09, 0.28], color: '#b58a5a' },
+  'decor/cutting-board': { label: 'Thớt + bánh mì', size: [0.42, 0.09, 0.28], color: '#b58a5a', small: true },
   'decor/food-boxes': { label: 'Hộp thực phẩm', size: [0.42, 0.28, 0.2], color: '#a4553c' },
-  'decor/cans': { label: 'Lon đồ hộp', size: [0.22, 0.11, 0.1], color: '#8a8f93' },
-  'decor/bottle': { label: 'Chai', size: [0.08, 0.28, 0.08], color: '#46604a' },
-  'decor/books': { label: 'Chồng sách', size: [0.3, 0.13, 0.23], color: '#6b4a3a' },
-  'decor/papers': { label: 'Giấy tờ vương vãi', size: [0.9, 0.012, 0.8], color: '#dcd6c6', flat: true },
-  'decor/clothes': { label: 'Đống quần áo', size: [0.55, 0.09, 0.42], color: '#56627a' },
+  'decor/cans': { label: 'Lon đồ hộp', size: [0.22, 0.11, 0.1], color: '#8a8f93', small: true },
+  'decor/bottle': { label: 'Chai', size: [0.08, 0.28, 0.08], color: '#46604a', small: true },
+  'decor/books': { label: 'Chồng sách', size: [0.3, 0.13, 0.23], color: '#6b4a3a', small: true },
+  'decor/papers': { label: 'Giấy tờ vương vãi', size: [0.9, 0.012, 0.8], color: '#dcd6c6', flat: true, small: true },
+  'decor/clothes': { label: 'Đống quần áo', size: [0.55, 0.09, 0.42], color: '#56627a', small: true },
   'decor/rug': { label: 'Thảm', size: [2, 0.012, 1.4], color: '#7a4f45', flat: true },
   'decor/carton': { label: 'Thùng các-tông', size: [0.46, 0.37, 0.36], color: '#a27b50' },
   'decor/duffel-bag': { label: 'Túi du lịch', size: [0.62, 0.3, 0.32], color: '#44503f' },
@@ -64,7 +66,7 @@ export const DECOR: Record<DecorId, DecorInfo> = {
   'decor/oil-stain': { label: 'Vệt dầu', size: [1.1, 0.004, 0.8], color: '#4a4540', flat: true },
   // G4: planting by the paths and fences.
   'decor/bush': { label: 'Bụi cây', size: [1.2, 0.74, 1.1], color: '#4d6a39' },
-  'decor/grass': { label: 'Cụm cỏ', size: [0.5, 0.36, 0.5], color: '#617d43' },
+  'decor/grass': { label: 'Cụm cỏ', size: [0.5, 0.36, 0.5], color: '#617d43', small: true },
 }
 
 export function isDecorId(v: unknown): v is DecorId {

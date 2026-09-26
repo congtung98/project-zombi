@@ -1,6 +1,6 @@
 // Map editor M10 (runtime streaming) browser check with Playwright (fresh isolated context, dev
 // server: it reads the game through window.__runtime, __viewChunks, __scene and __renderInfo).
-//   BASE_URL=http://127.0.0.1:5174 node scripts/m10-streaming-browser.mjs
+//   BASE_URL=http://127.0.0.1:5174 [GPU=1] node scripts/m10-streaming-browser.mjs
 // Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
 // Covers, on a generated 8×8 town (~270 m, 100 chunks) written to content/maps/m10-browser-test:
 // - content per world: the neighbourhood page never requests the town's chunk files; picking the
@@ -18,7 +18,9 @@ const base = process.env.BASE_URL ?? 'http://127.0.0.1:5173'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  // GPU=1: real GPU (ANGLE D3D11). Under SwiftShader the menu's idle frames can be too slow for the
+  // nav warm-up to finish within the wait (seen from G0 on); the check itself is the same.
+  args: process.env.GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 })
 const tmp = 'node_modules/.tmp'
 mkdirSync(tmp, { recursive: true })

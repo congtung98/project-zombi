@@ -17,7 +17,7 @@ import type { QuarterTurns } from '../../map/schema'
 import { isFurnitureId, type FurnitureId } from './furniture/catalog'
 import { lookParts, type WorldBox } from './furniture/placement'
 import { placeDecorParts } from './decor/assets'
-import { isDecorId, type DecorId } from './decor/catalog'
+import { DECOR, isDecorId, type DecorId } from './decor/catalog'
 import { isVariantId, variantColor, type VariantId } from './variants'
 import { ROOM_FLOOR_LIFT } from './architecture'
 import type { DecorDef } from '../world/buildings'
@@ -148,8 +148,14 @@ export function buildingMembership(buildings: readonly BuildingInfo[]): (id: str
   }
 }
 
+/** G6: presentation options of the graphics tier (never anything gameplay reads). */
+export interface StaticDetail {
+  /** Very small decor (`DecorInfo.small`); off at the Low tier. */
+  smallDecor: boolean
+}
+
 /** Everything static to draw, from runtime data (colliders, containers, buildings). */
-export function collectStaticItems(map: MapData, colliders: StaticColliderRegistry): StaticItem[] {
+export function collectStaticItems(map: MapData, colliders: StaticColliderRegistry, detail: StaticDetail = { smallDecor: true }): StaticItem[] {
   const items: StaticItem[] = []
   const memberOf = buildingMembership(map.buildings)
   // Tree trunks are walls (collider, nav, sight) but are drawn as trees below.
@@ -243,7 +249,10 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   // G4: paint on the streets and kerbs where a pavement meets one (drawn only).
   items.push(...roadDetails(map.roads))
   // G3b: decor (drawn only), then the house variants' palette on every piece of a house but decor.
-  for (const d of map.decor ?? []) items.push(...decorItems(d, memberOf(d.id, d.position.x, d.position.z)))
+  for (const d of map.decor ?? []) {
+    if (!detail.smallDecor && isDecorId(d.assetId) && DECOR[d.assetId].small) continue
+    items.push(...decorItems(d, memberOf(d.id, d.position.x, d.position.z)))
+  }
   for (const item of items) {
     const v = variantOf(item.buildingId)
     if (v && !item.decor) item.color = variantColor(item.color, v)

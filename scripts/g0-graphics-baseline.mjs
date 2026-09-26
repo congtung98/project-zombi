@@ -10,9 +10,12 @@
 //                      frame times are then NOT representative, draw calls/triangles/counts still are
 //   --headed           visible browser window (frame pacing closer to a player's browser)
 //   --shadows=high|low|off, --dpr=1|1.5|2   game settings (default: high, 1)
+//   --graphics=low|medium|high               G6 graphics tier (default: medium)
 //   --warmup=<ms> --sample=<ms>              per scene (default 3000 / 6000)
 //   --menu-wait=<ms>   stay on the main menu this long before New Game (default 0)
 //   --scenes=a,b       only these scenes (by name; the lifecycle check still uses the world's first three)
+//   --walk=<m/s>       G6: during warm-up and sample the player walks back and forth (±2 m along x at
+//                      this speed, facing its way), so the vision rays and streaming work as when playing
 //   --compare=<dir>    pixel difference of each screenshot against another run's (reproducibility,
 //                      or before/after)
 // Needs the dev server (window.__runtime, __scene, __gl). Against a production build (vite preview)
@@ -41,6 +44,7 @@ const gpu = flag('gpu')
 const uncapped = flag('uncapped')
 const headed = flag('headed')
 const shadows = opt('shadows', 'high')
+const graphics = opt('graphics', 'medium')
 const dpr = Number(opt('dpr', '1'))
 const warmupMs = Number(opt('warmup', '3000'))
 const sampleMs = Number(opt('sample', '6000'))
@@ -48,6 +52,7 @@ const compareDir = opt('compare', null)
 // G1: time on the main menu before New Game (a player reads the menu; idle work such as the surface
 // textures runs meanwhile). 0 = click at once, as in G0.
 const menuWaitMs = Number(opt('menu-wait', '0'))
+const walkSpeed = Number(opt('walk', '0'))
 const VIEWPORT = { width: 1280, height: 800 }
 const A = 'c0_0/house-a'
 
@@ -302,7 +307,7 @@ async function pixelDiff(page, a, b) {
 const report = { label, date: new Date().toISOString(), world: WORLD, environment: null, load: {}, scenes: [], lifecycle: null, errors }
 try {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: dpr })
-  await context.addInitScript(([s, r]) => localStorage.setItem('zombie-outbreak.settings.v1', JSON.stringify({ shadows: s, maxPixelRatio: r, visionOverlay: true, showHints: false })), [shadows, dpr])
+  await context.addInitScript(([s, r, g]) => localStorage.setItem('zombie-outbreak.settings.v1', JSON.stringify({ shadows: s, maxPixelRatio: r, visionOverlay: true, showHints: false, graphics: g })), [shadows, dpr, graphics])
   const page = await context.newPage()
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('console', (m) => {
@@ -382,10 +387,31 @@ try {
         rt.player.hunger = 100
         rt.player.thirst = 100
       }, scene)
+      if (walkSpeed > 0) {
+        await page.evaluate(([x0, speed]) => {
+          const rt = window.__runtime
+          let t0 = performance.now()
+          const step = (now) => {
+            if (!window.__walk) return
+            const t = ((now - t0) / 1000) * speed
+            // Back and forth over 4 m: a triangle wave, facing the way it goes.
+            const phase = t % 8
+            const dx = phase < 4 ? phase - 2 : 6 - phase
+            const x = x0 + dx
+            rt.player.position = { ...rt.player.position, x }
+            rt.player.facing = phase < 4 ? Math.PI / 2 : -Math.PI / 2
+            rt.playerBody.setTranslation({ x, y: rt.player.position.y + rt.config.player.height / 2 + 0.02, z: rt.player.position.z }, true)
+            requestAnimationFrame(step)
+          }
+          window.__walk = true
+          requestAnimationFrame(step)
+        }, [scene.at[0], walkSpeed])
+      }
       await page.waitForTimeout(warmupMs)
       await page.evaluate(() => window.__runtime.perf.startFrameLog())
       await page.waitForTimeout(sampleMs)
       const log = await page.evaluate(() => window.__runtime.perf.takeFrameLog())
+      if (walkSpeed > 0) await page.evaluate(() => (window.__walk = false))
       // Time of day back to the scene's before the picture (the clock ran during the sample).
       await page.evaluate((time) => window.__runtime.clock.restore(window.__runtime.clock.elapsed, time, window.__runtime.clock.day), scene.time)
       await page.waitForTimeout(300)

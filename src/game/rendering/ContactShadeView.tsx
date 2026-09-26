@@ -1,12 +1,21 @@
 import { useEffect } from 'react'
 import { runtime } from '../core/runtime'
-import { applyContactMap, buildContactMap, contactStats, contactUniforms } from './contactShade'
+import { applyContactMap, buildContactMap, CONTACT_STRENGTH, contactStats, contactUniforms, setContactStrength } from './contactShade'
+import { setSurfaceAnisotropy } from './surfaces/surfaceMaterial'
+import { GRAPHICS_PRESETS, useSettingsStore } from '../../stores/settingsStore'
 
 /**
  * G4: builds the world's contact map once, in idle time after the scene mounts (until then nothing is
  * darkened), and takes it off when the scene goes (a new game, another world).
  */
 export function ContactShade() {
+  // G6: the graphics tier's contact darkening and texture filtering.
+  const graphics = useSettingsStore((s) => s.graphics)
+  useEffect(() => {
+    const p = GRAPHICS_PRESETS[graphics]
+    setContactStrength(p.contact ? CONTACT_STRENGTH : 0)
+    setSurfaceAnisotropy(p.anisotropy)
+  }, [graphics])
   useEffect(() => {
     let off: (() => void) | null = null
     let cancelled = false

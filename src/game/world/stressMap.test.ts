@@ -5,6 +5,9 @@ import { isInsideBuilding } from './buildings'
 import { NEIGHBORHOOD_MAP, mapRooms, mapWindows } from './mapData'
 import { NavGrid } from './navigation'
 import { buildStressMap } from './stressMap'
+import { loadBundledWorld, REGISTERED_LOOT_TABLES } from '../../map/content'
+import { checkWorldDocuments } from '../../map/validate'
+import { documentReader, tileWorld } from '../../map/tools/tileWorld'
 
 describe('dev stress map (R0)', () => {
   const map = buildStressMap(4)
@@ -49,6 +52,15 @@ describe('dev stress map (R0)', () => {
     expect(rt.world.containers.size).toBe(map.containers.length)
     for (let i = 0; i < 30; i++) rt.tick(1 / 30)
     expect(rt.player.alive).toBe(true)
+  })
+
+  it('G6: the tiled documents validate, every record ID unique (decor and planting included)', () => {
+    const docs = tileWorld(loadBundledWorld('neighborhood-50').docs, { worldId: 'stress-check', name: 'Stress check', tiles: 4 })
+    const errors = checkWorldDocuments(documentReader(docs), { lootTables: REGISTERED_LOOT_TABLES }).issues.filter((i) => i.severity === 'error')
+    expect(errors.map((e) => `${e.code} ${e.path}`)).toEqual([])
+    // Tiling renames records by their last ID segment: object names must be unique across the base world's chunks.
+    const names = [...loadBundledWorld('neighborhood-50').docs.chunks.values()].flatMap((c) => c.objects.map((o) => o.objectId.split('/').pop()))
+    expect(new Set(names).size).toBe(names.length)
   })
 
   it('the single-tile map keeps the original layout', () => {

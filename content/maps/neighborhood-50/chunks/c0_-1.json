@@ -18,14 +18,43 @@
       "objectId": "c0_-1/objects/car-1",
       "position": { "x": 4, "y": 0.7, "z": 31 },
       "size": [4, 1.4, 2],
-      "color": "#7a3b3b"
+      "color": "#7a3b3b",
+      "visual": { "assetId": "outdoor/car" }
     },
     {
       "kind": "prop",
       "objectId": "c0_-1/objects/crate-3",
       "position": { "x": 21, "y": 0.5, "z": 12 },
       "size": [1, 1, 1],
-      "color": "#a67c52"
+      "color": "#a67c52",
+      "visual": { "assetId": "furniture/crate" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-1/objects/store-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 19.9, "y": 0, "z": 16 },
+      "yaw": 90
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-1/objects/store-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 6.1, "y": 0, "z": 22 },
+      "yaw": 10
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-1/objects/store-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 8, "y": 0, "z": 14.3 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-1/objects/store-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 18, "y": 0, "z": 14.3 },
+      "yaw": 60
     }
   ],
   "roads": [{ "roadId": "c0_-1/roads/ew", "position": { "x": 0, "z": 31 }, "size": [50, 4], "color": "#3a3a3f" }],

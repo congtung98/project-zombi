@@ -11,6 +11,7 @@ import { collectStaticItems, groupByChunk, itemBounds, type StaticItem } from '.
 import { geometryKey, unitGeometry } from './unitShapes'
 import { WIDE_KEY } from './viewChunks'
 import { useViewChunks } from './viewChunkStore'
+import { GRAPHICS_PRESETS, useSettingsStore } from '../../stores/settingsStore'
 
 /**
  * R3b: static world geometry drawn as one `BatchedMesh` per chunk instead of one mesh per object
@@ -187,11 +188,17 @@ function buildBatch(list: readonly StaticItem[], overlays: Group): ChunkBatch {
   mesh.castShadow = true
   mesh.receiveShadow = true
   mesh.sortObjects = false
+  // G6: no per-instance frustum test. With it three.js walks every instance of every batch in each
+  // pass (main and shadow) every frame and uploads the draw list again; without it the list is only
+  // rebuilt when a piece's visibility changes (cutaway, fade). A chunk batch is small and is still
+  // culled as a whole by its bounding sphere; drawing its few off-screen boxes costs the GPU little.
+  mesh.perObjectFrustumCulled = false
   // M11c-1A: the same instances again, all off, drawn only into the shadow map when switched on.
   const shadow = list.some((i) => i.buildingId) ? new BatchedMesh(list.length, verts, indices, SHADOW_ONLY) : null
   if (shadow) {
     shadow.castShadow = true
     shadow.sortObjects = false
+    shadow.perObjectFrustumCulled = false
   }
   const geometry = new Map(keys.map((k) => [k, mesh.addGeometry(shapes.get(k)!)]))
   const shadowGeometry = shadow ? new Map(keys.map((k) => [k, shadow.addGeometry(shapes.get(k)!)])) : null
@@ -278,8 +285,13 @@ export function StaticBatches() {
   const subscribe = useCallback((listener: () => void) => registry.subscribe(listener), [registry])
   const version = useSyncExternalStore(subscribe, () => registry.version)
   const overlays = useMemo(() => new Group(), [])
-  // Items per chunk, regrouped when colliders are (un)registered (the version).
-  const groups = useMemo(() => (version >= 0 ? groupByChunk(collectStaticItems(runtime.map, registry), mapChunkSize(runtime.map)) : new Map<string, StaticItem[]>()), [registry, version])
+  // G6: the graphics tier drops the smallest decor at Low (presentation only).
+  const smallDecor = useSettingsStore((s) => GRAPHICS_PRESETS[s.graphics].smallDecor)
+  // Items per chunk, regrouped when colliders are (un)registered (the version) or the tier changes.
+  const groups = useMemo(
+    () => (version >= 0 ? groupByChunk(collectStaticItems(runtime.map, registry, { smallDecor }), mapChunkSize(runtime.map)) : new Map<string, StaticItem[]>()),
+    [registry, version, smallDecor],
+  )
   // M10: the shown chunks (null = all) and the always-mounted wide group.
   const shown = useViewChunks()
   const keys = shown === null ? [...groups.keys()] : [WIDE_KEY, ...shown].filter((k) => groups.has(k))
@@ -287,7 +299,7 @@ export function StaticBatches() {
   return (
     <>
       {keys.map((k) => (
-        <StaticChunk key={`${k}@${version}`} items={groups.get(k)!} overlays={overlays} />
+        <StaticChunk key={`${k}@${version}@${smallDecor}`} items={groups.get(k)!} overlays={overlays} />
       ))}
       <primitive object={overlays} />
     </>

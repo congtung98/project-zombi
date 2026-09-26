@@ -5,6 +5,8 @@
 //   Production: BASE_URL=http://127.0.0.1:5199 node scripts/p2-s5-browser.mjs --production
 // Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
 // Wrote src/game/systems/fixtures/phase2-s5-v6.json until save v7; that fixture is now frozen.
+// GPU=1: real GPU (ANGLE D3D11). Since G1 the scene renders at a few FPS under SwiftShader, and the
+// waits here are wall-clock while the game runs on clamped ticks (e.g. a death fall not finished).
 import { mkdirSync } from 'node:fs'
 import assert from 'node:assert/strict'
 
@@ -13,7 +15,7 @@ const base = process.env.BASE_URL ?? (production ? 'http://127.0.0.1:5199' : 'ht
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  args: process.env.GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 })
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
 const page = await context.newPage()

@@ -343,11 +343,12 @@ export class NavTiles {
    * Precompute missing transition edges for up to `budgetMs` (idle time after the path queue), so
    * long routes rarely pay for them. Only changes when work is done, never the result.
    */
-  warm(budgetMs: number): number {
+  warm(budgetMs: number, minTiles = 0): number {
     if (this.warmComplete) return 0
     this.ensureRegions()
     const t0 = performance.now()
     let done = 0
+    let tilesDone = 0
     // Tiles whose graph was dropped (door changes) first, in the order they changed.
     for (const t of this.warmQueue) {
       const tile = this.tiles[t]
@@ -355,9 +356,12 @@ export class NavTiles {
         if (tile.edges.has(cell)) continue
         this.edgesFrom(t, cell)
         done++
-        if (performance.now() - t0 >= budgetMs) return done
+        // G6: the first `minTiles` tiles (the start's) finish whatever the clock says: a busy machine
+        // (a preempted thread, a GC pause) must not leave the tile the player stands on cold.
+        if (tilesDone >= minTiles && performance.now() - t0 >= budgetMs) return done
       }
       this.warmQueue.delete(t)
+      tilesDone++
     }
     this.warmComplete = true
     return done

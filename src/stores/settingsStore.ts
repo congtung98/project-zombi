@@ -2,6 +2,18 @@ import { create } from 'zustand'
 import { sfx } from '../game/audio/sfx'
 
 export type ShadowQuality = 'off' | 'low' | 'high'
+/** G6: graphics quality tier (presentation and render cost only; never what gameplay shows). */
+export type GraphicsQuality = 'low' | 'medium' | 'high'
+
+/**
+ * G6: what each tier sets. Shadows and pixel ratio stay adjustable afterwards; the rest follows the
+ * tier: contact darkening, very small decor (cups, plates, papers, grass…) and texture filtering.
+ */
+export const GRAPHICS_PRESETS: Record<GraphicsQuality, { shadows: ShadowQuality; maxPixelRatio: number; contact: boolean; smallDecor: boolean; anisotropy: number }> = {
+  low: { shadows: 'low', maxPixelRatio: 1, contact: false, smallDecor: false, anisotropy: 1 },
+  medium: { shadows: 'high', maxPixelRatio: 1.5, contact: true, smallDecor: true, anisotropy: 4 },
+  high: { shadows: 'high', maxPixelRatio: 2, contact: true, smallDecor: true, anisotropy: 8 },
+}
 
 export interface Settings {
   volume: number
@@ -12,6 +24,8 @@ export interface Settings {
   showHints: boolean
   /** Subtle perception shade outside the character's vision (VisionOverlay, max 15 %, not lighting). */
   visionOverlay: boolean
+  /** G6: graphics quality tier (`GRAPHICS_PRESETS`). */
+  graphics: GraphicsQuality
 }
 
 interface SettingsState extends Settings {
@@ -28,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   maxPixelRatio: 1.5,
   showHints: true,
   visionOverlay: true,
+  graphics: 'medium',
 }
 
 function load(): Settings {
@@ -49,6 +64,7 @@ function sanitize(s: Settings): Settings {
     maxPixelRatio: s.maxPixelRatio === 1 || s.maxPixelRatio === 1.5 || s.maxPixelRatio === 2 ? s.maxPixelRatio : DEFAULT_SETTINGS.maxPixelRatio,
     showHints: s.showHints !== false,
     visionOverlay: s.visionOverlay !== false,
+    graphics: s.graphics === 'low' || s.graphics === 'medium' || s.graphics === 'high' ? s.graphics : DEFAULT_SETTINGS.graphics,
   }
 }
 
@@ -85,5 +101,5 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 }))
 
 function pick(s: SettingsState): Settings {
-  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints, visionOverlay: s.visionOverlay }
+  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints, visionOverlay: s.visionOverlay, graphics: s.graphics }
 }

@@ -48,6 +48,18 @@ export interface SurfaceAtlasStats {
 }
 
 let atlas: DataArrayTexture | null = null
+/** G6: anisotropic filtering of the texture array (graphics tier: 1 / 4 / 8). */
+let anisotropy = 4
+
+/** G6: set the texture filtering of the graphics tier (re-uploads the array once when it changes). */
+export function setSurfaceAnisotropy(n: number): void {
+  if (n === anisotropy) return
+  anisotropy = n
+  if (atlas) {
+    atlas.anisotropy = n
+    atlas.needsUpdate = true
+  }
+}
 let placeholder: DataArrayTexture | null = null
 let warming = false
 const stats: SurfaceAtlasStats = { layers: SURFACE_IDS.length, size: TEXTURE_SIZE, buildMs: 0, blockingMs: 0, warmedLayers: 0, bytes: 0, builds: 0 }
@@ -109,7 +121,7 @@ export function surfaceAtlas(): DataArrayTexture {
   texture.magFilter = LinearFilter
   texture.generateMipmaps = true
   // Walls and ground are seen at a slant from the isometric camera.
-  texture.anisotropy = 4
+  texture.anisotropy = anisotropy
   texture.needsUpdate = true
   atlas = texture
   pixels.gains.forEach((g, i) => (surfaceUniforms.uSurfTile.value[i].z = g))
