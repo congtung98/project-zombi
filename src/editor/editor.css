@@ -469,3 +469,12 @@ h4 {
   background: #6f7d5c;
   border-radius: 3px;
 }
+
+/* M8: save compatibility (World inspector) */
+.save-compat { margin-top: 10px; border-top: 1px solid #3a4046; padding-top: 6px; }
+.save-compat h4 { margin: 4px 0; }
+.compat-diff { list-style: none; padding: 0; margin: 4px 0; font-size: 12px; }
+.compat-diff li { margin-bottom: 6px; }
+.compat-diff .added { color: #7fd48a; }
+.compat-diff .removed { color: #e59a8f; }
+.compat-diff select { max-width: 100%; font-size: 11px; }

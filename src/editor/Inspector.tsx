@@ -5,6 +5,7 @@ import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
 import { NumField, ReadField, TextField } from './fields'
 import { PrefabInspector } from './PrefabInspector'
+import { SaveCompat } from './SaveCompat'
 import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
 
 /** Zones of the document as the runtime sees them (`ZoneDef`). */
@@ -61,6 +62,7 @@ function WorldInspector({ doc }: { doc: MapDocument }) {
       <ReadField label="Record" value={String(counts)} />
       <ReadField label="Spawn người chơi" value={w.playerSpawn} />
       <ReadField label="ID đã xóa" value={String(w.retiredIds?.length ?? 0)} />
+      <SaveCompat doc={doc} />
       <p className="hint">
         Click chọn record; Shift+click chọn thêm; kéo từ chỗ trống để chọn theo khung; Ctrl+A chọn hết (trừ layer ẩn/khóa). Kéo để di chuyển. Chọn mục bên trái để đặt; tab
         Chunk để thêm/xóa chunk.

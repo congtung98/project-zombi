@@ -10,6 +10,7 @@ content/maps/<worldId>/
   prefabs/<name>.json        prefab (tọa độ cục bộ)
   chunks/c<cx>_<cz>.json     layout của một chunk (tọa độ cục bộ chunk)
   migrations/                dữ liệu cho save cũ (map đóng băng + bảng ID cũ → ID ổn định)
+  migrations/content-v<N>.json  M8: chuyển save của nội dung vN sang vN+1 (tập ID có trạng thái của vN + đổi tên)
 ```
 
 Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite gộp vào bundle, vitest đọc cùng cách). Streaming sau này thay nguồn đọc bằng fetch theo chunk, giữ nguyên hợp đồng `read(path)`.
@@ -54,9 +55,25 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 |---|---|
 | `schemaVersion` (world/prefab/chunk) | Cấu trúc JSON; hiện là 1, khác 1 thì báo `unsupported-schema` |
 | `contentVersion` (world, từng prefab/chunk) | Bản sửa nội dung; manifest ghim phiên bản prefab (`version-mismatch` nếu lệch) |
-| Save `schemaVersion` 8 + `contentVersion` | Save ghi lại bản nội dung nó được tạo ra; khác bản hiện tại → `incompatible` (chưa có migration nội dung nào) |
+| Save `schemaVersion` 8 + `contentVersion` | Save ghi lại bản nội dung nó được tạo ra. Bản cũ hơn đi qua chuỗi migration nội dung (M8, `migrations/content-v<N>.json`); thiếu một bước hoặc save mới hơn nội dung → `incompatible` |
 
-`contentVersion` chỉ để phát hiện khác biệt, không tự chứng minh tương thích. Muốn đổi bố cục khu phố thì tăng `contentVersion` và viết migration nội dung, nếu có trạng thái đã lưu bị ảnh hưởng.
+`contentVersion` chỉ để phát hiện khác biệt, không tự chứng minh tương thích. Khi thêm, bỏ hoặc đổi tên ID có trạng thái (cửa, container cố định, cửa sổ, đèn, zone), tăng `contentVersion` kèm một migration nội dung; editor tạo nó (Inspector → World → Tương thích save).
+
+**Migration nội dung** `migrations/content-v<N>.json` (M8, `src/map/contentMigration.ts`):
+
+```json
+{
+  "format": "zombie-outbreak/content-migration",
+  "fromVersion": 1,
+  "toVersion": 2,
+  "ids": { "doors": [...], "containers": [{ "id": "…", "position": { "x": 0, "z": 0 } }], "windows": [...], "lamps": [...], "zones": [...] },
+  "renamed": { "c0_0/house/lamp-living": "c0_0/house/lamp-lounge" }
+}
+```
+
+- `ids` là mọi ID có trạng thái của bản N, xếp theo tên; container kèm vị trí world. Save của bản N được kiểm tra đúng như với map của nó.
+- `renamed`: ID cũ → ID mới **cùng loại** thì nhận trạng thái của ID cũ. Nguồn phải là ID đã bị bỏ, đích phải là ID mới, và mỗi đích chỉ dùng một lần.
+- Phần bị bỏ hoặc được thêm suy ra từ `ids`, `renamed` và ID của bản sau (`ids` của file kế tiếp, hoặc nội dung hiện tại), nên file không cũ đi khi sửa tiếp. ID đã xóa không bao giờ được cấp lại (`retiredIds`, `retiredLocalIds`), nên nhiều bước ghép lại vẫn an toàn.
 
 ## 6. Tài liệu JSON
 
@@ -91,6 +108,7 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 
 - **Lỗi** (chặn nạp/export): `unsupported-schema`, `schema`, `not-finite`, `out-of-range`, `invalid-rect`, `invalid-id`, `invalid-path`, `missing-file`, `duplicate-id`, `manifest-mismatch`, `version-mismatch`, `unknown-kind`, `unknown-prefab`, `unknown-loot-table`, `rooms-need-building`, `chunk-outside-bounds`, `owner-mismatch`, `missing-external-ref`, `stale-external-ref`, `missing-player-spawn`, `spawn-outside-play-area`, `spawn-blocked` (spawn cách một collider thấp dưới 0,4 m), `retired-id-reused`.
 - `checkWorldDocuments` là bản không ném lỗi của `loadWorldDocuments` (editor dùng cho bảng Validate và bản nháp).
+- **Migration nội dung** (M8): `content-migration` (file sai dạng, lỗi), `content-migration-rename` (đổi tên không khớp bản sau, lỗi), `content-migration-missing` (thiếu bước vN → vN+1: save vN sẽ không nạp được, cảnh báo).
 - **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu **cùng lớp** chồng nhau, sẽ nhấp nháy; M7: đặt lớp khác để hết) — hai cái sau từ M4; `lamp-outside-room` (M7: đèn `at` nằm ngoài phòng của nó).
 - **Kiểm tra sâu** (M6, `src/map/analysis.ts`, cảnh báo): `interaction-unreachable`, `spawn-unreachable`, `spawn-indoors`, `zone-unreachable`, `start-not-walkable`, `collider-overlap`, `container-outside-room`. Dùng NavGrid/interactable/LOS của game nên chạy trong editor, test và `npm run map:check -- --deep` (qua Vite), không trong validator Node thuần. Chưa có: zone quá dày.
 
@@ -102,6 +120,14 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - Túi đồ rơi giữ ID `drop:…`. ID inventory và item **không đổi**, nên vật phẩm vẫn mang tên tủ cũ, ví dụ `loot:…:ct-safehouse-closet:1`. Việc này không ảnh hưởng gì vì ID chỉ cần duy nhất.
 - ID không có trong bảng thì giữ nguyên, nên bước kiểm tra v8 sẽ từ chối save đó; không có dữ liệu nào bị bỏ im lặng.
 - Storage lưu bản gốc vào `slot-1.backup-v7` như các lần nâng cấp trước.
+- Bảng legacy đưa save tới **nội dung v1** (`LEGACY_CONTENT_VERSION`). Bản nội dung sau đó đi tiếp qua migration nội dung, nên save v1–v7 vẫn nạp được sau khi khu phố đổi bố cục.
+- **Migration nội dung** (M8, `migrateContent` trong `save.ts`). Save v8 của bản N < hiện tại được kiểm tra với `ids` của bước N, rồi chuyển qua mọi bước:
+  - cửa, container, rèm, đèn, zone còn lại hoặc được đổi tên giữ trạng thái;
+  - cửa mới ở trạng thái ban đầu, rèm mở, đèn tắt; container mới có loot theo hash(worldSeed, id), giống New Game;
+  - container bị bỏ: mỗi vật phẩm thành một túi `drop:<itemId>` tại chỗ tủ cũ (ID vật phẩm giữ nguyên);
+  - zombie của zone bị bỏ theo luật `zoneFor`; zombie đang vây một cửa bị bỏ chuyển sang `SEARCH`;
+  - người chơi, zombie và túi đồ bị vật cản mới che được dời ra cạnh vật cản và vào trong vùng chơi.
+  - Kết quả được kiểm tra lại như một save của bản hiện tại. Bản gốc lưu ở `<slot>.backup-v8-content-v<N>`; menu hiện thông báo bản đồ đã cập nhật.
 
 ## 9. Công cụ
 

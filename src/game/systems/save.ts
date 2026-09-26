@@ -2,7 +2,9 @@ import { ITEMS, type ItemId } from '../entities/items'
 import { addItem, createInventory, type Inventory } from './inventory'
 import { DOOR_MAX_HP } from '../world/doors'
 import { NEIGHBORHOOD_MAP, mapBounds, mapRooms, mapWindows, type MapData } from '../world/mapData'
-import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, WALL_PREFIXES_ADDED_V7, legacyContentFor, type LegacyContent } from '../world/legacyContent'
+import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, LEGACY_CONTENT_VERSION, WALL_PREFIXES_ADDED_V7, legacyContentFor, type LegacyContent } from '../world/legacyContent'
+import { planContentMigration, statefulIds, type StatefulIds } from '../../map/contentMigration'
+import { zoneFor } from '../world/zones'
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
 import { nearestZone } from './horde'
@@ -13,7 +15,8 @@ import type { Vec3, ZombieAIState } from '../../types'
 
 /** `fromVersion` is the stored schema before any in-memory migration. */
 export type SaveValidation =
-  | { ok: true; save: SaveGame; migrated: boolean; fromVersion: number }
+  /** `contentFrom`: the save was written for this older content revision and was mapped onto the current one (M8). */
+  | { ok: true; save: SaveGame; migrated: boolean; fromVersion: number; contentFrom?: number }
   | { ok: false; reason: 'corrupt' | 'incompatible' | 'wrong-map'; detail: string }
 
 const V1_STATES: ZombieAIState[] = ['IDLE', 'CHASE', 'SEARCH', 'ATTACK', 'DEAD']
@@ -124,7 +127,8 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   const legacy = current && version < CONTENT_IDS_VERSION ? legacyContentFor(current) : undefined
   const knownMap = legacy ? legacy.map : current
   if (current && version >= CONTENT_IDS_VERSION && data.contentVersion !== (current.contentVersion ?? 0)) {
-    // No content migrations exist yet: a save of another content revision cannot be mapped.
+    // An older content revision maps through the world's content migrations (M8); a newer one never.
+    if (Number(data.contentVersion) < (current.contentVersion ?? 0)) return migrateContent(data as unknown as SaveGame, expectedMapId, current)
     return { ok: false, reason: 'incompatible', detail: `contentVersion ${String(data.contentVersion)}, cần ${current.contentVersion ?? 0}` }
   }
   const containers = data.containers as unknown as SaveGame['containers']
@@ -433,7 +437,8 @@ function inMapOrder<T extends { id: string }>(list: T[], order: readonly { id: s
 function migrateV7(source: SaveGame, mapId: string, current?: MapData, legacy?: LegacyContent): SaveValidation {
   const save = structuredClone(source)
   save.schemaVersion = 8
-  save.contentVersion = current?.contentVersion ?? 0
+  // The legacy table targets content v1; later revisions follow the content migrations (M8).
+  save.contentVersion = legacy ? LEGACY_CONTENT_VERSION : (current?.contentVersion ?? 0)
   if (current && legacy) {
     const { ids } = legacy
     const rename = (table: Record<string, string>, id: string) => table[id] ?? id
@@ -453,4 +458,138 @@ function migrateV7(source: SaveGame, mapId: string, current?: MapData, legacy?: 
   }
   const checked = validateSaveGame(save, mapId, current)
   return checked.ok ? { ...checked, migrated: true, fromVersion: 7 } : checked
+}
+
+/** Stateful IDs of a map (M8): what a save of its content revision holds state for. */
+export function mapStatefulIds(map: MapData): StatefulIds {
+  return statefulIds([{ doors: map.doors, containers: map.containers, windows: mapWindows(map), rooms: mapRooms(map), zones: map.zombieZones ?? [] }])
+}
+
+/** Clearance kept from a solid when moving a migrated player/zombie/bag out of it (M8). */
+const SOLID_CLEARANCE = 0.45
+/** Solids whose bottom is above this block nobody (the nav grid's overhead threshold). */
+const OVERHEAD_BOTTOM = 1.6
+
+/**
+ * Move a point out of the low solids of a map (walls, props, containers, window panes) along the
+ * nearest face, a few passes for corners, then into the play area. Content migrations use it for
+ * the player, zombies and bags that a new wall or building now covers.
+ */
+function outOfSolids(p: Vec3, map: MapData): Vec3 {
+  const boxes = [
+    ...map.walls.filter((w) => w.position.y - w.size[1] / 2 < OVERHEAD_BOTTOM).map((w) => ({ x: w.position.x, z: w.position.z, hx: w.size[0] / 2, hz: w.size[2] / 2 })),
+    ...map.containers.map((c) => ({ x: c.position.x, z: c.position.z, hx: c.size[0] / 2, hz: c.size[2] / 2 })),
+    ...mapWindows(map).map((w) => ({ x: w.center.x, z: w.center.z, hx: (w.alongX ? w.width : w.thickness) / 2, hz: (w.alongX ? w.thickness : w.width) / 2 })),
+  ]
+  const out = { ...p }
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false
+    for (const b of boxes) {
+      const hx = b.hx + SOLID_CLEARANCE
+      const hz = b.hz + SOLID_CLEARANCE
+      const dx = out.x - b.x
+      const dz = out.z - b.z
+      if (Math.abs(dx) >= hx || Math.abs(dz) >= hz) continue
+      if (hx - Math.abs(dx) < hz - Math.abs(dz)) out.x = b.x + Math.sign(dx || 1) * (hx + 0.05)
+      else out.z = b.z + Math.sign(dz || 1) * (hz + 0.05)
+      moved = true
+    }
+    if (!moved) break
+  }
+  const area = mapBounds(map)
+  out.x = Math.min(area.maxX - 0.5, Math.max(area.minX + 0.5, out.x))
+  out.z = Math.min(area.maxZ - 0.5, Math.max(area.minZ + 0.5, out.z))
+  return out
+}
+
+/**
+ * Pure content migration (M8): a v8 save written for an older content revision of this world is
+ * checked against that revision's IDs (the first step's `ids`, exactly like against its map), then
+ * mapped onto the current content through every step:
+ * - doors, map containers, curtains, lamps and zones that stay (or were renamed) keep their state;
+ * - new doors start in their initial state, curtains open, lamps off, new containers are seeded
+ *   by hash(worldSeed, id) like New Game;
+ * - a removed container's items fall to the ground where it stood (one bag per item, `drop:<item>`,
+ *   like dropping them); removed doors/curtains/lamps simply lose their state;
+ * - zombies of a removed zone join the zone the runtime rule gives them; a siege on a removed door
+ *   becomes a search of the remembered position;
+ * - the player, zombies and bags a new solid covers are moved beside it.
+ * Items and inventory IDs never change. A missing step or newer content: incompatible.
+ */
+function migrateContent(source: SaveGame, mapId: string, current: MapData): SaveValidation {
+  const from = source.contentVersion
+  const currentVersion = current.contentVersion ?? 0
+  const plan = planContentMigration(current.contentMigrations ?? [], from, mapStatefulIds(current), currentVersion)
+  if (!plan) return { ok: false, reason: 'incompatible', detail: `contentVersion ${from}, cần ${currentVersion} (không có migration nội dung v${from} → v${currentVersion})` }
+  const e = plan.expected
+  const same = (saved: string[], want: string[]) => saved.length === want.length && want.every((id) => saved.includes(id))
+  if (!same(source.doors.map((d) => d.id), e.doors)) return corrupt(`door IDs do not match content v${from}`)
+  if (!same(source.containers.filter((c) => !c.position).map((c) => c.id), e.containers.map((c) => c.id))) return corrupt(`container IDs do not match content v${from}`)
+  if (!same(source.lighting.curtains.map((c) => c.id), e.windows)) return corrupt(`curtain IDs do not match content v${from}`)
+  if (!same(source.lighting.lamps.map((l) => l.id), e.lamps)) return corrupt(`lamp IDs do not match content v${from}`)
+  for (const z of source.zombies) {
+    if (z.zoneId !== null && !e.zones.includes(z.zoneId)) return corrupt(`zombie zone not in content v${from}`)
+    if (z.structureTargetId !== null && !e.doors.includes(z.structureTargetId)) return corrupt(`zombie door target not in content v${from}`)
+  }
+
+  const save = structuredClone(source)
+  const to = (id: string) => plan.target.get(id) ?? null
+  const doors = save.doors.flatMap((d) => {
+    const id = to(d.id)
+    return id ? [{ ...d, id }] : []
+  })
+  for (const d of current.doors) if (!doors.some((s) => s.id === d.id)) doors.push({ id: d.id, state: d.initialState ?? 'closed', hp: DOOR_MAX_HP })
+  save.doors = inMapOrder(doors, current.doors)
+
+  const kept: SaveGame['containers'] = []
+  const drops = new Map<string, SaveGame['containers'][number]>()
+  for (const c of save.containers) {
+    if (c.position) {
+      drops.set(c.id, { ...c, position: { ...outOfSolids(c.position, current), y: c.position.y } })
+      continue
+    }
+    const id = to(c.id)
+    if (id) {
+      kept.push({ ...c, id })
+      continue
+    }
+    const at = e.containers.find((x) => x.id === c.id)!.position
+    const spot = outOfSolids({ x: at.x, y: 0, z: at.z }, current)
+    for (const item of c.items.slots) {
+      if (!item) continue
+      const dropId = `drop:${item.id}`
+      const items = createInventory(1, dropId)
+      items.slots[0] = item
+      drops.set(dropId, { id: dropId, opened: false, items, position: spot })
+    }
+  }
+  save.containers = [...kept, ...drops.values()]
+  seedAddedContainers(save, new Set(current.containers.map((c) => c.id).filter((id) => !kept.some((k) => k.id === id))), current)
+
+  const windows = mapWindows(current)
+  const lamps = mapRooms(current).flatMap((r) => (r.lamp ? [r.lamp] : []))
+  const curtains = save.lighting.curtains.flatMap((c) => {
+    const id = to(c.id)
+    return id ? [{ ...c, id }] : []
+  })
+  for (const w of windows) if (!curtains.some((c) => c.id === w.id)) curtains.push({ id: w.id, closed: false })
+  const lampStates = save.lighting.lamps.flatMap((l) => {
+    const id = to(l.id)
+    return id ? [{ ...l, id }] : []
+  })
+  for (const l of lamps) if (!lampStates.some((s) => s.id === l.id)) lampStates.push({ id: l.id, on: false })
+  save.lighting = { ...save.lighting, curtains: inMapOrder(curtains, windows), lamps: inMapOrder(lampStates, lamps) }
+
+  save.player.position = { ...outOfSolids(save.player.position, current), y: save.player.position.y }
+  save.zombies = save.zombies.map((z) => {
+    const position = { ...outOfSolids(z.position, current), y: z.position.y }
+    const zone = z.zoneId === null ? null : to(z.zoneId)
+    const zoneId = zone ?? (z.zoneId === null ? null : (zoneFor(position, current.zombieZones)?.id ?? null))
+    const door = z.structureTargetId === null ? null : to(z.structureTargetId)
+    const lostSiege = z.structureTargetId !== null && door === null
+    return { ...z, position, zoneId, structureTargetId: door, ...(lostSiege ? { ai: 'SEARCH' as const } : {}) }
+  })
+  save.contentVersion = currentVersion
+  const checked = validateSaveGame(save, mapId, current)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: source.schemaVersion, contentFrom: from } : checked
 }

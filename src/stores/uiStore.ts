@@ -50,6 +50,16 @@ const MIGRATION_TOAST: Record<number, string> = {
   7: 'Đã nâng cấp save sang dữ liệu map mới (ID ổn định) và giữ bản sao v7.',
 }
 
+/** Schema upgrade text, plus the map update (M8) when the save was written for older content. */
+function migrationToast(fromVersion: number, contentFrom: number | undefined, contentVersion: number): string {
+  const content =
+    contentFrom === undefined
+      ? ''
+      : `Bản đồ đã được cập nhật (nội dung v${contentFrom} → v${contentVersion}): cửa, tủ, đèn còn lại giữ trạng thái; đồ trong tủ bị dỡ bỏ nằm dưới đất chỗ tủ cũ. Đã giữ bản sao save cũ.`
+  if (fromVersion >= 8) return content || 'Đã nâng cấp save.'
+  return [MIGRATION_TOAST[fromVersion] ?? 'Đã nâng cấp save.', content].filter(Boolean).join(' ')
+}
+
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */
 export type SaveSlotState =
   | { kind: 'unknown' }
@@ -156,7 +166,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       set({ saveSlot: { kind: 'empty' } })
       return
     }
-    const v = validateSaveGame(r.value, runtime.map.id)
+    const v = validateSaveGame(r.value, runtime.map.id, runtime.map)
     if (v.ok) set({ saveSlot: { kind: 'ready', summary: summarizeSave(v.save) } })
     else if (v.reason === 'incompatible') set({ saveSlot: { kind: 'incompatible', detail: v.detail } })
     else set({ saveSlot: { kind: 'corrupt', detail: `${v.reason}: ${v.detail}` } })
@@ -171,13 +181,13 @@ export const useUiStore = create<UiState>((set, get) => ({
         set({ saveSlot: r.ok ? { kind: 'empty' } : { kind: 'error', detail: r.error } })
         return
       }
-      const v = validateSaveGame(r.value, runtime.map.id)
+      const v = validateSaveGame(r.value, runtime.map.id, runtime.map)
       if (!v.ok) {
         set({ saveSlot: v.reason === 'incompatible' ? { kind: 'incompatible', detail: v.detail } : { kind: 'corrupt', detail: v.detail } })
         return
       }
       if (v.migrated) {
-        const migration = await commitMigratedSave(r.value, v.save, ACTIVE_SAVE_SLOT)
+        const migration = await commitMigratedSave(r.value, v.save, ACTIVE_SAVE_SLOT, runtime.map)
         if (!migration.ok) {
           set({ saveSlot: { kind: 'error', detail: migration.error } })
           return
@@ -185,7 +195,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       }
       runtime.loadSnapshot(v.save)
       enterSession(set)
-      if (v.migrated) useHudStore.getState().showToast(MIGRATION_TOAST[v.fromVersion] ?? 'Đã nâng cấp save.', 7000)
+      if (v.migrated) useHudStore.getState().showToast(migrationToast(v.fromVersion, v.contentFrom, v.save.contentVersion), 7000)
     } finally {
       set({ busy: false })
     }

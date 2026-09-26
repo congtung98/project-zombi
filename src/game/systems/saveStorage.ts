@@ -1,5 +1,6 @@
 import type { SaveGame } from '../../types/save'
 import { validateSaveGame } from './save'
+import type { MapData } from '../world/mapData'
 
 /**
  * Lưu một slot trong IndexedDB. Mỗi thao tác là một transaction riêng nên ghi
@@ -11,9 +12,12 @@ const DB_VERSION = 1
 const STORE = 'saves'
 export const SAVE_SLOT = 'slot-1'
 
-/** Backup key of the pre-migration original, per slot and stored schema version. */
-export function backupSlotFor(slot: string, schemaVersion: number): string {
-  return `${slot}.backup-v${schemaVersion}`
+/**
+ * Backup key of the pre-migration original, per slot and stored schema version; a content
+ * migration (M8, same schema) adds the content revision it was written for.
+ */
+export function backupSlotFor(slot: string, schemaVersion: number, contentVersion?: number): string {
+  return `${slot}.backup-v${schemaVersion}${contentVersion === undefined ? '' : `-content-v${contentVersion}`}`
 }
 export const LEGACY_BACKUP_SLOT = backupSlotFor(SAVE_SLOT, 1)
 
@@ -102,8 +106,8 @@ export async function deleteSave(slot = SAVE_SLOT): Promise<StorageResult<undefi
 }
 
 /** Backup and upgrade share one transaction: failure leaves the original slot intact. */
-export async function commitMigratedSave(original: unknown, save: SaveGame, slot = SAVE_SLOT): Promise<StorageResult> {
-  const validated = validateSaveGame(save, save.mapId)
+export async function commitMigratedSave(original: unknown, save: SaveGame, slot = SAVE_SLOT, map?: MapData): Promise<StorageResult> {
+  const validated = validateSaveGame(save, save.mapId, map)
   if (!validated.ok || validated.migrated) return { ok: false, error: 'Dữ liệu migration không hợp lệ; giữ nguyên bản gốc.' }
   if (memory) {
     memory.set(slot, structuredClone(save))
@@ -112,7 +116,9 @@ export async function commitMigratedSave(original: unknown, save: SaveGame, slot
   if (!hasIndexedDb()) return { ok: false, error: 'Trình duyệt không hỗ trợ IndexedDB.' }
   const fromVersion = typeof original === 'object' && original !== null ? (original as { schemaVersion?: unknown }).schemaVersion : undefined
   if (typeof fromVersion !== 'number') return { ok: false, error: 'Bản gốc không có schemaVersion; giữ nguyên.' }
-  const backupSlot = backupSlotFor(slot, fromVersion)
+  // Same schema, older content revision: a content migration (M8) gets its own backup key.
+  const fromContent = (original as { contentVersion?: unknown }).contentVersion
+  const backupSlot = backupSlotFor(slot, fromVersion, fromVersion === save.schemaVersion && typeof fromContent === 'number' ? fromContent : undefined)
   let db: IDBDatabase | null = null
   try {
     db = await openDb()

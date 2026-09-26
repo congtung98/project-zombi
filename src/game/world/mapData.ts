@@ -1,6 +1,7 @@
 import type { Vec3 } from '../../types'
 import { loadBundledWorld } from '../../map/content'
 import type { Rect } from '../../map/schema'
+import type { ContentMigration } from '../../map/contentMigration'
 import { playAreaRect } from '../../map/transform'
 import {
   generateRooms,
@@ -58,6 +59,8 @@ export interface MapData {
   depth?: number
   /** Play area centre (M7); omitted = the origin. Use `mapBounds`. */
   center?: { x: number; z: number }
+  /** M8: how saves of older content revisions map onto this one (`migrations/content-v<N>.json`). */
+  contentMigrations?: readonly ContentMigration[]
   playerSpawn: Vec3
   zombieSpawns: Vec3[]
   /** Wander/migration zones; maps without zones wander around each spawn point, no migration. */

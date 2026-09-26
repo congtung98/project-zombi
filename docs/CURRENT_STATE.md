@@ -1,10 +1,23 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành **map editor M7 (hoàn thiện editor)**, trước đó **Lưu thành world mới** + world thử nghiệm `neighborhood-50-lab`. Kế hoạch M1–M6 xong; lộ trình tiếp: M8 migration nội dung cho save → M9 generator biến thể + cây → M10 streaming chunk → M11 phòng đa giác + nhiều tầng. Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **map editor M8 (migration nội dung cho save)**; M7 đã commit. Lộ trình tiếp: M9 generator biến thể + cây → M10 streaming chunk → M11 phòng đa giác + nhiều tầng. Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M7 — hoàn thiện editor (mới nhất, chưa commit — chi tiết docs/map-editor-m7.md)
+## 0. Map editor M8 — migration nội dung cho save (mới nhất, chưa commit — chi tiết docs/map-editor-m8.md)
+
+Save vẫn schema v8 (không thêm trường), content `neighborhood-50` không đổi, schema map v1 + file tùy chọn `migrations/content-v<N>.json`.
+
+- **Định dạng** `src/map/contentMigration.ts` (thuần): `{ format, fromVersion, toVersion, ids { doors, containers [{id, position}], windows, lamps, zones }, renamed }`; `statefulIds`, `diffIds`, `renameProblems`, `planContentMigration` (ghép các bước, ID → ID hiện tại hoặc null). Thêm/bỏ suy ra từ `ids` + bản sau.
+- **Validator** (`checkWorldDocuments`): đọc `migrations/content-v<N>.json` cho N < contentVersion → `content-migration-missing` (cảnh báo), `content-migration` / `content-migration-rename` (lỗi); `WorldDocuments.contentMigrations` → `MapData.contentMigrations` (`loadWorld`).
+- **Game** `save.ts`: `migrateContent` (kiểm tra với `ids` bản cũ → giữ/đổi tên giữ trạng thái; cửa/đèn/rèm mới mặc định; container mới seed như New Game; đồ container bị bỏ → túi `drop:<itemId>` tại chỗ; zone bị bỏ → `zoneFor`; vây cửa bị bỏ → `SEARCH`; dời khỏi vật cản mới; kiểm tra lại), `mapStatefulIds`; `migrateV7` đặt `contentVersion = LEGACY_CONTENT_VERSION` (1); `SaveValidation.contentFrom`; `backupSlotFor(slot, 8, N)` → `…backup-v8-content-vN`; `uiStore` truyền `runtime.map` cho validate/commit, thông báo "Bản đồ đã được cập nhật".
+- **Editor**: `src/map/editor/migration.ts` (`contentChanges`, `suggestRenames`, `writeContentMigration`, `setMigrationRename`), `SaveCompat.tsx` trong Inspector World; bản nháp/Import của world trong repo so với bản repo (`publishedDocument`).
+- **Kiểm chứng**: 480 test (+10 skip; mới `migration.test.ts` 8); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright `scripts/m8-editor-browser.mjs` PASS (IndexedDB thật: save v1 → sửa trong editor → migration → Continue); hồi quy m3–m7, p2-s5, p2-s2, p2-lighting PASS.
+- **Lưu ý**: sửa khu phố thật (có migration) giữ được save người chơi, nhưng thử một bản v2 → 30 test khẳng định nội dung khu phố fail (trước M8: 46). Đề xuất sau: bản khu phố đóng băng cho test.
+
+Commit message gợi ý: **feat(editor): content migrations M8 (saves of older content revisions load into the new one: per-step stateful ID sets and renames, save-side migration with ground drops and zone/siege fixes, editor save-compatibility panel, validator checks)**
+
+## 0-M7. Map editor M7 — hoàn thiện editor (đã commit 06e281a — chi tiết docs/map-editor-m7.md)
 
 Save không đổi (v8), content `neighborhood-50` không đổi từng byte, schema map vẫn v1 (thêm tùy chọn `playArea.depth/center`, `roads[].layer`).
 
@@ -15,7 +28,6 @@ Save không đổi (v8), content `neighborhood-50` không đổi từng byte, sc
 - **Vùng chơi lệch tâm**: `playArea { size, depth?, center? }`, `playAreaRect` (`transform.ts`), `mapBounds` (`mapData.ts`) dùng ở NavGrid, `Ground`, `boundaryWalls`, validator, playtest, save (túi rơi). Editor `fittedPlayArea`/`normalizePlayArea`/`samePlayArea` (thay `fittedPlayAreaSize`), Inspector X/Z/tâm.
 - **Kiểm chứng**: 472 test (+10 skip; mới `polish.test.ts` 9); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright `scripts/m7-editor-browser.mjs` PASS; hồi quy m3/m4 (kỳ vọng vùng chơi chữ nhật)/m5/m6, p2-s5, p2-s2 PASS.
 
-Commit message gợi ý: **feat(editor): editor polish M7 (per-chunk batched viewport, resize handles, road draw layers, lamp position, off-centre rectangular play area)**
 
 ## 0-SA. Lưu thành world mới (đã commit 630b99c)
 

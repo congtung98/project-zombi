@@ -49,7 +49,12 @@ Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
   - spawn/zone có nối tới chỗ người chơi không; spawn zombie có nằm trong nhà không;
   - collider của hai record có chồng nhau không; tủ có nằm ngoài phòng không.
   - Kết quả là cảnh báo: đọc rồi tự quyết định.
-- Cảnh báo **content-changed-same-version**: bạn đã thêm, bỏ hoặc đổi tên cửa/tủ/cửa sổ/đèn/zone. Save cũ của world này sẽ không nạp được nữa, nên **tăng contentVersion** (Inspector → World) trước khi phát hành. Dời, đổi màu, đổi kích thước thì không cần: save cũ vẫn giữ trạng thái cửa/loot/đèn.
+- Cảnh báo **content-changed-same-version**: bạn đã thêm, bỏ hoặc đổi tên cửa/tủ/cửa sổ/đèn/zone so với bản đã phát hành. Dời, đổi màu, đổi kích thước thì không cần làm gì: save cũ vẫn giữ trạng thái cửa/loot/đèn.
+- **Tương thích save** (Inspector → World, bỏ chọn mọi thứ để thấy):
+  - liệt kê những gì thêm (xanh) và bỏ (đỏ) theo loại;
+  - mỗi ID bị bỏ có ô chọn: **bỏ** (mất trạng thái; đồ trong tủ rơi xuống đất chỗ tủ cũ) hoặc **đổi tên thành** một ID mới cùng loại (giữ trạng thái). Editor tự gợi ý khi chỉ có một cặp bỏ/thêm trong cùng một nhà, ví dụ đổi local ID của đèn;
+  - bấm **Tạo migration vN → vN+1**: `contentVersion` tăng và file `migrations/content-vN.json` được thêm vào world. Save cũ của người chơi sẽ tự chuyển sang nội dung mới khi Continue (có giữ bản sao).
+- Bản nháp hoặc pack của một world đã có trong repo luôn được so với bản trong repo, kể cả khi đã lưu nháp nhiều lần.
 
 ## 4. Chơi thử (Play From Here)
 
@@ -73,7 +78,10 @@ Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
    - **Không thấy thay đổi sau khi unpack?** Tắt `npm run dev` (Ctrl+C) rồi chạy lại. Dev server chạy lâu, nhất là sau khi các thư mục trong `content/maps/` bị tạo/xóa, có thể bỏ lỡ sự kiện "file đổi" và tiếp tục phục vụ JSON cũ; tải lại trang không đủ vì cache nằm ở server. Cách kiểm tra: console dev `__runtime.map.contentVersion` phải bằng số trong `world.json`.
 4. Commit thư mục `content/maps/<worldId>/`. Muốn sửa tiếp: Mở… → content trong repo; hoặc `npm run map:pack -- content/maps/<worldId>` rồi Import.
 
-> **Sửa `neighborhood-50` (world chính đang phát hành).** Save thật của người chơi (`slot-1`) và các bước migrate save cũ v1–v7 gắn với đúng tập cửa/tủ/cửa sổ/đèn/zone của khu phố. Thêm, bỏ hoặc đổi tên những thứ đó (ví dụ đặt thêm một nhà có cửa) sẽ làm save hiện có bị từ chối và làm fail các test migrate/tương đương trong `npm test`. Đó là thay đổi nội dung cần một content migration, chưa có công cụ. Để thử nghiệm, hãy làm trên **world mới**: mở `neighborhood-50` → **Lưu thành…** (`worldId` khác) rồi mới sửa; hoặc Mới → Trống / Sinh bằng generator. Lỡ export `neighborhood-50` đã sửa thì `map:unpack -- neighborhood-50.mappack.json --world-id <id-mới>`. Chỉ dời, xoay, đổi màu, đổi kích thước (giữ nguyên tập ID) mới là sửa tương thích.
+> **Sửa `neighborhood-50` (world chính đang phát hành).**
+> - Từ M8, thêm/bỏ/đổi tên cửa, tủ, đèn, zone **không làm mất save** của người chơi nữa, miễn là tạo migration (Tương thích save → Tạo migration). Save v1–v7 cũng đi qua nó.
+> - Tuy nhiên nhiều test trong `npm test` khẳng định nội dung cụ thể của khu phố (ví dụ đống phế liệu `house-scrap`, đèn `lamp-living`, save cũ chuyển đúng sang nội dung v1). Đổi những thứ đó thì phải cập nhật các test ấy cùng lúc. Thử với một bản v2 (thêm nhà, bỏ đống phế liệu và một zone, đổi tên đèn): 30 test fail, toàn là test khẳng định nội dung.
+> - Để thử nghiệm, vẫn nên làm trên **world mới**: mở `neighborhood-50` → **Lưu thành…** (`worldId` khác); hoặc Mới → Trống / Sinh bằng generator. Lỡ export `neighborhood-50` đã sửa thì `map:unpack -- neighborhood-50.mappack.json --world-id <id-mới>`.
 
 ## 6. Sinh world bằng generator
 

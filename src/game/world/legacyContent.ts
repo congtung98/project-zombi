@@ -21,6 +21,9 @@ const NEIGHBORHOOD_LEGACY: LegacyContent = {
   ids: read('migrations/legacy-v7-ids.json') as LegacyIdMap,
 }
 
+/** Content revision the legacy → stable ID table maps onto; later revisions follow content migrations (M8). */
+export const LEGACY_CONTENT_VERSION = 1
+
 /** Legacy content for saves of this world, if its IDs changed when it became data-driven. */
 export function legacyContentFor(map: MapData): LegacyContent | undefined {
   return map.id === NEIGHBORHOOD_ID && map.contentVersion !== undefined ? NEIGHBORHOOD_LEGACY : undefined

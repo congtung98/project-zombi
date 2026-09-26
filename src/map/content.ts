@@ -48,7 +48,8 @@ export function loadWorld(read: (path: string) => unknown): LoadedWorld {
   const { docs, issues } = loadWorldDocuments(read, { lootTables: REGISTERED_LOOT_TABLES })
   const chunks = new ChunkLifecycle(docs)
   chunks.loadAll()
-  return { docs, map: chunks.toMapData(), issues }
+  const map = chunks.toMapData()
+  return { docs, map: docs.contentMigrations ? { ...map, contentMigrations: docs.contentMigrations } : map, issues }
 }
 
 export function loadBundledWorld(worldId: string): LoadedWorld {

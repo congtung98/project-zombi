@@ -13,7 +13,7 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3–M7): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
+# Map editor (M3–M8): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/
 npm run map:unpack -- <pack> --world-id <id>  # ghi pack thành world mới (như nút Lưu thành… của editor)
@@ -120,6 +120,11 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M8: migration nội dung cho save (26/09/2026)
+
+- Thêm/bỏ/đổi tên cửa, tủ, cửa sổ, đèn, zone của world đã phát hành mà save người chơi vẫn nạp được: `migrations/content-v<N>.json` (tập ID bản cũ + đổi tên), tạo bằng panel **Tương thích save** (Inspector → World).
+- Continue chuyển save sang nội dung mới: trạng thái giữ theo ID/đổi tên, thứ mới ở trạng thái ban đầu, đồ trong tủ bị bỏ rơi xuống đất, bản gốc được backup. Save v1–v7 đi qua nội dung v1 rồi tiếp. Save vẫn v8. Chi tiết `docs/map-editor-m8.md`.
 
 ### Map editor M7: hoàn thiện editor (26/09/2026)
 

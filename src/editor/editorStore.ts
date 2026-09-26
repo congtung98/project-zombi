@@ -152,7 +152,7 @@ function editorWarnings(doc: MapDocument, baseline: MapDocument | null): Validat
     {
       severity: 'warning',
       code: 'content-changed-same-version',
-      message: `ID có trạng thái trong save đã đổi (${[added.length ? `thêm ${list(added)}` : '', removed.length ? `bỏ ${list(removed)}` : ''].filter(Boolean).join('; ')}) nhưng contentVersion vẫn là ${doc.world.contentVersion}: save cũ của world này sẽ bị từ chối. Tăng contentVersion (Inspector → World) trước khi phát hành.`,
+      message: `ID có trạng thái trong save đã đổi (${[added.length ? `thêm ${list(added)}` : '', removed.length ? `bỏ ${list(removed)}` : ''].filter(Boolean).join('; ')}) nhưng contentVersion vẫn là ${doc.world.contentVersion}: save cũ của world này sẽ bị từ chối. Inspector → World → Tương thích save: tạo migration (tăng contentVersion, save cũ được chuyển sang nội dung mới).`,
       path: 'world.json#/contentVersion',
     },
   ]
@@ -160,6 +160,13 @@ function editorWarnings(doc: MapDocument, baseline: MapDocument | null): Validat
 
 function issuesFor(doc: MapDocument, baseline: MapDocument | null): ValidationIssue[] {
   return [...validateDocument(doc, OPTS), ...editorWarnings(doc, baseline)]
+}
+
+/** The repo copy of a world (the published revision), if the world is bundled. */
+export function publishedDocument(worldId: string): MapDocument | null {
+  if (!bundledWorldIds().includes(worldId)) return null
+  const r = documentFromFiles(bundledWorldFiles(worldId), OPTS)
+  return r.ok ? r.doc : null
 }
 
 /** Selection without records on hidden or locked layers (they can't be picked or edited). */
@@ -413,6 +420,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return false
     }
     get().openDocument(r.doc, source)
+    // M8: a draft or pack of a world that is in the repo compares with the published copy, so
+    // changes made before the draft was saved still count for save compatibility.
+    const published = publishedDocument(r.doc.world.worldId)
+    if (published) set({ baseline: published, issues: issuesFor(r.doc, published) })
     return true
   },
 

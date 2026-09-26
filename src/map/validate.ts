@@ -14,6 +14,7 @@ import {
   type WorldDocument,
   type XZ,
 } from './schema.ts'
+import { contentMigrationPath, contentMigrationShapeProblems, renameProblems, statefulIds, type ContentMigration } from './contentMigration.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
 import { resolveChunk, type ResolvedRecord } from './resolve.ts'
 import { zoneContains, zoneFor } from '../game/world/zones.ts'
@@ -466,6 +467,8 @@ export interface WorldDocuments {
   world: WorldDocument
   prefabs: ReadonlyMap<string, PrefabDocument>
   chunks: ReadonlyMap<string, ChunkDocument>
+  /** M8: valid content migrations `migrations/content-v<N>.json` for N < contentVersion, by N. */
+  contentMigrations?: readonly ContentMigration[]
 }
 
 /**
@@ -622,7 +625,38 @@ export function checkWorldDocuments(read: (path: string) => unknown, opts: Valid
     if (!hasErrors(found)) chunks.set(entry.chunkId, doc as ChunkDocument)
   }
   if (hasErrors(issues)) return { docs: null, issues }
-  const docs = { world, prefabs, chunks }
+  const docs: WorldDocuments = { world, prefabs, chunks }
   issues.push(...validateContent(docs))
-  return { docs, issues }
+  if (hasErrors(issues)) return { docs, issues }
+  const migrations = checkContentMigrations(read, docs, issues)
+  return { docs: migrations.length ? { ...docs, contentMigrations: migrations } : docs, issues }
+}
+
+/**
+ * Content migrations (M8) for every revision below the current one. A missing step is a warning
+ * (saves of that revision will be reported incompatible); a malformed file or a rename that does
+ * not fit the next revision is an error.
+ */
+function checkContentMigrations(read: (path: string) => unknown, docs: WorldDocuments, issues: ValidationIssue[]): ContentMigration[] {
+  const found: ContentMigration[] = []
+  for (let v = 1; v < docs.world.contentVersion; v++) {
+    const path = contentMigrationPath(v)
+    let raw: unknown
+    try {
+      raw = read(path)
+    } catch {
+      issues.push({ severity: 'warning', code: 'content-migration-missing', path, message: `no migration from content v${v} to v${v + 1}: saves of v${v} will not load` })
+      continue
+    }
+    const problems = contentMigrationShapeProblems(raw, v)
+    for (const message of problems) issues.push({ severity: 'error', code: 'content-migration', path, message })
+    if (!problems.length) found.push(raw as ContentMigration)
+  }
+  const current = statefulIds(resolveAll(docs).map((r) => r.parts))
+  for (const m of found) {
+    const next = m.toVersion === docs.world.contentVersion ? current : found.find((x) => x.fromVersion === m.toVersion)?.ids
+    if (!next) continue
+    for (const p of renameProblems(m, next)) issues.push({ severity: 'error', code: 'content-migration-rename', path: `${contentMigrationPath(m.fromVersion)}#/renamed`, message: p.message, entityId: p.from })
+  }
+  return found
 }
