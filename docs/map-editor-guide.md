@@ -74,13 +74,16 @@ Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
    npm run map:check -- --deep                            # validate + kiểm tra sâu mọi world
    ```
 
-3. Chơi trong game (dev): `http://localhost:5173/?world=<worldId>`. World khác `neighborhood-50` dùng slot save riêng (`slot-world-<id>`). `neighborhood-50` là map mặc định của game (không cần `?world=`) và dùng save thật `slot-1`.
+3. Chơi trong game: mở game (dev hoặc bản build) → menu chính → **Đổi world** → chọn world → **Chơi**. Game tải lại trên world đó và nhớ lựa chọn cho lần sau (chi tiết `docs/world-menu.md`).
+   - Mỗi world có slot save riêng (`slot-world-<id>`). `neighborhood-50` là world mặc định và dùng save thật `slot-1`. Đổi world không xóa save nào.
+   - World thử nghiệm không muốn người chơi thấy: bỏ chọn *Hiện trong menu game* ở Inspector World (`"listed": false`). Bản dev vẫn liệt kê nó, kèm "(ẩn, chỉ dev)".
+   - `?world=<worldId>` vẫn dùng được cho một lần mở (link, script), không đổi lựa chọn đã lưu.
    - **Không thấy thay đổi sau khi unpack?** Tắt `npm run dev` (Ctrl+C) rồi chạy lại. Dev server chạy lâu, nhất là sau khi các thư mục trong `content/maps/` bị tạo/xóa, có thể bỏ lỡ sự kiện "file đổi" và tiếp tục phục vụ JSON cũ; tải lại trang không đủ vì cache nằm ở server. Cách kiểm tra: console dev `__runtime.map.contentVersion` phải bằng số trong `world.json`.
 4. Commit thư mục `content/maps/<worldId>/`. Muốn sửa tiếp: Mở… → content trong repo; hoặc `npm run map:pack -- content/maps/<worldId>` rồi Import.
 
 > **Sửa `neighborhood-50` (world chính đang phát hành).**
 > - Từ M8, thêm/bỏ/đổi tên cửa, tủ, đèn, zone **không làm mất save** của người chơi nữa, miễn là tạo migration (Tương thích save → Tạo migration). Save v1–v7 cũng đi qua nó.
-> - Tuy nhiên nhiều test trong `npm test` khẳng định nội dung cụ thể của khu phố (ví dụ đống phế liệu `house-scrap`, đèn `lamp-living`, save cũ chuyển đúng sang nội dung v1). Đổi những thứ đó thì phải cập nhật các test ấy cùng lúc. Thử với một bản v2 (thêm nhà, bỏ đống phế liệu và một zone, đổi tên đèn): 30 test fail, toàn là test khẳng định nội dung.
+> - Test trong `npm test` chạy trên **bản khu phố đóng băng** (`src/test/fixtures/maps/neighborhood-50/`), không đọc bản thật. Vì vậy sửa khu phố thật không làm vỡ test. `src/map/liveContent.test.ts` và `npm run map:check -- --deep` vẫn kiểm tra bản thật nạp được.
 > - Để thử nghiệm, vẫn nên làm trên **world mới**: mở `neighborhood-50` → **Lưu thành…** (`worldId` khác); hoặc Mới → Trống / Sinh bằng generator. Lỡ export `neighborhood-50` đã sửa thì `map:unpack -- neighborhood-50.mappack.json --world-id <id-mới>`.
 
 ## 6. Sinh world bằng generator

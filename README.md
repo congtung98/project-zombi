@@ -15,7 +15,7 @@ npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
 # Map editor (M3–M9): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
-npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/
+npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/ → chơi: menu chính › Đổi world
 npm run map:unpack -- <pack> --world-id <id>  # ghi pack thành world mới (như nút Lưu thành… của editor)
 npm run map:check -- --deep                  # validate + kiểm tra sâu (đi tới được, tầm tương tác, collider chồng)
 npm run map:generate -- --seed 42 --blocks 2x2 [--layout varied] [--trees 0..1]   # thị trấn sinh tự động (tất định) → content/maps/gen-42/
@@ -121,6 +121,11 @@ Nguyên tắc:
 
 ## Trạng thái theo kế hoạch
 
+### Chọn world trong game + khu phố đóng băng cho test (26/09/2026)
+
+- Menu chính có **Đổi world**: mọi world trong `content/maps/` (kể cả output của `map:unpack`/`map:generate`) chơi được mà không cần `?world=`. Mỗi world một slot save; game nhớ lựa chọn. `"listed": false` ẩn world thử nghiệm.
+- Test chạy trên bản khu phố đóng băng (`src/test/fixtures/maps/`), nên sửa khu phố thật không làm vỡ test. Chi tiết `docs/world-menu.md`.
+
 ### Map editor M9: generator nhiều biến thể + cây cối (26/09/2026)
 
 - Cây (`kind: "tree"`, tán tròn hoặc thông) trong chunk và prefab: thân chặn đường/tầm nhìn như cột, tán vẽ theo batch và mờ đi khi che người chơi. Palette, Inspector, tay cầm tán, layer Cây.
@@ -155,7 +160,7 @@ Nguyên tắc:
 
 ### Map editor M3: editor MVP (25/09/2026)
 
-- `/editor.html`: mở content trong repo/bản nháp/pack, đặt prefab (bóng mờ, xoay 90°), chọn/kéo (qua biên chunk giữ ID), Inspector, xóa/nhân bản, snap 1/0,5/0,25 m/OFF, nhìn trên xuống/isometric, undo/redo cho mọi thao tác, Validate dùng chung validator của game (click lỗi → chọn record), nháp IndexedDB riêng, Export/Import content pack. Output chạy trong game qua `npm run map:unpack` + `/?world=<id>` (dev, slot save riêng). Chi tiết `docs/map-editor-m3.md`.
+- `/editor.html`: mở content trong repo/bản nháp/pack, đặt prefab (bóng mờ, xoay 90°), chọn/kéo (qua biên chunk giữ ID), Inspector, xóa/nhân bản, snap 1/0,5/0,25 m/OFF, nhìn trên xuống/isometric, undo/redo cho mọi thao tác, Validate dùng chung validator của game (click lỗi → chọn record), nháp IndexedDB riêng, Export/Import content pack. Output chạy trong game qua `npm run map:unpack` + menu *Đổi world* (trước đây `/?world=<id>`, dev; slot save riêng). Chi tiết `docs/map-editor-m3.md`.
 
 ### R3b: hiệu năng theo chunk (25/09/2026)
 

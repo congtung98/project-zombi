@@ -1,8 +1,7 @@
 {
   "schemaVersion": 1,
-  "worldId": "neighborhood-50-lab",
-  "name": "Khu phố 50 m (thử nghiệm)",
-  "listed": false,
+  "worldId": "neighborhood-50",
+  "name": "Khu phố 50 m",
   "contentVersion": 1,
   "chunkSize": 32,
   "coordinateSystem": "y-up-xz-meters",
@@ -18,8 +17,7 @@
   "prefabs": [
     { "prefabId": "building/safehouse", "contentVersion": 1, "path": "prefabs/safehouse.json" },
     { "prefabId": "building/store", "contentVersion": 1, "path": "prefabs/store.json" },
-    { "prefabId": "building/house", "contentVersion": 1, "path": "prefabs/house.json" },
-    { "prefabId": "building/new-house", "contentVersion": 1, "path": "prefabs/new-house.json" }
+    { "prefabId": "building/house", "contentVersion": 1, "path": "prefabs/house.json" }
   ],
   "playerSpawn": "c-1_-1/spawns/player-start"
 }

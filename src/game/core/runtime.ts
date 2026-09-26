@@ -33,7 +33,7 @@ import { createWorldState, type ContainerState, type WorldState } from '../world
 import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
 import { STRESS_TILES, buildStressMap } from '../world/stressMap'
-import { DEV_WORLD_ID, loadDevWorld } from '../world/devWorld'
+import { startupWorld } from '../world/worldChoice'
 import { playtestSession } from '../world/playtest'
 import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOccluders'
 import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
@@ -1536,15 +1536,14 @@ function buildInteractables(map: MapData): Interactable[] {
 
 /**
  * Editor playtest first (its page sets the map before loading the game, dev and editor build);
- * dev labs pick another map; the production game folds this to the neighbourhood.
+ * dev labs next; then the world picked in the menu or `?world=` (`worldChoice`), else the neighbourhood.
  */
 function initialMap(): MapData {
   const playtest = playtestSession()
   if (playtest) return playtest.map
-  if (!import.meta.env.DEV) return NEIGHBORHOOD_MAP
-  if (DOOR_LAB_ENABLED) return DOOR_LAB_MAP
-  if (STRESS_TILES) return buildStressMap(STRESS_TILES)
-  return DEV_WORLD_ID ? loadDevWorld(DEV_WORLD_ID) : NEIGHBORHOOD_MAP
+  if (import.meta.env.DEV && DOOR_LAB_ENABLED) return DOOR_LAB_MAP
+  if (import.meta.env.DEV && STRESS_TILES) return buildStressMap(STRESS_TILES)
+  return startupWorld(() => NEIGHBORHOOD_MAP)
 }
 
 /** Singleton runtime cho ứng dụng. Test tạo instance riêng bằng `new GameRuntime()`. */

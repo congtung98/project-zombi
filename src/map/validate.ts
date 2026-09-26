@@ -231,6 +231,7 @@ export function validateWorldDocument(doc: unknown, file = 'world.json'): Valida
   if (c.str(doc.playerSpawn, '/playerSpawn') && !parseRecordId(doc.playerSpawn, RECORD_NAMESPACES.spawns)) {
     c.error('invalid-id', '/playerSpawn', `"${doc.playerSpawn}" is not a spawn ID`)
   }
+  if (doc.listed !== undefined) c.bool(doc.listed, '/listed')
   if (doc.gameplay !== undefined && c.obj(doc.gameplay, '/gameplay') && doc.gameplay.maxActiveZombies !== undefined) {
     c.num(doc.gameplay.maxActiveZombies, '/gameplay/maxActiveZombies', { int: true, min: 0 })
   }

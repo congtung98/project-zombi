@@ -10,7 +10,7 @@ import { pickRecord, snap } from './picking'
 import { applyCommand, initialEditState, redo, undo } from './session'
 
 /** Content files as text, exactly as on disk. */
-const RAW = import.meta.glob<string>('/content/maps/neighborhood-50/**/*.json', { query: '?raw', import: 'default', eager: true })
+const RAW = import.meta.glob<string>('/src/test/fixtures/maps/neighborhood-50/**/*.json', { query: '?raw', import: 'default', eager: true })
 const OPTS = { lootTables: REGISTERED_LOOT_TABLES }
 
 function open(): MapDocument {
@@ -47,7 +47,7 @@ describe('map editor document (M3)', () => {
   it('exports every file formatted exactly like the content on disk (stable, reviewable diffs)', () => {
     const doc = open()
     for (const [path, value] of documentFiles(doc)) {
-      const disk = RAW[`/content/maps/neighborhood-50/${path}`].replace(/\r\n/g, '\n')
+      const disk = RAW[`/src/test/fixtures/maps/neighborhood-50/${path}`].replace(/\r\n/g, '\n')
       // Frozen migration files predate formatJson: same data (unpack leaves unchanged files alone).
       if (doc.extras.has(path)) expect(value, path).toEqual(JSON.parse(disk))
       else expect(formatJson(value), path).toBe(disk)

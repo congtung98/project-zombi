@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { sfx } from '../game/audio/sfx'
-import { useUiStore } from '../stores/uiStore'
+import { useUiStore, type SaveSlotState } from '../stores/uiStore'
 import { useHudStore } from '../stores/hudStore'
 import { GuidePanel, SettingsPanel } from './Settings'
 
-type MenuView = 'main' | 'settings' | 'guide'
+type MenuView = 'main' | 'settings' | 'guide' | 'worlds'
 
 function ControlsHelp() {
   return (
@@ -51,6 +51,100 @@ function SaveSlotInfo() {
   }
 }
 
+/** One line per world in the world list. */
+function saveLine(save: SaveSlotState): string {
+  switch (save.kind) {
+    case 'ready':
+      return `Bản lưu: ${save.summary.name} · Ngày ${save.summary.day} · ${save.summary.timeLabel}`
+    case 'empty':
+      return 'Chưa có bản lưu'
+    case 'incompatible':
+      return 'Bản lưu không tương thích'
+    case 'corrupt':
+      return 'Bản lưu bị hỏng'
+    case 'error':
+      return 'Không đọc được bản lưu'
+    default:
+      return 'Đang kiểm tra bản lưu…'
+  }
+}
+
+/** World being played, and the way to the world list when there is more than one. */
+function WorldLine({ onOpen }: { onOpen: () => void }) {
+  const worlds = useUiStore((s) => s.worlds)
+  const notice = useUiStore((s) => s.worldNotice)
+  const current = worlds.find((w) => w.current)
+  return (
+    <>
+      {notice && (
+        <p className="save-info save-warn" data-world-notice>
+          {notice}
+        </p>
+      )}
+      {current && (
+        <p className="world-line">
+          World: <b data-current-world={current.worldId}>{current.name}</b>
+          {worlds.length > 1 && (
+            <button className="link" onClick={onOpen} data-open-worlds>
+              Đổi world
+            </button>
+          )}
+        </p>
+      )}
+    </>
+  )
+}
+
+/** Bundled worlds (`content/maps/`, including `map:unpack` output); picking one reloads the page on it. */
+function WorldsPanel({ onBack }: { onBack: () => void }) {
+  const worlds = useUiStore((s) => s.worlds)
+  const refreshWorlds = useUiStore((s) => s.refreshWorlds)
+  const chooseWorld = useUiStore((s) => s.chooseWorld)
+  const busy = useUiStore((s) => s.busy)
+
+  useEffect(() => {
+    void refreshWorlds()
+  }, [refreshWorlds])
+
+  return (
+    <div className="worlds">
+      <h2>Chọn world</h2>
+      <p className="subtitle">Mỗi world có bản lưu riêng; đổi world không xóa bản lưu nào. Game tải lại trên world mới.</p>
+      <ul className="world-list">
+        {worlds.map((w) => (
+          <li key={w.worldId} className={w.current ? 'current' : ''} data-world={w.worldId}>
+            <div>
+              <b>{w.name}</b>
+              {!w.listed && <span className="muted"> (ẩn, chỉ dev)</span>}
+              <br />
+              <span className="muted">
+                {w.worldId} · {w.size.x} × {w.size.z} m
+              </span>
+              <br />
+              <span className={w.save.kind === 'ready' ? '' : 'muted'} data-world-save={w.save.kind}>
+                {saveLine(w.save)}
+              </span>
+            </div>
+            <button
+              disabled={w.current || busy}
+              onClick={() => {
+                sfx.play('ui')
+                chooseWorld(w.worldId)
+              }}
+              data-choose-world={w.worldId}
+            >
+              {w.current ? 'Đang chơi' : 'Chơi'}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="actions">
+        <button onClick={onBack}>Quay lại</button>
+      </div>
+    </div>
+  )
+}
+
 function SecondaryNav({ setView }: { setView: (v: MenuView) => void }) {
   return (
     <div className="actions actions-row">
@@ -85,10 +179,12 @@ export function MainMenu() {
       <div className={view === 'guide' ? 'panel panel-wide' : 'panel'}>
         {view === 'settings' && <SettingsPanel onBack={() => setView('main')} />}
         {view === 'guide' && <GuidePanel onBack={() => setView('main')} />}
+        {view === 'worlds' && <WorldsPanel onBack={() => setView('main')} />}
         {view === 'main' && (
           <>
             <h1>Zombie Outbreak</h1>
             <p className="subtitle">Phase 2 · bản phát triển (nhân vật, vũ khí và độ bền)</p>
+            <WorldLine onOpen={() => setView('worlds')} />
             <SaveSlotInfo />
             <div className="actions">
               <button onClick={onNewGame} disabled={busy}>

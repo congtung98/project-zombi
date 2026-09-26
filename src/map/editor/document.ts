@@ -184,13 +184,14 @@ export function resolvedChunks(doc: MapDocument): { chunkId: string; records: re
 /**
  * Save as a new world: the same content under another worldId and name, as a world that was never
  * published. contentVersion restarts at 1 (no save holds its IDs yet); the source world's save
- * migrations (`migrations/…`, they convert that world's old saves) and generator provenance are
- * dropped. Chunks, prefabs, record IDs and retired IDs are kept as they are (IDs never contain the
+ * migrations (`migrations/…`, they convert that world's old saves), generator provenance and a
+ * hidden `listed: false` are dropped (the copy shows in the game's world menu). Chunks, prefabs, record IDs and retired IDs are kept as they are (IDs never contain the
  * world ID), so the copy plays exactly like the source and the source is left untouched.
  */
 export function forkDocument(doc: MapDocument, worldId: string, name: string): MapDocument {
   const world: WorldDocument = { ...doc.world, worldId, name, contentVersion: 1 }
   delete world.generator
+  delete world.listed
   const extras = new Map([...doc.extras].filter(([path]) => !path.startsWith('migrations/')))
   return { world, prefabs: doc.prefabs, chunks: doc.chunks, extras }
 }

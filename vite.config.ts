@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
@@ -27,5 +28,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // Tests read the frozen neighbourhood (src/test/fixtures/maps/), not the live content/maps copy.
+    alias: [{ find: /^\.\/bundledFiles$/, replacement: fileURLToPath(new URL('./src/test/bundledFiles.ts', import.meta.url)) }],
   },
 })

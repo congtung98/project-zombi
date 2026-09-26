@@ -77,7 +77,7 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 
 ## 6. Tài liệu JSON
 
-**world.json**: `schemaVersion, worldId, name, contentVersion, chunkSize, coordinateSystem, playArea { size, depth?, center? {x,z} } (M7: bỏ `depth`/`center` khi là hình vuông tâm gốc), boundary { height, thickness } | null, chunkBounds { minCx, maxCx, minCz, maxCz }` (tính cả biên), `chunks [{ chunkId, cx, cz, path }]`, `prefabs [{ prefabId, contentVersion, path }]`, `playerSpawn` (ID spawn), `gameplay? { maxActiveZombies? }`, `retiredIds? [string]` (M3), `generator? { name, version, seed, params, catalog }` (M6: truy vết world sinh tự động; `map:generate` dùng để phát hiện sửa tay).
+**world.json**: `schemaVersion, worldId, name, contentVersion, chunkSize, coordinateSystem, playArea { size, depth?, center? {x,z} } (M7: bỏ `depth`/`center` khi là hình vuông tâm gốc), boundary { height, thickness } | null, chunkBounds { minCx, maxCx, minCz, maxCz }` (tính cả biên), `chunks [{ chunkId, cx, cz, path }]`, `prefabs [{ prefabId, contentVersion, path }]`, `playerSpawn` (ID spawn), `listed?: boolean` (mặc định true; `false` ẩn world khỏi menu chọn world của game, vẫn mở được bằng `?world=`; không ảnh hưởng save), `gameplay? { maxActiveZombies? }`, `retiredIds? [string]` (M3), `generator? { name, version, seed, params, catalog }` (M6: truy vết world sinh tự động; `map:generate` dùng để phát hiện sửa tay).
 
 **Prefab**: `schemaVersion, prefabId` (vd. `building/store`), `contentVersion, name, pivot {x,y,z}, footprint {minX,minZ,maxX,maxZ}`, `building? { height, wallThickness, wallColor, roofColor, floorColor }` (có thì là nhà: sàn, mái, ánh sáng), `objects[]`, `rooms[]`. Các object phân biệt bằng `kind`:
 

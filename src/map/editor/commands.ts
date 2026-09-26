@@ -339,7 +339,7 @@ export function updateRecord(doc: MapDocument, id: string, patch: AnyRecord): Co
   return { ok: true, doc: draft.finish(), selection: [id] }
 }
 
-export type WorldPatch = Partial<Pick<WorldDocument, 'name' | 'contentVersion' | 'playerSpawn' | 'playArea' | 'boundary'>>
+export type WorldPatch = Partial<Pick<WorldDocument, 'name' | 'contentVersion' | 'playerSpawn' | 'playArea' | 'boundary' | 'listed'>>
 
 export function updateWorld(doc: MapDocument, patch: WorldPatch, selection: string[] = []): CommandResult {
   if (patch.playerSpawn !== undefined) {
@@ -355,5 +355,8 @@ export function updateWorld(doc: MapDocument, patch: WorldPatch, selection: stri
     patch = { ...patch, playArea: normalizePlayArea(a) }
   }
   if (patch.boundary && !(positive(patch.boundary.height) && positive(patch.boundary.thickness))) return fail('Hàng rào biên: cao và dày phải > 0')
-  return { ok: true, doc: { ...doc, world: { ...doc.world, ...patch } }, selection }
+  const world = { ...doc.world, ...patch }
+  // Listed is the default: the key is only written for hidden worlds.
+  if (world.listed !== false) delete world.listed
+  return { ok: true, doc: { ...doc, world }, selection }
 }

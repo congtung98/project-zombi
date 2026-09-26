@@ -1,10 +1,22 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành **map editor M9 (generator nhiều biến thể + cây cối)**; M8 đã commit (625eb6f). Lộ trình tiếp: M10 streaming chunk → M11 phòng đa giác + nhiều tầng. Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành sprint chen **chọn world trong game + khu phố đóng băng cho test**; M9 đã commit (b88cebc). Lộ trình tiếp: M10 streaming chunk → M11 phòng đa giác + nhiều tầng. Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M9 — generator nhiều biến thể + cây cối (mới nhất, chưa commit — chi tiết docs/map-editor-m9.md)
+## 0. Chọn world trong game + khu phố đóng băng cho test (mới nhất, chưa commit — chi tiết docs/world-menu.md)
+
+Save không đổi (v8), content `neighborhood-50` không đổi, schema map v1 + trường tùy chọn `world.json` `listed`.
+
+- **Chọn world** `src/game/world/worldChoice.ts` (thay `devWorld.ts`): `selectWorld` (URL → lựa chọn đã lưu localStorage `zombie-outbreak.world` → mặc định `neighborhood-50`; world mất/lỗi → mặc định + thông báo, `?world=` sai ở dev vẫn ném), `menuWorlds`, `startupWorld` (từ `runtime.initialMap`, cả bản build), `switchWorld` (lưu rồi tải lại trang). `content.ts` `bundledWorldCatalog()` (đọc `world.json` thô).
+- **Menu**: `uiStore` `saveSlotForWorld` (`slot-1` cho khu phố, `slot-world-<id>` cho world khác), `worlds`/`worldNotice`/`refreshWorlds`/`chooseWorld`; `Menus.tsx` `WorldLine` + `WorldsPanel` (tóm tắt save từng world). Không hiện trong playtest editor.
+- **`listed`**: `WorldDocument.listed?`, validator boolean, `updateWorld` chỉ ghi khi `false`, `forkDocument` bỏ nó, checkbox Inspector World; `neighborhood-50-lab` có `"listed": false`.
+- **Test đóng băng**: `src/map/bundledFiles.ts` (glob content) ↔ vitest alias `src/test/bundledFiles.ts` (thay `neighborhood-50` bằng `src/test/fixtures/maps/neighborhood-50/`); `editor.test.ts` đọc fixture; `src/map/liveContent.test.ts` nạp content thật; `check:bundle` marker `src/test/fixtures`. Thử dời 3 tủ + đổi tên khu phố thật: toàn bộ test vẫn pass.
+- **Kiểm chứng**: 502 test (+10 skip; mới `worldChoice.test.ts` 8, `liveContent.test.ts` 7); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright `scripts/worlds-browser.mjs` PASS; hồi quy m3, m6, m8, m9, p2-s5, p2-s2, p2-vision PASS.
+
+Commit message gợi ý: **feat(game): world menu (play any bundled world from the main menu with per-world save slots, remembered choice, listed flag to hide lab worlds) and frozen test copy of the neighbourhood**
+
+## 0-M9. Map editor M9 — generator nhiều biến thể + cây cối (đã commit b88cebc — chi tiết docs/map-editor-m9.md)
 
 Save không đổi (v8), content `neighborhood-50` không đổi, schema map v1 + object tùy chọn `kind: "tree"`; generator `town-grid` v2.
 
@@ -15,7 +27,6 @@ Save không đổi (v8), content `neighborhood-50` không đổi, schema map v1 
 - **Kiểm chứng**: 487 test (+10 skip; mới `trees.test.ts` 7); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright `scripts/m9-editor-browser.mjs` PASS (varied 4×4 157 cây 118 draw call); hồi quy m3–m8, p2-s5, p2-s2, p2-lighting, p2-vision PASS.
 - **Chưa làm**: đường cong (cần mặt nền polyline), ngõ cụt; M10–M11.
 
-Commit message gợi ý: **feat(editor): generator layouts and trees M9 (tree objects with trunk colliders and batched fading canopies, varied town layout with uneven lots and parks, seeded tree density, generator v2 + CLI/editor options)**
 
 ## 0-M8. Map editor M8 — migration nội dung cho save (đã commit 625eb6f — chi tiết docs/map-editor-m8.md)
 
@@ -26,7 +37,7 @@ Save vẫn schema v8 (không thêm trường), content `neighborhood-50` không 
 - **Game** `save.ts`: `migrateContent` (kiểm tra với `ids` bản cũ → giữ/đổi tên giữ trạng thái; cửa/đèn/rèm mới mặc định; container mới seed như New Game; đồ container bị bỏ → túi `drop:<itemId>` tại chỗ; zone bị bỏ → `zoneFor`; vây cửa bị bỏ → `SEARCH`; dời khỏi vật cản mới; kiểm tra lại), `mapStatefulIds`; `migrateV7` đặt `contentVersion = LEGACY_CONTENT_VERSION` (1); `SaveValidation.contentFrom`; `backupSlotFor(slot, 8, N)` → `…backup-v8-content-vN`; `uiStore` truyền `runtime.map` cho validate/commit, thông báo "Bản đồ đã được cập nhật".
 - **Editor**: `src/map/editor/migration.ts` (`contentChanges`, `suggestRenames`, `writeContentMigration`, `setMigrationRename`), `SaveCompat.tsx` trong Inspector World; bản nháp/Import của world trong repo so với bản repo (`publishedDocument`).
 - **Kiểm chứng**: 480 test (+10 skip; mới `migration.test.ts` 8); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright `scripts/m8-editor-browser.mjs` PASS (IndexedDB thật: save v1 → sửa trong editor → migration → Continue); hồi quy m3–m7, p2-s5, p2-s2, p2-lighting PASS.
-- **Lưu ý**: sửa khu phố thật (có migration) giữ được save người chơi, nhưng thử một bản v2 → 30 test khẳng định nội dung khu phố fail (trước M8: 46). Đề xuất sau: bản khu phố đóng băng cho test.
+- **Lưu ý**: sửa khu phố thật (có migration) giữ được save người chơi, nhưng thử một bản v2 → 30 test khẳng định nội dung khu phố fail (trước M8: 46). Bản khu phố đóng băng cho test: đã làm (mục 0).
 
 
 ## 0-M7. Map editor M7 — hoàn thiện editor (đã commit 06e281a — chi tiết docs/map-editor-m7.md)
@@ -96,7 +107,7 @@ Save không đổi (v8), content khu phố không đổi, schema map vẫn v1 (t
 - **Lõi thuần** `src/map/editor/`: `MapDocument` bất biến (world + prefabs + chunks + extras), lệnh place/move/setAnchor/rotate/delete/duplicate/updateRecord/updateWorld, lịch sử (document + selection trước/sau), content pack, picking/snap. **UI** `src/editor/` (zustand + R3F): viewport vẽ output của resolver runtime, palette, inspector, bảng Validate, nháp IndexedDB riêng `zombie-outbreak-editor`.
 - **Identity**: move/rotate/sửa giữ ID; kéo qua biên chunk chuyển file chunk và giữ ID (báo rõ); đặt/nhân bản tạo `<chunk>/<tên>-<n>` mới; xóa ghi `world.retiredIds` (mới, tùy chọn) + lỗi validate `retired-id-reused`; không xóa được spawn người chơi; cảnh báo editor `content-changed-same-version` nếu đổi bố cục mà giữ `contentVersion`.
 - **Validator**: thêm `checkWorldDocuments` (không ném lỗi), `loadWorldDocuments` bọc lại nó. Export bị chặn khi còn lỗi; import pack lỗi bị từ chối, document đang mở giữ nguyên.
-- **Đưa vào game**: `npm run map:unpack -- <pack>` (validate, `--force` để ghi đè, file không đổi không ghi lại), `npm run map:pack -- <dir>`; dev `?world=<id>` chơi world trong `content/maps/<id>` với slot save `slot-world-<id>` (`world/devWorld.ts`, `uiStore.activeSaveSlot`).
+- **Đưa vào game**: `npm run map:unpack -- <pack>` (validate, `--force` để ghi đè, file không đổi không ghi lại), `npm run map:pack -- <dir>`; chơi world trong `content/maps/<id>` qua menu *Đổi world* hoặc `?world=<id>`, slot save `slot-world-<id>` (`world/worldChoice.ts`, `uiStore.saveSlotForWorld`).
 - **Kiểm chứng**: 414 test (+9 skip; mới `src/map/editor/editor.test.ts` 18 gồm runtime chạy pack do editor tạo), tsc/oxlint/build/build:editor/map:check/check:bundle sạch; Playwright `scripts/m3-editor-browser.mjs` (dev) PASS 13 bước kể cả world mới → unpack → chơi trong game; hồi quy dev p2-s2/vision, production p2-s5/lighting PASS. Test thời gian `navTiles` đổi sang min-of-3 (từng rớt khi chạy song song).
 - **Chưa làm lúc M3** (tạo chunk, object rời/đường/zone/spawn mới, layer, khung chọn): xong ở M4 (mục 0-M4).
 

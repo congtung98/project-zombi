@@ -57,6 +57,15 @@ function WorldInspector({ doc }: { doc: MapDocument }) {
           <NumField label="Rào dày" value={w.boundary.thickness} min={0.1} onCommit={(thickness) => run('Đổi hàng rào biên', (d, sel) => updateWorld(d, { boundary: { ...d.world.boundary!, thickness } }, sel))} />
         </>
       )}
+      <label className="field">
+        <span>Hiện trong menu game</span>
+        <input
+          type="checkbox"
+          checked={w.listed !== false}
+          onChange={(e) => run(e.target.checked ? 'Hiện world trong menu' : 'Ẩn world khỏi menu', (d, sel) => updateWorld(d, { listed: e.target.checked }, sel))}
+          data-world-listed
+        />
+      </label>
       <p className="hint">Vùng chơi (khung đỏ) là hình chữ nhật đặt tâm tùy ý; lưới nav, mặt đất và hàng rào biên của game theo nó. Tab Chunk có nút khớp với các chunk.</p>
       <ReadField label="Prefab" value={String(w.prefabs.length)} />
       <ReadField label="Record" value={String(counts)} />

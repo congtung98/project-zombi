@@ -18,6 +18,7 @@ const MARKERS = [
   ['deep checks (M6)', 'interaction-unreachable'],
   ['tile generator', 'extraZombieSpawns'],
   ['legacy importer', 'is not a quarter turn'],
+  ['frozen test content', 'src/test/fixtures'],
 ]
 const files = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(d, e.name)) : [join(d, e.name)]))
 const list = files(dir).filter((f) => /\.(js|html|css)$/.test(f))

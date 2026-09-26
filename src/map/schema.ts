@@ -68,6 +68,11 @@ export interface WorldDocument {
   playerSpawn: string
   gameplay?: { maxActiveZombies?: number }
   /**
+   * Shown in the game's world menu (default true). `false` hides lab/test worlds from players;
+   * they still load with `?world=<worldId>`. Not content: saves do not depend on it.
+   */
+  listed?: boolean
+  /**
    * Record IDs deleted from published content (sorted). They are never handed out again, so a
    * save holding state for a deleted object cannot attach it to a new, unrelated one (editor M3).
    */

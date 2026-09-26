@@ -8,6 +8,8 @@ import { sfx } from '../game/audio/sfx'
 import { STRESS_MAP_PREFIX } from '../game/world/stressMap'
 import { NEIGHBORHOOD_MAP } from '../game/world/mapData'
 import { playtestSession } from '../game/world/playtest'
+import { menuWorlds, startupSelection, switchWorld } from '../game/world/worldChoice'
+import { bundledWorldCatalog, type BundledWorldEntry } from '../map/content'
 import { useHudStore } from './hudStore'
 import { useInventoryStore } from './inventoryStore'
 import { useWorldStore } from './worldStore'
@@ -23,16 +25,21 @@ const DEBUG_BUILDING_LIGHTING =
 /** R0 perf HUD (F7); `?perf=1` starts with it on. */
 const PERF_HUD = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('perf') === '1'
 /**
- * Dev maps never touch the player's save: the door lab, the stress map (`?stress=N`) and other
- * bundled worlds (`?world=<id>`, editor output) each use their own slot.
+ * One save slot per world: the neighbourhood keeps `slot-1` (every save made before the world menu),
+ * other bundled worlds (menu, `?world=<id>`, editor output) use `slot-world-<id>`; the dev door lab
+ * and stress map (`?stress=N`) have their own.
  */
-function activeSaveSlot(mapId: string): string {
-  // Editor playtest: its own slot, in memory only (`enableMemorySaveStorage`), even for the neighbourhood.
-  if (playtestSession()) return 'slot-playtest'
+export function saveSlotForWorld(mapId: string): string {
   if (mapId === NEIGHBORHOOD_MAP.id) return 'slot-1'
   if (mapId === 'door-lab') return 'slot-lab'
   if (mapId.startsWith(STRESS_MAP_PREFIX)) return 'slot-stress'
   return `slot-world-${mapId}`
+}
+
+function activeSaveSlot(mapId: string): string {
+  // Editor playtest: its own slot, in memory only (`enableMemorySaveStorage`), even for the neighbourhood.
+  if (playtestSession()) return 'slot-playtest'
+  return saveSlotForWorld(mapId)
 }
 const ACTIVE_SAVE_SLOT = activeSaveSlot(runtime.map.id)
 const NEW_CONTAINERS_NOTE = 'Có thêm tủ vũ khí mới chưa mở; tủ cũ không sinh lại loot.'
@@ -69,6 +76,27 @@ export type SaveSlotState =
   | { kind: 'corrupt'; detail: string }
   | { kind: 'error'; detail: string }
 
+/** A world in the main menu's world list, with its save slot (other worlds: summary only, not migrated). */
+export interface WorldOption extends BundledWorldEntry {
+  current: boolean
+  save: SaveSlotState
+}
+
+/** World list of the main menu: bundled worlds (dev: hidden ones too); none in the editor playtest. */
+function worldOptions(): WorldOption[] {
+  if (playtestSession()) return []
+  return menuWorlds(bundledWorldCatalog(), runtime.map.id, import.meta.env.DEV).map((w) => ({ ...w, current: w.worldId === runtime.map.id, save: { kind: 'unknown' } }))
+}
+
+async function readSlotState(worldId: string): Promise<SaveSlotState> {
+  const r = await readSave(saveSlotForWorld(worldId))
+  if (!r.ok) return { kind: 'error', detail: r.error }
+  if (r.value === undefined) return { kind: 'empty' }
+  const v = validateSaveGame(r.value, worldId)
+  if (v.ok) return { kind: 'ready', summary: summarizeSave(v.save) }
+  return v.reason === 'incompatible' ? { kind: 'incompatible', detail: v.detail } : { kind: 'corrupt', detail: `${v.reason}: ${v.detail}` }
+}
+
 interface UiState {
   screen: Screen
   /** Đồng bộ với runtime.sessionId để remount scene khi bắt đầu ván mới hoặc load. */
@@ -81,6 +109,14 @@ interface UiState {
   /** Performance HUD (F7). */
   perfHud: boolean
   saveSlot: SaveSlotState
+  /** Worlds the main menu offers (current one flagged); empty in the editor playtest. */
+  worlds: WorldOption[]
+  /** Why the world picked earlier (menu or `?world=`) could not be played. */
+  worldNotice: string | null
+  /** Re-read every listed world's save slot (world list). */
+  refreshWorlds: () => Promise<void>
+  /** Play another world: remembered, then the page reloads on it (its own save slot). */
+  chooseWorld: (worldId: string) => void
   /** Đang ghi/đọc IndexedDB; menu khóa nút để tránh thao tác chồng. */
   busy: boolean
   /** false cho tới khi game loop chạy frame đầu của phiên (che khung hình body chưa đặt đúng chỗ). */
@@ -123,6 +159,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   lightingDebug: DEBUG_BUILDING_LIGHTING,
   perfHud: PERF_HUD,
   saveSlot: { kind: 'unknown' },
+  worlds: worldOptions(),
+  worldNotice: startupSelection()?.notice ?? null,
   busy: false,
   sceneReady: false,
   markSceneReady: () => {
@@ -154,6 +192,19 @@ export const useUiStore = create<UiState>((set, get) => ({
     if (runtime.map.containers.some((c) => c.id === 'c-1_-1/safehouse/closet')) {
       useHudStore.getState().showToast('Bạn đang tay không. Tủ quần áo trong nhà an toàn có vũ khí: lại gần, nhấn E, rồi trang bị trong túi.', 6000)
     }
+  },
+
+  refreshWorlds: async () => {
+    const worlds = await Promise.all(
+      get().worlds.map(async (w) => ({ ...w, save: w.current ? get().saveSlot : await readSlotState(w.worldId) })),
+    )
+    set({ worlds })
+  },
+
+  chooseWorld: (worldId) => {
+    if (get().busy || worldId === runtime.map.id) return
+    set({ busy: true })
+    switchWorld(worldId)
   },
 
   refreshSaveSlot: async () => {
