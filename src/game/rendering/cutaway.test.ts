@@ -61,7 +61,8 @@ describe('building cutaway (M11c-1A)', () => {
     // Roofs, ground floors and stair treads (no ID) belong to their building too.
     for (const b of rt.map.buildings) {
       const roles = new Set(items.filter((i) => i.buildingId === b.id).map((i) => i.role))
-      expect([...roles].sort()).toEqual(['container', 'floor', 'prop', 'roof', 'slab', 'stairs', 'wall'])
+      // G2: door and window frames are `opening` details.
+      expect([...roles].sort()).toEqual(['container', 'floor', 'opening', 'prop', 'roof', 'slab', 'stairs', 'wall'])
     }
     // Nothing outside the houses (the play area's fence) is a building piece.
     expect(items.filter((i) => !i.buildingId && i.role)).toEqual([])
@@ -81,7 +82,7 @@ describe('building cutaway (M11c-1A)', () => {
     // pieces face the camera, it is by geometry, never by the prefab's local names.
     const c = building('c0_0/house-c')
     // (Probed across the thin side: a long wall ending at a corner is still one side's wall.)
-    const sides = items.filter((i) => i.buildingId === c.id && i.role === 'wall' && i.center.y < 3).map((i) => {
+    const sides = items.filter((i) => i.buildingId === c.id && i.role === 'wall' && !i.detail && i.center.y < 3).map((i) => {
       const b = boxOf(i)
       const alongZ = b.max.z - b.min.z > b.max.x - b.min.x
       const outsideEast = alongZ && b.max.x + 0.05 > c.center.x + c.size.w / 2

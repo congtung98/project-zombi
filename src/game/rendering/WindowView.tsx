@@ -7,6 +7,7 @@ import { sharedBox, sharedStandardMaterial } from './sharedResources'
 import { cutaway, pieceShow } from './cutaway'
 import { packSurface } from './surfaces/catalog'
 import { surfaceMaterial } from './surfaces/surfaceMaterial'
+import { paneBox } from './architecture'
 
 const GLASS_THICKNESS = 0.04
 /** R1: one glass and one curtain material for every window. */
@@ -27,14 +28,8 @@ export function WindowView({ win }: { win: WindowPlacement }) {
   const glassRef = useRef<Mesh>(null)
   const cut = useRef({ version: -1, visible: true })
   const h = win.head - win.sill
-  const pane = useMemo(() => {
-    const hw = win.width / 2
-    const t = win.thickness / 2
-    return {
-      min: { x: win.center.x - (win.alongX ? hw : t), y: win.center.y - h / 2, z: win.center.z - (win.alongX ? t : hw) },
-      max: { x: win.center.x + (win.alongX ? hw : t), y: win.center.y + h / 2, z: win.center.z + (win.alongX ? t : hw) },
-    }
-  }, [win, h])
+  // The same box the G2 window frame is cut with (`architecture.paneBox`).
+  const pane = useMemo(() => paneBox(win), [win])
   const glass: [number, number, number] = win.alongX ? [win.width, h, GLASS_THICKNESS] : [GLASS_THICKNESS, h, win.width]
   const curtain: [number, number, number] = win.alongX ? [win.width + 0.1, h + 0.1, CURTAIN_THICKNESS] : [CURTAIN_THICKNESS, h + 0.1, win.width + 0.1]
   const inset = win.thickness / 2 + CURTAIN_THICKNESS

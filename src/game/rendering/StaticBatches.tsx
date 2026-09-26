@@ -1,30 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  BatchedMesh,
-  Box3,
-  BoxGeometry,
-  Color,
-  ConeGeometry,
-  CylinderGeometry,
-  SphereGeometry,
-  type BufferGeometry,
-  Group,
-  Matrix4,
-  Mesh,
-  MeshBasicMaterial,
-  PlaneGeometry,
-  Quaternion,
-  Vector3,
-  Vector4,
-} from 'three'
+import { BatchedMesh, Box3, Color, Group, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3, Vector4 } from 'three'
 import { runtime } from '../core/runtime'
 import { mapChunkSize } from '../world/mapData'
 import { cutaway, pieceShow, type PieceShow } from './cutaway'
 import { FADED_OPACITY, occlusionRegistry } from './occlusionRegistry'
 import { fadedVariant } from './sharedResources'
 import { batchSurfaceMaterial, surfaceMaterial } from './surfaces/surfaceMaterial'
-import { collectStaticItems, groupByChunk, type Shape, type StaticItem } from './staticBatchData'
+import { collectStaticItems, groupByChunk, type StaticItem } from './staticBatchData'
+import { geometryKey, unitGeometry } from './unitShapes'
 import { WIDE_KEY } from './viewChunks'
 import { useViewChunks } from './viewChunkStore'
 
@@ -49,17 +33,6 @@ import { useViewChunks } from './viewChunkStore'
  * is switched on, so cutting the view never lets sunlight in and adds no draw call per piece.
  */
 
-const UNIT_BOX = new BoxGeometry(1, 1, 1)
-/** Unit floor, already lying on XZ facing up. */
-const UNIT_FLOOR = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
-/** Unit shapes by item shape (M9 trees: trunk, round crown, pine cone), scaled per instance. */
-const UNIT: Record<Shape, BufferGeometry> = {
-  box: UNIT_BOX,
-  floor: UNIT_FLOOR,
-  trunk: new CylinderGeometry(0.5, 0.5, 1, 8),
-  crown: new SphereGeometry(0.5, 9, 6),
-  cone: new ConeGeometry(0.5, 1, 10),
-}
 /** One material for every batch: white, tinted per instance, surfaces per instance (G1). */
 const BATCH_MATERIAL = batchSurfaceMaterial()
 /** Casts a shadow, draws nothing (a cut or hidden piece keeps its shadow). */
@@ -138,7 +111,7 @@ class BatchedPiece {
     if (showOverlay && !this.overlay) {
       // G1: the same unit shape and surfaces as the batch instance, so the faded copy keeps the texture where it was.
       const { shape, size, center, color, surface } = this.item
-      const m = new Mesh(UNIT[shape], fadedVariant(surfaceMaterial(surface, color, true), FADED_OPACITY))
+      const m = new Mesh(unitGeometry(this.item), fadedVariant(surfaceMaterial(surface, color, true), FADED_OPACITY))
       m.position.copy(center)
       m.scale.set(size[0], shape === 'floor' ? 1 : size[1], size[2])
       m.castShadow = true
@@ -198,10 +171,12 @@ const colorAndSurface = new Vector4()
 
 /** One chunk's items as one batch. */
 function buildBatch(list: readonly StaticItem[], overlays: Group): ChunkBatch {
-  // Boxes first (the only shape before M9), then whatever other shapes the chunk has.
-  const shapes = [...new Set<Shape>(['box', ...list.map((i) => i.shape)])]
-  const verts = shapes.reduce((n, s) => n + UNIT[s].attributes.position.count, 0)
-  const indices = shapes.reduce((n, s) => n + (UNIT[s].index?.count ?? 0), 0)
+  // Boxes first (the only shape before M9), then whatever other shapes the chunk has (G2: one per roof ridge).
+  const shapes = new Map(list.map((i) => [geometryKey(i), unitGeometry(i)]))
+  const keys = ['box', ...[...shapes.keys()].filter((k) => k !== 'box')]
+  shapes.set('box', unitGeometry({ shape: 'box' }))
+  const verts = keys.reduce((n, k) => n + shapes.get(k)!.attributes.position.count, 0)
+  const indices = keys.reduce((n, k) => n + (shapes.get(k)!.index?.count ?? 0), 0)
   const mesh = new BatchedMesh(list.length, verts, indices, BATCH_MATERIAL)
   mesh.castShadow = true
   mesh.receiveShadow = true
@@ -212,17 +187,17 @@ function buildBatch(list: readonly StaticItem[], overlays: Group): ChunkBatch {
     shadow.castShadow = true
     shadow.sortObjects = false
   }
-  const geometry = new Map(shapes.map((s) => [s, mesh.addGeometry(UNIT[s])]))
-  const shadowGeometry = shadow ? new Map(shapes.map((s) => [s, shadow.addGeometry(UNIT[s])])) : null
+  const geometry = new Map(keys.map((k) => [k, mesh.addGeometry(shapes.get(k)!)]))
+  const shadowGeometry = shadow ? new Map(keys.map((k) => [k, shadow.addGeometry(shapes.get(k)!)])) : null
   const pieces: BatchedPiece[] = []
   for (const item of list) {
-    const instance = mesh.addInstance(geometry.get(item.shape)!)
+    const instance = mesh.addInstance(geometry.get(geometryKey(item))!)
     scale.set(item.size[0], item.shape === 'floor' ? 1 : item.size[1], item.size[2])
     mesh.setMatrixAt(instance, matrix.compose(item.center, identity, scale))
     color.set(item.color)
     mesh.setColorAt(instance, colorAndSurface.set(color.r, color.g, color.b, item.surface))
     if (shadow) {
-      const twin = shadow.addInstance(shadowGeometry!.get(item.shape)!)
+      const twin = shadow.addInstance(shadowGeometry!.get(geometryKey(item))!)
       shadow.setMatrixAt(twin, matrix)
       shadow.setVisibleAt(twin, false)
     }
@@ -245,7 +220,8 @@ function attachBatches(batches: ChunkBatch[]): () => void {
       if (!item.occluder) continue
       const half = new Vector3(item.size[0] / 2, item.size[1] / 2, item.size[2] / 2)
       occlusionRegistry.register(piece, {
-        box: new Box3(item.center.clone().sub(half), item.center.clone().add(half)),
+        // G2: a detail fades when its wall or opening (its anchor) is in the way, together with it.
+        box: item.anchor ? new Box3(item.anchor.min.clone(), item.anchor.max.clone()) : new Box3(item.center.clone().sub(half), item.center.clone().add(half)),
         // A cut or hidden piece is not in the way any more; only a whole one fades.
         isVisible: () => piece.show === 'full',
         setFaded: (f) => piece.setFaded(f),
@@ -316,7 +292,8 @@ export function StaticBatches() {
 function applyCutaway(buildingId: string, cut: boolean): void {
   for (const piece of members.get(buildingId) ?? []) {
     const { item } = piece
-    piece.setLimit(cut ? cutaway.limit(item.buildingId, piece.box, item.role ?? 'prop') : Infinity)
+    // G2: a detail is classified by its anchor (the wall or opening it belongs to), cut at that height.
+    piece.setLimit(cut ? cutaway.limit(item.buildingId, item.anchor ?? piece.box, item.role ?? 'prop') : Infinity)
   }
 }
 

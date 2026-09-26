@@ -218,7 +218,9 @@ int surfLayer = 0;
     vec2 uv;
     if (n.x >= n.y && n.x >= n.z) uv = (isLocal && vSurfSize.y > vSurfSize.z) ? p.yz : p.zy;
     else if (n.z >= n.y) uv = (isLocal && vSurfSize.y > vSurfSize.x) ? p.yx : p.xy;
-    else uv = (isLocal && vSurfSize.z > vSurfSize.x) ? p.zx : p.xz;
+    // Top faces: a local box along its longer side; a world slope (G2 roofs) with u along its eaves.
+    else if (isLocal) uv = vSurfSize.z > vSurfSize.x ? p.zx : p.xz;
+    else uv = abs(wn.x) > abs(wn.z) + 0.01 ? p.zx : p.xz;
     detail = surfSample(surfLayer, uv, tile);
   }
   diffuseColor.rgb *= mix(vec3(1.0), detail * tile.z, uSurfOpt[surfLayer].y);

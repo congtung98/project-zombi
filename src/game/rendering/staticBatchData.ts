@@ -9,7 +9,9 @@ import type { StaticColliderRegistry } from '../world/staticColliders'
 import { TREE_TRUNK_COLOR, treeProfile } from '../world/trees'
 import { itemChunkKey } from './viewChunks'
 import { packSurface } from './surfaces/catalog'
-import { outdoorSurface, PIECE_SURFACES, SLAB_SURFACE, wallSurface } from './surfaces/surfaceRules'
+import { outdoorSurface, PIECE_SURFACES, SLAB_SURFACE, STAIR_SURFACE, wallSurface } from './surfaces/surfaceRules'
+import { doorDetails, roomFloorDetails, stoopDetail, TRIM, wallBaseDetails, windowDetails } from './architecture'
+import { mapRooms, mapWindows } from '../world/mapData'
 
 /**
  * R3b: what `StaticBatches` draws, as plain data: every wall/prop box (from the collider registry),
@@ -26,8 +28,25 @@ const FLOOR_Y = 0.02
 /** Box sizes come back from min/max: round away float noise so equal pieces share one geometry. */
 const round = (v: number) => Math.round(v * 1e6) / 1e6
 
-/** M9: `trunk` (cylinder), `crown` (round canopy) and `cone` (pine canopy) for trees. */
-export type Shape = 'box' | 'floor' | 'trunk' | 'crown' | 'cone'
+/** G2: roof pitch (rise over half the short side of a roof piece). */
+const ROOF_PITCH = Math.tan((22 * Math.PI) / 180)
+/** G2: ridge lengths are rounded to this share of the long side (a few shared hip geometries). */
+const RIDGE_STEP = 0.02
+
+/**
+ * M9: `trunk` (cylinder), `crown` (round canopy) and `cone` (pine canopy) for trees. G2: `hip`, a
+ * hipped roof (see `hip` on the item).
+ */
+export type Shape = 'box' | 'floor' | 'trunk' | 'crown' | 'cone' | 'hip'
+
+/**
+ * G2: a hipped roof's ridge: along `axis`, half its length as a share of the unit shape (0 = a
+ * pyramid), so all four slopes are equally steep once scaled.
+ */
+export interface HipShape {
+  axis: 'x' | 'z'
+  ridge: number
+}
 
 export interface StaticItem {
   shape: Shape
@@ -47,6 +66,15 @@ export interface StaticItem {
   id?: string
   /** G1: packed surfaces (`surfaces/catalog.packSurface`): which detail texture each face reads. */
   surface: number
+  /** G2: the ridge of a `hip` roof. */
+  hip?: HipShape
+  /**
+   * G2: the wall or opening a detail belongs to (frames, sills, baseboards). The cutaway classifies
+   * and the fader tests the detail with this box, so it is cut, hidden and faded with its owner.
+   */
+  anchor?: { min: Vector3; max: Vector3 }
+  /** G2: a drawn-only architectural detail (`architecture.ts`: frame, sill, baseboard, plinth, room floor, stoop). */
+  detail?: boolean
 }
 
 /** Ground cell size of the building lookup below (m). */
@@ -117,6 +145,7 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   for (const c of map.containers) {
     items.push({ shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false, id: c.id, surface: packSurface(PIECE_SURFACES.furniture), ...member(memberOf(c.id, c.position.x, c.position.z), 'container') })
   }
+  items.push(...architectureDetails(map, items, buildingById))
   for (const b of map.buildings) {
     // M11a: an L/T/U building is floored and roofed piece by piece (rectangles tiling its outline).
     for (const piece of buildingPieces(b)) {
@@ -127,18 +156,22 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       items.push({ shape: 'floor', center: new Vector3(cx, FLOOR_Y, cz), size: [w, 0, d], color: b.floorColor, occluder: false, buildingId: b.id, role: 'floor', surface: packSurface(PIECE_SURFACES.floor) })
       // The overhang grows only the piece's outer sides, so pieces never overlap (no z-fighting).
       const o = piece.overhang
+      const roofCenter = new Vector3(cx + (o.maxX - o.minX) / 2, roofHeight(b) + ROOF_THICKNESS / 2, cz + (o.maxZ - o.minZ) / 2)
+      const roofSize: [number, number, number] = [w + o.minX + o.maxX, ROOF_THICKNESS, d + o.minZ + o.maxZ]
+      // G2: the flat roof became the eaves board (painted trim) under a hipped roof.
       items.push({
         shape: 'box',
-        center: new Vector3(cx + (o.maxX - o.minX) / 2, roofHeight(b) + ROOF_THICKNESS / 2, cz + (o.maxZ - o.minZ) / 2),
-        size: [w + o.minX + o.maxX, ROOF_THICKNESS, d + o.minZ + o.maxZ],
-        color: b.roofColor,
+        center: roofCenter,
+        size: roofSize,
+        color: TRIM.color,
         // Mái cũng là vật che: khi người chơi đứng ngoài, sát tường phía trên màn hình, mái nằm giữa camera và nhân vật.
         occluder: true,
         roofOf: b.id,
         buildingId: b.id,
         role: 'roof',
-        surface: packSurface(PIECE_SURFACES.roof),
+        surface: packSurface(PIECE_SURFACES.fascia),
       })
+      items.push(hipRoof(roofCenter, roofSize, b))
     }
   }
   // M11b: upper floor slabs (they fade like walls when they hide the player on the storey below)
@@ -160,6 +193,62 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true, surface: packSurface(PIECE_SURFACES.canopy) })
   }
   return items
+}
+
+/**
+ * G2: a hipped roof on an eaves board (`center`/`size` of the board): its ridge runs along the longer
+ * side, every slope rises `ROOF_PITCH` over half the short side.
+ */
+export function hipRoof(board: Vector3, boardSize: readonly [number, number, number], b: BuildingInfo): StaticItem {
+  const [sx, , sz] = boardSize
+  const long = Math.max(sx, sz)
+  const short = Math.min(sx, sz)
+  const rise = round((short / 2) * ROOF_PITCH)
+  const ridge = Math.max(0, Math.round((0.5 - short / (2 * long)) / RIDGE_STEP) * RIDGE_STEP)
+  return {
+    shape: 'hip',
+    hip: { axis: sx >= sz ? 'x' : 'z', ridge: round(ridge) },
+    center: new Vector3(board.x, board.y + boardSize[1] / 2 + rise / 2, board.z),
+    size: [sx, rise, sz],
+    color: b.roofColor,
+    occluder: true,
+    roofOf: b.id,
+    buildingId: b.id,
+    role: 'roof',
+    surface: packSurface(PIECE_SURFACES.roof),
+  }
+}
+
+/**
+ * G2: frames, sills, baseboards, plinths, per-room floors and stoops (`architecture.ts`), from the
+ * wall pieces collected so far (a door's wall thickness is its lintel's).
+ */
+function architectureDetails(map: MapData, collected: readonly StaticItem[], buildings: ReadonlyMap<string, BuildingInfo>): StaticItem[] {
+  const out: StaticItem[] = []
+  const walls = collected.filter((i) => i.role === 'wall' && i.buildingId)
+  for (const w of walls) out.push(...wallBaseDetails(w, buildings.get(w.buildingId!)!))
+  const lintelThickness = (x: number, y: number, z: number, alongX: boolean, fallback: number) => {
+    for (const w of walls) {
+      const [sx, sy, sz] = w.size
+      if (Math.abs(x - w.center.x) <= sx / 2 && Math.abs(y - w.center.y) <= sy / 2 && Math.abs(z - w.center.z) <= sz / 2) return alongX ? sz : sx
+    }
+    return fallback
+  }
+  for (const door of map.doors) {
+    const b = buildings.get(door.buildingId)
+    if (!b) continue
+    const alongX = door.hinge.x !== door.center.x
+    const t = lintelThickness(door.center.x, door.center.y + door.height + 0.05, door.center.z, alongX, b.wallThickness)
+    out.push(...doorDetails(door, t))
+    const stoop = stoopDetail(door, t, b)
+    if (stoop) out.push(stoop)
+  }
+  for (const win of mapWindows(map)) if (buildings.has(win.buildingId)) out.push(...windowDetails(win))
+  for (const room of mapRooms(map)) {
+    const b = buildings.get(room.buildingId)
+    if (b) out.push(...roomFloorDetails(room, b, map.stairs ?? [], FLOOR_Y))
+  }
+  return out
 }
 
 /** Membership fields of a building piece (none outside buildings). */
@@ -184,7 +273,7 @@ export function stairTreads(s: StairPlacement, color: string): StaticItem[] {
     const along = -s.length / 2 + (i + 0.5) * run
     const c = s.axis === 'x' ? new Vector3(cx + s.dir * along, s.bottomY + top / 2, cz) : new Vector3(cx, s.bottomY + top / 2, cz + s.dir * along)
     const size: [number, number, number] = s.axis === 'x' ? [round(run), round(top), s.width] : [s.width, round(top), round(run)]
-    out.push({ shape: 'box', center: c, size, color, occluder: false, surface: packSurface(PIECE_SURFACES.stairs) })
+    out.push({ shape: 'box', center: c, size, color, occluder: false, surface: packSurface(STAIR_SURFACE) })
   }
   return out
 }

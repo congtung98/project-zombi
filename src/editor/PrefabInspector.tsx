@@ -6,6 +6,7 @@ import { wallRunBoxes } from '../map/resolve'
 import type { PrefabDocument, PrefabObject, QuarterTurns, Rect, RoomObject, XZ } from '../map/schema'
 import { OPTS, useEditorStore } from './editorStore'
 import { NumField, ReadField, TextField, TreeFields } from './fields'
+import { SURFACES, type SurfaceId } from '../game/rendering/surfaces/catalog'
 import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection } from './interaction'
 
 /**
@@ -16,6 +17,8 @@ import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection }
  */
 
 const COLOR = /^#[0-9a-f]{6}$/i
+/** G2: floor surfaces a room may name (the shared catalog's labels); none = the building's wooden floor. */
+const ROOM_FLOORS: SurfaceId[] = ['woodFloor', 'tile', 'concrete', 'fabric', 'wood', 'dirt']
 const KIND_LABEL: Record<string, string> = {
   wallRun: 'Tường (tự khoét cửa)',
   wall: 'Khối tường',
@@ -383,6 +386,19 @@ function RoomFields({ room, prefab, patch }: { room: RoomObject; prefab: PrefabD
         <span>Có đèn</span>
         <input type="checkbox" checked={!!room.lamp} onChange={(e) => patch(e.target.checked ? 'Thêm đèn' : 'Bỏ đèn', { lamp: e.target.checked ? {} : null })} data-room-lamp />
       </label>
+      {/* G2: the room's floor (presentation only). */}
+      <label className="field">
+        <span>Sàn</span>
+        <select value={room.visual?.floor ?? ''} onChange={(e) => patch('Đổi sàn phòng', { visual: e.target.value ? { ...room.visual, floor: e.target.value } : undefined })} data-room-floor>
+          <option value="">Mặc định (sàn gỗ của nhà)</option>
+          {ROOM_FLOORS.map((s) => (
+            <option key={s} value={s}>
+              {SURFACES[s].label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {room.visual?.floor && <TextField label="Màu sàn" value={room.visual.floorColor ?? ''} pattern={COLOR} onCommit={(floorColor) => patch('Đổi màu sàn', { visual: { ...room.visual, floorColor } })} />}
       <p className="hint">Khung phòng nằm trên đường tâm tường. Ánh sáng tính theo phòng: cửa sổ chiếu trực tiếp, cửa mở truyền sang phòng bên.</p>
     </>
   )

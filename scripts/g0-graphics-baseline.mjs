@@ -71,6 +71,17 @@ const WORLDS = {
       { name: 'day-close', at: [16.5, 0, 18.3], facing: Math.PI / 4, time: 0.5, zoom: 60 },
     ],
   },
+  // G2: the lab house at its four quarter turns (content/maps/graphics-rotations), each living room.
+  'graphics-rotations': {
+    zombies: [],
+    scenes: [
+      { name: 'r-q0-inside', at: [9, 0, 12], facing: Math.PI, time: 0.5 },
+      { name: 'r-q1-inside', at: [36, 0, 15], facing: Math.PI, time: 0.5 },
+      { name: 'r-wide', at: [24, 0, 24], facing: Math.PI / 4, time: 0.5, zoom: 14 },
+      { name: 'r-q2-inside', at: [15, 0, 36], facing: Math.PI, time: 0.5 },
+      { name: 'r-q3-inside', at: [36, 0, 33], facing: Math.PI, time: 0.5 },
+    ],
+  },
   'neighborhood-50': {
     zombies: [[4, 6], [7, 3], [-3, 7], [6, -5]],
     scenes: [

@@ -39,10 +39,14 @@ export function outdoorSurface(id: string): SurfaceSpec {
 /** Upper floor slab: floorboards on top, plaster ceiling and edges. */
 export const SLAB_SURFACE: SurfaceSpec = { a: 'plaster', b: 'woodFloor', faces: FACE.py }
 
+/** G2: steps read as steps: floorboard treads, painted risers and sides. */
+export const STAIR_SURFACE: SurfaceSpec = { a: 'plaster', b: 'woodFloor', faces: FACE.py }
+
 export const PIECE_SURFACES = {
   floor: { a: 'woodFloor' },
   roof: { a: 'roof' },
-  stairs: { a: 'woodFloor' },
+  /** G2: the eaves board under a hipped roof (painted trim). */
+  fascia: { a: 'matte' },
   furniture: { a: 'matte' },
   trunk: { a: 'bark' },
   canopy: { a: 'foliage' },

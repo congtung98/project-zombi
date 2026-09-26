@@ -141,7 +141,7 @@ describe('surface rules', () => {
   const count = (faces: number) => [...(faces & side).toString(2)].filter((c) => c === '1').length
   /** Broad faces showing plaster: a partition is plaster all over (2), an outer wall one. */
   const inner = (w: StaticItem) => (unpackSurface(w.surface).a === 'plaster' ? 2 : count(unpackSurface(w.surface).faces))
-  const walls = (id: string) => items.filter((i) => i.buildingId === id && i.role === 'wall')
+  const walls = (id: string) => items.filter((i) => i.buildingId === id && i.role === 'wall' && !i.detail)
   const byId = (id: string) => items.find((i) => i.id === id)!
 
   it('outer walls: brick outside, plaster on the one side facing in; partitions plaster both sides', () => {
@@ -163,10 +163,12 @@ describe('surface rules', () => {
 
   it('floors, slabs, roofs, stairs, furniture, trees and the boundary', () => {
     const pieces = (pred: (i: StaticItem) => boolean) => new Set(items.filter(pred).map((i) => i.surface))
-    expect([...pieces((i) => i.role === 'floor')].map(unpackSurface)).toEqual([{ a: 'woodFloor', b: 'woodFloor', faces: 0 }])
-    expect([...pieces((i) => i.role === 'roof')].map(unpackSurface)).toEqual([{ a: 'roof', b: 'roof', faces: 0 }])
+    expect([...pieces((i) => i.role === 'floor' && !i.detail)].map(unpackSurface)).toEqual([{ a: 'woodFloor', b: 'woodFloor', faces: 0 }])
+    // G2: shingles on the hipped roof, painted trim on the eaves board under it.
+    expect([...pieces((i) => i.role === 'roof' && i.shape === 'hip')].map(unpackSurface)).toEqual([{ a: 'roof', b: 'roof', faces: 0 }])
+    expect([...pieces((i) => i.role === 'roof' && i.shape === 'box')].map(unpackSurface)).toEqual([{ a: 'matte', b: 'matte', faces: 0 }])
     expect([...pieces((i) => i.role === 'slab')].map(unpackSurface)).toEqual([{ a: 'plaster', b: 'woodFloor', faces: FACE.py }])
-    expect([...pieces((i) => i.role === 'stairs')].map(unpackSurface)).toEqual([{ a: 'woodFloor', b: 'woodFloor', faces: 0 }])
+    expect([...pieces((i) => i.role === 'stairs')].map(unpackSurface)).toEqual([{ a: 'plaster', b: 'woodFloor', faces: FACE.py }])
     expect(unpackSurface(byId(`${A}/sofa`).surface).a).toBe('matte')
     expect(unpackSurface(byId(`${A}/fridge`).surface).a).toBe('matte')
     expect(unpackSurface(byId('c0_0/objects/car').surface).a).toBe('matte')

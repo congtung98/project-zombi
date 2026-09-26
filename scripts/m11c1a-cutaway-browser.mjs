@@ -3,7 +3,8 @@
 //   BASE_URL=http://127.0.0.1:5174 node scripts/m11c1a-cutaway-browser.mjs
 //   BASELINE=1 … only takes the screenshots (no assertions): the "before" pictures.
 //   SHADOW_MAP=1 … also prints the shadow maps of the grass grid (debug).
-// Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed.
+// Set PLAYWRIGHT_MODULE (file:// URL of playwright/index.mjs) and CHROMIUM_PATH when needed; GPU=1 for
+// the real GPU (G2: SwiftShader became too slow for the real-key walks).
 // On the lab world `cutaway-lab` (`?world=cutaway-lab`: three copies of a two-storey house with two
 // ground rooms split by a solid wall, a camera-side window, enclosed stairs, upstairs furniture):
 // far away, outside by the window, inside the ground floor, on the stairs, upstairs, at night and
@@ -22,7 +23,9 @@ const phase = baseline ? 'before' : 'after'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  // G2: GPU=1 renders on the real GPU (ANGLE D3D11); SwiftShader (default) is ~2 FPS on the G2 scene,
+  // too slow for the real-key walks below to be reliable.
+  args: process.env.GPU === '1' ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 })
 const tmp = 'node_modules/.tmp'
 mkdirSync(tmp, { recursive: true })

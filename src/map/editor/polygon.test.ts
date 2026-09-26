@@ -157,9 +157,11 @@ describe('L-shaped buildings and rooms (M11a)', () => {
     const pieces = buildingPieces(b)
     expect(pieces.reduce((n, p) => n + area(p), 0)).toBe(outlineArea(b.outline!))
     const items = collectStaticItems(map, rt.staticColliders)
-    const roofs = items.filter((i) => i.roofOf === b.id)
+    // G2: each piece has an eaves board (box) under its hipped roof.
+    const roofs = items.filter((i) => i.roofOf === b.id && i.shape === 'box')
     const floors = items.filter((i) => i.shape === 'floor' && Math.abs(i.center.x - 10) < 6 && Math.abs(i.center.z - 10) < 5)
     expect(roofs).toHaveLength(pieces.length)
+    expect(items.filter((i) => i.roofOf === b.id && i.shape === 'hip')).toHaveLength(pieces.length)
     expect(floors).toHaveLength(pieces.length)
     // Roof pieces never overlap (no z-fighting) and none covers the notch.
     const roofRects = roofs.map((r) => ({ minX: r.center.x - r.size[0] / 2, maxX: r.center.x + r.size[0] / 2, minZ: r.center.z - r.size[2] / 2, maxZ: r.center.z + r.size[2] / 2 }))

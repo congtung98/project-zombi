@@ -11,16 +11,22 @@ describe('static render batches (R3b)', () => {
     const rt = new GameRuntime(NEIGHBORHOOD_MAP)
     const items = collectStaticItems(rt.map, rt.staticColliders)
     const walls = rt.map.walls.length
-    expect(items).toHaveLength(walls + rt.map.containers.length + rt.map.buildings.length * 2)
+    // G2: per building a floor, an eaves board and a hipped roof, plus the drawn-only details.
+    const base = items.filter((i) => !i.detail)
+    expect(base).toHaveLength(walls + rt.map.containers.length + rt.map.buildings.length * 3)
+    expect(items.filter((i) => i.detail).every((i) => i.buildingId)).toBe(true)
     const chunks = groupByChunk(items, mapChunkSize(rt.map))
     expect([...chunks.keys()].sort()).toEqual(['-1,-1', '-1,0', '0,-1', '0,0', 'wide'])
     // M10: the 52 m boundary fence spans more than a chunk: always mounted.
     expect(chunks.get('wide')!.every((i) => Math.max(i.size[0], i.size[2]) > mapChunkSize(rt.map))).toBe(true)
     expect([...chunks.values()].reduce((n, l) => n + l.length, 0)).toBe(items.length)
     // Tall walls and roofs fade; low props, containers and floors never do.
-    expect(items.filter((i) => i.roofOf)).toHaveLength(3)
+    expect(items.filter((i) => i.roofOf)).toHaveLength(6)
+    expect(items.filter((i) => i.shape === 'hip')).toHaveLength(3)
     const tallWalls = rt.map.walls.filter((w) => w.size[1] >= 1.5).length
-    expect(items.filter((i) => i.occluder)).toHaveLength(tallWalls + 3)
+    expect(base.filter((i) => i.occluder)).toHaveLength(tallWalls + 6)
+    // Door frames fade with their doorway (their anchor), nothing else of the details does.
+    expect(items.filter((i) => i.detail && i.occluder).every((i) => i.role === 'opening' && i.anchor)).toBe(true)
     expect(items.filter((i) => i.shape === 'floor' && i.occluder)).toEqual([])
     const fence = items.find((i) => i.center.x === -14.5 && i.center.z === 6)!
     expect(fence.occluder).toBe(false)

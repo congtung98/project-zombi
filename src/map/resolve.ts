@@ -366,7 +366,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         },
       }
     }
-    parts.rooms.push({ id: id(r.localId), name: r.name, buildingId: inst.instanceId, bounds: rb, ...(outline ? { outline } : {}), height: ceiling, ...(floor ? { floorY: height(floor) } : {}), lamp })
+    parts.rooms.push({ id: id(r.localId), name: r.name, buildingId: inst.instanceId, bounds: rb, ...(outline ? { outline } : {}), height: ceiling, ...(floor ? { floorY: height(floor) } : {}), lamp, ...(r.visual ? { visual: { ...r.visual } } : {}) })
     bounds = unionRect(bounds, rb)
   }
   return { parts, bounds, entityIds }

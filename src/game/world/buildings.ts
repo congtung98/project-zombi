@@ -196,6 +196,8 @@ export interface RoomPlacement {
   /** M11b: floor height of the room's storey (default 0). */
   floorY?: number
   lamp: LampPlacement | null
+  /** G2 (graphics, presentation only): floor surface ID and colour (map schema `RoomVisual`). */
+  visual?: { floor?: string; floorColor?: string }
 }
 
 export const DOOR_HEIGHT = 2.2

@@ -172,6 +172,16 @@ describe('map validation (M1)', () => {
     g.world.playArea.size = 30
     expect(codes(g.files)).toContain('spawn-outside-play-area')
   })
+
+  it('G2: a room may name a floor surface of the catalog and a colour, nothing else', () => {
+    const ok = fixture()
+    ok.shed.rooms[0].visual = { floor: 'tile', floorColor: '#c2bcae' }
+    expect(load(ok.files).issues).toEqual([])
+    const bad = fixture()
+    bad.shed.rooms[0].visual = { floor: 'marble', floorColor: 'white' }
+    const errors = errorsOf(bad.files)
+    expect(errors.map((e) => e.path.slice(e.path.indexOf('/rooms/'))).sort()).toEqual(['/rooms/0/visual/floor', '/rooms/0/visual/floorColor'])
+  })
 })
 
 describe('chunk lifecycle (M2)', () => {

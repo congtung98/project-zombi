@@ -17,6 +17,7 @@ import {
   type XZ,
 } from './schema.ts'
 import { TREE_LIMITS } from '../game/world/trees.ts'
+import { SURFACE_IDS } from '../game/rendering/surfaces/catalog.ts'
 import { contentMigrationPath, contentMigrationShapeProblems, renameProblems, statefulIds, type ContentMigration } from './contentMigration.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
 import { outlineBounds, outlineProblem, pointInOutline } from './polygon.ts'
@@ -449,6 +450,11 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       checkLevel(r.level, `${p}/level`)
       const boundsOk = c.rect(r.bounds, `${p}/bounds`)
       const roomOutline = r.outline === undefined ? null : checkOutline(c, r.outline, `${p}/outline`, boundsOk ? (r.bounds as Rect) : null, `room "${String(r.localId)}"`)
+      // G2: optional looks (a surface of the shared catalog, a colour).
+      if (r.visual !== undefined && c.obj(r.visual, `${p}/visual`)) {
+        if (r.visual.floor !== undefined) c.oneOf(r.visual.floor, SURFACE_IDS, `${p}/visual/floor`)
+        if (r.visual.floorColor !== undefined) c.color(r.visual.floorColor, `${p}/visual/floorColor`)
+      }
       if (r.lamp === undefined || !c.obj(r.lamp, `${p}/lamp`)) return
       const l = r.lamp
       claim(l.localId, `${p}/lamp/localId`)

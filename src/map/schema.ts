@@ -261,6 +261,18 @@ export interface RoomObject extends Levelled {
   /** M11a: L/T/U-shaped room: rectilinear outline (edges along X or Z), bounding box = `bounds`. */
   outline?: XZ[]
   lamp?: LampObject
+  /** G2 (graphics): how the room is drawn; presentation only, never IDs, colliders, loot or saves. */
+  visual?: RoomVisual
+}
+
+/**
+ * G2: a room's looks. `floor` is a surface ID of the shared catalog
+ * (`game/rendering/surfaces/catalog.ts`, e.g. `tile` for a kitchen), drawn in `floorColor` (default:
+ * the building's floor colour). Absent = the building's wooden floor.
+ */
+export interface RoomVisual {
+  floor?: string
+  floorColor?: string
 }
 
 export interface PrefabDocument {
