@@ -79,6 +79,8 @@ interface EditorStore {
   prefabTab: PrefabTab
   /** View-only turn of the prefab preview (0 = editable). */
   prefabView: QuarterTurns
+  /** M11c-2: storey being edited (0 = ground): picking, placing and drawing work on it. */
+  prefabFloor: number
   /** M11a: the footprint outline's handles show (prefab editor, nothing selected). */
   outlineEdit: boolean
   /** Draw interaction reach around containers and lamp switches. */
@@ -121,6 +123,8 @@ interface EditorStore {
   setPlaytestState(state: Playtest['state'], error?: string): void
   enterPrefab(prefabId: string): void
   exitPrefab(): void
+  /** M11c-2: edit another storey of the prefab (selection and ghost cleared). */
+  setPrefabFloor(floor: number): void
   requestFocus(rect?: Rect | null): void
   reject(title: string, error: string, issues: ValidationIssue[]): void
 
@@ -216,6 +220,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   prefabMode: null,
   prefabTab: 'structure',
   prefabView: 0,
+  prefabFloor: 0,
   outlineEdit: false,
   showReach: true,
   dialogPrefab: null,
@@ -374,6 +379,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     set({
       prefabMode: prefabId,
       prefabView: 0,
+      prefabFloor: 0,
       outlineEdit: false,
       tool: 'select',
       place: null,
@@ -386,10 +392,21 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     })
   },
 
+  setPrefabFloor(floor) {
+    const { edit, prefabMode } = get()
+    const prefab = prefabMode ? edit?.doc.prefabs.get(prefabMode) : null
+    if (!edit || !prefab) return
+    const storeys = prefab.building?.storeys ?? 1
+    const next = Math.min(storeys - 1, Math.max(0, floor))
+    if (next === get().prefabFloor) return
+    set({ prefabFloor: next, preview: null, marquee: null, edit: { ...edit, selection: [] }, status: { text: `Sửa tầng ${next + 1}/${storeys}`, kind: 'info' } })
+  },
+
   exitPrefab() {
     const { edit } = get()
     set({
       prefabMode: null,
+      prefabFloor: 0,
       tool: 'select',
       place: null,
       preview: null,

@@ -144,12 +144,16 @@ function PrefabProps({ doc, prefab }: { doc: MapDocument; prefab: PrefabDocument
       {b && (
         <>
           <h4>Công trình</h4>
-          <NumField label="Cao (trần)" value={b.height} min={0.5} onCommit={(height) => patch('Đổi chiều cao', { building: { height } })} />
+          <NumField label={(b.storeys ?? 1) > 1 ? 'Cao mỗi tầng' : 'Cao (trần)'} value={b.height} min={0.5} onCommit={(height) => patch('Đổi chiều cao', { building: { height } })} />
+          <NumField label="Số tầng" value={b.storeys ?? 1} min={1} step={1} onCommit={(storeys) => patch('Đổi số tầng', { building: { storeys: Math.round(storeys) } })} />
           <NumField label="Tường dày" value={b.wallThickness} min={0.05} step={0.05} onCommit={(wallThickness) => patch('Đổi độ dày tường', { building: { wallThickness } })} />
           <TextField label="Màu tường" value={b.wallColor} pattern={COLOR} onCommit={(wallColor) => patch('Đổi màu tường', { building: { wallColor } })} />
           <TextField label="Màu mái" value={b.roofColor} pattern={COLOR} onCommit={(roofColor) => patch('Đổi màu mái', { building: { roofColor } })} />
           <TextField label="Màu sàn" value={b.floorColor} pattern={COLOR} onCommit={(floorColor) => patch('Đổi màu sàn', { building: { floorColor } })} />
-          <p className="hint">Cao/dày/màu ở đây là mặc định cho tường mới; từng bức tường sửa riêng khi chọn nó.</p>
+          <p className="hint">
+            Cao/dày/màu ở đây là mặc định cho tường mới; từng bức tường sửa riêng khi chọn nó. Nhà nhiều tầng: mỗi tầng cao ít nhất 2,6 m, tầng trên có tấm sàn theo footprint (khoét lỗ cầu thang); chọn tầng
+            để sửa ở palette. Bớt tầng chỉ được khi tầng đó trống.
+          </p>
         </>
       )}
       <ReadField label="Pivot" value={`(${prefab.pivot.x}, ${prefab.pivot.z}) — chấm hồng`} />
@@ -181,6 +185,9 @@ function ItemFields({ doc, prefab, itemKey }: { doc: MapDocument; prefab: Prefab
       <h3>{KIND_LABEL[type]}</h3>
       <TextField label="Local ID" value={itemKey} pattern={/^[a-z0-9]+(?:-[a-z0-9]+)*$/} onCommit={rename} />
       {first && <ReadField label="ID trong world" value={`${first}/${itemKey}`} />}
+      {(prefab.building?.storeys ?? 1) > 1 && (room || (object && object.kind !== 'tree' && object.kind !== 'stairs')) && (
+        <StoreyField prefab={prefab} value={room?.level ?? (object && 'level' in object ? (object.level ?? 0) : 0)} onCommit={(level) => patch('Chuyển tầng', { level: level || undefined })} />
+      )}
       {object && <ObjectFields object={object} prefab={prefab} patch={patch} />}
       {room && <RoomFields room={room} prefab={prefab} patch={patch} />}
       {lampRoom?.lamp && (
@@ -219,6 +226,32 @@ function ItemFields({ doc, prefab, itemKey }: { doc: MapDocument; prefab: Prefab
         </button>
       </div>
     </div>
+  )
+}
+
+/**
+ * M11c-2: an item's storey (1-based on screen). Moving it follows it to that storey in the editor
+ * (the selection stays on it); a door or window on another storey then needs a wall there.
+ */
+function StoreyField({ prefab, value, onCommit }: { prefab: PrefabDocument; value: number; onCommit: (level: number) => void }) {
+  const setFloor = useEditorStore((s) => s.setPrefabFloor)
+  const setStatus = useEditorStore((s) => s.setStatus)
+  const storeys = prefab.building?.storeys ?? 1
+  return (
+    <NumField
+      label="Tầng (1 = trệt)"
+      value={value + 1}
+      min={1}
+      step={1}
+      onCommit={(n) => {
+        const level = Math.round(n) - 1
+        if (level >= storeys) return setStatus(`Prefab chỉ có ${storeys} tầng`, 'error')
+        const sel = useEditorStore.getState().edit?.selection ?? []
+        onCommit(level)
+        setFloor(level)
+        useEditorStore.getState().select(sel)
+      }}
+    />
   )
 }
 
@@ -292,8 +325,11 @@ function ObjectFields({ object: o, prefab, patch }: { object: PrefabObject; pref
         <Turns value={o.quarterTurns} onChange={(quarterTurns) => patch('Xoay', { quarterTurns })} />
         <NumField label="Rộng" value={o.width} min={1} onCommit={(width) => patch('Đổi cầu thang', { width })} />
         <NumField label="Dài" value={o.length} min={2} onCommit={(length) => patch('Đổi cầu thang', { length })} />
-        <NumField label="Từ tầng" value={o.level ?? 0} min={0} step={1} onCommit={(level) => patch('Đổi cầu thang', { level: level || undefined })} />
-        <p className="hint">Cầu thang leo theo +X của khung (xoay 0°), lên một tầng; đầu dưới mở ở tầng dưới, đầu trên mở ra sàn tầng trên.</p>
+        <NumField label="Từ tầng (0 = trệt)" value={o.level ?? 0} min={0} step={1} onCommit={(level) => patch('Đổi cầu thang', { level: level || undefined })} />
+        <p className="hint">
+          Cầu thang leo theo +X của khung (xoay 0°), lên một tầng; đầu dưới mở ở tầng dưới, đầu trên mở ra sàn tầng trên. Kéo hai ô vuông ở chân/đỉnh để đổi độ dài; chỗ bước lên/xuống (0,9 m sau mỗi đầu)
+          phải trống.
+        </p>
       </>
     )
   }

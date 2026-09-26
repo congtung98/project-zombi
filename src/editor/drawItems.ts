@@ -2,6 +2,7 @@ import { BatchedMesh, BoxGeometry, Color, ConeGeometry, CylinderGeometry, Double
 import type { ResolvedRecord } from '../map/resolve'
 import { outlineRects } from '../map/polygon'
 import { TREE_TRUNK_COLOR, treeProfile } from '../game/world/trees'
+import { stairTreads } from '../game/rendering/staticBatchData'
 
 /**
  * Editor draw data (M7): a resolved record as plain boxes and markers (`drawItems`), shared by the
@@ -76,7 +77,13 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
     // Leaf from the hinge along local +X, turned by the closed angle (Three.js rotation.y).
     const cx = d.hinge.x + (Math.cos(d.closedAngle) * d.width) / 2
     const cz = d.hinge.z - (Math.sin(d.closedAngle) * d.width) / 2
-    add('box', 'solid', '#8b5a2b', [cx, d.height / 2, cz], [d.width, d.height, DOOR_THICKNESS], d.closedAngle)
+    // M11c-2: on its storey's floor (`hinge.y`), like the game.
+    add('box', 'solid', '#8b5a2b', [cx, d.hinge.y + d.height / 2, cz], [d.width, d.height, DOOR_THICKNESS], d.closedAngle)
+  }
+  // M11c-2: the treads of every flight, like the game draws them.
+  const floorColor = new Map((p.buildings ?? []).map((b) => [b.id, b.floorColor]))
+  for (const s of p.stairs ?? []) {
+    for (const t of stairTreads(s, floorColor.get(s.buildingId) ?? '#8a7560')) add('box', 'solid', t.color, [t.center.x, t.center.y, t.center.z], [...t.size])
   }
   for (const w of p.windows ?? []) {
     add('box', 'glass', '#9fd3ff', [w.center.x, w.center.y, w.center.z], w.alongX ? [w.width, w.head - w.sill, w.thickness] : [w.thickness, w.head - w.sill, w.width])

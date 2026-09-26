@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import { CircleGeometry, DoubleSide, LineBasicMaterial, MeshBasicMaterial, PlaneGeometry, RingGeometry, BoxGeometry } from 'three'
 import type { ResolvedRecord } from '../map/resolve'
 import type { PrefabDocument, Rect } from '../map/schema'
-import { prefabItems, resolvePrefab } from '../map/editor/prefabCommands'
+import { itemsOnFloor, prefabItems, resolvePrefab } from '../map/editor/prefabCommands'
+import { prefabFloorView, storeysOf } from '../map/editor/storeys'
+import { stairRect } from '../map/resolve'
 import { INTERACT_RANGE } from '../game/systems/interaction'
 import { useEditorStore } from './editorStore'
 import { RecordView } from './RecordView'
@@ -14,6 +16,9 @@ import { outlineCentre, outlineRects } from '../map/polygon'
  * is), drawn through the same resolver as the game at the view turn (0 = editable, 90/180/270 =
  * preview of how every rotated instance resolves). Overlays: footprint, pivot, rooms with names,
  * lamps and switches, door swings and the interaction reach the game uses.
+ *
+ * M11c-2: one storey at a time (`prefabFloor`): its items drawn and overlaid at its height, the
+ * storey below as a ghost (to line walls up), the stairwells that reach it outlined.
  */
 
 const FOOTPRINT_MAT = new LineBasicMaterial({ color: '#e05050' })
@@ -22,6 +27,7 @@ const REACH_MAT = new MeshBasicMaterial({ color: '#7fd4ff', transparent: true, o
 const LAMP_MAT = new MeshBasicMaterial({ color: '#ffd23f' })
 const SWITCH_MAT = new MeshBasicMaterial({ color: '#ffb000' })
 const PIVOT_MAT = new MeshBasicMaterial({ color: '#ff5fd2' })
+const STAIRWELL_MAT = new LineBasicMaterial({ color: '#ffe066' })
 const ROOM_COLORS = ['#4f8fd6', '#5fbf7f', '#c77fd6', '#d6a64f', '#4fc7c7', '#d65f5f']
 const roomMats = ROOM_COLORS.map((c) => new MeshBasicMaterial({ color: c, transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false }))
 const roomLines = ROOM_COLORS.map((c) => new LineBasicMaterial({ color: c }))
@@ -125,15 +131,24 @@ function Overlays({ record, showReach }: { record: ResolvedRecord; showReach: bo
   )
 }
 
-function Selection({ prefab, keys }: { prefab: PrefabDocument; keys: string[] }) {
+function Selection({ prefab, keys, floor, y }: { prefab: PrefabDocument; keys: string[]; floor: number; y: number }) {
   const geometry = useMemo(() => {
     const wanted = new Set(keys)
-    const pts = prefabItems(prefab)
+    const pts = itemsOnFloor(prefabItems(prefab), floor)
       .filter((it) => wanted.has(it.key))
-      .flatMap((it) => (it.outline ? outlinePoints(it.outline, 3.2) : rectPoints({ minX: it.bounds.minX - 0.08, minZ: it.bounds.minZ - 0.08, maxX: it.bounds.maxX + 0.08, maxZ: it.bounds.maxZ + 0.08 }, 3.2)))
+      .flatMap((it) => (it.outline ? outlinePoints(it.outline, y + 3.2) : rectPoints({ minX: it.bounds.minX - 0.08, minZ: it.bounds.minZ - 0.08, maxX: it.bounds.maxX + 0.08, maxZ: it.bounds.maxZ + 0.08 }, y + 3.2)))
     return pts.length ? lineGeometry(pts) : null
-  }, [prefab, keys])
+  }, [prefab, keys, floor, y])
   return geometry ? <lineSegments geometry={geometry} material={SELECT_MAT} renderOrder={10} /> : null
+}
+
+/** M11c-2: the stairwells that open in this storey's floor (flights from the storey below). */
+function Stairwells({ prefab, floor, y }: { prefab: PrefabDocument; floor: number; y: number }) {
+  const geometry = useMemo(() => {
+    const pts = prefab.objects.filter((o) => o.kind === 'stairs' && (o.level ?? 0) === floor - 1).flatMap((o) => rectPoints(stairRect(o as never), y + 0.1))
+    return pts.length ? lineGeometry(pts) : null
+  }, [prefab, floor, y])
+  return geometry ? <lineSegments geometry={geometry} material={STAIRWELL_MAT} /> : null
 }
 
 export function PrefabScene({ prefabId }: { prefabId: string }) {
@@ -141,9 +156,13 @@ export function PrefabScene({ prefabId }: { prefabId: string }) {
   const preview = useEditorStore((s) => s.preview)
   const view = useEditorStore((s) => s.prefabView)
   const showReach = useEditorStore((s) => s.showReach)
+  const wantedFloor = useEditorStore((s) => s.prefabFloor)
   const doc = preview?.doc ?? edit?.doc
   const prefab = doc?.prefabs.get(prefabId)
-  const record = useMemo(() => (prefab ? resolvePrefab(prefab, view) : null), [prefab, view])
+  const floor = prefab ? Math.min(wantedFloor, storeysOf(prefab) - 1) : 0
+  const y = prefab ? floor * (prefab.building?.height ?? 0) : 0
+  const record = useMemo(() => (prefab ? resolvePrefab(storeysOf(prefab) > 1 ? prefabFloorView(prefab, floor) : prefab, view) : null), [prefab, view, floor])
+  const below = useMemo(() => (prefab && floor > 0 ? resolvePrefab(prefabFloorView(prefab, floor - 1), view) : null), [prefab, view, floor])
   if (!edit || !prefab || !record) return null
   const f = prefab.footprint
   const around = Math.max(f.maxX - f.minX, f.maxZ - f.minZ) / 2 + 6
@@ -154,10 +173,14 @@ export function PrefabScene({ prefabId }: { prefabId: string }) {
   return (
     <group>
       <Grid rect={grid} />
+      {below && <RecordView record={below} ghost />}
       <RecordView record={record} ghost={false} />
-      <Overlays record={record} showReach={showReach} />
+      <group position={[0, y, 0]}>
+        <Overlays record={record} showReach={showReach} />
+      </group>
+      {view === 0 && floor > 0 && <Stairwells prefab={prefab} floor={floor} y={y} />}
       <mesh geometry={DISC} material={PIVOT_MAT} position={[prefab.pivot.x, 0.12, prefab.pivot.z]} scale={[0.6, 1, 0.6]} />
-      {view === 0 && <Selection prefab={prefab} keys={keys} />}
+      {view === 0 && <Selection prefab={prefab} keys={keys} floor={floor} y={y} />}
     </group>
   )
 }

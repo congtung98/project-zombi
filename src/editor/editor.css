@@ -409,6 +409,33 @@ h4 {
   margin-top: 4px;
 }
 
+/* M11c-2: storey being edited (prefab editor). */
+.floors {
+  border: 1px solid #ffe066;
+  background: #34321f;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.floors .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.floors button.active {
+  border-color: #ffe066;
+  background: #5a5424;
+}
+
+.floors small {
+  color: var(--muted);
+}
+
 .panel.left.prefab-mode {
   border-right: 2px solid #ff5fd2;
 }

@@ -9,7 +9,7 @@ import type { Rect, XZ } from '../map/schema'
 import { chunkIdOf, chunkOrigin, playAreaRect } from '../map/transform'
 import { useEditorStore } from './editorStore'
 import { handleAt, handlesUsable, type HandleKey } from '../map/editor/handles'
-import { chunkClick, commitPlace, currentHandles, currentHandleTarget, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
+import { chunkClick, commitPlace, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
 import { PrefabScene } from './PrefabScene'
 import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
 import { ChunkBatch, RecordView } from './RecordView'
@@ -151,7 +151,9 @@ export function Handles() {
   useEditorStore((s) => s.tool)
   useEditorStore((s) => s.prefabView)
   const group = useRef<Group>(null)
+  useEditorStore((s) => s.prefabFloor)
   const handles = currentHandles(preview?.doc ?? edit?.doc)
+  const y = editElevation()
   useFrame(({ camera }) => {
     const zoom = (camera as OrthographicCamera).zoom
     const s = HANDLE_PX / zoom
@@ -165,8 +167,8 @@ export function Handles() {
   return (
     <group ref={group}>
       {handles.flatMap((h) => [
-        <mesh key={`${h.key}-edge`} geometry={HANDLE_GEO} material={HANDLE_EDGE_MAT} position={[h.at.x, 0.15, h.at.z]} renderOrder={12} userData={{ edge: true }} />,
-        <mesh key={h.key} geometry={HANDLE_GEO} material={h.key === 'fixture' ? LAMP_HANDLE_MAT : HANDLE_MAT} position={[h.at.x, 0.16, h.at.z]} renderOrder={13} />,
+        <mesh key={`${h.key}-edge`} geometry={HANDLE_GEO} material={HANDLE_EDGE_MAT} position={[h.at.x, y + 0.15, h.at.z]} renderOrder={12} userData={{ edge: true }} />,
+        <mesh key={h.key} geometry={HANDLE_GEO} material={h.key === 'fixture' ? LAMP_HANDLE_MAT : HANDLE_MAT} position={[h.at.x, y + 0.16, h.at.z]} renderOrder={13} />,
       ])}
     </group>
   )
@@ -176,7 +178,8 @@ const LAMP_HANDLE_MAT = new MeshBasicMaterial({ color: '#ffd23f', depthTest: fal
 /** Box select in progress. */
 export function Marquee() {
   const rect = useEditorStore((s) => s.marquee)
-  const geometry = useMemo(() => (rect ? lineGeometry(rectPoints(rect, 0.1)) : null), [rect])
+  const y = editElevation()
+  const geometry = useMemo(() => (rect ? lineGeometry(rectPoints(rect, y + 0.1)) : null), [rect, y])
   return geometry ? <lineSegments geometry={geometry} material={MARQUEE_MAT} renderOrder={11} /> : null
 }
 
@@ -318,6 +321,8 @@ function Controls() {
       const r = el.getBoundingClientRect()
       ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
       raycaster.setFromCamera(ndc, camera())
+      // M11c-2: on the floor of the storey being edited (the ground in world mode).
+      GROUND.constant = -editElevation()
       return raycaster.ray.intersectPlane(GROUND, hit) ? { x: hit.x, z: hit.z } : null
     }
     const store = useEditorStore.getState

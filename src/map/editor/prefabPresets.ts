@@ -40,6 +40,8 @@ const lamp = { name: 'Đèn', intensity: 0.8, color: '#ffd9a0', requiresElectric
 export const PREFAB_PRESETS: readonly PrefabPreset[] = [
   { id: 'structure/wall-run', group: 'structure', label: 'Tường (kéo theo trục)', name: 'wall', drag: 'line', template: { kind: 'wallRun' } },
   { id: 'structure/block', group: 'structure', label: 'Khối tường / cột', name: 'block', drag: 'rect', template: { ...box('prop', [0.6, 3, 0.6], '#c4a484'), kind: 'wall' } },
+  // M11c-2: dragged from the foot towards the top; climbs from the active storey to the next one.
+  { id: 'structure/stairs', group: 'structure', label: 'Cầu thang (kéo từ chân lên đỉnh)', name: 'stairs', drag: 'line', template: { kind: 'stairs', width: 1.2 } },
 
   { id: 'opening/door', group: 'openings', label: 'Cửa đi 1,2 m', name: 'door', drag: 'point', template: { kind: 'door', name: 'Cửa', position: { x: 0, z: 0 }, quarterTurns: 0, width: 1.2, openTowards: 1 } },
   { id: 'opening/door-wide', group: 'openings', label: 'Cửa đi 1,4 m', name: 'door', drag: 'point', template: { kind: 'door', name: 'Cửa', position: { x: 0, z: 0 }, quarterTurns: 0, width: 1.4, openTowards: 1 } },

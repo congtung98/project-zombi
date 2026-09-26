@@ -49,6 +49,11 @@ function onKey(e: KeyboardEvent): void {
       return s.requestFocus()
     case 'Tab':
       return handled(), s.set({ view: s.view === 'top' ? 'iso' : 'top' })
+    // M11c-2: storey being edited in the prefab editor.
+    case 'PageUp':
+      return handled(), s.setPrefabFloor(s.prefabFloor + 1)
+    case 'PageDown':
+      return handled(), s.setPrefabFloor(s.prefabFloor - 1)
     case 'ArrowLeft':
       return handled(), nudge(-1, 0)
     case 'ArrowRight':

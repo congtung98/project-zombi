@@ -21,7 +21,7 @@ Chuột: trái để chọn/kéo; phải hoặc giữa để kéo camera; lăn �
 
 ## 1. Tạo prefab nhà (chế độ sửa prefab)
 
-1. Tab **Prefab** → **Prefab mới…** → đặt `prefabId` (ví dụ `building/corner-shop`), tên, **hình** (chữ nhật hoặc chữ L) và kích thước. Editor tạo nhà mẫu (tường bao, cửa ở tường nam mở vào trong, một phòng có đèn; chữ L: góc đông bắc bị khoét, phòng cũng hình L) rồi mở **chế độ sửa prefab**: viền và banner hồng ghi *Sửa PREFAB GỐC* kèm danh sách instance sẽ thay đổi theo.
+1. Tab **Prefab** → **Prefab mới…** → đặt `prefabId` (ví dụ `building/corner-shop`), tên, **hình** (chữ nhật, chữ L hoặc **hai tầng**) và kích thước. Editor tạo nhà mẫu (tường bao, cửa ở tường nam mở vào trong, một phòng có đèn; chữ L: góc đông bắc bị khoét, phòng cũng hình L; hai tầng: thêm cầu thang dọc tường bắc và tầng trên có tường, cửa sổ, phòng có đèn, cần ít nhất 8 × 6 m) rồi mở **chế độ sửa prefab**: viền và banner hồng ghi *Sửa PREFAB GỐC* kèm danh sách instance sẽ thay đổi theo.
 2. **Tường**: nhấn rồi kéo theo trục X hoặc Z. Tường không cần tự chừa khe.
 3. **Cửa/cửa sổ**: click sát một bức tường, cửa tự bám vào tường và quay vào trong nhà. Game tự khoét khe, dựng lanh tô, bệ và đầu cửa sổ. Hướng mở và trạng thái ban đầu chỉnh ở Inspector.
 4. **Nội thất, tủ**: click để đặt. Bảng loot của tủ chọn ở Inspector. Tab Nội thất có **Cây (vườn)** để trồng cây trong sân của prefab; cây xoay theo instance. Vòng xanh là tầm tương tác trong game (phím E).
@@ -37,7 +37,23 @@ Chuột: trái để chọn/kéo; phải hoặc giữa để kéo camera; lăn �
    - Trên khung nhìn: phòng đang chọn có tay cầm ở đỉnh và giữa cạnh. Footprint có tay cầm khi bật **Sửa outline** và không chọn gì.
    - **Dựng tường theo outline** thêm tường cho các cạnh chưa có; tường cũ nằm ngoài outline cần xóa tay. Phòng: **Theo outline nhà**.
    - Trong game: sàn và mái theo hình L, chỗ khoét là ngoài trời (mái không ẩn, không có ánh sáng phòng, zombie có thể sinh ở đó).
-9. **← Về world**.
+9. **Nhà nhiều tầng** (M11c-2).
+   - **Tạo:** Inspector prefab (khi không chọn gì) → **Số tầng** (1 đến 4). Mỗi tầng cao bằng **Cao mỗi tầng**, ít nhất 2,6 m. Bớt tầng chỉ được khi tầng đó không còn gì.
+   - **Chọn tầng đang sửa:** các nút **Trệt / Tầng 2 / …** dưới banner hồng, hoặc PageUp / PageDown.
+     - Chỉ tầng đang sửa được vẽ đầy đủ, chọn và đặt đồ lên.
+     - Tầng ngay dưới hiện mờ để căn tường thẳng hàng.
+     - Khung vàng là lỗ cầu thang ở sàn tầng đó.
+     - Góc nhìn isometric (Tab) cũng chọn và đặt đồ trên sàn của tầng đang sửa.
+   - **Đồ đặt mới** thuộc tầng đang sửa. Cửa và cửa sổ chỉ bám vào tường cùng tầng. Cây chỉ trồng ở tầng trệt.
+   - **Chuyển một mục sang tầng khác:** Inspector → **Tầng**. Editor chuyển theo sang tầng đó.
+   - **Cầu thang:** tab Tường → **Cầu thang**.
+     - Nhấn ở chân, kéo về phía đỉnh: hướng và độ dài theo kéo, không dốc hơn 45°. Click (không kéo) thì cầu thang dài mặc định (4 m cho tầng 3 m), leo về +X.
+     - Cầu thang leo từ tầng đang sửa lên tầng kế trên; tầng trên cùng không đặt được.
+     - Game tự dựng tường hai bên, tường sau đầu trên, lan can quanh lỗ, và khoét lỗ ở tấm sàn tầng trên.
+     - Chọn cầu thang rồi kéo hai ô vuông ở chân/đỉnh để đổi độ dài; đầu kia đứng yên.
+     - Chỗ bước lên/xuống (0,9 m sau mỗi đầu) phải là sàn trống; nếu không, kiểm tra sâu báo `stairs-unusable`.
+   - **Trong game:** tầng trên có tấm sàn theo footprint. Vào nhà thì mái và tầng trên được cắt đi; lên cầu thang thì tầng đang xem đổi theo.
+10. **← Về world**.
 
 Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
 

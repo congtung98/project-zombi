@@ -1,10 +1,22 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành **M11c-1B (tầm nhìn nội thất: mask kiểu PZ, nhìn qua cửa/cửa sổ, ghi nhớ vùng đã khám phá)**; M11c-1A đã commit (f24212e). Lộ trình tiếp: **M11c-2** editor (sửa từng tầng, đặt cầu thang bằng chuột, nhà hai tầng mẫu). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **M11c-2 (editor nhiều tầng: chọn tầng, đặt cầu thang bằng chuột, nhà hai tầng mẫu)** — hết M11 (M11a/b/c). M11c-1B đã commit (f568eda). Không còn sprint nào trong lộ trình sau M6; việc tiếp theo do chủ dự án chọn (gợi ý: generator nhà nhiều tầng, P2-S6/S7). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit.
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-m11c2.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. M11c-1B — tầm nhìn nội thất (mới nhất, chưa commit — chi tiết docs/map-editor-m11c1b.md)
+## 0. M11c-2 — editor nhiều tầng (mới nhất, chưa commit — chi tiết docs/map-editor-m11c2.md)
+
+Save, schema map, nội dung không đổi (dùng lại `building.storeys`, `level`, `stairs` của M11b).
+
+- **`map/editor/storeys.ts`** (thuần): `levelOf`, `storeysOf`, `levelField`, `prefabFloorView` (tầng đó + cầu thang leo tới nó), `itemsFromStorey`, `climbDirection`, `stairEnds`, `defaultStairLength` (≈37°), `stairFromDrag`, `dragStairEnd`.
+- **Lệnh** (`prefabCommands.ts`): `PrefabItem.level`, `itemsOnFloor`; `placePrefabItem(..., floor)` đặt đồ theo tầng (cửa/cửa sổ bám tường cùng tầng — `nearestWallRun(..., level)`; cây chỉ tầng trệt; cầu thang cần tầng trên); `updatePrefab` nhận `building.storeys` (1–4, ≥ 2,6 m/tầng, bớt tầng chỉ khi trống, 1 tầng thì bỏ trường); `starterTwoStoreyHouse` + `createPrefab({ shape: 'twoStorey' })` (≥ 8 × 6 m); preset `structure/stairs` (kéo từ chân lên đỉnh); handle hai đầu cầu thang (`handles.ts`).
+- **Editor**: `prefabFloor` + `setPrefabFloor` (store), nút chọn tầng ở palette, PageUp/PageDown; chọn/đặt/khung chọn/Ctrl+A theo tầng (`activeFloor`), mặt phẳng chuột/handle/khung ở độ cao tầng (`editElevation`, iso cũng đúng); `PrefabScene` vẽ tầng đang sửa + tầng dưới mờ + viền lỗ cầu thang; Inspector "Số tầng", "Cao mỗi tầng", "Tầng" từng mục; hộp thoại "Hai tầng". `drawItems`: cánh cửa theo `hinge.y`, vẽ bậc thang (cả world).
+- **Kiểm chứng**: 562 test (+13 skip; mới `map/editor/storeys.test.ts` 7: nhà hai tầng mẫu hợp lệ và deep check sạch ở 4 góc xoay, đặt theo tầng, lọc/chọn theo tầng, cầu thang từ kéo và handle, số tầng); Playwright `scripts/m11c2-editor-browser.mjs` PASS (chuột thật tới chơi thử: leo lên tầng 2).
+- **Giới hạn**: chế độ world của editor vẽ mọi tầng chồng nhau; generator chưa sinh nhà nhiều tầng; cầu thang chỉ thẳng một đợt.
+
+Commit message gợi ý: **feat(editor): storeys in the prefab editor M11c-2 (storey selector with the storey below ghosted, picking and placing on the active storey in top and iso views, doors snapping to walls of their storey, per-item storey field, storey count field, flights placed by dragging from foot to top with end handles, two-storey starter house, stair treads and upper doors drawn in the editor)**
+
+## 0-M11c-1B. M11c-1B — tầm nhìn nội thất (đã commit f568eda — chi tiết docs/map-editor-m11c1b.md)
 
 Save v9 + trường tùy chọn `exploration` (không tăng phiên bản: dữ liệu trình bày; thiếu = chưa khám phá, sai hình dạng/phòng đổi = bỏ qua). Schema map, nội dung không đổi.
 
@@ -17,7 +29,6 @@ Save v9 + trường tùy chọn `exploration` (không tăng phiên bản: dữ l
 - **Sửa sau thử bằng mắt**: công tắc đèn trên tường bị cắt không còn biến mất, được hạ xuống đỉnh chân tường (giữ màu bật/tắt); chỉ ẩn khi cả tầng ẩn.
 - **Giới hạn**: ô 0,25 m thành bậc ở mép; tường < 0,19 m có thể lộ một dải ô; chỉ 16 slot phòng gần nhất có mask; peek chỉ tầng của nhân vật; chưa bỏ vẽ đồ bị che hết; chưa có mái hiên.
 
-Commit message gợi ý: **feat(game): interior visibility M11c-1B (PZ-style mask after the room light: seen, remembered and never-seen interior cells from a ray fan through doors and windows, outdoors untouched; buildings seen into from outside cut away with a hold; explored cells kept in the save as an optional field; player climbs along its path at low frame rates)**
 
 ## 0-M11c-1A. M11c-1A — cắt lớp công trình trên nền nhiều tầng (đã commit f24212e — chi tiết docs/map-editor-m11c1a.md)
 

@@ -92,11 +92,34 @@ const PREFAB_TABS: { id: PrefabTab; label: string }[] = [
 ]
 
 const PREFAB_HINTS: Record<PrefabTab, string> = {
-  structure: 'Tường: nhấn rồi kéo theo trục X hoặc Z. Cửa/cửa sổ đặt lên tường sẽ tự khoét khe (lanh tô, bệ cửa sổ do game dựng).',
+  structure:
+    'Tường: nhấn rồi kéo theo trục X hoặc Z. Cửa/cửa sổ đặt lên tường sẽ tự khoét khe (lanh tô, bệ cửa sổ do game dựng). Cầu thang: nhấn ở chân, kéo về phía đỉnh (hướng và độ dài theo kéo; click = dài mặc định), lên tầng kế trên; tấm sàn tầng trên tự khoét lỗ.',
   openings: 'Click sát một bức tường: cửa/cửa sổ bám vào tường và quay vào phía trong nhà (cửa mở vào trong). Xa tường: đặt theo góc R.',
   furniture: 'Nội thất là vật cản (collider, chặn đường đi). Click để đặt; quầy/khối: kéo để định kích thước.',
   containers: 'Tủ có loot: bảng loot chọn ở Inspector. Vòng xanh = tầm tương tác trong game.',
   rooms: 'Kéo khung phòng trên đường tâm tường. Phòng có đèn kèm công tắc (ô vàng, kéo để dời). Ánh sáng: cửa sổ và cửa nối các phòng.',
+}
+
+/**
+ * M11c-2: the storey being edited. Items are drawn, picked and placed on it; the storey below shows
+ * as a ghost. PageUp / PageDown switch too.
+ */
+function FloorSelector({ storeys }: { storeys: number }) {
+  const floor = useEditorStore((s) => Math.min(s.prefabFloor, storeys - 1))
+  const setFloor = useEditorStore((s) => s.setPrefabFloor)
+  return (
+    <div className="floors" data-floors={storeys}>
+      <span>Tầng đang sửa</span>
+      <div className="row">
+        {Array.from({ length: storeys }, (_, i) => (
+          <button key={i} className={i === floor ? 'active' : ''} onClick={() => setFloor(i)} data-prefab-floor={i}>
+            {i === 0 ? 'Trệt' : `Tầng ${i + 1}`}
+          </button>
+        ))}
+      </div>
+      <small>Tầng dưới hiện mờ để căn tường; khung vàng là lỗ cầu thang. PageUp/PageDown đổi tầng.</small>
+    </div>
+  )
 }
 
 /** Palette of the prefab editor (M5): what goes inside the prefab being edited. */
@@ -109,6 +132,7 @@ function PrefabPalette({ prefabId }: { prefabId: string }) {
   const prefab = edit.doc.prefabs.get(prefabId)
   if (!prefab) return null
   const uses = instancesOf(edit.doc, prefabId)
+  const storeys = prefab.building?.storeys ?? 1
   return (
     <>
       <div className="banner" data-prefab-banner>
@@ -123,6 +147,7 @@ function PrefabPalette({ prefabId }: { prefabId: string }) {
           ← Về world
         </button>
       </div>
+      {storeys > 1 && <FloorSelector storeys={storeys} />}
       <nav className="tabs">
         {PREFAB_TABS.map((t) => (
           <button
@@ -702,7 +727,7 @@ export function NewPrefabDialog() {
   const [name, setName] = useState('Nhà mới')
   const [width, setWidth] = useState('8')
   const [depth, setDepth] = useState('6')
-  const [shape, setShape] = useState<'rect' | 'L'>('rect')
+  const [shape, setShape] = useState<'rect' | 'L' | 'twoStorey'>('rect')
   if (dialog !== 'newPrefab') return null
   const create = () => {
     const s = useEditorStore.getState()
@@ -715,7 +740,10 @@ export function NewPrefabDialog() {
     <div className="modal" role="dialog">
       <div className="box">
         <h3>Prefab mới</h3>
-        <p className="hint">Nhà mẫu: tường bao, cửa ở tường nam (mở vào trong), một phòng có đèn. Chữ L: góc đông bắc bị khoét, tường và phòng theo hình L. Sau đó mở chế độ sửa prefab.</p>
+        <p className="hint">
+          Nhà mẫu: tường bao, cửa ở tường nam (mở vào trong), một phòng có đèn. Chữ L: góc đông bắc bị khoét, tường và phòng theo hình L. Hai tầng: thêm cầu thang dọc tường bắc, tầng trên có tường, cửa
+          sổ và phòng có đèn (ít nhất 8 × 6 m). Sau đó mở chế độ sửa prefab.
+        </p>
         <label className="field">
           <span>prefabId</span>
           <input value={prefabId} onChange={(e) => setPrefabId(e.target.value)} />
@@ -726,9 +754,10 @@ export function NewPrefabDialog() {
         </label>
         <label className="field">
           <span>Hình</span>
-          <select value={shape} onChange={(e) => setShape(e.target.value as 'rect' | 'L')} data-prefab-shape>
+          <select value={shape} onChange={(e) => setShape(e.target.value as 'rect' | 'L' | 'twoStorey')} data-prefab-shape>
             <option value="rect">Chữ nhật</option>
             <option value="L">Chữ L</option>
+            <option value="twoStorey">Hai tầng (có cầu thang)</option>
           </select>
         </label>
         <label className="field">

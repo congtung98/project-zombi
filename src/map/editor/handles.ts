@@ -6,6 +6,8 @@ import { findRecord, worldAnchor, type AnyRecord, type MapDocument } from './doc
 import { updatePrefab, updatePrefabItem } from './prefabCommands.ts'
 import { dragOutlineEdge, dragOutlineVertex, outlineHandles, parseOutlineHandle, type OutlineHandleKey } from './outlines.ts'
 import { outlineCentre } from '../polygon.ts'
+import { dragStairEnd, stairEnds } from './storeys.ts'
+import { DEFAULT_BUILDING } from './prefabPresets.ts'
 
 /**
  * Resize handles (M7). Pure: the handles of the one selected record or prefab item, and the
@@ -15,6 +17,7 @@ import { outlineCentre } from '../polygon.ts'
  *   the opposite edge stays put and the size never drops below the kind's minimum (no flipping);
  * - circle zones: one radius handle east of the centre;
  * - wall runs (prefab): both ends, sliding along the run's axis;
+ * - M11c-2 flights (prefab): the foot (`from`) and the top (`to`), along the flight's axis;
  * - lamps (prefab): the ceiling fixture (`lamp.at`, default the room centre);
  * - M11a outlines (L/T/U rooms, the footprint `FOOTPRINT_KEY` when nothing is selected): every
  *   vertex (`v<i>`) and edge middle (`e<i>`), see `outlines.ts`.
@@ -127,7 +130,11 @@ export function prefabItemHandles(prefab: PrefabDocument, key: string): Handle[]
   const o = prefab.objects.find((x) => x.localId === key)
   if (o) {
     if (o.kind === 'wallRun') return [{ key: 'from', at: { ...o.from } }, { key: 'to', at: { ...o.to } }]
-    if (o.kind === 'door' || o.kind === 'window' || o.kind === 'stairs') return []
+    if (o.kind === 'stairs') {
+      const { foot, top } = stairEnds(o)
+      return [{ key: 'from', at: foot }, { key: 'to', at: top }]
+    }
+    if (o.kind === 'door' || o.kind === 'window') return []
     if (o.kind === 'tree') return [{ key: 'radius', at: { x: quantize(o.position.x + o.canopy), z: o.position.z } }]
     return rectHandles(centred(o.position, o.size[0], o.size[2]))
   }
@@ -177,7 +184,10 @@ export function dragPrefabHandle(doc: MapDocument, prefabId: string, key: string
   }
   if (o) {
     if (o.kind === 'door' || o.kind === 'window') return fail('Cửa/cửa sổ đổi bề rộng ở Inspector')
-    if (o.kind === 'stairs') return fail('Cầu thang đổi kích thước ở Inspector')
+    if (o.kind === 'stairs') {
+      if (handle !== 'from' && handle !== 'to') return fail('Cầu thang chỉ có tay cầm hai đầu')
+      return updatePrefabItem(doc, prefabId, key, dragStairEnd(o, handle === 'from' ? 'foot' : 'top', p, (prefab.building ?? DEFAULT_BUILDING).height))
+    }
     if (o.kind === 'tree') return updatePrefabItem(doc, prefabId, key, { canopy: treeCanopy(o, o.position, p) })
     const next = dragEdge(centred(o.position, o.size[0], o.size[2]), handle, p, MIN_SIZE.box)
     const position = { ...o.position, x: quantize((next.minX + next.maxX) / 2), z: quantize((next.minZ + next.maxZ) / 2) }

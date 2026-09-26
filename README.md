@@ -13,7 +13,7 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3–M11b): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
+# Map editor (M3–M11c): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/ → chơi: menu chính › Đổi world
 npm run map:unpack -- <pack> --world-id <id>  # ghi pack thành world mới (như nút Lưu thành… của editor)
@@ -120,6 +120,11 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### M11c-2: editor nhiều tầng (26/09/2026)
+
+- Prefab mới **Hai tầng** (cầu thang dọc tường bắc, tầng trên có phòng và đèn). Inspector: **Số tầng**, **Tầng** của từng mục. Nút chọn tầng đang sửa (PageUp/PageDown): tầng dưới hiện mờ, cửa bám tường cùng tầng.
+- **Cầu thang bằng chuột**: kéo từ chân lên đỉnh, kéo hai đầu để đổi độ dài. Chi tiết `docs/map-editor-m11c2.md`, hướng dẫn `docs/map-editor-guide.md` mục 1.9.
 
 ### M11c-1B: tầm nhìn nội thất (26/09/2026)
 

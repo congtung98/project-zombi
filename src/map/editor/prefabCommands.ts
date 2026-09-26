@@ -1,4 +1,4 @@
-import { MAP_SCHEMA_VERSION, type PrefabDocument, type PrefabObject, type QuarterTurns, type Rect, type RoomObject, type WallRunObject, type XZ } from '../schema.ts'
+import { MAP_SCHEMA_VERSION, MAX_STOREYS, type PrefabDocument, type PrefabObject, type QuarterTurns, type Rect, type RoomObject, type StairsObject, type WallRunObject, type XZ } from '../schema.ts'
 import { resolveInstance, stairRect, type ResolvedRecord } from '../resolve.ts'
 import { addQuarterTurns, PREFAB_ID, quantize, rotateXZ, SLUG } from '../transform.ts'
 import type { CommandResult } from './commands.ts'
@@ -7,6 +7,8 @@ import { presetPlacement, type RecordPreset } from './presets.ts'
 import { axisEnd, DEFAULT_BUILDING, DEFAULT_ROOM, dragRect, findPrefabPreset } from './prefabPresets.ts'
 import { distanceToOutline, outlineBounds, outlineCentre, outlineProblem, rectOutline } from '../polygon.ts'
 import { cutOutlineCorner, outlineWallRuns, turnOutline } from './outlines.ts'
+import { itemsFromStorey, levelField, levelOf, stairFromDrag, storeysOf } from './storeys.ts'
+import { MIN_STOREY_HEIGHT } from '../validate.ts'
 
 /**
  * Prefab editing commands (M5): pure functions document → document, like the world commands, so
@@ -34,6 +36,8 @@ export interface PrefabItem {
   bounds: Rect
   /** M11a: an L/T/U room's outline (picked near its edges or centre). */
   outline?: XZ[]
+  /** M11c-2: storey (0 = ground); a lamp is on its room's, a flight on the one it starts from. */
+  level: number
 }
 
 /** The prefab as one instance at its pivot, turned `q` quarter turns (a neutral resolved record). */
@@ -79,15 +83,21 @@ export function objectRect(o: PrefabObject): Rect {
 
 /** Every editable item of a prefab, objects first, then rooms and their lamps. */
 export function prefabItems(prefab: PrefabDocument): PrefabItem[] {
-  const out: PrefabItem[] = prefab.objects.map((o) => ({ key: o.localId, kind: 'object' as const, type: o.kind, bounds: objectRect(o) }))
+  const out: PrefabItem[] = prefab.objects.map((o) => ({ key: o.localId, kind: 'object' as const, type: o.kind, bounds: objectRect(o), level: levelOf(o) }))
   for (const r of prefab.rooms) {
-    out.push({ key: r.localId, kind: 'room', type: 'room', bounds: { ...r.bounds }, ...(r.outline ? { outline: r.outline.map((q) => ({ ...q })) } : {}) })
+    const level = levelOf(r)
+    out.push({ key: r.localId, kind: 'room', type: 'room', bounds: { ...r.bounds }, level, ...(r.outline ? { outline: r.outline.map((q) => ({ ...q })) } : {}) })
     if (!r.lamp) continue
-    out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.switchAt, 2 * SWITCH_PICK, 2 * SWITCH_PICK) })
+    out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.switchAt, 2 * SWITCH_PICK, 2 * SWITCH_PICK), level })
     // M7: a fixture moved off the room centre also picks its lamp (the centre picks the room).
-    if (r.lamp.at) out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.at, 2 * SWITCH_PICK, 2 * SWITCH_PICK) })
+    if (r.lamp.at) out.push({ key: r.lamp.localId, kind: 'lamp', type: 'lamp', bounds: rectAround(r.lamp.at, 2 * SWITCH_PICK, 2 * SWITCH_PICK), level })
   }
   return out
+}
+
+/** M11c-2: the items of one storey (what the editor picks and box-selects on the active floor). */
+export function itemsOnFloor(items: readonly PrefabItem[], floor: number): PrefabItem[] {
+  return items.filter((it) => it.level === floor)
 }
 
 /** Rooms fill the building, so like zones they are picked only near their outline or centre. */
@@ -177,8 +187,11 @@ export interface NewPrefabOptions {
   /** Outer size of the starter house (wall centre lines), metres. */
   width?: number
   depth?: number
-  /** M11a: `L` = the north-east quarter cut away (L-shaped footprint, walls and room). */
-  shape?: 'rect' | 'L'
+  /**
+   * M11a: `L` = the north-east quarter cut away (L-shaped footprint, walls and room). M11c-2:
+   * `twoStorey` = the rectangle on two storeys with a flight along the north wall.
+   */
+  shape?: 'rect' | 'L' | 'twoStorey'
 }
 
 function uniquePrefabPath(doc: MapDocument, prefabId: string): string {
@@ -244,6 +257,53 @@ export function starterLHouse(prefabId: string, name: string, width = 10, depth 
   }
 }
 
+/** M11c-2: smallest footprint of the two-storey starter (the flight and its landings fit inside). */
+export const TWO_STOREY_MIN = { width: 8, depth: 6 } as const
+
+/**
+ * M11c-2 starter two-storey house: the starter house (south door, ground room with its lamp) plus
+ * a south window, a flight along the north wall (foot to the west, 4 m run), the upper storey's
+ * four walls, a south window and one room with its lamp switch by the top of the flight. Valid and
+ * playable as is: the flight's landings are clear on both storeys.
+ */
+export function starterTwoStoreyHouse(prefabId: string, name: string, width = 10, depth = 8): PrefabDocument {
+  const base = starterHouse(prefabId, name, width, depth)
+  const b = DEFAULT_BUILDING
+  const hx = width / 2
+  const hz = depth / 2
+  const upper = (localId: string, from: XZ, to: XZ): WallRunObject => ({ kind: 'wallRun', level: 1, localId, from, to, height: b.height, thickness: b.wallThickness, color: b.wallColor })
+  // The flight: its foot 1.8 m from the west wall (a clear landing), 0.9 m off the north wall line.
+  const run = 4
+  const footX = -hx + 1.8
+  const stairs: StairsObject = { kind: 'stairs', localId: 'stairs', position: { x: quantize(footX + run / 2), z: quantize(-hz + 0.9) }, quarterTurns: 0, width: 1.2, length: run }
+  const window = (level: number, localId: string, x: number): PrefabObject =>
+    ({ kind: 'window', ...levelField(level), localId, name: level ? 'Cửa sổ tầng trên' : 'Cửa sổ', position: { x: quantize(x), z: hz }, quarterTurns: 2, width: 1.2, sill: 0.9, head: 2.1, thickness: b.wallThickness }) as PrefabObject
+  return {
+    ...base,
+    building: { ...base.building!, storeys: 2 },
+    objects: [
+      ...base.objects,
+      window(0, 'win-1', hx / 2),
+      stairs,
+      upper('wall-n-2', { x: -hx, z: -hz }, { x: hx, z: -hz }),
+      upper('wall-s-2', { x: -hx, z: hz }, { x: hx, z: hz }),
+      upper('wall-w-2', { x: -hx, z: -hz }, { x: -hx, z: hz }),
+      upper('wall-e-2', { x: hx, z: -hz }, { x: hx, z: hz }),
+      window(1, 'win-2', hx / 2),
+    ],
+    rooms: [
+      { ...base.rooms[0], name: 'Tầng trệt', lamp: { ...base.rooms[0].lamp!, name: 'Đèn tầng trệt' } },
+      {
+        level: 1,
+        localId: 'room-2',
+        name: 'Tầng trên',
+        bounds: { minX: -hx, minZ: -hz, maxX: hx, maxZ: hz },
+        lamp: { localId: 'lamp-2', name: 'Đèn tầng trên', intensity: 0.8, color: '#ffd9a0', requiresElectricity: true, switchAt: { x: quantize(footX + run + 0.4), z: quantize(-hz + 0.25) } },
+      },
+    ],
+  }
+}
+
 /** Add a new prefab to the world's library (manifest + file). */
 export function createPrefab(doc: MapDocument, opts: NewPrefabOptions): CommandResult {
   if (!PREFAB_ID.test(opts.prefabId)) return fail(`prefabId "${opts.prefabId}": chữ thường, số, gạch nối, phân cách bằng /`)
@@ -252,7 +312,13 @@ export function createPrefab(doc: MapDocument, opts: NewPrefabOptions): CommandR
   const w = opts.width ?? 8
   const d = opts.depth ?? 6
   if (!(w >= 2 && d >= 2)) return fail('Nhà mẫu cần ít nhất 2 × 2 m')
-  const prefab = opts.shape === 'L' ? starterLHouse(opts.prefabId, opts.name.trim(), w, d) : starterHouse(opts.prefabId, opts.name.trim(), w, d)
+  if (opts.shape === 'twoStorey' && !(w >= TWO_STOREY_MIN.width && d >= TWO_STOREY_MIN.depth)) return fail(`Nhà hai tầng cần ít nhất ${TWO_STOREY_MIN.width} × ${TWO_STOREY_MIN.depth} m (cầu thang và chỗ bước lên/xuống)`)
+  const prefab =
+    opts.shape === 'L'
+      ? starterLHouse(opts.prefabId, opts.name.trim(), w, d)
+      : opts.shape === 'twoStorey'
+        ? starterTwoStoreyHouse(opts.prefabId, opts.name.trim(), w, d)
+        : starterHouse(opts.prefabId, opts.name.trim(), w, d)
   const world = { ...doc.world, prefabs: [...doc.world.prefabs, { prefabId: prefab.prefabId, contentVersion: 1, path: uniquePrefabPath(doc, prefab.prefabId) }] }
   return { ok: true, doc: withPrefab(doc, prefab, world), selection: [], note: `Tạo prefab ${prefab.prefabId}` }
 }
@@ -317,6 +383,13 @@ export function updatePrefab(doc: MapDocument, prefabId: string, patch: PrefabPa
     if (!src.building) return fail('Prefab không phải công trình')
     const b = { ...src.building, ...patch.building }
     if (!(b.height > 0 && b.wallThickness > 0)) return fail('Chiều cao và độ dày tường phải > 0')
+    // M11c-2: storeys 1..MAX_STOREYS; a storey goes only once nothing stands on it (or climbs to it).
+    const storeys = b.storeys ?? 1
+    if (!(Number.isInteger(storeys) && storeys >= 1 && storeys <= MAX_STOREYS)) return fail(`Số tầng: 1 đến ${MAX_STOREYS}`)
+    if (storeys > 1 && b.height < MIN_STOREY_HEIGHT) return fail(`Nhà nhiều tầng cần mỗi tầng cao ít nhất ${MIN_STOREY_HEIGHT} m`)
+    const left = itemsFromStorey(src, storeys)
+    if (left.length) return fail(`Còn ${left.length} mục ở tầng ${storeys + 1} trở lên (${left.slice(0, 3).join(', ')}${left.length > 3 ? ' …' : ''}): xóa hoặc chuyển tầng trước`)
+    if (storeys === 1) delete b.storeys
     next.building = b
   }
   let world = doc.world
@@ -365,12 +438,12 @@ export function fitFootprint(doc: MapDocument, prefabId: string, selection: stri
 // ---------------------------------------------------------------------------------------------
 // Items
 
-/** Nearest wall run whose line passes within `reach` of `p` (projection inside the run). */
-export function nearestWallRun(prefab: PrefabDocument, p: XZ, reach = 1): { run: WallRunObject; at: XZ; alongX: boolean } | null {
+/** Nearest wall run of storey `level` whose line passes within `reach` of `p` (projection inside the run). */
+export function nearestWallRun(prefab: PrefabDocument, p: XZ, reach = 1, level = 0): { run: WallRunObject; at: XZ; alongX: boolean } | null {
   let best: { run: WallRunObject; at: XZ; alongX: boolean } | null = null
   let bestD = reach
   for (const o of prefab.objects) {
-    if (o.kind !== 'wallRun') continue
+    if (o.kind !== 'wallRun' || levelOf(o) !== level) continue
     const alongX = o.from.z === o.to.z
     const lo = alongX ? Math.min(o.from.x, o.to.x) : Math.min(o.from.z, o.to.z)
     const hi = alongX ? Math.max(o.from.x, o.to.x) : Math.max(o.from.z, o.to.z)
@@ -398,13 +471,17 @@ function facingInside(alongX: boolean, at: XZ, inside: XZ): 0 | 1 | 2 | 3 {
  * Put a palette item into a prefab: pressed at `from`, released at `to` (null = click). Doors and
  * windows snap onto the nearest wall run and face the footprint centre (open inward); elsewhere
  * they take `turns`. Wall runs follow the drag's dominant axis; rooms are the dragged rectangle.
+ * M11c-2: everything goes on storey `floor` (doors and windows snap to walls of that storey); a
+ * flight is dragged from its foot towards its top and climbs from `floor` to the storey above.
  */
-export function placePrefabItem(doc: MapDocument, prefabId: string, presetId: string, from: XZ, to: XZ | null = null, turns = 0): CommandResult {
+export function placePrefabItem(doc: MapDocument, prefabId: string, presetId: string, from: XZ, to: XZ | null = null, turns = 0, floor = 0): CommandResult {
   const prefab = getPrefab(doc, prefabId)
   if (!prefab) return fail(`Không có prefab ${prefabId}`)
   const preset = findPrefabPreset(presetId)
   if (!preset) return fail(`Không có mẫu ${presetId}`)
   const b = prefab.building ?? DEFAULT_BUILDING
+  const storeys = storeysOf(prefab)
+  if (floor < 0 || floor >= storeys) return fail(`Prefab chỉ có ${storeys} tầng`)
   const next = copyPrefab(prefab)
   const t = preset.template
   let key: string
@@ -414,7 +491,7 @@ export function placePrefabItem(doc: MapDocument, prefabId: string, presetId: st
     const bounds = dragRect(from, to, DEFAULT_ROOM)
     key = freshLocalId(prefab, preset.name)
     const n = key.split('-').pop()
-    const room: RoomObject = { localId: key, name: `${String(t.name)} ${n}`, bounds }
+    const room: RoomObject = { ...levelField(floor), localId: key, name: `${String(t.name)} ${n}`, bounds }
     if (t.lamp) {
       const lampId = freshLocalId(prefab, 'lamp', new Set([key]))
       const l = t.lamp as AnyRecord
@@ -433,22 +510,28 @@ export function placePrefabItem(doc: MapDocument, prefabId: string, presetId: st
 
   key = freshLocalId(prefab, preset.name)
   let object: AnyRecord
-  if (t.kind === 'wallRun') {
+  if (t.kind === 'tree' && floor > 0) return fail('Cây chỉ trồng ở tầng trệt')
+  if (t.kind === 'stairs') {
+    if (!prefab.building || storeys < 2) return fail('Cầu thang cần công trình từ 2 tầng (Inspector prefab → Số tầng)')
+    if (floor > storeys - 2) return fail('Tầng trên cùng: không còn tầng nào để cầu thang lên tới')
+    const flight = stairFromDrag(from, to, b.height)
+    object = { kind: 'stairs', ...levelField(floor), localId: key, position: flight.position, quarterTurns: flight.quarterTurns, width: t.width as number, length: flight.length }
+  } else if (t.kind === 'wallRun') {
     let end = to ? axisEnd(from, to) : from
     if (end.x === from.x && end.z === from.z) end = { x: quantize(from.x + 4), z: from.z }
-    object = { kind: 'wallRun', localId: key, from: { ...from }, to: end, height: b.height, thickness: b.wallThickness, color: b.wallColor }
+    object = { kind: 'wallRun', ...levelField(floor), localId: key, from: { ...from }, to: end, height: b.height, thickness: b.wallThickness, color: b.wallColor }
   } else if (t.kind === 'door' || t.kind === 'window') {
-    const snapped = nearestWallRun(prefab, from)
+    const snapped = nearestWallRun(prefab, from, 1, floor)
     const centre = { x: (prefab.footprint.minX + prefab.footprint.maxX) / 2, z: (prefab.footprint.minZ + prefab.footprint.maxZ) / 2 }
     const position = snapped ? snapped.at : { ...from }
     const q = snapped ? facingInside(snapped.alongX, snapped.at, centre) : (((turns % 4) + 4) % 4 as 0 | 1 | 2 | 3)
     const { kind, name, ...rest } = structuredClone(t)
-    object = { kind, localId: key, name, ...rest, position: { x: quantize(position.x), z: quantize(position.z) }, quarterTurns: q }
+    object = { kind, ...levelField(floor), localId: key, name, ...rest, position: { x: quantize(position.x), z: quantize(position.z) }, quarterTurns: q }
     if (kind === 'window') object.thickness = snapped ? snapped.run.thickness : b.wallThickness
   } else {
     const { at, fields } = presetPlacement({ drag: preset.drag, template: t } as RecordPreset, from, to)
     const { kind, ...rest } = { ...structuredClone(t), ...fields }
-    object = { kind, localId: key, ...rest, position: { ...(rest.position as AnyRecord), x: at.x, z: at.z } }
+    object = { kind, ...(kind === 'tree' ? {} : levelField(floor)), localId: key, ...rest, position: { ...(rest.position as AnyRecord), x: at.x, z: at.z } }
   }
   next.objects.push(object as unknown as PrefabObject)
   return { ok: true, doc: withPrefab(doc, next), selection: [key] }

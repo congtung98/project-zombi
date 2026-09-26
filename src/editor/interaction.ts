@@ -9,6 +9,7 @@ import {
   duplicatePrefabItems,
   isStatefulItem,
   itemsInRect,
+  itemsOnFloor,
   movePrefabItems,
   pickPrefabItem,
   placePrefabItem,
@@ -33,10 +34,27 @@ export function snapPoint(p: XZ): XZ {
   return { x: snap(p.x, step), z: snap(p.z, step) }
 }
 
+/**
+ * M11c-2: storey being edited in the prefab editor, kept within the prefab's storeys (an undo may
+ * have removed the one that was active); 0 in world mode.
+ */
+export function activeFloor(): number {
+  const s = store()
+  const prefab = s.prefabMode ? s.edit?.doc.prefabs.get(s.prefabMode) : null
+  return prefab ? Math.min(s.prefabFloor, (prefab.building?.storeys ?? 1) - 1) : 0
+}
+
+/** Height of the active storey's floor: the viewport picks, draws handles and boxes on it (M11c-2). */
+export function editElevation(): number {
+  const s = store()
+  const prefab = s.prefabMode ? s.edit?.doc.prefabs.get(s.prefabMode) : null
+  return prefab ? activeFloor() * (prefab.building?.height ?? 0) : 0
+}
+
 /** The place command for an item: prefabs drop at a point, records may be sized by a drag (M4). */
 function placeCommand(doc: MapDocument, item: PlaceItem, from: XZ, to: XZ | null): CommandResult {
   if (item.kind === 'prefab') return placeInstance(doc, item.prefabId, from, store().placeTurns)
-  if (item.kind === 'prefabItem') return placePrefabItem(doc, store().prefabMode ?? '', item.presetId, from, to, store().placeTurns)
+  if (item.kind === 'prefabItem') return placePrefabItem(doc, store().prefabMode ?? '', item.presetId, from, to, store().placeTurns, activeFloor())
   return placeRecord(doc, item.presetId, from, to)
 }
 
@@ -73,7 +91,7 @@ export function pickAt(g: XZ): string | null {
   const p = prefabMode()
   if (p) {
     const prefab = s.edit.doc.prefabs.get(p)
-    return prefab ? (pickPrefabItem(prefabItems(prefab), g)?.key ?? null) : null
+    return prefab ? (pickPrefabItem(itemsOnFloor(prefabItems(prefab), activeFloor()), g)?.key ?? null) : null
   }
   return pickRecord(resolvedRecords(s.edit.doc), g, (r) => !isEditable(r, s.layers))?.id ?? null
 }
@@ -85,7 +103,7 @@ export function keysInRect(rect: Rect): string[] {
   const p = prefabMode()
   if (p) {
     const prefab = s.edit.doc.prefabs.get(p)
-    return prefab ? itemsInRect(prefabItems(prefab), rect) : []
+    return prefab ? itemsInRect(itemsOnFloor(prefabItems(prefab), activeFloor()), rect) : []
   }
   return recordsInRect(resolvedRecords(s.edit.doc), rect, (r) => !isEditable(r, s.layers)).map((r) => r.id)
 }
@@ -126,6 +144,10 @@ export function handleCommand(doc: MapDocument, id: string, key: HandleKey, at: 
 
 export function handleLabel(key: HandleKey): string {
   if (key === 'fixture') return 'Dời đèn'
+  const s = store()
+  const p = prefabMode()
+  const id = s.edit?.selection.length === 1 ? s.edit.selection[0] : null
+  if (p && id && s.edit?.doc.prefabs.get(p)?.objects.find((o) => o.localId === id)?.kind === 'stairs') return key === 'from' ? 'Dời chân cầu thang' : 'Dời đỉnh cầu thang'
   if (key === 'from' || key === 'to') return 'Kéo dài tường'
   if (key === 'radius') return 'Đổi bán kính'
   if (/^v\d+$/.test(key)) return 'Kéo đỉnh'
@@ -230,13 +252,13 @@ export function duplicateSelection(): void {
   s.run('Nhân bản', (doc, sel) => (p ? duplicatePrefabItems(doc, p, sel, { x: step, z: step }) : duplicateRecords(doc, sel, { x: step, z: step })))
 }
 
-/** Ctrl+A: every record on a visible, unlocked layer (prefab mode: every item). */
+/** Ctrl+A: every record on a visible, unlocked layer (prefab mode: every item of the active storey). */
 export function selectAll(): void {
   const s = store()
   if (!s.edit) return
   const p = prefabMode()
   const prefab = p ? s.edit.doc.prefabs.get(p) : null
-  if (prefab) s.select([...new Set(prefabItems(prefab).map((it) => it.key))])
+  if (prefab) s.select([...new Set(itemsOnFloor(prefabItems(prefab), activeFloor()).map((it) => it.key))])
   else s.select(resolvedRecords(s.edit.doc).filter((r) => isEditable(r, s.layers)).map((r) => r.id))
 }
 
