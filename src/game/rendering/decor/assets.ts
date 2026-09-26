@@ -11,7 +11,8 @@ import { DECOR, type DecorId } from './catalog'
 
 export interface DecorPart {
   name: string
-  shape: 'box' | 'cyl'
+  /** `cyl` upright cylinder, `ball` sphere, `spike` upright cone (G4: planting). */
+  shape: 'box' | 'cyl' | 'ball' | 'spike'
   center: [number, number, number]
   size: [number, number, number]
   /** Turn of the part about its centre (radians), on top of the decor's own yaw. */
@@ -30,6 +31,11 @@ type Build = (color: string) => DecorPart[]
 const box = (name: string, center: [number, number, number], size: [number, number, number], color: string, surface: SurfaceId, yaw?: number): DecorPart => ({ name, shape: 'box', center, size, color, surface, ...(yaw ? { yaw } : {}) })
 /** An upright cylinder standing on `y` (radius r, height h). */
 const cyl = (name: string, x: number, y: number, z: number, r: number, h: number, color: string, surface: SurfaceId): DecorPart => ({ name, shape: 'cyl', center: [x, y + h / 2, z], size: [2 * r, h, 2 * r], color, surface })
+
+/** A sphere (bush) centred at (x, y, z) with radii rx, ry, rz. */
+const ball = (name: string, x: number, y: number, z: number, rx: number, ry: number, rz: number, color: string): DecorPart => ({ name, shape: 'ball', center: [x, y, z], size: [2 * rx, 2 * ry, 2 * rz], color, surface: 'foliage' })
+/** An upright cone (a blade clump) standing on the ground. */
+const spike = (name: string, x: number, z: number, r: number, h: number, color: string): DecorPart => ({ name, shape: 'spike', center: [x, h / 2, z], size: [2 * r, h, 2 * r], color, surface: 'foliage' })
 
 const BUILDERS: Record<DecorId, Build> = {
   'decor/cup': (c) => [cyl('cup', 0, 0, 0, 0.04, 0.095, c, 'matte'), box('handle', [0.042, 0.05, 0], [0.006, 0.05, 0.012], c, 'matte')],
@@ -95,6 +101,18 @@ const BUILDERS: Record<DecorId, Build> = {
     box('handle', [0, 0.2, 0], [0.2, 0.03, 0.03], DARK, 'paintedMetal'),
   ],
   'decor/tires': (c) => [cyl('tire-0', 0, 0, 0, 0.31, 0.2, c, 'matte'), cyl('tire-1', 0.01, 0.2, 0.005, 0.31, 0.2, c, 'matte'), cyl('rim', 0.01, 0.4, 0.005, 0.17, 0.012, STEEL, 'paintedMetal')],
+  'decor/bush': (c) => [
+    ball('ball-0', -0.05, 0.36, 0, 0.45, 0.36, 0.43, c),
+    ball('ball-1', 0.3, 0.27, 0.17, 0.3, 0.27, 0.3, shade(c, 0.08)),
+    ball('ball-2', -0.3, 0.25, -0.2, 0.28, 0.25, 0.28, shade(c, -0.06)),
+  ],
+  'decor/grass': (c) => [
+    spike('blade-0', 0, 0, 0.07, 0.34, c),
+    spike('blade-1', 0.12, 0.08, 0.06, 0.26, shade(c, 0.08)),
+    spike('blade-2', -0.12, 0.06, 0.06, 0.3, shade(c, -0.05)),
+    spike('blade-3', 0.05, -0.13, 0.05, 0.24, shade(c, 0.12)),
+    spike('blade-4', -0.1, -0.11, 0.05, 0.28, c),
+  ],
   'decor/oil-stain': (c) => [
     cyl('stain-0', 0, 0, 0, 0.36, 0.002, c, 'matte'),
     cyl('stain-1', 0.3, 0, 0.12, 0.22, 0.003, shade(c, 0.06), 'matte'),

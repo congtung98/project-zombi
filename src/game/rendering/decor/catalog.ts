@@ -28,6 +28,8 @@ export const DECOR_IDS = [
   'decor/toolbox',
   'decor/tires',
   'decor/oil-stain',
+  'decor/bush',
+  'decor/grass',
 ] as const
 export type DecorId = (typeof DECOR_IDS)[number]
 
@@ -60,6 +62,9 @@ export const DECOR: Record<DecorId, DecorInfo> = {
   'decor/toolbox': { label: 'Hộp đồ nghề', size: [0.46, 0.22, 0.22], color: '#a3322a' },
   'decor/tires': { label: 'Chồng lốp xe', size: [0.64, 0.42, 0.64], color: '#2b2a29' },
   'decor/oil-stain': { label: 'Vệt dầu', size: [1.1, 0.004, 0.8], color: '#4a4540', flat: true },
+  // G4: planting by the paths and fences.
+  'decor/bush': { label: 'Bụi cây', size: [1.2, 0.74, 1.1], color: '#4d6a39' },
+  'decor/grass': { label: 'Cụm cỏ', size: [0.5, 0.36, 0.5], color: '#617d43' },
 }
 
 export function isDecorId(v: unknown): v is DecorId {

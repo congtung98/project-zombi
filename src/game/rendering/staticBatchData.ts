@@ -9,9 +9,9 @@ import type { StaticColliderRegistry } from '../world/staticColliders'
 import { TREE_TRUNK_COLOR, treeProfile } from '../world/trees'
 import { itemChunkKey } from './viewChunks'
 import { packSurface } from './surfaces/catalog'
-import { outdoorSurface, PIECE_SURFACES, SLAB_SURFACE, STAIR_SURFACE, wallSurface } from './surfaces/surfaceRules'
+import { outdoorSurface, PIECE_SURFACES, roadSurface, SLAB_SURFACE, STAIR_SURFACE, wallSurface } from './surfaces/surfaceRules'
 import { doorDetails, roomFloorDetails, stoopDetail, TRIM, wallBaseDetails, windowDetails } from './architecture'
-import { mapRooms, mapWindows } from '../world/mapData'
+import { mapRooms, mapWindows, roadY, type RoadDef } from '../world/mapData'
 import type { FurnitureLook } from '../world/buildings'
 import type { QuarterTurns } from '../../map/schema'
 import { isFurnitureId, type FurnitureId } from './furniture/catalog'
@@ -240,6 +240,8 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     // The canopy fades like a roof when it hides the player; it blocks nothing.
     items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true, surface: packSurface(PIECE_SURFACES.canopy) })
   }
+  // G4: paint on the streets and kerbs where a pavement meets one (drawn only).
+  items.push(...roadDetails(map.roads))
   // G3b: decor (drawn only), then the house variants' palette on every piece of a house but decor.
   for (const d of map.decor ?? []) items.push(...decorItems(d, memberOf(d.id, d.position.x, d.position.z)))
   for (const item of items) {
@@ -247,6 +249,76 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     if (v && !item.decor) item.color = variantColor(item.color, v)
   }
   return items
+}
+
+/** G4: street paint and kerbs (drawn only, no collider: a kerb is low enough to step over). */
+export const ROAD_PAINT = { color: '#d9d3bf', width: 0.12, dash: 1.6, gap: 1.6, minWidth: 4, minLength: 8 } as const
+export const KERB = { color: '#aaa49a', width: 0.18, height: 0.05 } as const
+
+/**
+ * G4: a dashed centre line along every asphalt street (at least 4 m wide and 8 m long) and a kerb
+ * along each pavement (concrete) edge that meets asphalt, on the pavement side. Worked out from the
+ * roads themselves, so every map gets them without authoring.
+ */
+export function roadDetails(roads: readonly RoadDef[]): StaticItem[] {
+  const out: StaticItem[] = []
+  const rect = (r: RoadDef) => ({ minX: r.position.x - r.size[0] / 2, maxX: r.position.x + r.size[0] / 2, minZ: r.position.z - r.size[1] / 2, maxZ: r.position.z + r.size[1] / 2 })
+  const asphalt = roads.filter((r) => roadSurface(r.color) === 'asphalt')
+  for (const r of asphalt) {
+    const alongX = r.size[0] >= r.size[1]
+    const length = Math.max(r.size[0], r.size[1])
+    const width = Math.min(r.size[0], r.size[1])
+    if (width < ROAD_PAINT.minWidth || length < ROAD_PAINT.minLength) continue
+    const y = roadY(r) + 0.002
+    const period = ROAD_PAINT.dash + ROAD_PAINT.gap
+    const n = Math.floor((length - ROAD_PAINT.gap) / period)
+    const start = -((n * period - ROAD_PAINT.gap) / 2)
+    for (let i = 0; i < n; i++) {
+      const along = start + i * period + ROAD_PAINT.dash / 2
+      const center = alongX ? new Vector3(r.position.x + along, y, r.position.z) : new Vector3(r.position.x, y, r.position.z + along)
+      // No paint across a junction: a dash reaching into another street is left out.
+      const half = ROAD_PAINT.dash / 2 + 0.3
+      const crossing = asphalt.some((o) => {
+        if (o === r) return false
+        const q = rect(o)
+        return alongX ? center.x + half > q.minX && center.x - half < q.maxX && center.z > q.minZ && center.z < q.maxZ : center.z + half > q.minZ && center.z - half < q.maxZ && center.x > q.minX && center.x < q.maxX
+      })
+      if (crossing) continue
+      const size: [number, number, number] = alongX ? [ROAD_PAINT.dash, 0.002, ROAD_PAINT.width] : [ROAD_PAINT.width, 0.002, ROAD_PAINT.dash]
+      out.push({ shape: 'box', center, size, color: ROAD_PAINT.color, occluder: false, id: `${r.id}#paint-${i}`, surface: packSurface({ a: 'matte' }), detail: true })
+    }
+  }
+  const e = 0.02
+  for (const r of roads) {
+    if (roadSurface(r.color) !== 'concrete') continue
+    const p = rect(r)
+    for (const a of asphalt.map(rect)) {
+      // Each pavement edge lying on an asphalt edge (or inside it), over their shared stretch.
+      const spanX = [Math.max(p.minX, a.minX), Math.min(p.maxX, a.maxX)]
+      const spanZ = [Math.max(p.minZ, a.minZ), Math.min(p.maxZ, a.maxZ)]
+      const edges: { z?: number; x?: number; inward: number }[] = []
+      if (spanX[1] - spanX[0] > 0.5) {
+        if (Math.abs(p.maxZ - a.minZ) < e || (p.maxZ > a.minZ && p.maxZ < a.maxZ && p.minZ < a.minZ)) edges.push({ z: p.maxZ, inward: -1 })
+        if (Math.abs(p.minZ - a.maxZ) < e || (p.minZ < a.maxZ && p.minZ > a.minZ && p.maxZ > a.maxZ)) edges.push({ z: p.minZ, inward: 1 })
+      }
+      if (spanZ[1] - spanZ[0] > 0.5) {
+        if (Math.abs(p.maxX - a.minX) < e || (p.maxX > a.minX && p.maxX < a.maxX && p.minX < a.minX)) edges.push({ x: p.maxX, inward: -1 })
+        if (Math.abs(p.minX - a.maxX) < e || (p.minX < a.maxX && p.minX > a.minX && p.maxX > a.maxX)) edges.push({ x: p.minX, inward: 1 })
+      }
+      for (const edge of edges) {
+        const k = out.length
+        const y = KERB.height / 2
+        if (edge.z !== undefined) {
+          const center = new Vector3((spanX[0] + spanX[1]) / 2, y, edge.z + (edge.inward * KERB.width) / 2)
+          out.push({ shape: 'box', center, size: [round(spanX[1] - spanX[0]), KERB.height, KERB.width], color: KERB.color, occluder: false, id: `${r.id}#kerb-${k}`, surface: packSurface({ a: 'concrete' }), detail: true })
+        } else {
+          const center = new Vector3(edge.x! + (edge.inward * KERB.width) / 2, y, (spanZ[0] + spanZ[1]) / 2)
+          out.push({ shape: 'box', center, size: [KERB.width, KERB.height, round(spanZ[1] - spanZ[0])], color: KERB.color, occluder: false, id: `${r.id}#kerb-${k}`, surface: packSurface({ a: 'concrete' }), detail: true })
+        }
+      }
+    }
+  }
+  return out
 }
 
 /** Unknown decor asset: a small plain box, easy to spot, never an error (plan §9). */
@@ -269,7 +341,7 @@ export function decorItems(d: DecorDef, buildingId: string | undefined): StaticI
     const [px, py, pz] = p.center
     const yaw = d.yaw + (p.yaw ?? 0)
     return {
-      shape: p.shape === 'cyl' ? 'trunk' : 'box',
+      shape: p.shape === 'cyl' ? 'trunk' : p.shape === 'ball' ? 'crown' : p.shape === 'spike' ? 'cone' : 'box',
       center: new Vector3(round(d.position.x + px * cos + pz * sin), round(base + py), round(d.position.z - px * sin + pz * cos)),
       size: [p.size[0], p.size[1], p.size[2]],
       color: p.color,
@@ -293,8 +365,8 @@ export function decorItems(d: DecorDef, buildingId: string | undefined): StaticI
   return out
 }
 
-/** Flat decor outdoors sits above the road layers (a few millimetres) and below any floor. */
-const OUTDOOR_DECOR_LIFT = 0.012
+/** Flat decor outdoors sits above the road layers (up to 14 mm) and below any floor (20 mm). */
+const OUTDOOR_DECOR_LIFT = 0.016
 
 /**
  * G2: a hipped roof on an eaves board (`center`/`size` of the board): its ridge runs along the longer

@@ -42,6 +42,10 @@ const SIZES: Record<FurnitureId, [number, number, number][]> = {
   'furniture/shelving': [[1.4, 1.8, 0.5], [2, 1.6, 0.6], [2, 1.6, 0.6]],
   'furniture/crate': [[1, 1, 1], [0.5, 0.6, 0.9]],
   'furniture/workbench': [[2, 0.9, 0.8], [1.2, 0.9, 0.6]],
+  'outdoor/car': [[2, 1.4, 4], [1.8, 1.5, 4.4]],
+  'outdoor/fence': [[15, 1, 0.15], [5.1, 0.8, 0.12], [1, 1, 0.15]],
+  'outdoor/bin': [[0.6, 1.1, 0.6]],
+  'outdoor/mailbox': [[0.3, 1.2, 0.3]],
 }
 
 /** A record without its furniture look. */
@@ -157,8 +161,11 @@ describe('furniture in the lab house (G3a)', () => {
       expect(parts.length, f.id).toBeGreaterThan(3)
       expect(parts.every((p) => p.furniture?.assetId === f.visual!.assetId)).toBe(true)
     }
-    // Unfurnished props (the car, the mailbox, the bins outside) are still one plain box each.
-    for (const id of ['c0_0/objects/car', 'c0_0/objects/mailbox']) expect(partsOf(id).map((p) => p.furniture)).toEqual([undefined])
+    // Anything without a look (the world's boundary walls) is still one plain box.
+    for (const id of ['world/boundary-n', 'world/boundary-e']) expect(partsOf(id).map((p) => p.furniture)).toEqual([undefined])
+    // G4: the outdoor props wear the outdoor assets.
+    expect(partsOf('c0_0/objects/car')[0].furniture?.assetId).toBe('outdoor/car')
+    expect(partsOf('c0_0/objects/fence-a-w')[0].furniture?.assetId).toBe('outdoor/fence')
   })
 
   it('parts stay in the collider box, anchored to it, with the piece role and building', () => {
@@ -176,8 +183,10 @@ describe('furniture in the lab house (G3a)', () => {
           expect(b.min[axis], `${f.id} ${p.furniture?.part}`).toBeGreaterThanOrEqual(min[axis] - 1e-6)
           expect(b.max[axis], `${f.id} ${p.furniture?.part}`).toBeLessThanOrEqual(max[axis] + 1e-6)
         }
-        expect(p.buildingId, f.id).toBe(f.id.slice(0, f.id.lastIndexOf('/')))
-        expect(p.role).toBe('prop' in f && f.prop ? 'prop' : 'container')
+        // Inside a building: its ID and role; outdoors (fences, car, bins): none.
+        const owner = rt.map.buildings.find((b) => f.id.startsWith(`${b.id}/`))?.id
+        expect(p.buildingId, f.id).toBe(owner)
+        expect(p.role).toBe(owner ? ('prop' in f && f.prop ? 'prop' : 'container') : undefined)
         // Tall props fade together (every part registers the whole box); containers never did (unchanged).
         expect(p.occluder).toBe('prop' in f && !!f.prop && f.size[1] >= 1.5)
       }

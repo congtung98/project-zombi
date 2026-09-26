@@ -1,5 +1,6 @@
 import { Color, DataArrayTexture, Vector3, LinearFilter, LinearMipmapLinearFilter, MeshStandardMaterial, RepeatWrapping, SRGBColorSpace, Vector4, type MeshStandardMaterialParameters } from 'three'
 import { applyIndoorShader, INDOOR_PROGRAM_KEY } from '../indoorShading'
+import { CONTACT_GLSL, contactUniforms } from '../contactShade'
 import { packSurface, SURFACE_IDS, SURFACES, type SurfaceSpec } from './catalog'
 import { generateSurface, TEXTURE_SIZE } from './textureGen'
 
@@ -172,6 +173,7 @@ vSurfCode = uSurfCode;
 
 const FRAGMENT_DECL = /* glsl */ `
 #include <common>
+${CONTACT_GLSL}
 #define SURF_LAYERS ${SURFACE_IDS.length}
 uniform sampler2DArray uSurfMaps;
 uniform vec4 uSurfTile[SURF_LAYERS];
@@ -224,6 +226,8 @@ int surfLayer = 0;
     detail = surfSample(surfLayer, uv, tile);
   }
   diffuseColor.rgb *= mix(vec3(1.0), detail * tile.z, uSurfOpt[surfLayer].y);
+  // G4: contact darkening near things standing on the floor (contactShade.ts).
+  diffuseColor.rgb *= surfContact(vSurfWorld);
 }
 `
 
@@ -267,6 +271,9 @@ export class SurfaceMaterial extends MeshStandardMaterial {
     shader.uniforms.uSurfOpt = surfaceUniforms.uSurfOpt
     shader.uniforms.uSurfCode = { value: this.surfaceCode }
     shader.uniforms.uSurfBox = { value: this.box }
+    shader.uniforms.uContactMap = contactUniforms.uContactMap
+    shader.uniforms.uContactWindow = contactUniforms.uContactWindow
+    shader.uniforms.uContactOpt = contactUniforms.uContactOpt
     requestSurfaceMaps()
     const unit = this.unitGeometry ? '#define SURF_UNIT\n' : ''
     shader.vertexShader = unit + shader.vertexShader.replace('#include <common>', VERTEX_DECL).replace('#include <fog_vertex>', VERTEX_APPLY)
@@ -277,7 +284,7 @@ export class SurfaceMaterial extends MeshStandardMaterial {
   }
 
   override customProgramCacheKey(): string {
-    return `${INDOOR_PROGRAM_KEY}|surface-v1|${this.unitGeometry ? 'unit' : 'mesh'}`
+    return `${INDOOR_PROGRAM_KEY}|surface-v2|${this.unitGeometry ? 'unit' : 'mesh'}`
   }
 
   override copy(source: SurfaceMaterial): this {

@@ -6,6 +6,7 @@ import { Physics } from '@react-three/rapier'
 import { runtime } from '../core/runtime'
 import { useWorldStore } from '../../stores/worldStore'
 import { CutawayController, StaticBatches } from './StaticBatches'
+import { ContactShade } from './ContactShadeView'
 import { CameraRig } from './CameraRig'
 import { ContainerView } from './ContainerView'
 import { CursorProbe } from './CursorProbe'
@@ -162,6 +163,7 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <Roads />
       <Drops />
       <StaticBatches />
+      <ContactShade />
       {/* M11c-1A: cuts the building the player is in (presentation only, before the fader). */}
       <CutawayController />
       <Physics gravity={[0, -9.81, 0]} paused={paused} debug={debug} timeStep={1 / 60}>

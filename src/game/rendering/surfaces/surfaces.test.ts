@@ -111,7 +111,7 @@ describe('surface texture array and materials', () => {
     expect(shader.vertexShader).toContain('batchingMatrix * indoorLocal')
     expect(shader.fragmentShader).toContain('diffuseColor.rgb *= mix(')
     expect(shader.fragmentShader).toContain('uVisWindow.w > 0.5')
-    expect(m.customProgramCacheKey()).toBe('indoor-lighting-v4|surface-v1|unit')
+    expect(m.customProgramCacheKey()).toBe('indoor-lighting-v4|surface-v2|unit')
   })
 
   it('keeps its look through clone (the fader twin) and shares plain-mesh materials', () => {

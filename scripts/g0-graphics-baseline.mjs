@@ -187,6 +187,8 @@ function pageResources() {
   else for (const t of window.__g0ExtraTextures ?? []) addTex(t, 'indoor-mask')
   const surfaces = window.__surfaces?.() ?? null
   if (surfaces?.texture) addTex(surfaces.texture, 'surfaces')
+  // G4 dev hook: the contact map (floor darkening near what stands on it).
+  if (window.__contact) addTex(window.__contact.uniforms.uContactMap.value, 'contact')
   let geometryBytes = 0
   for (const g of geometries) {
     for (const a of Object.values(g.attributes)) geometryBytes += a.array?.byteLength ?? 0

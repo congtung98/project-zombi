@@ -24,6 +24,10 @@ export const FURNITURE_IDS = [
   'furniture/shelving',
   'furniture/crate',
   'furniture/workbench',
+  'outdoor/car',
+  'outdoor/fence',
+  'outdoor/bin',
+  'outdoor/mailbox',
 ] as const
 export type FurnitureId = (typeof FURNITURE_IDS)[number]
 
@@ -57,6 +61,11 @@ export const FURNITURE: Record<FurnitureId, FurnitureInfo> = {
   'furniture/shelving': { label: 'Kệ kho', deep: false },
   'furniture/crate': { label: 'Thùng gỗ', deep: false },
   'furniture/workbench': { label: 'Bàn thợ', deep: false },
+  // G4: outdoor props (the car keeps its box collider; front = the bonnet).
+  'outdoor/car': { label: 'Xe con', deep: true },
+  'outdoor/fence': { label: 'Hàng rào gỗ', deep: false },
+  'outdoor/bin': { label: 'Thùng rác có bánh', deep: false },
+  'outdoor/mailbox': { label: 'Hộp thư', deep: false },
 }
 
 /**

@@ -408,6 +408,68 @@ function workbench(p: Parts, c: string): void {
   p.box('tray', x0 + 0.2, x0 + 0.5, top, top + 0.03, z0 + 0.1, z0 + 0.3, '#8e9398', 'paintedMetal')
 }
 
+/** G4: a car: wheels, lower body, glass cabin under a roof, bumpers, head and tail lights (front = +z). */
+function car(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const wr = Math.min(0.34, h * 0.25)
+  const tyre = 0.22
+  for (const [i, zc] of [z0 + d * 0.2, z1 - d * 0.2].entries()) {
+    p.box(`wheel-l-${i}`, x0, x0 + tyre, 0, 2 * wr, zc - wr, zc + wr, '#1f1f21', 'matte')
+    p.box(`wheel-r-${i}`, x1 - tyre, x1, 0, 2 * wr, zc - wr, zc + wr, '#1f1f21', 'matte')
+  }
+  const sill = wr * 0.8
+  const belt = h * 0.55
+  p.box('body', x0 + 0.04, x1 - 0.04, sill, belt, z0 + 0.05, z1 - 0.05, c, 'paintedMetal')
+  p.box('bumper-front', x0 + 0.08, x1 - 0.08, sill - 0.05, sill + 0.12, z1 - 0.05, z1, '#2a2b2e', 'matte')
+  p.box('bumper-rear', x0 + 0.08, x1 - 0.08, sill - 0.05, sill + 0.12, z0, z0 + 0.05, '#2a2b2e', 'matte')
+  p.box('cabin', x0 + 0.12, x1 - 0.12, belt, h * 0.93, z0 + d * 0.2, z1 - d * 0.32, '#2c3a45', 'paintedMetal')
+  p.box('roof', x0 + 0.15, x1 - 0.15, h * 0.93, h, z0 + d * 0.24, z1 - d * 0.36, c, 'paintedMetal')
+  p.box('bonnet', x0 + 0.06, x1 - 0.06, belt, belt + 0.03, z1 - d * 0.32, z1 - 0.06, shade(c, -0.08), 'paintedMetal')
+  for (const [i, [a, b]] of [[x0 + 0.14, x0 + 0.44], [x1 - 0.44, x1 - 0.14]].entries()) {
+    p.box(`headlight-${i}`, a, b, belt - 0.14, belt - 0.05, z1 - 0.06, z1 - 0.045, '#e8e2c8', 'matte')
+    p.box(`taillight-${i}`, a, b, belt - 0.14, belt - 0.05, z0 + 0.045, z0 + 0.06, '#8a2020', 'matte')
+  }
+}
+
+/** G4: a board fence: posts about every 2 m, a board panel, top and bottom rails (along x). */
+function fence(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2
+  const post = Math.min(0.1, w / 4)
+  const n = Math.max(2, Math.round(w / 2) + 1)
+  for (let i = 0; i < n; i++) {
+    const x = x0 + ((w - post) * i) / (n - 1)
+    p.box(`post-${i}`, x, x + post, 0, h, -d / 2, d / 2, shade(c, -0.15), 'wood')
+  }
+  const t = Math.min(0.03, d * 0.3)
+  p.box('panel', x0, x1, 0.06, h - 0.06, -t / 2, t / 2, c, 'wood')
+  p.box('rail-top', x0, x1, h - 0.16, h - 0.08, -d * 0.35, d * 0.35, shade(c, -0.08), 'wood')
+  p.box('rail-bottom', x0, x1, 0.14, 0.22, -d * 0.35, d * 0.35, shade(c, -0.08), 'wood')
+}
+
+/** G4: a wheelie bin: body, overhanging lid, handle and wheels at the back (front = +z). */
+function bin(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  p.box('body', x0 + 0.03, x1 - 0.03, 0.06, h - 0.06, z0 + 0.06, z1 - 0.02, c, 'paintedMetal')
+  p.box('lid', x0, x1, h - 0.06, h, z0 + 0.02, z1, shade(c, -0.12), 'paintedMetal')
+  p.box('handle', x0 + w * 0.2, x1 - w * 0.2, h - 0.16, h - 0.08, z0, z0 + 0.05, '#2a2b2e', 'matte')
+  p.box('wheel-l', x0 + 0.02, x0 + 0.1, 0, 0.16, z0 + 0.02, z0 + 0.18, '#1f1f21', 'matte')
+  p.box('wheel-r', x1 - 0.1, x1 - 0.02, 0, 0.16, z0 + 0.02, z0 + 0.18, '#1f1f21', 'matte')
+}
+
+/** G4: a mailbox on a post, with its flag (front = +z). */
+function mailbox(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const post = Math.min(0.08, w * 0.3)
+  p.box('post', -post / 2, post / 2, 0, h - 0.26, -post / 2, post / 2, '#5b4332', 'wood')
+  p.box('box', x0 + 0.03, x1 - 0.03, h - 0.28, h - 0.05, z0, z1, c, 'paintedMetal')
+  p.box('top', x0 + 0.05, x1 - 0.05, h - 0.05, h, z0, z1, shade(c, 0.1), 'paintedMetal')
+  p.box('flag', x1 - 0.03, x1, h - 0.24, h - 0.1, z0 + 0.04, z0 + 0.1, '#b0352a', 'paintedMetal')
+}
+
 const BUILDERS: Record<FurnitureId, (p: Parts, color: string, variant: string) => void> = {
   'furniture/bed': bed,
   'furniture/sofa': sofa,
@@ -423,6 +485,10 @@ const BUILDERS: Record<FurnitureId, (p: Parts, color: string, variant: string) =
   'furniture/shelving': shelving,
   'furniture/crate': crate,
   'furniture/workbench': workbench,
+  'outdoor/car': car,
+  'outdoor/fence': fence,
+  'outdoor/bin': bin,
+  'outdoor/mailbox': mailbox,
 }
 
 /** The parts of `asset` sized to `dims`, in the asset frame (`clipped`: parts cut back to the box). */

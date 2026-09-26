@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Color, type AmbientLight, type DirectionalLight, type HemisphereLight } from 'three'
+import { Color, Vector3, type AmbientLight, type DirectionalLight, type HemisphereLight } from 'three'
 import { runtime } from '../core/runtime'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { daylightAt } from './daylight'
@@ -13,6 +13,29 @@ const DAY_AMBIENT = new Color(L.dayAmbientColor)
 const NIGHT_AMBIENT = new Color(L.nightAmbientColor)
 const DAY_BG = new Color(L.dayBackground)
 const NIGHT_BG = new Color(L.nightBackground)
+
+/** Sun offset from the point it lights (its direction); the shadow box is centred on the player. */
+const SUN_OFFSET = new Vector3(18, 32, 12)
+/** Half side of the sun's shadow box (m): the gameplay view at the widest zoom fits in it. */
+const SHADOW_HALF = 36
+
+/**
+ * G4: the shadow camera follows the player (before, it stayed on the world origin and houses far
+ * from it had no shadow). The centre moves in whole shadow texels of the light's own axes, so a
+ * walking player never makes shadow edges crawl.
+ */
+const lightDir = SUN_OFFSET.clone().normalize()
+const lightRight = new Vector3(0, 1, 0).cross(lightDir).normalize()
+const lightUp = lightDir.clone().cross(lightRight).normalize()
+const centre = new Vector3()
+function snapShadowCentre(x: number, z: number, texel: number, out: Vector3): Vector3 {
+  out.set(x, 0, z)
+  const u = out.dot(lightRight)
+  const v = out.dot(lightUp)
+  out.addScaledVector(lightRight, Math.round(u / texel) * texel - u)
+  out.addScaledVector(lightUp, Math.round(v / texel) * texel - v)
+  return out
+}
 
 /**
  * Ánh sáng theo chu kỳ ngày/đêm của `GameClock`: đọc trực tiếp trong useFrame,
@@ -40,6 +63,11 @@ export function Lights() {
     if (sun) {
       sun.intensity = L.nightSun + (L.daySun - L.nightSun) * d
       sun.color.copy(NIGHT_SUN).lerp(DAY_SUN, d)
+      const p = runtime.player.position
+      snapShadowCentre(p.x, p.z, (2 * SHADOW_HALF) / shadowMap, centre)
+      sun.target.position.copy(centre)
+      sun.target.updateMatrixWorld()
+      sun.position.copy(centre).add(SUN_OFFSET)
     }
     const bg = bgRef.current
     if (bg) bg.copy(NIGHT_BG).lerp(DAY_BG, d)
@@ -53,16 +81,16 @@ export function Lights() {
       <directionalLight
         ref={sunRef}
         castShadow={shadows !== 'off'}
-        position={[18, 32, 12]}
+        position={SUN_OFFSET.toArray()}
         intensity={L.daySun}
         shadow-mapSize-width={shadowMap}
         shadow-mapSize-height={shadowMap}
         shadow-camera-near={1}
         shadow-camera-far={120}
-        shadow-camera-left={-36}
-        shadow-camera-right={36}
-        shadow-camera-top={36}
-        shadow-camera-bottom={-36}
+        shadow-camera-left={-SHADOW_HALF}
+        shadow-camera-right={SHADOW_HALF}
+        shadow-camera-top={SHADOW_HALF}
+        shadow-camera-bottom={-SHADOW_HALF}
         shadow-bias={-0.0004}
       />
     </>

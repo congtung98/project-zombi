@@ -14,7 +14,8 @@ describe('static render batches (R3b)', () => {
     // G2: per building a floor, an eaves board and a hipped roof, plus the drawn-only details.
     const base = items.filter((i) => !i.detail)
     expect(base).toHaveLength(walls + rt.map.containers.length + rt.map.buildings.length * 3)
-    expect(items.filter((i) => i.detail).every((i) => i.buildingId)).toBe(true)
+    // Details belong to a building, or (G4) to a road: street paint and kerbs.
+    expect(items.filter((i) => i.detail).every((i) => i.buildingId || /#(paint|kerb)-/.test(i.id ?? ''))).toBe(true)
     const chunks = groupByChunk(items, mapChunkSize(rt.map))
     expect([...chunks.keys()].sort()).toEqual(['-1,-1', '-1,0', '0,-1', '0,0', 'wide'])
     // M10: the 52 m boundary fence spans more than a chunk: always mounted.
