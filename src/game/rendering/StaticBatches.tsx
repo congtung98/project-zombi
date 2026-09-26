@@ -5,6 +5,10 @@ import {
   Box3,
   BoxGeometry,
   Color,
+  ConeGeometry,
+  CylinderGeometry,
+  SphereGeometry,
+  type BufferGeometry,
   Group,
   Matrix4,
   Mesh,
@@ -17,7 +21,7 @@ import { runtime } from '../core/runtime'
 import { mapChunkSize } from '../world/mapData'
 import { FADED_OPACITY, occlusionRegistry } from './occlusionRegistry'
 import { fadedVariant, sharedBox, sharedStandardMaterial } from './sharedResources'
-import { collectStaticItems, groupByChunk, type StaticItem } from './staticBatchData'
+import { collectStaticItems, groupByChunk, type Shape, type StaticItem } from './staticBatchData'
 
 /**
  * R3b: static world geometry drawn as one `BatchedMesh` per chunk instead of one mesh per object:
@@ -36,6 +40,14 @@ const ROOF_HIDE_MARGIN = 0.4
 const UNIT_BOX = new BoxGeometry(1, 1, 1)
 /** Unit floor, already lying on XZ facing up. */
 const UNIT_FLOOR = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
+/** Unit shapes by item shape (M9 trees: trunk, round crown, pine cone), scaled per instance. */
+const UNIT: Record<Shape, BufferGeometry> = {
+  box: UNIT_BOX,
+  floor: UNIT_FLOOR,
+  trunk: new CylinderGeometry(0.5, 0.5, 1, 8),
+  crown: new SphereGeometry(0.5, 9, 6),
+  cone: new ConeGeometry(0.5, 1, 10),
+}
 /** One material for every batch: white, tinted per instance. */
 const BATCH_MATERIAL = new MeshStandardMaterial({ color: '#ffffff' })
 
@@ -77,8 +89,10 @@ class BatchedPiece {
     this.batch.setVisibleAt(this.instance, !this.hidden && !this.faded)
     const showOverlay = this.faded && !this.hidden
     if (showOverlay && !this.overlay) {
-      const m = new Mesh(sharedBox(this.item.size), fadedVariant(sharedStandardMaterial(this.item.color), FADED_OPACITY))
+      const box = this.item.shape === 'box'
+      const m = new Mesh(box ? sharedBox(this.item.size) : UNIT[this.item.shape], fadedVariant(sharedStandardMaterial(this.item.color), FADED_OPACITY))
       m.position.copy(this.item.center)
+      if (!box) m.scale.set(...this.item.size)
       m.castShadow = true
       m.receiveShadow = true
       this.overlay = m
@@ -108,22 +122,20 @@ function buildBatches(items: StaticItem[], chunkSize: number, overlays: Group): 
   const identity = new Quaternion()
   const scale = new Vector3()
   const color = new Color()
-  const boxVerts = UNIT_BOX.attributes.position.count
-  const boxIndex = UNIT_BOX.index!.count
-  const floorVerts = UNIT_FLOOR.attributes.position.count
-  const floorIndex = UNIT_FLOOR.index!.count
   const out: ChunkBatch[] = []
   for (const list of byChunk.values()) {
-    const hasFloor = list.some((i) => i.shape === 'floor')
-    const mesh = new BatchedMesh(list.length, boxVerts + (hasFloor ? floorVerts : 0), boxIndex + (hasFloor ? floorIndex : 0), BATCH_MATERIAL)
+    // Boxes first (the only shape before M9), then whatever other shapes the chunk has.
+    const shapes = [...new Set<Shape>(['box', ...list.map((i) => i.shape)])]
+    const verts = shapes.reduce((n, s) => n + UNIT[s].attributes.position.count, 0)
+    const indices = shapes.reduce((n, s) => n + (UNIT[s].index?.count ?? 0), 0)
+    const mesh = new BatchedMesh(list.length, verts, indices, BATCH_MATERIAL)
     mesh.castShadow = true
     mesh.receiveShadow = true
     mesh.sortObjects = false
-    const boxGeometry = mesh.addGeometry(UNIT_BOX)
-    const floorGeometry = hasFloor ? mesh.addGeometry(UNIT_FLOOR) : -1
+    const geometry = new Map(shapes.map((s) => [s, mesh.addGeometry(UNIT[s])]))
     const pieces: BatchedPiece[] = []
     for (const item of list) {
-      const instance = mesh.addInstance(item.shape === 'floor' ? floorGeometry : boxGeometry)
+      const instance = mesh.addInstance(geometry.get(item.shape)!)
       scale.set(item.size[0], item.shape === 'floor' ? 1 : item.size[1], item.size[2])
       mesh.setMatrixAt(instance, matrix.compose(item.center, identity, scale))
       mesh.setColorAt(instance, color.set(item.color))

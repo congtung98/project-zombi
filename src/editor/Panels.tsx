@@ -8,6 +8,7 @@ import { LAYERS } from '../map/editor/layers'
 import { RECORD_PRESETS, type PresetCategory } from '../map/editor/presets'
 import type { Rect } from '../map/schema'
 import { playAreaRect, SLUG } from '../map/transform'
+import { DEFAULT_TREES, type Layout } from '../map/tools/generator'
 import { deleteDraft } from './drafts'
 import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab, type PrefabTab } from './editorStore'
 import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
@@ -556,6 +557,8 @@ export function NewDialog() {
   const [mode, setMode] = useState<'blank' | 'generate'>('blank')
   const [seed, setSeed] = useState('1')
   const [blocks, setBlocks] = useState('2x2')
+  const [layout, setLayout] = useState<Layout>('grid')
+  const [trees, setTrees] = useState(String(DEFAULT_TREES))
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (dialog === 'new') input.current?.focus()
@@ -577,7 +580,23 @@ export function NewDialog() {
           <p className="hint">2 × 2 chunk 32 m quanh gốc tọa độ, hàng rào, spawn người chơi + 1 spawn zombie; thư viện prefab lấy từ neighborhood-50.</p>
         ) : (
           <>
-            <p className="hint">Thị trấn lưới: đường quanh mỗi khối, 4 lô/khối với prefab của neighborhood-50 quay cửa ra đường, hàng rào, thùng, đống phế liệu, xe, zone chữ nhật + spawn zombie mỗi khối. Cùng seed → cùng kết quả (giống npm run map:generate).</p>
+            <p className="hint">Thị trấn: đường quanh mỗi khối, lô với prefab của neighborhood-50 quay cửa ra đường, hàng rào, thùng, đống phế liệu, xe, cây, zone chữ nhật + spawn zombie mỗi khối. Cùng thông số → cùng kết quả (giống npm run map:generate).</p>
+            <label className="field">
+              <span>Bố cục</span>
+              <select value={layout} onChange={(e) => setLayout(e.target.value as Layout)} data-gen-layout>
+                <option value="grid">Lưới đều (khối 28 m, 4 lô)</option>
+                <option value="varied">Đa dạng (khối 22–34 m, lô không đều, công viên)</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Cây</span>
+              <select value={trees} onChange={(e) => setTrees(e.target.value)} data-gen-trees>
+                <option value="0">Không có</option>
+                <option value="0.25">Ít</option>
+                <option value="0.5">Vừa</option>
+                <option value="1">Nhiều</option>
+              </select>
+            </label>
             <label className="field">
               <span>Seed</span>
               <input type="number" value={seed} onChange={(e) => setSeed(e.target.value)} data-gen-seed />
@@ -608,7 +627,7 @@ export function NewDialog() {
             disabled={!valid}
             onClick={() => {
               const [bx, bz] = blocks.split('x').map(Number)
-              useEditorStore.getState().newWorld(worldId, name.trim(), mode === 'generate' ? { seed: Number(seed), blocksX: bx, blocksZ: bz } : undefined)
+              useEditorStore.getState().newWorld(worldId, name.trim(), mode === 'generate' ? { seed: Number(seed), blocksX: bx, blocksZ: bz, layout, trees: Number(trees) } : undefined)
             }}
           >
             Tạo

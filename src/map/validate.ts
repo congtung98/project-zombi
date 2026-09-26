@@ -14,6 +14,7 @@ import {
   type WorldDocument,
   type XZ,
 } from './schema.ts'
+import { TREE_LIMITS } from '../game/world/trees.ts'
 import { contentMigrationPath, contentMigrationShapeProblems, renameProblems, statefulIds, type ContentMigration } from './contentMigration.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
 import { resolveChunk, type ResolvedRecord } from './resolve.ts'
@@ -252,6 +253,20 @@ export function validateWorldDocument(doc: unknown, file = 'world.json'): Valida
   return c.issues
 }
 
+/** Tree fields (M9): ranges from `TREE_LIMITS`, trunk thinner than the canopy. */
+function checkTree(c: Checker, o: Obj, p: string): void {
+  c.xz(o.position, `${p}/position`)
+  const [h0, h1] = TREE_LIMITS.height
+  const [c0, c1] = TREE_LIMITS.canopy
+  const [t0, t1] = TREE_LIMITS.trunk
+  c.num(o.height, `${p}/height`, { min: h0, max: h1 })
+  const canopy = c.num(o.canopy, `${p}/canopy`, { min: c0, max: c1 })
+  const trunk = c.num(o.trunk, `${p}/trunk`, { min: t0, max: t1 })
+  if (canopy && trunk && (o.trunk as number) >= (o.canopy as number)) c.error('out-of-range', `${p}/trunk`, 'trunk must be thinner than the canopy')
+  c.color(o.color, `${p}/color`)
+  c.oneOf(o.style, ['round', 'pine'], `${p}/style`)
+}
+
 function checkBox(c: Checker, o: Obj, p: string): void {
   c.xyz(o.position, `${p}/position`)
   c.size(o.size, `${p}/size`, 3)
@@ -303,6 +318,9 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
         case 'container':
           checkBox(c, o, p)
           checkContainerFields(c, o, p, opts, entityId)
+          break
+        case 'tree':
+          checkTree(c, o, p)
           break
         case 'door':
           doors++
@@ -425,7 +443,12 @@ export function validateChunkDocument(doc: unknown, entry: ChunkEntry, world: Wo
           c.quarter(r.quarterTurns, `${p}/quarterTurns`)
           break
         case 'objects':
-          if (!c.oneOf(r.kind, ['wall', 'prop', 'container'], `${p}/kind`)) break
+          if (!c.oneOf(r.kind, ['wall', 'prop', 'container', 'tree'], `${p}/kind`)) break
+          if (r.kind === 'tree') {
+            checkTree(c, r, p)
+            if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
+            break
+          }
           checkBox(c, r, p)
           if (r.kind === 'container') checkContainerFields(c, r, p, opts, id)
           if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)

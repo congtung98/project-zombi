@@ -63,6 +63,9 @@ export function objectRect(o: PrefabObject): Rect {
       const depth = o.kind === 'window' ? Math.max(o.thickness, OPENING_DEPTH) : OPENING_DEPTH
       return rectAround(o.position, alongX ? o.width : depth, alongX ? depth : o.width)
     }
+    case 'tree':
+      // Picked at the trunk and inner canopy (the whole canopy would cover the items under it).
+      return rectAround(o.position, Math.max(2 * o.trunk, o.canopy), Math.max(2 * o.trunk, o.canopy))
     default:
       return rectAround(o.position, o.size[0], o.size[2])
   }
@@ -446,7 +449,7 @@ export function rotatePrefabItems(doc: MapDocument, prefabId: string, keys: read
       count++
       return { ...o, from: turnAbout(o.from, c, turns), to: turnAbout(o.to, c, turns) }
     }
-    if (!odd || o.size[0] === o.size[2]) return o
+    if (o.kind === 'tree' || !odd || o.size[0] === o.size[2]) return o
     count++
     return { ...o, size: [o.size[2], o.size[1], o.size[0]] as [number, number, number] }
   })

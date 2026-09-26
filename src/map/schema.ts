@@ -180,7 +180,26 @@ export interface WallRunObject {
   color: string
 }
 
-export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject
+/**
+ * Tree (M9): trunk (collider, nav and sight blocker, like a post) under a canopy that is only drawn
+ * and fades when it hides the player. No rotation; `style` picks the canopy shape.
+ */
+export interface TreeObject {
+  kind: 'tree'
+  localId: string
+  position: XZ
+  /** Total height (m), 2..20. */
+  height: number
+  /** Canopy radius (m), 0.5..8. */
+  canopy: number
+  /** Trunk radius (m), 0.1..1, below the canopy radius. */
+  trunk: number
+  /** Canopy colour. */
+  color: string
+  style: 'round' | 'pine'
+}
+
+export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject | TreeObject
 
 export interface LampObject {
   localId: string
@@ -233,7 +252,7 @@ export interface InstanceRecord {
 
 type Standalone<T> = Omit<T, 'localId'> & { objectId: string }
 /** Object placed directly in a chunk. `objectId` = `<identityChunkId>/objects/<name>`. */
-export type StandaloneObject = Standalone<WallObject> | Standalone<PropObject> | Standalone<ContainerObject>
+export type StandaloneObject = Standalone<WallObject> | Standalone<PropObject> | Standalone<ContainerObject> | Standalone<TreeObject>
 
 /** Road surface (visual only, no collider). */
 export interface RoadRecord {

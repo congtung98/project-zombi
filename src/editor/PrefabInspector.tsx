@@ -3,7 +3,7 @@ import { instancesOf, type AnyRecord, type MapDocument } from '../map/editor/doc
 import { wallRunBoxes } from '../map/resolve'
 import type { PrefabDocument, PrefabObject, QuarterTurns, RoomObject, XZ } from '../map/schema'
 import { OPTS, useEditorStore } from './editorStore'
-import { NumField, ReadField, TextField } from './fields'
+import { NumField, ReadField, TextField, TreeFields } from './fields'
 import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection } from './interaction'
 
 /**
@@ -207,6 +207,15 @@ function ObjectFields({ object: o, prefab, patch }: { object: PrefabObject; pref
             <p className="hint">Phía trong (+Z khung) là phía phòng nhận ánh sáng; rèm kéo ở bên trong.</p>
           </>
         )}
+      </>
+    )
+  }
+  if (o.kind === 'tree') {
+    return (
+      <>
+        <NumField label="X" value={o.position.x} onCommit={(x) => patch('Di chuyển', { position: { ...o.position, x } })} />
+        <NumField label="Z" value={o.position.z} onCommit={(z) => patch('Di chuyển', { position: { ...o.position, z } })} />
+        <TreeFields tree={o} patch={patch} />
       </>
     )
   }

@@ -1,5 +1,6 @@
 import type { PrefabDocument, Rect, XZ } from '../schema.ts'
 import { quantize } from '../transform.ts'
+import { TREE_LIMITS } from '../../game/world/trees.ts'
 import { moveRecords, updateRecord, type CommandResult } from './commands.ts'
 import { findRecord, worldAnchor, type AnyRecord, type MapDocument } from './document.ts'
 import { updatePrefabItem } from './prefabCommands.ts'
@@ -84,6 +85,7 @@ export function recordHandles(doc: MapDocument, id: string): Handle[] {
   const c = worldAnchor(doc, loc)
   const r = loc.record
   if (loc.category === 'zones' && r.shape === 'circle') return [{ key: 'radius', at: { x: quantize(c.x + (r.radius as number)), z: c.z } }]
+  if (r.kind === 'tree') return [{ key: 'radius', at: { x: quantize(c.x + (r.canopy as number)), z: c.z } }]
   const [w, d] = planSize(r.size as number[])
   return rectHandles(centred(c, w, d))
 }
@@ -95,8 +97,9 @@ export function dragRecordHandle(doc: MapDocument, id: string, key: HandleKey, p
   const r = loc.record
   const c = worldAnchor(doc, loc)
   const min = recordMin(loc.category, r)
+  if (key === 'radius' && r.kind === 'tree') return updateRecord(doc, id, { canopy: treeCanopy(r as { trunk: number }, c, p) })
   if (key === 'radius') {
-    if (loc.category !== 'zones' || r.shape !== 'circle') return fail('Chỉ zone tròn có tay cầm bán kính')
+    if (loc.category !== 'zones' || r.shape !== 'circle') return fail('Chỉ zone tròn và cây có tay cầm bán kính')
     const radius = quantize(Math.max(min, Math.hypot(p.x - c.x, p.z - c.z)))
     return updateRecord(doc, id, { radius })
   }
@@ -117,6 +120,7 @@ export function prefabItemHandles(prefab: PrefabDocument, key: string): Handle[]
   if (o) {
     if (o.kind === 'wallRun') return [{ key: 'from', at: { ...o.from } }, { key: 'to', at: { ...o.to } }]
     if (o.kind === 'door' || o.kind === 'window') return []
+    if (o.kind === 'tree') return [{ key: 'radius', at: { x: quantize(o.position.x + o.canopy), z: o.position.z } }]
     return rectHandles(centred(o.position, o.size[0], o.size[2]))
   }
   const room = prefab.rooms.find((r) => r.localId === key)
@@ -150,6 +154,7 @@ export function dragPrefabHandle(doc: MapDocument, prefabId: string, key: string
   }
   if (o) {
     if (o.kind === 'door' || o.kind === 'window') return fail('Cửa/cửa sổ đổi bề rộng ở Inspector')
+    if (o.kind === 'tree') return updatePrefabItem(doc, prefabId, key, { canopy: treeCanopy(o, o.position, p) })
     const next = dragEdge(centred(o.position, o.size[0], o.size[2]), handle, p, MIN_SIZE.box)
     const position = { ...o.position, x: quantize((next.minX + next.maxX) / 2), z: quantize((next.minZ + next.maxZ) / 2) }
     return updatePrefabItem(doc, prefabId, key, { position, size: [quantize(next.maxX - next.minX), o.size[1], quantize(next.maxZ - next.minZ)] })
@@ -184,6 +189,12 @@ export function handlesUsable(handles: readonly Handle[], pxPerMetre: number, mi
   // Wall run ends: its length; rectangles: the shorter side.
   const size = handles.length === 2 ? Math.max(w, d) : Math.min(w, d)
   return size * pxPerMetre >= minPx
+}
+
+/** Canopy radius from a handle drag: distance to the trunk, within the tree limits, wider than the trunk. */
+function treeCanopy(t: { trunk: number }, c: XZ, p: XZ): number {
+  const [min, max] = TREE_LIMITS.canopy
+  return quantize(Math.min(max, Math.max(min, t.trunk + 0.1, Math.hypot(p.x - c.x, p.z - c.z))))
 }
 
 /** Nearest handle within `reach` metres of `p`, or null. */

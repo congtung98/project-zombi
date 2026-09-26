@@ -9,6 +9,7 @@ import {
   type WindowPlacement,
 } from '../game/world/buildings.ts'
 import type { MapData, RoadDef, ZoneDef } from '../game/world/mapData.ts'
+import { trunkWall, type TreeDef } from '../game/world/trees.ts'
 import {
   RECORD_CATEGORIES,
   recordId,
@@ -20,6 +21,7 @@ import {
   type RecordCategory,
   type Rect,
   type StandaloneObject,
+  type TreeObject,
   type WallRunObject,
   type WindowObject,
   type WorldDocument,
@@ -43,6 +45,8 @@ export interface MapParts {
   zones: ZoneDef[]
   zombieSpawns: Vec3[]
   playerSpawns: { id: string; position: Vec3 }[]
+  /** M9: trees (drawn); their trunks are also in `walls`. */
+  trees: TreeDef[]
 }
 
 export interface ResolvedRecord {
@@ -70,7 +74,7 @@ function boxRect(position: XZ, size: readonly number[]): Rect {
 }
 
 function emptyParts(): MapParts {
-  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [] }
+  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [], trees: [] }
 }
 
 /** An opening (door or window) cut into a wall run, as an interval along the run. */
@@ -192,6 +196,13 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         bounds = unionRect(bounds, boxRect(placed.position, placed.size))
         break
       }
+      case 'tree': {
+        const t = placeTree(id(o.localId), o, point(o.position))
+        parts.trees.push(t.tree)
+        parts.walls.push(t.trunk)
+        bounds = unionRect(bounds, t.bounds)
+        break
+      }
       case 'container': {
         const placed = box(o)
         parts.containers.push({ id: id(o.localId), name: o.name, ...placed, color: o.color, ...(o.lootTableId ? { loot: o.lootTableId } : {}) })
@@ -272,7 +283,17 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
   return { parts, bounds, entityIds }
 }
 
+/** A tree at a world point: the drawn tree, its trunk wall and the canopy square as bounds. */
+function placeTree(id: string, o: Omit<TreeObject, 'localId'>, at: XZ): { tree: TreeDef; trunk: WallDef; bounds: Rect } {
+  const tree: TreeDef = { id, position: { x: at.x, z: at.z }, height: o.height, canopy: o.canopy, trunk: o.trunk, color: o.color, style: o.style }
+  return { tree, trunk: trunkWall(tree), bounds: boxRect(at, [2 * o.canopy, 2 * o.canopy]) }
+}
+
 function resolveStandalone(o: StandaloneObject, origin: XZ): { parts: Partial<MapParts>; bounds: Rect } {
+  if (o.kind === 'tree') {
+    const t = placeTree(o.objectId, o, { x: quantize(origin.x + o.position.x), z: quantize(origin.z + o.position.z) })
+    return { parts: { trees: [t.tree], walls: [t.trunk] }, bounds: t.bounds }
+  }
   const position = { x: quantize(origin.x + o.position.x), y: o.position.y, z: quantize(origin.z + o.position.z) }
   const bounds = boxRect(position, o.size)
   if (o.kind === 'container') {
@@ -390,6 +411,7 @@ export function assembleMapData(world: WorldDocument, records: Iterable<Resolved
     roads: all.roads,
     windows: all.windows,
     rooms: all.rooms,
+    ...(all.trees.length ? { trees: all.trees } : {}),
     ...(maxActive !== undefined ? { maxActiveZombies: maxActive } : {}),
   }
 }

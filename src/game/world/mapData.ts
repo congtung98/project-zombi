@@ -2,6 +2,7 @@ import type { Vec3 } from '../../types'
 import { loadBundledWorld } from '../../map/content'
 import type { Rect } from '../../map/schema'
 import type { ContentMigration } from '../../map/contentMigration'
+import type { TreeDef } from './trees'
 import { playAreaRect } from '../../map/transform'
 import {
   generateRooms,
@@ -59,6 +60,8 @@ export interface MapData {
   depth?: number
   /** Play area centre (M7); omitted = the origin. Use `mapBounds`. */
   center?: { x: number; z: number }
+  /** M9: trees to draw; each trunk is also a wall (same ID) in `walls`. */
+  trees?: TreeDef[]
   /** M8: how saves of older content revisions map onto this one (`migrations/content-v<N>.json`). */
   contentMigrations?: readonly ContentMigration[]
   playerSpawn: Vec3

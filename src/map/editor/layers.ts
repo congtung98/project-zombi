@@ -9,6 +9,7 @@ import type { ResolvedRecord } from '../resolve.ts'
 export const LAYERS = [
   { id: 'buildings', label: 'Công trình' },
   { id: 'props', label: 'Tường / vật cản' },
+  { id: 'vegetation', label: 'Cây' },
   { id: 'containers', label: 'Container' },
   { id: 'surfaces', label: 'Nền / đường' },
   { id: 'zones', label: 'Zone' },
@@ -34,7 +35,7 @@ export function layerOf(r: ResolvedRecord): LayerId {
     case 'instances':
       return 'buildings'
     case 'objects':
-      return r.parts.containers?.length ? 'containers' : 'props'
+      return r.parts.containers?.length ? 'containers' : r.parts.trees?.length ? 'vegetation' : 'props'
     case 'roads':
       return 'surfaces'
     case 'zones':

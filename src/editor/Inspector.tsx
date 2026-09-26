@@ -1,9 +1,9 @@
 import { rotateRecords, setRecordAnchor, updateRecord, updateWorld } from '../map/editor/commands'
 import { findRecord, instancesOf, resolvedRecords, worldAnchor, type AnyRecord, type MapDocument } from '../map/editor/document'
-import { SURFACE_LAYER_MAX, type QuarterTurns, type XYZ, type XZ } from '../map/schema'
+import { SURFACE_LAYER_MAX, type QuarterTurns, type TreeObject, type XYZ, type XZ } from '../map/schema'
 import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
-import { NumField, ReadField, TextField } from './fields'
+import { NumField, ReadField, TextField, TreeFields } from './fields'
 import { PrefabInspector } from './PrefabInspector'
 import { SaveCompat } from './SaveCompat'
 import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
@@ -120,8 +120,9 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
       {loc.category === 'objects' && (
         <>
           <ReadField label="Loại" value={String(r.kind)} />
+          {r.kind === 'tree' && <TreeFields tree={r as unknown as TreeObject} patch={patch} />}
           {r.kind === 'container' && <TextField label="Tên" value={String(r.name)} onCommit={(name) => patch('Đổi tên', { name })} />}
-          {(r.size as number[]).map((v, i) => (
+          {Array.isArray(r.size) && (r.size as number[]).map((v, i) => (
             <NumField
               key={i}
               label={`Kích thước ${'XYZ'[i]}`}
@@ -130,7 +131,7 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
               onCommit={(n) => patch('Đổi kích thước', { size: (r.size as number[]).map((s, j) => (j === i ? n : s)) })}
             />
           ))}
-          <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />
+          {r.kind !== 'tree' && <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />}
           {r.kind === 'container' && (
             <label className="field">
               <span>Loot table</span>

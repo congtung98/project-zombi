@@ -82,3 +82,23 @@ export function ReadField({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
+
+/** Tree fields (M9), shared by the world and prefab inspectors; `patch` commits one change. */
+export function TreeFields({ tree, patch }: { tree: { height: number; canopy: number; trunk: number; color: string; style: string }; patch: (label: string, fields: Record<string, unknown>) => void }) {
+  return (
+    <>
+      <label className="field">
+        <span>Kiểu cây</span>
+        <select value={tree.style} onChange={(e) => patch('Đổi kiểu cây', { style: e.target.value })} data-tree-style>
+          <option value="round">Cây tán tròn</option>
+          <option value="pine">Cây thông</option>
+        </select>
+      </label>
+      <NumField label="Cao (m)" value={tree.height} step={0.5} min={2} onCommit={(height) => patch('Đổi chiều cao cây', { height: Math.min(20, height) })} />
+      <NumField label="Bán kính tán" value={tree.canopy} step={0.25} min={0.5} onCommit={(canopy) => patch('Đổi tán cây', { canopy: Math.min(8, canopy) })} />
+      <NumField label="Bán kính thân" value={tree.trunk} step={0.05} min={0.1} onCommit={(trunk) => patch('Đổi thân cây', { trunk: Math.min(1, trunk) })} />
+      <TextField label="Màu tán" value={tree.color} pattern={/^#[0-9a-f]{6}$/i} onCommit={(color) => patch('Đổi màu cây', { color })} />
+      <p className="hint">Thân cây chặn đường đi và tầm nhìn zombie như một cái cột; tán chỉ để nhìn và mờ đi khi che người chơi.</p>
+    </>
+  )
+}

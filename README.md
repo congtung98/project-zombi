@@ -13,12 +13,12 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3–M8): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
+# Map editor (M3–M9): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/
 npm run map:unpack -- <pack> --world-id <id>  # ghi pack thành world mới (như nút Lưu thành… của editor)
 npm run map:check -- --deep                  # validate + kiểm tra sâu (đi tới được, tầm tương tác, collider chồng)
-npm run map:generate -- --seed 42 --blocks 2x2   # thị trấn sinh tự động (tất định) → content/maps/gen-42/
+npm run map:generate -- --seed 42 --blocks 2x2 [--layout varied] [--trees 0..1]   # thị trấn sinh tự động (tất định) → content/maps/gen-42/
 ```
 
 ## Phát hành
@@ -120,6 +120,11 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M9: generator nhiều biến thể + cây cối (26/09/2026)
+
+- Cây (`kind: "tree"`, tán tròn hoặc thông) trong chunk và prefab: thân chặn đường/tầm nhìn như cột, tán vẽ theo batch và mờ đi khi che người chơi. Palette, Inspector, tay cầm tán, layer Cây.
+- Generator v2: bố cục `varied` (khối 22–34 m, lô không đều, công viên) và mật độ cây (luồng ngẫu nhiên riêng); vùng chơi chữ nhật. Save không đổi (v8). Chi tiết `docs/map-editor-m9.md`.
 
 ### Map editor M8: migration nội dung cho save (26/09/2026)
 

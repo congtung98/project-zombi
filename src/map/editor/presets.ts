@@ -39,6 +39,12 @@ const box = (kind: 'wall' | 'prop' | 'container', size: [number, number, number]
   ...(container?.lootTableId ? { lootTableId: container.lootTableId } : {}),
 })
 
+/** Tree templates (M9), keys in content-file order; also used by the prefab palette. */
+export const TREE_TEMPLATES = {
+  round: { kind: 'tree', position: { x: 0, z: 0 }, height: 6, canopy: 2.5, trunk: 0.25, color: '#3f6b35', style: 'round' },
+  pine: { kind: 'tree', position: { x: 0, z: 0 }, height: 8, canopy: 1.8, trunk: 0.2, color: '#2f5a3a', style: 'pine' },
+} as const satisfies Record<string, AnyRecord>
+
 export const RECORD_PRESETS: readonly RecordPreset[] = [
   { id: 'object/wall', category: 'objects', label: 'Tường', name: 'wall', drag: 'line', template: box('wall', [4, 2.6, 0.2], '#9a8f84') },
   { id: 'object/fence', category: 'objects', label: 'Hàng rào gỗ', name: 'fence', drag: 'line', template: box('prop', [4, 1, 0.15], '#7a6a55') },
@@ -62,6 +68,8 @@ export const RECORD_PRESETS: readonly RecordPreset[] = [
     drag: 'point',
     template: box('container', [0.9, 0.7, 0.5], '#b0472f', { name: 'Thùng dụng cụ', lootTableId: 'park-toolbox' }),
   },
+  { id: 'object/tree', category: 'objects', label: 'Cây tán tròn', name: 'tree', drag: 'point', template: TREE_TEMPLATES.round },
+  { id: 'object/pine', category: 'objects', label: 'Cây thông', name: 'pine', drag: 'point', template: TREE_TEMPLATES.pine },
   { id: 'object/bin', category: 'objects', label: 'Thùng rỗng (container)', name: 'bin', drag: 'point', template: box('container', [0.8, 1, 0.8], '#4f6b4a', { name: 'Thùng' }) },
 
   { id: 'surface/asphalt', category: 'roads', label: 'Đường nhựa', name: 'road', drag: 'rect', template: { position: { x: 0, z: 0 }, size: [4, 16], color: '#3a3a3f' } },

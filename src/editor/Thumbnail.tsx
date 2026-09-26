@@ -4,7 +4,7 @@ import type { PrefabDocument } from '../map/schema'
 
 /**
  * Palette thumbnail of a prefab (M6): a top-down SVG of the resolver's output (floor, walls,
- * containers, windows, door leaves), so it always matches what the game builds. Recomputed only
+ * containers, windows, door leaves, tree canopies), so it always matches what the game builds. Recomputed only
  * when the prefab object changes (documents are immutable).
  */
 export const PrefabThumbnail = memo(function PrefabThumbnail({ prefab, size = 56 }: { prefab: PrefabDocument; size?: number }) {
@@ -28,6 +28,7 @@ export const PrefabThumbnail = memo(function PrefabThumbnail({ prefab, size = 56
       {p.doors?.map((d) => (
         <line key={d.id} x1={d.hinge.x} y1={d.hinge.z} x2={d.hinge.x + Math.cos(d.closedAngle) * d.width} y2={d.hinge.z - Math.sin(d.closedAngle) * d.width} stroke="#c0392b" strokeWidth={0.3} />
       ))}
+      {p.trees?.map((t) => <circle key={t.id} cx={t.position.x} cy={t.position.z} r={t.canopy} fill={t.color} opacity={0.8} />)}
     </svg>
   )
 })

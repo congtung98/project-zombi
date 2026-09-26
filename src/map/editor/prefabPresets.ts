@@ -1,6 +1,6 @@
 import type { BuildingProps, XZ } from '../schema.ts'
 import { quantize } from '../transform.ts'
-import { MIN_DRAG_SIZE, type DragMode } from './presets.ts'
+import { MIN_DRAG_SIZE, TREE_TEMPLATES, type DragMode } from './presets.ts'
 import type { AnyRecord } from './document.ts'
 
 /**
@@ -56,6 +56,7 @@ export const PREFAB_PRESETS: readonly PrefabPreset[] = [
   { id: 'furniture/table', group: 'furniture', label: 'Bàn', name: 'table', drag: 'point', template: box('prop', [1.4, 0.8, 0.9], '#7b5a44') },
   { id: 'furniture/sofa', group: 'furniture', label: 'Ghế sofa', name: 'sofa', drag: 'point', template: box('prop', [2, 0.8, 0.9], '#5a6b7b') },
   { id: 'furniture/counter', group: 'furniture', label: 'Quầy', name: 'counter', drag: 'line', template: box('prop', [2, 1, 0.6], '#9a8f84') },
+  { id: 'furniture/tree', group: 'furniture', label: 'Cây (vườn)', name: 'tree', drag: 'point', template: { ...TREE_TEMPLATES.round, height: 5, canopy: 2 } },
   { id: 'furniture/block', group: 'furniture', label: 'Khối nội thất', name: 'furniture', drag: 'rect', template: box('prop', [1, 0.8, 1], '#77706a') },
 
   { id: 'container/kitchen', group: 'containers', label: 'Tủ bếp', name: 'kitchen', drag: 'point', template: box('container', [1.4, 1, 0.6], '#9c7a5a', { name: 'Tủ bếp', lootTableId: 'house-kitchen' }) },

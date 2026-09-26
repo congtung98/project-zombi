@@ -7,7 +7,7 @@ import { blankDocument, findRecord, forkDocument, resolvedRecords, statefulEntit
 import { usedLocalIds } from '../map/editor/prefabCommands'
 import { playPointProblem, playtestFiles } from '../map/editor/playtest'
 import { deepCheck } from '../map/analysis'
-import { generateTown } from '../map/tools/generator'
+import { generateTown, type Layout } from '../map/tools/generator'
 import { defaultLayers, isEditable, LAYERS, layerOf, type LayerId, type LayerState, type LayerStates } from '../map/editor/layers'
 import { documentFromFiles, exportPack, parsePack, validateDocument } from '../map/editor/pack'
 import { applyCommand, initialEditState, redo, undo, type EditState } from '../map/editor/session'
@@ -124,7 +124,7 @@ interface EditorStore {
 
   openBundled(worldId: string): boolean
   openPack(text: string, source: string, allowContentErrors: boolean): boolean
-  newWorld(worldId: string, name: string, generate?: { seed: number; blocksX: number; blocksZ: number }): boolean
+  newWorld(worldId: string, name: string, generate?: { seed: number; blocksX: number; blocksZ: number; layout?: Layout; trees?: number }): boolean
   saveDraft(): Promise<void>
   /** Save as a new world (new worldId/name, contentVersion 1) and continue editing the copy. */
   saveAsWorld(worldId: string, name: string): Promise<boolean>

@@ -2,6 +2,7 @@ import { Vector3 } from 'three'
 import { chunkIndex } from '../../map/transform'
 import type { MapData } from '../world/mapData'
 import type { StaticColliderRegistry } from '../world/staticColliders'
+import { TREE_TRUNK_COLOR, treeProfile } from '../world/trees'
 
 /**
  * R3b: what `StaticBatches` draws, as plain data: every wall/prop box (from the collider registry),
@@ -18,12 +19,13 @@ const FLOOR_Y = 0.02
 /** Box sizes come back from min/max: round away float noise so equal pieces share one geometry. */
 const round = (v: number) => Math.round(v * 1e6) / 1e6
 
-export type Shape = 'box' | 'floor'
+/** M9: `trunk` (cylinder), `crown` (round canopy) and `cone` (pine canopy) for trees. */
+export type Shape = 'box' | 'floor' | 'trunk' | 'crown' | 'cone'
 
 export interface StaticItem {
   shape: Shape
   center: Vector3
-  /** Box size, or floor size with y ignored. */
+  /** Box size, floor size with y ignored, or the bounding box of a tree part. */
   size: [number, number, number]
   color: string
   /** Tall wall or roof: fades when it hides the player. */
@@ -35,7 +37,10 @@ export interface StaticItem {
 /** Everything static to draw, from runtime data (colliders, containers, buildings). */
 export function collectStaticItems(map: MapData, colliders: StaticColliderRegistry): StaticItem[] {
   const items: StaticItem[] = []
+  // Tree trunks are walls (collider, nav, sight) but are drawn as trees below.
+  const trunks = new Set((map.trees ?? []).map((t) => t.id))
   for (const w of colliders.list('wall')) {
+    if (trunks.has(w.id)) continue
     const size: [number, number, number] = [round(w.max.x - w.min.x), round(w.max.y - w.min.y), round(w.max.z - w.min.z)]
     items.push({
       shape: 'box',
@@ -60,6 +65,13 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       occluder: true,
       roofOf: b.id,
     })
+  }
+  for (const t of map.trees ?? []) {
+    const f = treeProfile(t)
+    items.push({ shape: 'trunk', center: new Vector3(t.position.x, f.trunkHeight / 2, t.position.z), size: [2 * t.trunk, f.trunkHeight, 2 * t.trunk], color: TREE_TRUNK_COLOR, occluder: false })
+    const depth = f.canopyTop - f.canopyBottom
+    // The canopy fades like a roof when it hides the player; it blocks nothing.
+    items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true })
   }
   return items
 }

@@ -1,5 +1,6 @@
-import { BatchedMesh, BoxGeometry, Color, CylinderGeometry, DoubleSide, Euler, FrontSide, Matrix4, MeshStandardMaterial, PlaneGeometry, Quaternion, RingGeometry, Vector3, type BufferGeometry, type Material } from 'three'
+import { BatchedMesh, BoxGeometry, Color, ConeGeometry, CylinderGeometry, DoubleSide, Euler, FrontSide, Matrix4, MeshStandardMaterial, PlaneGeometry, Quaternion, RingGeometry, SphereGeometry, Vector3, type BufferGeometry, type Material } from 'three'
 import type { ResolvedRecord } from '../map/resolve'
+import { TREE_TRUNK_COLOR, treeProfile } from '../game/world/trees'
 
 /**
  * Editor draw data (M7): a resolved record as plain boxes and markers (`drawItems`), shared by the
@@ -15,7 +16,11 @@ const DOT = new RingGeometry(0.35, 0.6, 24).rotateX(-Math.PI / 2)
 const ZONE_LINE = 0.16
 const DOOR_THICKNESS = 0.1
 
-export const GEOMETRIES = { box: BOX, plane: PLANE, marker: MARKER, ring: RING, dot: DOT } as const
+export /** M9 trees: unit trunk, round crown and pine cone (scaled per tree). */
+const TRUNK = new CylinderGeometry(0.5, 0.5, 1, 8)
+const CROWN = new SphereGeometry(0.5, 9, 6)
+const CONE = new ConeGeometry(0.5, 1, 10)
+export const GEOMETRIES = { box: BOX, plane: PLANE, marker: MARKER, ring: RING, dot: DOT, trunk: TRUNK, crown: CROWN, cone: CONE } as const
 type GeometryKey = keyof typeof GEOMETRIES
 /** solid: opaque; glass: window panes; zone: zone outlines (translucent, both sides). */
 export type Pass = 'solid' | 'glass' | 'zone'
@@ -59,7 +64,8 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
     out.push({ geometry, pass, color, position, rotationY, scale })
   for (const b of p.buildings ?? []) add('plane', 'solid', b.floorColor, [b.center.x, 0.02, b.center.z], [b.size.w, 1, b.size.d])
   for (const r of p.roads ?? []) add('plane', 'solid', r.color, [r.position.x, roadY(r.layer), r.position.z], [r.size[0], 1, r.size[1]])
-  for (const w of p.walls ?? []) add('box', 'solid', w.color ?? '#8a8580', [w.position.x, w.position.y, w.position.z], [...w.size])
+  const trunks = new Set((p.trees ?? []).map((t) => t.id))
+  for (const w of p.walls ?? []) if (!trunks.has(w.id)) add('box', 'solid', w.color ?? '#8a8580', [w.position.x, w.position.y, w.position.z], [...w.size])
   for (const c of p.containers ?? []) add('box', 'solid', c.color ?? '#6b5a3a', [c.position.x, c.position.y, c.position.z], [...c.size])
   for (const d of p.doors ?? []) {
     // Leaf from the hinge along local +X, turned by the closed angle (Three.js rotation.y).
@@ -84,6 +90,13 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
       }
     } else add('ring', 'zone', '#e08a2c', [z.center.x, 0.05, z.center.z], [z.radius, 1, z.radius])
     add('dot', 'zone', '#e08a2c', [z.center.x, 0.05, z.center.z])
+  }
+  for (const t of p.trees ?? []) {
+    // Trunk opaque; the canopy translucent so what stands under it stays visible from above.
+    const f = treeProfile(t)
+    add('trunk', 'solid', TREE_TRUNK_COLOR, [t.position.x, f.trunkHeight / 2, t.position.z], [2 * t.trunk, f.trunkHeight, 2 * t.trunk])
+    const depth = f.canopyTop - f.canopyBottom
+    add(t.style === 'pine' ? 'cone' : 'crown', 'glass', t.color, [t.position.x, f.canopyBottom + depth / 2, t.position.z], [2 * t.canopy, depth, 2 * t.canopy])
   }
   for (const s of p.playerSpawns ?? []) add('marker', 'solid', '#3fbf5f', [s.position.x, 0.6, s.position.z])
   for (const s of p.zombieSpawns ?? []) add('marker', 'solid', '#c8403a', [s.x, 0.6, s.z])

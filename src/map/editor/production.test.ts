@@ -46,7 +46,7 @@ describe('offline generator (M6)', () => {
     expect(exportPack(gen(42))).toBe(a)
     expect(exportPack(gen(43))).not.toBe(a)
     const g = gen(42).world.generator!
-    expect(g).toEqual({ name: GENERATOR_NAME, version: GENERATOR_VERSION, seed: 42, params: { blocksX: 2, blocksZ: 2 }, catalog: 'neighborhood-50@1' })
+    expect(g).toEqual({ name: GENERATOR_NAME, version: GENERATOR_VERSION, seed: 42, params: { blocksX: 2, blocksZ: 2, layout: 'grid', trees: 0.5 }, catalog: 'neighborhood-50@1' })
   })
 
   it('produces valid worlds of every size with no deep-check warnings', () => {
