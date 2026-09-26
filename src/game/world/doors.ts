@@ -16,7 +16,8 @@ export function doorLeafTransform(door: DoorPlacement, state: DoorStatus) {
   const angle = state === 'open' ? door.openAngle : door.closedAngle
   return {
     angle,
-    center: { x: door.hinge.x + Math.cos(angle) * door.width / 2, y: door.height / 2, z: door.hinge.z - Math.sin(angle) * door.width / 2 },
+    // M11b: the leaf stands on the door's floor (`hinge.y`), an upper storey's door included.
+    center: { x: door.hinge.x + Math.cos(angle) * door.width / 2, y: door.hinge.y + door.height / 2, z: door.hinge.z - Math.sin(angle) * door.width / 2 },
     halfExtents: [door.width / 2, door.height / 2, DOOR_LEAF_THICKNESS / 2] as const,
   }
 }

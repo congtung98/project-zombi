@@ -17,9 +17,13 @@ const HALF_HEIGHT = (CFG.height - 2 * CFG.radius) / 2
 const SHOVE_TIME = 0.4
 const HURT_TIME = 0.3
 const DEATH_TIME = 0.6
+/** Same float as the simulation keeps (`runtime.ts` PLAYER_HOVER): the capsule never rests on a wall top. */
+const HOVER = 0.02
 
 /**
- * Player: dynamic capsule with locked rotation (unchanged collider for every preset); the rigged
+ * Player: dynamic capsule with locked rotation (unchanged collider for every preset). M11b: no
+ * gravity: the simulation sets its height from the floor under it (ground, slab, stairs), the body
+ * only slides along walls. The rigged
  * model is purely visual, built once per session from the saved appearance and posed each frame
  * from runtime state. Damage timing stays in combat; the pose only mirrors `attackTimer`.
  */
@@ -104,7 +108,8 @@ export function PlayerView() {
       lockRotations
       canSleep={false}
       linearDamping={0}
-      position={[spawn.x, CFG.height / 2, spawn.z]}
+      gravityScale={0}
+      position={[spawn.x, spawn.y + CFG.height / 2 + HOVER, spawn.z]}
     >
       <CapsuleCollider args={[HALF_HEIGHT, CFG.radius]} friction={0} mass={CFG.mass} />
       {/* Feet on the ground: the body origin is the capsule centre. */}

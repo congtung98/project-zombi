@@ -108,7 +108,10 @@ export interface BuildingInfo {
   name: string
   center: { x: number; z: number }
   size: { w: number; d: number }
+  /** Storey height (floor to floor); the roof sits at `height · storeys`. */
   height: number
+  /** M11b: storeys (default 1); upper floors are `MapData.floors` slabs. */
+  storeys?: number
   wallThickness: number
   wallColor: string
   roofColor: string
@@ -172,7 +175,12 @@ export interface LampPlacement extends LampDef {
   roomId: string
   /** Fixture on the ceiling (y just under the roof). */
   position: Vec3
+  /** M11b: floor height of the lamp's room (the switch sits `SWITCH_HEIGHT` above it); default 0. */
+  floorY?: number
 }
+
+/** Height of a wall lamp switch above its floor (drawn there, reached from there). */
+export const SWITCH_HEIGHT = 1.3
 
 export interface RoomPlacement {
   id: string
@@ -181,8 +189,10 @@ export interface RoomPlacement {
   bounds: RoomBounds
   /** M11a: non-rectangular room; `bounds` is its bounding box. */
   outline?: Outline
-  /** Ceiling height (walls); above it (roof) is outdoors. */
+  /** Ceiling height above the room's floor (walls); above it (roof) is outdoors. */
   height: number
+  /** M11b: floor height of the room's storey (default 0). */
+  floorY?: number
   lamp: LampPlacement | null
 }
 
@@ -406,4 +416,18 @@ export function isInsideBuilding(b: BuildingInfo, x: number, z: number, margin =
 export function isInsideRoom(bounds: RoomBounds, x: number, z: number, outline?: Outline): boolean {
   if (!(x >= bounds.minX && x <= bounds.maxX && z >= bounds.minZ && z <= bounds.maxZ)) return false
   return !outline || pointInOutline(outline, x, z)
+}
+
+/** Roof height of a building (top of its highest storey). */
+export function roofHeight(b: BuildingInfo): number {
+  return b.height * (b.storeys ?? 1)
+}
+
+/**
+ * M11b: whether a height is on a room's storey: from just below its floor up to its ceiling. A room
+ * on another storey never contains the point, whatever the ground position.
+ */
+export function onRoomStorey(room: Pick<RoomPlacement, 'floorY' | 'height'>, y: number): boolean {
+  const floor = room.floorY ?? 0
+  return y >= floor - 0.5 && y < floor + room.height - 0.5
 }

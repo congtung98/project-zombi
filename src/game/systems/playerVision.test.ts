@@ -9,7 +9,8 @@ import type { Vec3 } from '../../types'
 
 const CFG: PlayerVisionConfig = GAME_CONFIG.playerVision
 const cfg = (patch: Partial<PlayerVisionConfig>): PlayerVisionConfig => ({ ...CFG, ...patch })
-const at = (x: number, z: number): Vec3 => ({ x, y: 0.9, z })
+// M11b: positions are feet heights (the ground here); eye and target heights are added on top.
+const at = (x: number, z: number): Vec3 => ({ x, y: 0, z })
 /** Facing 0 looks along +Z (runtime convention: forward = (sin f, cos f)). */
 const observer = (x: number, z: number, facing = 0): VisionObserver => ({ position: at(x, z), facing })
 const clear = () => true

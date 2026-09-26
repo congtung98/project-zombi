@@ -7,6 +7,10 @@ import type { StaticColliderRegistry } from '../world/staticColliders'
  * solid boxes of `StaticColliderRegistry`, the player's circle and other zombies. No Rapier, no
  * WebGL: a zombie with no physics body (NEAR/DORMANT, tests) moves exactly the same way. Rapier only
  * mirrors ACTIVE zombies with a kinematic body so the player bumps into them.
+ *
+ * M11b: `position.y` is the feet height. Only boxes overlapping the body's height band block it
+ * (another storey's walls never do), and after every sub-step the body takes the height of the
+ * surface under it (`env.surface`: ground, slab or stairs).
  */
 
 export interface MoveEnv {
@@ -16,6 +20,8 @@ export interface MoveEnv {
   height: number
   /** Longest distance per collision sub-step (no tunnelling through thin walls). */
   substep: number
+  /** M11b: feet height at (x, z) for a body whose feet are at `y` (`FloorField.surfaceAt`); omitted = flat. */
+  surface?: (x: number, z: number, y: number) => number
 }
 
 export interface Circle {
@@ -40,6 +46,7 @@ export function moveZombie(position: Vec3, vx: number, vz: number, dt: number, e
     position.z += dz / steps
     contacts += resolveStatic(position, env)
     if (avoid) pushOutOfCircle(position, env.radius, avoid)
+    if (env.surface) position.y = env.surface(position.x, position.z, position.y)
   }
   return contacts
 }
@@ -47,12 +54,13 @@ export function moveZombie(position: Vec3, vx: number, vz: number, dt: number, e
 /** Push a circle out of every solid box it overlaps (two passes settle corners). */
 export function resolveStatic(position: Vec3, env: MoveEnv): number {
   const r = env.radius
+  const feet = position.y
   let contacts = 0
   for (let pass = 0; pass < 2; pass++) {
     const boxes = env.colliders.querySolid(position.x - r, position.z - r, position.x + r, position.z + r)
     let moved = false
     for (const c of boxes) {
-      if (c.min.y >= env.height || c.max.y <= MIN_TOP) continue
+      if (c.min.y >= feet + env.height || c.max.y <= feet + MIN_TOP) continue
       const cx = Math.min(Math.max(position.x, c.min.x), c.max.x)
       const cz = Math.min(Math.max(position.z, c.min.z), c.max.z)
       const ox = position.x - cx

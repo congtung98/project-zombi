@@ -195,6 +195,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   if (version === 5) return migrateV5(save, expectedMapId, current, knownMap)
   if (version === 6) return migrateV6(save, expectedMapId, current, knownMap)
   if (version === 7) return migrateV7(save, expectedMapId, current, legacy)
+  if (version === 8) return migrateV8(save, expectedMapId, current)
   return { ok: true, save, migrated: false, fromVersion: version }
 }
 
@@ -460,6 +461,22 @@ function migrateV7(source: SaveGame, mapId: string, current?: MapData, legacy?: 
   return checked.ok ? { ...checked, migrated: true, fromVersion: 7 } : checked
 }
 
+/**
+ * Pure v8 → v9 (M11b storeys): `y` of every stored position becomes the feet height. Before v9 the
+ * world had one storey, so everything stood on the ground: the player's body centre, zombies,
+ * memories and dropped bags all get y = 0. Nothing else changes.
+ */
+function migrateV8(source: SaveGame, mapId: string, current?: MapData): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = 9
+  const ground = (p: Vec3): Vec3 => ({ ...p, y: 0 })
+  save.player.position = ground(save.player.position)
+  save.zombies = save.zombies.map((z) => ({ ...z, position: ground(z.position), lastKnownTarget: z.lastKnownTarget ? ground(z.lastKnownTarget) : null }))
+  save.containers = save.containers.map((c) => (c.position ? { ...c, position: ground(c.position) } : c))
+  const checked = validateSaveGame(save, mapId, current)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 8 } : checked
+}
+
 /** Stateful IDs of a map (M8): what a save of its content revision holds state for. */
 export function mapStatefulIds(map: MapData): StatefulIds {
   return statefulIds([{ doors: map.doors, containers: map.containers, windows: mapWindows(map), rooms: mapRooms(map), zones: map.zombieZones ?? [] }])
@@ -473,13 +490,14 @@ const OVERHEAD_BOTTOM = 1.6
 /**
  * Move a point out of the low solids of a map (walls, props, containers, window panes) along the
  * nearest face, a few passes for corners, then into the play area. Content migrations use it for
- * the player, zombies and bags that a new wall or building now covers.
+ * the player, zombies and bags that a new wall or building now covers. M11b: only the solids of the
+ * storey the point stands on (`y` = its floor).
  */
 function outOfSolids(p: Vec3, map: MapData): Vec3 {
+  const low = (bottom: number, top: number) => bottom < p.y + OVERHEAD_BOTTOM && top > p.y + 0.05
   const boxes = [
-    ...map.walls.filter((w) => w.position.y - w.size[1] / 2 < OVERHEAD_BOTTOM).map((w) => ({ x: w.position.x, z: w.position.z, hx: w.size[0] / 2, hz: w.size[2] / 2 })),
-    ...map.containers.map((c) => ({ x: c.position.x, z: c.position.z, hx: c.size[0] / 2, hz: c.size[2] / 2 })),
-    ...mapWindows(map).map((w) => ({ x: w.center.x, z: w.center.z, hx: (w.alongX ? w.width : w.thickness) / 2, hz: (w.alongX ? w.thickness : w.width) / 2 })),
+    ...[...map.walls, ...map.containers].filter((w) => low(w.position.y - w.size[1] / 2, w.position.y + w.size[1] / 2)).map((w) => ({ x: w.position.x, z: w.position.z, hx: w.size[0] / 2, hz: w.size[2] / 2 })),
+    ...mapWindows(map).filter((w) => Math.abs(w.center.y - (w.sill + w.head) / 2 - p.y) < 0.5).map((w) => ({ x: w.center.x, z: w.center.z, hx: (w.alongX ? w.width : w.thickness) / 2, hz: (w.alongX ? w.thickness : w.width) / 2 })),
   ]
   const out = { ...p }
   for (let pass = 0; pass < 4; pass++) {

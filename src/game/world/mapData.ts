@@ -3,6 +3,7 @@ import { loadBundledWorld } from '../../map/content'
 import type { Rect } from '../../map/schema'
 import type { ContentMigration } from '../../map/contentMigration'
 import type { TreeDef } from './trees'
+import type { FloorSlab, StairPlacement } from './floors'
 import { playAreaRect } from '../../map/transform'
 import {
   generateRooms,
@@ -81,6 +82,10 @@ export interface MapData {
   rooms?: RoomPlacement[]
   /** Living zombie cap for this map; omitted = `GAME_CONFIG.spawn.maxActive` (stress maps raise it). */
   maxActiveZombies?: number
+  /** M11b: upper floor slabs of multi-storey buildings (none = every building has one storey). */
+  floors?: FloorSlab[]
+  /** M11b: flights between storeys (their enclosing walls are in `walls`). */
+  stairs?: StairPlacement[]
 }
 
 /** Chunk edge of content worlds (world.json `chunkSize`) and the default for hand-made maps. */

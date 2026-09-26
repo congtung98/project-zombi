@@ -284,6 +284,19 @@ function ObjectFields({ object: o, prefab, patch }: { object: PrefabObject; pref
       </>
     )
   }
+  if (o.kind === 'stairs') {
+    return (
+      <>
+        <NumField label="X" value={o.position.x} onCommit={(x) => patch('Di chuyển', { position: { ...o.position, x } })} />
+        <NumField label="Z" value={o.position.z} onCommit={(z) => patch('Di chuyển', { position: { ...o.position, z } })} />
+        <Turns value={o.quarterTurns} onChange={(quarterTurns) => patch('Xoay', { quarterTurns })} />
+        <NumField label="Rộng" value={o.width} min={1} onCommit={(width) => patch('Đổi cầu thang', { width })} />
+        <NumField label="Dài" value={o.length} min={2} onCommit={(length) => patch('Đổi cầu thang', { length })} />
+        <NumField label="Từ tầng" value={o.level ?? 0} min={0} step={1} onCommit={(level) => patch('Đổi cầu thang', { level: level || undefined })} />
+        <p className="hint">Cầu thang leo theo +X của khung (xoay 0°), lên một tầng; đầu dưới mở ở tầng dưới, đầu trên mở ra sàn tầng trên.</p>
+      </>
+    )
+  }
   return (
     <>
       {o.kind === 'container' && <TextField label="Tên" value={o.name} onCommit={(name) => patch('Đổi tên', { name })} />}

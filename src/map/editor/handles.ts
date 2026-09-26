@@ -127,7 +127,7 @@ export function prefabItemHandles(prefab: PrefabDocument, key: string): Handle[]
   const o = prefab.objects.find((x) => x.localId === key)
   if (o) {
     if (o.kind === 'wallRun') return [{ key: 'from', at: { ...o.from } }, { key: 'to', at: { ...o.to } }]
-    if (o.kind === 'door' || o.kind === 'window') return []
+    if (o.kind === 'door' || o.kind === 'window' || o.kind === 'stairs') return []
     if (o.kind === 'tree') return [{ key: 'radius', at: { x: quantize(o.position.x + o.canopy), z: o.position.z } }]
     return rectHandles(centred(o.position, o.size[0], o.size[2]))
   }
@@ -177,6 +177,7 @@ export function dragPrefabHandle(doc: MapDocument, prefabId: string, key: string
   }
   if (o) {
     if (o.kind === 'door' || o.kind === 'window') return fail('Cửa/cửa sổ đổi bề rộng ở Inspector')
+    if (o.kind === 'stairs') return fail('Cầu thang đổi kích thước ở Inspector')
     if (o.kind === 'tree') return updatePrefabItem(doc, prefabId, key, { canopy: treeCanopy(o, o.position, p) })
     const next = dragEdge(centred(o.position, o.size[0], o.size[2]), handle, p, MIN_SIZE.box)
     const position = { ...o.position, x: quantize((next.minX + next.maxX) / 2), z: quantize((next.minZ + next.maxZ) / 2) }

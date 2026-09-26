@@ -10,11 +10,13 @@ import type { MemorySource } from '../game/entities/zombie'
  * name + appearance) → v5 (P2-S4 material containers; crafted items are ordinary instances) → v6
  * (P2-S5 zombie perception memory, wander/migration zones, door siege target, horde director) → v7
  * (building lighting: curtains, lamps, grid power; the house bedroom door) → v8 (map content:
- * stable content IDs such as `c-1_-1/safehouse/door`, plus the content revision).
+ * stable content IDs such as `c-1_-1/safehouse/door`, plus the content revision) → v9 (M11b
+ * storeys: every position's `y` is the feet height, i.e. the floor it stands on; older saves were
+ * all on the ground and store the player's body centre, so they migrate to y = 0).
  * Older versions migrate in memory; unknown versions are rejected without overwriting the
  * original. Timed actions (craft/repair in progress) and derived room light are never saved.
  */
-export const SAVE_SCHEMA_VERSION = 8
+export const SAVE_SCHEMA_VERSION = 9
 
 export interface SavedPlayer {
   name: string

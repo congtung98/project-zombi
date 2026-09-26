@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "worldId": "floors-lab",
+  "name": "Nhà hai tầng (thử nghiệm)",
+  "listed": false,
+  "contentVersion": 1,
+  "chunkSize": 32,
+  "coordinateSystem": "y-up-xz-meters",
+  "playArea": { "size": 30, "center": { "x": 16, "z": 16 } },
+  "boundary": { "height": 2, "thickness": 1 },
+  "chunkBounds": { "minCx": 0, "maxCx": 0, "minCz": 0, "maxCz": 0 },
+  "chunks": [
+    { "chunkId": "c0_0", "cx": 0, "cz": 0, "path": "chunks/c0_0.json" }
+  ],
+  "prefabs": [
+    { "prefabId": "building/two-storey", "contentVersion": 1, "path": "prefabs/two-storey.json" }
+  ],
+  "playerSpawn": "c0_0/spawns/player-start"
+}

@@ -1,10 +1,25 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành **map editor M11a (nhà và phòng chữ L/T/U)**; M10 đã commit (6e047f1). Lộ trình tiếp: M11b nhiều tầng (dữ liệu + mô phỏng) → M11c nhiều tầng (hiển thị + editor). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **map editor M11b (nhiều tầng: dữ liệu + mô phỏng)**; M11a đã commit (e13ed46). Lộ trình tiếp: M11c nhiều tầng (hiển thị + editor). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Map editor M11a — nhà và phòng chữ L/T/U (mới nhất, chưa commit — chi tiết docs/map-editor-m11a.md)
+## 0. Map editor M11b — nhiều tầng: dữ liệu + mô phỏng (mới nhất, chưa commit — chi tiết docs/map-editor-m11b.md)
+
+**Save v9** (`y` = độ cao chân; v8 → v9 đưa mọi độ cao về 0). Schema map v1 + `building.storeys?`, `level?` trên object/phòng, object `stairs`. World thử `content/maps/floors-lab` (ẩn; bản đông cứng cho test ở `src/test/fixtures/maps/floors-lab`).
+
+- **Nội dung**: resolver nâng theo tầng (tường chạy khoét cửa cùng tầng), `stairBoxes`/`stairRect` (tường quanh cầu thang, ID `#side-a/#side-b/#back/#rail`), tấm sàn tầng trên trừ lỗ cầu thang → `MapData.floors`, `MapData.stairs`; `RoomPlacement.floorY`, `BuildingInfo.storeys`, `roofHeight`, `onRoomStorey`. Validator `storey-height`, `stairs-need-storeys`, `stairs-too-steep`, `level-not-allowed`, cảnh báo `stairs-outside-footprint`; deep check theo tầng + `stairs-unusable`.
+- **Luật độ cao** `world/floors.ts` (thuần): `FloorField.surfaceAt` (mặt cao nhất ≤ chân + `STEP_UP` 1 m), `stairAt/stairsNear`, `stairApproach`, `stairHeightAt`, `subtractRect(s)`, `SLAB_THICKNESS`, `STAIR_RAIL`, `LEVEL_TOLERANCE` 1,2 m.
+- **Điều hướng** `world/navLayers.ts` `NavWorld`: một `NavGrid` mỗi tầng (`NavGridOptions.elevation/floor`, ngưỡng "trên đầu" theo sàn lớp), cầu thang nối hai điểm bước lên/xuống; `locate`, `layerOf`, `routeKind`, `findPath` (Dijkstra qua cầu thang + A* từng lớp), `findDoorRoute`, `componentAt` (union-find qua cầu thang), `hasLineOfWalk`. World một tầng gọi thẳng lưới mặt đất. `runtime.nav` = lưới mặt đất, `runtime.navWorld` cho AI.
+- **Mô phỏng**: người chơi không trọng lực, mô phỏng đặt độ cao (lơ lửng 2 cm); `moveZombie` theo chân + `env.surface`; collider `floor` (chặn tầm nhìn, không chặn đi); zombie/người chơi khác tầng không đẩy nhau; AI tấn công/tới nơi chỉ cùng tầng; mắt/gậy/tầm nhìn tính từ chân; tương tác chỉ đồ cùng tầng (±1,4 m); túi đồ rơi ở sàn đang đứng; ánh sáng theo tầng + lỗ cầu thang là khe mở; `outOfSolids` theo tầng.
+- **Hiển thị tối thiểu**: tấm sàn (làm mờ khi che), bậc thang, mái trên tầng cao nhất, camera/con trỏ theo độ cao, zombie/túi/thân ở đúng độ cao, shader `uRoomFloor`. Editor: đọc/ghi trường mới, Inspector cầu thang; chưa có chọn tầng (M11c).
+- **Sửa sau thử bằng mắt**: cánh cửa (vẽ + collider + vật che) và công tắc đèn tầng trên đứng trên sàn tầng đó (`doorLeafTransform` theo `hinge.y`, `LampPlacement.floorY`, `SWITCH_HEIGHT`); F6 không sập với cạnh ánh sáng của cầu thang, nhãn theo tầng.
+- **Kiểm chứng**: 537 test (+13 skip; mới `world/floors.test.ts` 18); tsc/oxlint/build/build:editor/check:bundle/map:check --deep sạch; Playwright `scripts/m11b-floors-browser.mjs` PASS; hồi quy m3–m9, m11a, worlds, m10, p2-s2/s3/s4/s5/lighting/vision PASS (script đổi save 8 → 9).
+- **Chưa làm (M11c)**: cắt lớp tầng trên, ánh sáng hiển thị/F6 theo tầng, editor sửa từng tầng + đặt cầu thang bằng chuột + nhà hai tầng mẫu; generator nhà nhiều tầng.
+
+Commit message gợi ý: **feat(game): storeys M11b (multi-storey buildings with levels, enclosed stairs and upper floor slabs; floor rule, layered nav joined by stairs, player and zombies climbing, per-storey sight, blows, interaction and lighting, save v9 feet heights, floors lab world)**
+
+## 0-M11a. Map editor M11a — nhà và phòng chữ L/T/U (đã commit e13ed46 — chi tiết docs/map-editor-m11a.md)
 
 Save không đổi (v8), content không đổi, schema map v1 + `PrefabDocument.outline?` và `RoomObject.outline?` (đa giác vuông góc: cạnh theo X/Z, vì collider/tường/xoay đều thẳng trục). M11 chia ba sprint: M11a (này), M11b nhiều tầng dữ liệu + mô phỏng, M11c nhiều tầng hiển thị + editor.
 
@@ -15,7 +30,6 @@ Save không đổi (v8), content không đổi, schema map v1 + `PrefabDocument.
 - **Kiểm chứng**: 519 test (+13 skip; mới `map/editor/polygon.test.ts` 8); tsc/oxlint/build/build:editor/check:bundle/map:check --deep sạch; Playwright `scripts/m11a-editor-browser.mjs` PASS; hồi quy m3–m10, worlds, p2-s2/s4/s5/lighting/vision PASS.
 - **Chưa làm**: generator sinh nhà L; "dựng tường theo outline" không xóa tường cũ; M11b, M11c.
 
-Commit message gợi ý: **feat(editor): L/T/U buildings and rooms M11a (rectilinear outlines for prefab footprints and rooms: validator, resolver, indoor tests, floors and roofs per piece, lighting shader slots per piece, editor outline editing with vertex/edge handles, corner/edge notches, walls from outline, L-shaped starter house)**
 
 ## 0-M10. Map editor M10 — streaming theo chunk trong runtime (đã commit 6e047f1 — chi tiết docs/map-editor-m10.md)
 

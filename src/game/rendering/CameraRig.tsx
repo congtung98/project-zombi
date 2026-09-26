@@ -12,7 +12,7 @@ const CAM = runtime.config.camera
  */
 export function CameraRig() {
   const cameraRef = useRef<OrthographicCameraImpl>(null)
-  const target = useRef(new Vector3(runtime.player.position.x, 0, runtime.player.position.z))
+  const target = useRef(new Vector3(runtime.player.position.x, runtime.player.position.y, runtime.player.position.z))
   const gl = useThree((s) => s.gl)
 
   useEffect(() => {
@@ -31,9 +31,11 @@ export function CameraRig() {
     const p = runtime.player.position
     const t = 1 - Math.exp(-CAM.followSmoothing * Math.min(delta, 0.1))
     target.current.x += (p.x - target.current.x) * t
+    // M11b: follow the floor the player stands on, so an upper storey stays centred.
+    target.current.y += (p.y - target.current.y) * t
     target.current.z += (p.z - target.current.z) * t
 
-    cam.position.set(target.current.x + CAM.offset.x, CAM.offset.y, target.current.z + CAM.offset.z)
+    cam.position.set(target.current.x + CAM.offset.x, target.current.y + CAM.offset.y, target.current.z + CAM.offset.z)
     cam.lookAt(target.current)
 
     if (cam.zoom !== runtime.cameraZoom) {

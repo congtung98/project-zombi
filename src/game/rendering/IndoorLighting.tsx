@@ -59,7 +59,10 @@ export function IndoorLighting() {
         indoorUniforms.uRoomCount.value = chosen.length
         chosen.forEach(({ room, rect }, i) => {
           indoorUniforms.uRoomRect.value[i].set(rect.minX, rect.maxX, rect.minZ, rect.maxZ)
-          indoorUniforms.uRoomShade.value[i].w = room.height
+          // M11b: the room's storey only: from just under its floor (the slab top) to its ceiling.
+          const floor = room.floorY ?? 0
+          indoorUniforms.uRoomShade.value[i].w = floor + room.height
+          indoorUniforms.uRoomFloor.value[i] = floor > 0 ? floor - 0.05 : -1e4
         })
         s.revision = -1
         snap = true

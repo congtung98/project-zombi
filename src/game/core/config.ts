@@ -131,7 +131,7 @@ export const GAME_CONFIG = {
    * Player vision (sprint "tầm nhìn"): what the player character can see, separate from the camera
    * and from zombie perception. Only affects how zombies are drawn; AI never reads it. It is not a
    * light: world lighting belongs to `lighting` + the day/night clock (`rendering/Lights.tsx`) only.
-   * Heights are absolute (the map is flat, ground at y = 0).
+   * Heights are above the feet of the player / zombie (M11b: storeys).
    */
   playerVision: {
     /** Zombies this close are noticed in any direction (behind the back), still not through walls. */

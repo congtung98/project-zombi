@@ -54,7 +54,7 @@ export function ZombieView({ id }: ZombieViewProps) {
     const root = rootRef.current
     if (!z || !visual || !root) return
     // The simulation owns the position (R2); the view just follows it.
-    root.position.set(z.position.x, 0, z.position.z)
+    root.position.set(z.position.x, z.position.y, z.position.z)
     const a = anim.current
     a.time += delta
     a.facing = dampAngle(a.facing, z.facing, TURN_SMOOTHING, delta)
@@ -117,7 +117,7 @@ export function ZombieView({ id }: ZombieViewProps) {
   const spawn = zombie.position
 
   return (
-    <group ref={rootRef} position={[spawn.x, 0, spawn.z]}>
+    <group ref={rootRef} position={[spawn.x, spawn.y, spawn.z]}>
       <group ref={visualRef} visible={false}>
         {/* Same hierarchy as before R2 (rig → group → visual), which debug tools and scripts rely on. */}
         <group>
@@ -154,7 +154,7 @@ export function ZombieBody({ id }: ZombieViewProps) {
   const zombie = runtime.zombies.get(id)
   if (!zombie) return null
   return (
-    <RigidBody ref={bodyRef} type="kinematicPosition" colliders={false} position={[zombie.position.x, CFG.height / 2, zombie.position.z]}>
+    <RigidBody ref={bodyRef} type="kinematicPosition" colliders={false} position={[zombie.position.x, zombie.position.y + CFG.height / 2, zombie.position.z]}>
       <CapsuleCollider args={[HALF_HEIGHT, CFG.radius]} friction={0} />
     </RigidBody>
   )

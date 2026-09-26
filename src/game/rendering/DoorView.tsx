@@ -54,7 +54,7 @@ export function DoorView({ door }: DoorViewProps) {
       key={`${door.id}-${open ? 'open' : 'closed'}`}
       type="fixed"
       colliders="cuboid"
-      position={[door.hinge.x, 0, door.hinge.z]}
+      position={[door.hinge.x, door.hinge.y, door.hinge.z]}
       rotation={[0, angle, 0]}
     >
       <group ref={shakeRef}>

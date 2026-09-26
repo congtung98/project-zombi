@@ -2,6 +2,7 @@ import type { Vec3 } from '../../types'
 import { mapWindows, type MapData } from './mapData'
 import { doorLeafTransform, type DoorStatus } from './doors'
 import { SpatialHash } from '../core/spatialHash'
+import { SLAB_THICKNESS } from './floors'
 
 /** Cell size (m) of the occluder index: a wall piece spans a few cells, a vision ray ≤ 20 m a few dozen. */
 const OCCLUDER_CELL = 4
@@ -11,7 +12,8 @@ const OCCLUDER_CELL = 4
  * low fences, crates and cars are solid but do not hide a zombie, and the vision test must run
  * in the simulation without WASM.
  */
-export type VisionOccluderKind = 'wall' | 'furniture' | 'door' | 'window'
+/** M11b: `floor` = an upper floor slab (hides one storey from another). */
+export type VisionOccluderKind = 'wall' | 'furniture' | 'door' | 'window' | 'floor'
 
 export interface VisionOccluder {
   id: string
@@ -177,6 +179,9 @@ export function buildVisionOccluders(
   for (const wall of map.walls) {
     if (wall.position.y + wall.size[1] / 2 < minHeight) continue
     items.push({ id: wall.id, kind: 'wall', ...boxFromCenter(wall.position, wall.size) })
+  }
+  for (const s of map.floors ?? []) {
+    items.push({ id: s.id, kind: 'floor', min: { x: s.rect.minX, y: s.y - SLAB_THICKNESS, z: s.rect.minZ }, max: { x: s.rect.maxX, y: s.y, z: s.rect.maxZ } })
   }
   for (const c of map.containers) {
     if (c.position.y + c.size[1] / 2 < minHeight) continue

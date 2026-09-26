@@ -1,6 +1,7 @@
 import type { BuildingLightingConfig } from '../core/config'
 import { daylightAt } from '../rendering/daylight'
-import { isInsideRoom, type LampPlacement, type RoomPlacement } from '../world/buildings'
+import { isInsideRoom, onRoomStorey, type LampPlacement, type RoomPlacement } from '../world/buildings'
+import { stairApproach } from '../world/floors'
 import type { DoorStatus } from '../world/doors'
 import { mapRooms, mapWindows, type MapData } from '../world/mapData'
 import type { Vec3 } from '../../types'
@@ -33,6 +34,8 @@ export interface LightingEdge {
   doorId: string
   a: string
   b: string
+  /** M11b: fixed transmission of an opening that is always open (a stairwell); omitted = the door's state. */
+  transmission?: number
 }
 
 export interface LightingBuilding {
@@ -78,9 +81,12 @@ export function windowContribution(outdoor: number, win: LightingWindow, curtain
   return outdoor * win.daylightFactor * (curtainClosed ? cfg.closedCurtainTransmission : 1) * barricade
 }
 
-/** Room containing a ground point (rectangular bounds); null = outdoors. */
-export function roomAt(rooms: readonly RoomPlacement[], x: number, z: number): RoomPlacement | null {
-  for (const r of rooms) if (isInsideRoom(r.bounds, x, z, r.outline)) return r
+/**
+ * Room containing a point; null = outdoors. With `y` (feet or sample height, M11b) only rooms of
+ * that storey count; without it the first room over the ground point (single-storey callers).
+ */
+export function roomAt(rooms: readonly RoomPlacement[], x: number, z: number, y?: number): RoomPlacement | null {
+  for (const r of rooms) if ((y === undefined || onRoomStorey(r, y)) && isInsideRoom(r.bounds, x, z, r.outline)) return r
   return null
 }
 
@@ -95,7 +101,7 @@ export function buildLightingBuildings(map: MapData, cfg: BuildingLightingConfig
     const own = rooms.filter((r) => r.buildingId === b.id)
     const lightingWindows: LightingWindow[] = []
     for (const w of windows.filter((x) => x.buildingId === b.id)) {
-      const room = roomAt(own, w.center.x + w.inward.x * 0.4, w.center.z + w.inward.z * 0.4)
+      const room = roomAt(own, w.center.x + w.inward.x * 0.4, w.center.z + w.inward.z * 0.4, w.center.y - (w.sill + w.head) / 2)
       if (!room) continue
       const area = w.width * (w.head - w.sill)
       lightingWindows.push({ id: w.id, roomId: room.id, daylightFactor: cfg.defaultWindowTransmission * Math.min(1, area / cfg.referenceWindowArea) })
@@ -105,9 +111,17 @@ export function buildLightingBuildings(map: MapData, cfg: BuildingLightingConfig
       const alongX = d.hinge.x !== d.center.x
       const nx = alongX ? 0 : 0.6
       const nz = alongX ? 0.6 : 0
-      const a = roomAt(own, d.center.x - nx, d.center.z - nz)?.id ?? OUTDOOR
-      const c = roomAt(own, d.center.x + nx, d.center.z + nz)?.id ?? OUTDOOR
+      const a = roomAt(own, d.center.x - nx, d.center.z - nz, d.center.y)?.id ?? OUTDOOR
+      const c = roomAt(own, d.center.x + nx, d.center.z + nz, d.center.y)?.id ?? OUTDOOR
       if (a !== c) edges.push({ doorId: d.id, a, b: c })
+    }
+    // M11b: a stairwell is an open opening between the room at its foot and the room at its head.
+    for (const s of (map.stairs ?? []).filter((x) => x.buildingId === b.id)) {
+      const foot = stairApproach(s, 0, 0.4)
+      const head = stairApproach(s, 1, 0.4)
+      const a = roomAt(own, foot.x, foot.z, foot.y)?.id
+      const c = roomAt(own, head.x, head.z, head.y)?.id
+      if (a && c && a !== c) edges.push({ doorId: s.id, a, b: c, transmission: cfg.defaultOpenDoorTransmission })
     }
     return { id: b.id, rooms: own, windows: lightingWindows, edges, lamps: own.flatMap((r) => (r.lamp ? [r.lamp] : [])), lightingDirty: true }
   })
@@ -135,7 +149,7 @@ export function solveBuilding(b: LightingBuilding, outdoor: number, inputs: Ligh
     adjacency.set(from, list)
   }
   for (const e of b.edges) {
-    const t = doorTransmission(inputs.doorState(e.doorId), cfg)
+    const t = e.transmission ?? doorTransmission(inputs.doorState(e.doorId), cfg)
     link(e.a, e.b, t)
     link(e.b, e.a, t)
   }
@@ -313,8 +327,9 @@ export class BuildingLightingSystem {
     return this.roomLight.get(roomId)
   }
 
+  /** Room at an entity's feet (its storey, M11b). */
   getRoomAtPosition(position: Vec3): RoomPlacement | null {
-    return roomAt(this.rooms, position.x, position.z)
+    return roomAt(this.rooms, position.x, position.z, position.y)
   }
 
   /** Light where an entity stands: its room's final level, or the outdoor level outside. */

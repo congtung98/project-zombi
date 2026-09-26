@@ -230,7 +230,7 @@ describe('building lighting acceptance (neighbourhood map)', () => {
     expect(closed).toBeLessThan(open * 0.3)
     expect(closed).toBeGreaterThan(0)
     // Vision: from inside, a zombie outside the north window is seen through the glass, not through the curtain.
-    const observer = { position: { x: -12, y: 0.9, z: -16.5 }, facing: Math.PI }
+    const observer = { position: { x: -12, y: 0, z: -16.5 }, facing: Math.PI }
     const outside = { x: -12, y: 0, z: -22 }
     const los = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => rt.visionOccluders.firstBlocker(a, b) === null
     expect(classifyVisibility(observer, outside, GAME_CONFIG.playerVision, los)).toBe('BLOCKED_BY_OCCLUDER')

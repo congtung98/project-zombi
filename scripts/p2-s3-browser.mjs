@@ -98,7 +98,7 @@ try {
   assert.equal((await page.locator('.hud-name').innerText()).trim(), 'Mai An')
   await saveToMenu()
   const first = await readSlot('slot-1')
-  assert.equal(first.schemaVersion, 8)
+  assert.equal(first.schemaVersion, 9)
   assert.deepEqual([first.player.name, first.player.appearance], ['Mai An', { preset: 'slim', hair: 'long', skin: 'light', shirt: 'green', pants: 'khaki' }])
   await hasText('Mai An')
 

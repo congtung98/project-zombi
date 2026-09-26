@@ -1,6 +1,7 @@
 import { Vector3 } from 'three'
 import type { MapData } from '../world/mapData'
-import type { BuildingInfo } from '../world/buildings'
+import { roofHeight, type BuildingInfo } from '../world/buildings'
+import { SLAB_THICKNESS, type StairPlacement } from '../world/floors'
 import { outlineRects, pointInOutline } from '../../map/polygon'
 import type { Rect } from '../../map/schema'
 import type { StaticColliderRegistry } from '../world/staticColliders'
@@ -68,7 +69,7 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       const o = piece.overhang
       items.push({
         shape: 'box',
-        center: new Vector3(cx + (o.maxX - o.minX) / 2, b.height + ROOF_THICKNESS / 2, cz + (o.maxZ - o.minZ) / 2),
+        center: new Vector3(cx + (o.maxX - o.minX) / 2, roofHeight(b) + ROOF_THICKNESS / 2, cz + (o.maxZ - o.minZ) / 2),
         size: [w + o.minX + o.maxX, ROOF_THICKNESS, d + o.minZ + o.maxZ],
         color: b.roofColor,
         // Mái cũng là vật che: khi người chơi đứng ngoài, sát tường phía trên màn hình, mái nằm giữa camera và nhân vật.
@@ -77,6 +78,15 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       })
     }
   }
+  // M11b: upper floor slabs (they fade like walls when they hide the player on the storey below)
+  // and the treads of every flight (drawn only; bodies climb it through `FloorField`).
+  const floorColor = new Map(map.buildings.map((b) => [b.id, b.floorColor]))
+  for (const s of map.floors ?? []) {
+    const w = s.rect.maxX - s.rect.minX
+    const d = s.rect.maxZ - s.rect.minZ
+    items.push({ shape: 'box', center: new Vector3((s.rect.minX + s.rect.maxX) / 2, s.y - SLAB_THICKNESS / 2, (s.rect.minZ + s.rect.maxZ) / 2), size: [w, SLAB_THICKNESS, d], color: floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR, occluder: true })
+  }
+  for (const s of map.stairs ?? []) items.push(...stairTreads(s, floorColor.get(s.buildingId) ?? DEFAULT_WALL_COLOR))
   for (const t of map.trees ?? []) {
     const f = treeProfile(t)
     items.push({ shape: 'trunk', center: new Vector3(t.position.x, f.trunkHeight / 2, t.position.z), size: [2 * t.trunk, f.trunkHeight, 2 * t.trunk], color: TREE_TRUNK_COLOR, occluder: false })
@@ -85,6 +95,28 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true })
   }
   return items
+}
+
+/** Tread height of drawn stairs (m); the count follows the rise. */
+const TREAD_RISE = 0.2
+
+/** Boxes of a flight's steps, each from the lower floor up to its tread (a solid staircase). */
+export function stairTreads(s: StairPlacement, color: string): StaticItem[] {
+  const rise = s.topY - s.bottomY
+  const n = Math.max(1, Math.round(rise / TREAD_RISE))
+  const run = s.length / n
+  const out: StaticItem[] = []
+  const cx = (s.rect.minX + s.rect.maxX) / 2
+  const cz = (s.rect.minZ + s.rect.maxZ) / 2
+  for (let i = 0; i < n; i++) {
+    const top = (rise * (i + 1)) / n
+    // Step i spans [i·run, (i+1)·run] from the bottom edge along the climb.
+    const along = -s.length / 2 + (i + 0.5) * run
+    const c = s.axis === 'x' ? new Vector3(cx + s.dir * along, s.bottomY + top / 2, cz) : new Vector3(cx, s.bottomY + top / 2, cz + s.dir * along)
+    const size: [number, number, number] = s.axis === 'x' ? [round(run), round(top), s.width] : [s.width, round(top), round(run)]
+    out.push({ shape: 'box', center: c, size, color, occluder: false })
+  }
+  return out
 }
 
 type Piece = Rect & { overhang: Rect }

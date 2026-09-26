@@ -13,7 +13,7 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3–M11a): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
+# Map editor (M3–M11b): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/ → chơi: menu chính › Đổi world
 npm run map:unpack -- <pack> --world-id <id>  # ghi pack thành world mới (như nút Lưu thành… của editor)
@@ -120,6 +120,11 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M11b: nhiều tầng — dữ liệu và mô phỏng (26/09/2026)
+
+- Nhà nhiều tầng (`building.storeys`, `level` trên object/phòng, object `stairs`): tấm sàn tầng trên, luật độ cao chung (`FloorField`), điều hướng mỗi tầng một lưới nối qua cầu thang (`NavWorld`), người chơi/zombie lên xuống cầu thang, tầm nhìn/đòn đánh/tương tác/ánh sáng theo tầng.
+- Save v9 (độ cao chân; save cũ về mặt đất). World thử `?world=floors-lab`. Tiếp theo: M11c (hiển thị + editor theo tầng). Chi tiết `docs/map-editor-m11b.md`.
 
 ### Map editor M11a: nhà và phòng chữ L/T/U (26/09/2026)
 

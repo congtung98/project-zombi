@@ -10,6 +10,7 @@ import {
 } from '../game/world/buildings.ts'
 import type { MapData, RoadDef, ZoneDef } from '../game/world/mapData.ts'
 import { trunkWall, type TreeDef } from '../game/world/trees.ts'
+import { STAIR_RAIL, subtractRects, type FloorSlab, type StairPlacement } from '../game/world/floors.ts'
 import {
   RECORD_CATEGORIES,
   recordId,
@@ -20,6 +21,7 @@ import {
   type PrefabObject,
   type RecordCategory,
   type Rect,
+  type StairsObject,
   type StandaloneObject,
   type TreeObject,
   type WallRunObject,
@@ -28,7 +30,7 @@ import {
   type XZ,
 } from './schema.ts'
 import { addQuarterTurns, chunkOrigin, playAreaRect, quantize, quarterAngle, rotateRect, rotateSize, rotateXZ, unionRect } from './transform.ts'
-import { outlineCentre } from './polygon.ts'
+import { outlineCentre, outlineRects } from './polygon.ts'
 
 /**
  * Resolver: content documents → neutral descriptors in world space (the `MapData` pieces every
@@ -48,6 +50,9 @@ export interface MapParts {
   playerSpawns: { id: string; position: Vec3 }[]
   /** M9: trees (drawn); their trunks are also in `walls`. */
   trees: TreeDef[]
+  /** M11b: upper floor slabs and flights of multi-storey buildings. */
+  floors: FloorSlab[]
+  stairs: StairPlacement[]
 }
 
 export interface ResolvedRecord {
@@ -75,7 +80,7 @@ function boxRect(position: XZ, size: readonly number[]): Rect {
 }
 
 function emptyParts(): MapParts {
-  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [], trees: [] }
+  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [], trees: [], floors: [], stairs: [] }
 }
 
 /** An opening (door or window) cut into a wall run, as an interval along the run. */
@@ -90,7 +95,7 @@ export interface WallRunOpening {
  * Boxes of a wall run in the prefab's own frame (M5): solid pieces between openings, a lintel
  * above each door (from `DOOR_HEIGHT`) and a sill + header around each window. A door/window is an
  * opening of the run when it has the run's axis and its centre lies on the run (within half the
- * thickness across, inside the run along it).
+ * thickness across, inside the run along it) on the same storey (M11b).
  */
 export function wallRunBoxes(run: WallRunObject, objects: readonly PrefabObject[]): { boxes: (BoxFields & { part: string })[]; openings: WallRunOpening[] } {
   const t = run.thickness
@@ -104,6 +109,7 @@ export function wallRunBoxes(run: WallRunObject, objects: readonly PrefabObject[
   const openings: WallRunOpening[] = []
   for (const o of objects) {
     if (o.kind !== 'door' && o.kind !== 'window') continue
+    if ((o.level ?? 0) !== (run.level ?? 0)) continue
     if (((o.quarterTurns & 1) === 0) !== alongX) continue
     const c = along(o.position)
     if (Math.abs(across(o.position) - line) > t / 2 + 1e-6 || c < a0 || c > a1) continue
@@ -140,6 +146,45 @@ export function wallRunBoxes(run: WallRunObject, objects: readonly PrefabObject[
   return { boxes, openings }
 }
 
+/**
+ * M11b: the walls enclosing a flight, in the prefab frame with heights above its lower floor: side
+ * walls along the run (up to a railing on the upper storey), a wall under the top end on the lower
+ * storey (door height: the landing above stays clear of heads) and a railing across the bottom end
+ * on the upper storey. The bottom end (lower storey) and the top end (upper storey) stay open.
+ */
+export function stairBoxes(o: StairsObject, storeyHeight: number, thickness: number): (BoxFields & { part: string })[] {
+  const L = o.length / 2
+  const W = o.width / 2
+  const t = thickness
+  const H = storeyHeight
+  // [part, u0, u1, v0, v1, y0, y1] in the flight's frame: u climbs, v across.
+  const pieces: [string, number, number, number, number, number, number][] = [
+    ['side-a', -L - t, L + t, -W - t, -W, 0, H + STAIR_RAIL],
+    ['side-b', -L - t, L + t, W, W + t, 0, H + STAIR_RAIL],
+    ['back', L, L + t, -W, W, 0, Math.min(DOOR_HEIGHT, H)],
+    ['rail', -L - t, -L, -W, W, H, H + STAIR_RAIL],
+  ]
+  return pieces.map(([part, u0, u1, v0, v1, y0, y1]) => {
+    const [dx, dz] = rotateXZ((u0 + u1) / 2, (v0 + v1) / 2, o.quarterTurns)
+    return {
+      part,
+      position: { x: quantize(o.position.x + dx), y: quantize((y0 + y1) / 2), z: quantize(o.position.z + dz) },
+      size: rotateSize([quantize(u1 - u0), quantize(y1 - y0), quantize(v1 - v0)], o.quarterTurns),
+      color: STAIR_COLOR,
+    }
+  })
+}
+
+const STAIR_COLOR = '#8d8173'
+
+/** The walked rectangle of a flight in the prefab frame. */
+export function stairRect(o: StairsObject): Rect {
+  const odd = (o.quarterTurns & 1) === 1
+  const hx = (odd ? o.width : o.length) / 2
+  const hz = (odd ? o.length : o.width) / 2
+  return { minX: quantize(o.position.x - hx), minZ: quantize(o.position.z - hz), maxX: quantize(o.position.x + hx), maxZ: quantize(o.position.z + hz) }
+}
+
 /** Place one prefab instance: every object, room and lamp gets `<instanceId>/<localId>`. */
 export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, origin: XZ): { parts: MapParts; bounds: Rect; entityIds: string[] } {
   const q = inst.quarterTurns
@@ -154,9 +199,12 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
     return { minX: quantize(base.x + local.minX), minZ: quantize(base.z + local.minZ), maxX: quantize(base.x + local.maxX), maxZ: quantize(base.z + local.maxZ) }
   }
   const id = (localId: string) => `${inst.instanceId}/${localId}`
-  const box = (o: BoxFields) => {
+  // M11b: storey k of a building stands k storey heights up.
+  const storey = prefab.building?.height ?? 0
+  const lift = (o: { level?: number }) => (o.level ?? 0) * storey
+  const box = (o: BoxFields, dy = 0) => {
     const p = point(o.position)
-    return { position: { x: p.x, y: height(o.position.y), z: p.z }, size: rotateSize(o.size, q) }
+    return { position: { x: p.x, y: height(o.position.y + dy), z: p.z }, size: rotateSize(o.size, q) }
   }
 
   const parts = emptyParts()
@@ -171,6 +219,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       center: { x: quantize((footprint.minX + footprint.maxX) / 2), z: quantize((footprint.minZ + footprint.maxZ) / 2) },
       size: { w: quantize(footprint.maxX - footprint.minX), d: quantize(footprint.maxZ - footprint.minZ) },
       height: b.height,
+      ...((b.storeys ?? 1) > 1 ? { storeys: b.storeys } : {}),
       wallThickness: b.wallThickness,
       wallColor: b.wallColor,
       roofColor: b.roofColor,
@@ -185,7 +234,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       case 'wallRun': {
         // Pieces are derived (no saved state): IDs `<entity>#<part>` never collide with slugs.
         for (const b of wallRunBoxes(o, prefab.objects).boxes) {
-          const placed = box(b)
+          const placed = box(b, lift(o))
           parts.walls.push({ id: `${id(o.localId)}#${b.part}`, ...placed, color: b.color })
           bounds = unionRect(bounds, boxRect(placed.position, placed.size))
         }
@@ -193,7 +242,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       }
       case 'wall':
       case 'prop': {
-        const placed = box(o)
+        const placed = box(o, lift(o))
         parts.walls.push({ id: id(o.localId), ...placed, color: o.color })
         bounds = unionRect(bounds, boxRect(placed.position, placed.size))
         break
@@ -206,7 +255,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         break
       }
       case 'container': {
-        const placed = box(o)
+        const placed = box(o, lift(o))
         parts.containers.push({ id: id(o.localId), name: o.name, ...placed, color: o.color, ...(o.lootTableId ? { loot: o.lootTableId } : {}) })
         bounds = unionRect(bounds, boxRect(placed.position, placed.size))
         break
@@ -216,7 +265,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         const c = point(o.position)
         const [hx, hz] = rotateXZ(-o.width / 2, 0, o.quarterTurns)
         const hinge = point({ x: o.position.x + hx, z: o.position.z + hz })
-        const y = height(0)
+        const y = height(lift(o))
         parts.doors.push({
           id: id(o.localId),
           name: o.name,
@@ -241,7 +290,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
           id: id(o.localId),
           name: o.name,
           buildingId: inst.instanceId,
-          center: { x: c.x, y: height((o.sill + o.head) / 2), z: c.z },
+          center: { x: c.x, y: height(lift(o) + (o.sill + o.head) / 2), z: c.z },
           width: o.width,
           sill: o.sill,
           head: o.head,
@@ -252,6 +301,39 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         bounds = unionRect(bounds, boxRect(c, alongX ? [o.width, o.thickness] : [o.thickness, o.width]))
         break
       }
+      case 'stairs': {
+        // Pieces are derived like wall-run pieces (`<entity>#side-a` …): no saved state.
+        for (const b of stairBoxes(o, storey, prefab.building?.wallThickness ?? 0.2)) {
+          const placed = box(b, lift(o))
+          parts.walls.push({ id: `${id(o.localId)}#${b.part}`, ...placed, color: b.color })
+          bounds = unionRect(bounds, boxRect(placed.position, placed.size))
+        }
+        const [dx, dz] = rotateXZ(1, 0, addQuarterTurns(q, o.quarterTurns))
+        parts.stairs.push({
+          id: id(o.localId),
+          buildingId: inst.instanceId,
+          level: o.level ?? 0,
+          rect: rect(stairRect(o)),
+          axis: dx !== 0 ? 'x' : 'z',
+          dir: dx + dz > 0 ? 1 : -1,
+          bottomY: height(lift(o)),
+          topY: height(lift(o) + storey),
+          width: o.width,
+          length: o.length,
+        })
+        break
+      }
+    }
+  }
+
+  // M11b: a slab over the footprint/outline for every upper storey, with the flights arriving there cut out.
+  if (b && (b.storeys ?? 1) > 1) {
+    const pieces = prefab.outline ? outlineRects(prefab.outline.map(point)) : [footprint]
+    for (let level = 1; level < (b.storeys ?? 1); level++) {
+      const holes = parts.stairs.filter((s) => s.level === level - 1).map((s) => s.rect)
+      subtractRects(pieces, holes).forEach((r, i) => {
+        parts.floors.push({ id: `${inst.instanceId}#floor-${level}-${i}`, buildingId: inst.instanceId, level, y: height(level * b.height), rect: r })
+      })
     }
   }
 
@@ -262,6 +344,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
     // Default fixture: the room centre (M11a: the middle of the biggest part of an L-shaped room).
     const centre = outline ? outlineCentre(outline) : { x: (rb.minX + rb.maxX) / 2, z: (rb.minZ + rb.maxZ) / 2 }
     const ceiling = b?.height ?? 0
+    const floor = lift(r)
     let lamp: RoomPlacement['lamp'] = null
     if (r.lamp) {
       entityIds.push(id(r.lamp.localId))
@@ -275,14 +358,15 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         switchAt: point(r.lamp.switchAt),
         ...(at ? { at } : {}),
         roomId: id(r.localId),
+        ...(floor ? { floorY: height(floor) } : {}),
         position: {
           x: at?.x ?? quantize(centre.x),
-          y: height(ceiling - LAMP_DROP),
+          y: height(floor + ceiling - LAMP_DROP),
           z: at?.z ?? quantize(centre.z),
         },
       }
     }
-    parts.rooms.push({ id: id(r.localId), name: r.name, buildingId: inst.instanceId, bounds: rb, ...(outline ? { outline } : {}), height: ceiling, lamp })
+    parts.rooms.push({ id: id(r.localId), name: r.name, buildingId: inst.instanceId, bounds: rb, ...(outline ? { outline } : {}), height: ceiling, ...(floor ? { floorY: height(floor) } : {}), lamp })
     bounds = unionRect(bounds, rb)
   }
   return { parts, bounds, entityIds }
@@ -418,5 +502,7 @@ export function assembleMapData(world: WorldDocument, records: Iterable<Resolved
     rooms: all.rooms,
     ...(all.trees.length ? { trees: all.trees } : {}),
     ...(maxActive !== undefined ? { maxActiveZombies: maxActive } : {}),
+    ...(all.floors.length ? { floors: all.floors } : {}),
+    ...(all.stairs.length ? { stairs: all.stairs } : {}),
   }
 }

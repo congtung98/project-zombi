@@ -66,6 +66,22 @@ const toLegacy = (save: SaveGame): SaveGame => {
   }))
   return copy as SaveGame
 }
+/**
+ * A fixture as v9 stores it: every position on the ground (feet height 0: before storeys the
+ * player's body centre was stored), nothing else changed.
+ */
+const ground = <T,>(fixture: T): T => {
+  type P = { y: number }
+  const copy = structuredClone(fixture) as unknown as { player: { position: P }; zombies: { position: P; lastKnownTarget: P | null }[]; containers: { position?: P }[] }
+  copy.player.position.y = 0
+  for (const z of copy.zombies) {
+    z.position.y = 0
+    if (z.lastKnownTarget) z.lastKnownTarget.y = 0
+  }
+  for (const c of copy.containers) if (c.position) c.position.y = 0
+  return copy as unknown as T
+}
+
 /** What New Game rolled for a container before v8 (loot is seeded by the container ID of the time). */
 const legacyRoll = (legacyId: string, seed: number) => {
   const def = LEGACY.map.containers.find((c) => c.id === legacyId)!
@@ -99,7 +115,7 @@ describe('Phase 1 fixture migration', () => {
     expect(migrated).toBe(true)
     expect(save.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
     expect(save.clock).toEqual(legacyFixture.clock)
-    expect(save.player.position).toEqual(legacyFixture.player.position)
+    expect(save.player.position).toEqual(ground(legacyFixture).player.position)
     expect(save.player.health).toBe(73)
     expect(save.player.inventory.slots[0]).toMatchObject(legacyFixture.player.inventory.slots[0]!)
     expect(equippedWeapon(save.player.inventory, save.player.equipment)).toMatchObject({ kind: 'weapon', condition: 80 })
@@ -196,7 +212,7 @@ describe('v4 → v5 (P2-S4 material containers)', () => {
       expect(added).toEqual({ id: id(legacyId), opened: false, items: legacyRoll(legacyId, s3Fixture.worldSeed) })
     }
     const old = withoutV6(save)
-    expect({ ...old, schemaVersion: 4, containers: old.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id)) }).toEqual(s3Fixture)
+    expect({ ...old, schemaVersion: 4, containers: old.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id)) }).toEqual(ground(s3Fixture))
     // Map order first, then drops (matches createSnapshot), and idempotent.
     const fixed = save.containers.filter((c) => !c.position).map((c) => c.id)
     expect(fixed).toEqual(NEIGHBORHOOD_MAP.containers.map((c) => c.id))
@@ -242,10 +258,10 @@ describe('P2-S2 browser fixture (v3)', () => {
     expect(JSON.stringify(s2Fixture)).toBe(before)
     const { name, appearance, ...rest } = save.player
     expect([name, appearance]).toEqual([DEFAULT_PLAYER_NAME, DEFAULT_APPEARANCE])
-    expect(rest).toEqual(s2Fixture.player)
+    expect(rest).toEqual(ground(s2Fixture).player)
     const old = withoutV6(save)
     const containers = old.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id))
-    expect({ ...old, player: rest, schemaVersion: 3, containers }).toEqual(s2Fixture)
+    expect({ ...old, player: rest, schemaVersion: 3, containers }).toEqual(ground(s2Fixture))
     expect(migrate(s2Fixture).save).toEqual(save)
   })
 
@@ -283,8 +299,8 @@ describe('instance ownership', () => {
     const { save, migrated, fromVersion } = migrate(currentFixture)
     expect([migrated, fromVersion]).toEqual([true, 2])
     expect(JSON.stringify(currentFixture)).toBe(before)
-    for (const old of currentFixture.containers) expect(save.containers.find((c) => c.id === id(old.id))).toEqual({ ...old, id: id(old.id) })
-    expect(save.player).toEqual({ ...currentFixture.player, name: DEFAULT_PLAYER_NAME, appearance: DEFAULT_APPEARANCE })
+    for (const old of ground(currentFixture).containers) expect(save.containers.find((c) => c.id === id(old.id))).toEqual({ ...old, id: id(old.id) })
+    expect(save.player).toEqual({ ...ground(currentFixture).player, name: DEFAULT_PLAYER_NAME, appearance: DEFAULT_APPEARANCE })
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     const again = rt.createSnapshot()
@@ -390,7 +406,7 @@ describe('v5 → v6 (P2-S5 zombie perception, zones, siege, horde)', () => {
     const { save, fromVersion } = migrate(s4Fixture)
     expect(JSON.stringify(s4Fixture)).toBe(before)
     expect([fromVersion, save.schemaVersion]).toEqual([5, SAVE_SCHEMA_VERSION])
-    expect({ ...withoutV6(save), schemaVersion: 5 }).toEqual(s4Fixture)
+    expect({ ...withoutV6(save), schemaVersion: 5 }).toEqual(ground(s4Fixture))
     expect(save.horde).toEqual({ timer: GAME_CONFIG.horde.intervalMin, counter: 0 })
     expect(Object.fromEntries(save.zombies.map((z) => [z.id, z.zoneId]))).toEqual({
       'zombie-2': id('zone-south'), 'zombie-3': id('zone-east'), 'zombie-4': id('zone-north'), 'zombie-5': id('zone-store'),
@@ -473,7 +489,7 @@ describe('v6 → v7 (building lighting)', () => {
     expect(save.lighting.curtains.every((c) => !c.closed)).toBe(true)
     expect(save.lighting.lamps.map((l) => l.id).sort()).toEqual(['lamp-house-bedroom', 'lamp-house-living', 'lamp-safehouse', 'lamp-store'].map(id).sort())
     expect(save.lighting.lamps.every((l) => !l.on)).toBe(true)
-    expect({ ...withoutV7(save), schemaVersion: 6 }).toEqual(s5Fixture)
+    expect({ ...withoutV7(save), schemaVersion: 6 }).toEqual(ground(s5Fixture))
     expect(migrate(s5Fixture).save).toEqual(save)
     expect(migrate(save)).toMatchObject({ migrated: false, save })
   })
@@ -530,9 +546,9 @@ describe('Building lighting browser fixture (v7, saved in Chromium)', () => {
   it('v7 → v8 only renames map IDs; keeps lamp/curtain/door, recomputes room light and round-trips exactly', () => {
     const before = JSON.stringify(lightFixture)
     const { save, migrated, fromVersion } = migrate(lightFixture)
-    expect([migrated, fromVersion, save.schemaVersion, save.contentVersion]).toEqual([true, 7, 8, 1])
+    expect([migrated, fromVersion, save.schemaVersion, save.contentVersion]).toEqual([true, 7, SAVE_SCHEMA_VERSION, 1])
     expect(JSON.stringify(lightFixture)).toBe(before)
-    expect({ ...toLegacy(save), schemaVersion: 7 }).toEqual(lightFixture)
+    expect({ ...toLegacy(save), schemaVersion: 7 }).toEqual(ground(lightFixture))
     expect(save.doors.map((d) => d.id)).toEqual(NEIGHBORHOOD_MAP.doors.map((d) => d.id))
     expect(save.containers.filter((c) => !c.position).map((c) => c.id)).toEqual(NEIGHBORHOOD_MAP.containers.map((c) => c.id))
     expect(migrate(lightFixture).save).toEqual(save)
@@ -560,7 +576,7 @@ describe('v7 → v8 (map content, stable IDs)', () => {
     expect(save.zombies[0]).toMatchObject({ id: 'zombie-99', structureTargetId: id('door-safehouse'), zoneId: id('zone-north'), health: 60 })
     expect(save.containers.at(-1)).toEqual(v7.containers.at(-1))
     for (const c of v7.containers.filter((x) => !x.position)) expect(save.containers.find((x) => x.id === id(c.id))).toEqual({ ...c, id: id(c.id) })
-    expect({ ...toLegacy(save), schemaVersion: 7 }).toEqual(v7)
+    expect({ ...toLegacy(save), schemaVersion: 7 }).toEqual(ground(v7))
   })
 
   it('rejects legacy IDs in a v8 save, a missing or foreign content version, and unknown IDs in a v7 save', () => {

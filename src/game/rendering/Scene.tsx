@@ -86,7 +86,7 @@ function Drops() {
   return (
     <>
       {drops.map((drop) => (
-        <mesh key={drop.id} position={[drop.position.x, 0.18, drop.position.z]}>
+        <mesh key={drop.id} position={[drop.position.x, drop.position.y + 0.18, drop.position.z]}>
           <boxGeometry args={[0.45, 0.36, 0.45]} />
           <meshStandardMaterial color="#d5ac54" />
         </mesh>

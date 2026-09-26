@@ -174,6 +174,12 @@ function fakeBody(x: number, z: number) {
     setLinvel: (v: { x: number; y: number; z: number }) => {
       vel = { ...v }
     },
+    // M11b: the simulation sets the body's height from the floor under it.
+    setTranslation: (p: { x: number; y: number; z: number }) => {
+      pos.x = p.x
+      pos.y = p.y
+      pos.z = p.z
+    },
     setEnabled: (e: boolean) => {
       enabled = e
     },

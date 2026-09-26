@@ -55,7 +55,7 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 |---|---|
 | `schemaVersion` (world/prefab/chunk) | Cấu trúc JSON; hiện là 1, khác 1 thì báo `unsupported-schema` |
 | `contentVersion` (world, từng prefab/chunk) | Bản sửa nội dung; manifest ghim phiên bản prefab (`version-mismatch` nếu lệch) |
-| Save `schemaVersion` 8 + `contentVersion` | Save ghi lại bản nội dung nó được tạo ra. Bản cũ hơn đi qua chuỗi migration nội dung (M8, `migrations/content-v<N>.json`); thiếu một bước hoặc save mới hơn nội dung → `incompatible` |
+| Save `schemaVersion` 9 + `contentVersion` (v9 = M11b: `y` là độ cao chân) | Save ghi lại bản nội dung nó được tạo ra. Bản cũ hơn đi qua chuỗi migration nội dung (M8, `migrations/content-v<N>.json`); thiếu một bước hoặc save mới hơn nội dung → `incompatible` |
 
 `contentVersion` chỉ để phát hiện khác biệt, không tự chứng minh tương thích. Khi thêm, bỏ hoặc đổi tên ID có trạng thái (cửa, container cố định, cửa sổ, đèn, zone), tăng `contentVersion` kèm một migration nội dung; editor tạo nó (Inspector → World → Tương thích save).
 
@@ -79,7 +79,7 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 
 **world.json**: `schemaVersion, worldId, name, contentVersion, chunkSize, coordinateSystem, playArea { size, depth?, center? {x,z} } (M7: bỏ `depth`/`center` khi là hình vuông tâm gốc), boundary { height, thickness } | null, chunkBounds { minCx, maxCx, minCz, maxCz }` (tính cả biên), `chunks [{ chunkId, cx, cz, path }]`, `prefabs [{ prefabId, contentVersion, path }]`, `playerSpawn` (ID spawn), `listed?: boolean` (mặc định true; `false` ẩn world khỏi menu chọn world của game, vẫn mở được bằng `?world=`; không ảnh hưởng save), `gameplay? { maxActiveZombies? }`, `retiredIds? [string]` (M3), `generator? { name, version, seed, params, catalog }` (M6: truy vết world sinh tự động; `map:generate` dùng để phát hiện sửa tay).
 
-**Prefab**: `schemaVersion, prefabId` (vd. `building/store`), `contentVersion, name, pivot {x,y,z}, footprint {minX,minZ,maxX,maxZ}`, `outline? [{x,z}]` (M11a: nhà chữ L/T/U, đa giác vuông góc trên đường tâm tường; `footprint` = khung bao của nó; sàn, mái, phép thử trong nhà theo outline), `building? { height, wallThickness, wallColor, roofColor, floorColor }` (có thì là nhà: sàn, mái, ánh sáng), `objects[]`, `rooms[]`. Các object phân biệt bằng `kind`:
+**Prefab**: `schemaVersion, prefabId` (vd. `building/store`), `contentVersion, name, pivot {x,y,z}, footprint {minX,minZ,maxX,maxZ}`, `outline? [{x,z}]` (M11a: nhà chữ L/T/U, đa giác vuông góc trên đường tâm tường; `footprint` = khung bao của nó; sàn, mái, phép thử trong nhà theo outline), `building? { height, storeys?, wallThickness, wallColor, roofColor, floorColor }` (có thì là nhà: sàn, mái, ánh sáng; M11b: `height` là chiều cao một tầng, `storeys` 1–4, mỗi tầng trên có tấm sàn phủ footprint/outline, khoét lỗ cầu thang; mái trên tầng cao nhất), `objects[]`, `rooms[]`. Các object phân biệt bằng `kind`:
 
 | kind | Trường | Runtime |
 |---|---|---|
@@ -91,7 +91,9 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 | `tree` (M9) | `localId, position {x,z}, height 2..20, canopy 0.5..8` (bán kính tán), `trunk 0.1..1` (bán kính thân, nhỏ hơn tán), `color` (màu tán), `style: "round"\|"pine"` | thân là một wall cùng ID (`trunkWall`): collider, chặn nav và tầm nhìn zombie như cái cột; tán chỉ để vẽ (batch theo chunk) và mờ đi khi che người chơi như mái; không xoay |
 | `wallRun` (M5) | `localId, from {x,z}, to {x,z}` (song song X hoặc Z, trên đường tâm tường), `height, thickness, color` | resolver tách thành hộp tường, khoét khe ở mỗi cửa/cửa sổ cùng prefab nằm trên nó (cùng trục, tâm trên tường), thêm lanh tô trên cửa (từ `DOOR_HEIGHT`) và bệ/đầu cửa sổ; kéo dài nửa độ dày ở hai đầu để kín góc. Mảnh có ID dẫn xuất `<entity>#<phần>`, không có trạng thái |
 
-Room: `localId, name, bounds`, `outline? [{x,z}]` (M11a: phòng chữ L/T/U; `bounds` = khung bao; ánh sáng và phép thử trong phòng theo outline; đèn mặc định ở tâm mảnh chữ nhật lớn nhất), `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }` (`at`: vị trí đèn trên trần, mặc định tâm phòng; M7 sửa được trong editor, ánh sáng vẫn tính theo cả phòng). Trần nhà = `building.height`.
+**Tầng (M11b)**: `level?` (0 = tầng trệt) trên `wall`, `prop`, `container`, `door`, `window`, `wallRun`, `stairs` và phòng; resolver nâng lên `level · building.height`, tường chạy chỉ khoét cửa cùng tầng. Object `stairs { localId, level?, position {x,z}, quarterTurns, width 1–4, length 2–12 }`: ở hướng 0° leo theo +X, lên một tầng; resolver dựng tường hai bên (tới lan can 1 m ở tầng trên), tường dưới đầu trên (cao bằng cửa), lan can ngang đầu dưới ở tầng trên (ID phái sinh `#side-a`, `#side-b`, `#back`, `#rail`) và khoét lỗ trong tấm sàn tầng trên. Runtime: `MapData.floors` (tấm sàn), `MapData.stairs`.
+
+Room: `localId, name, level?` (M11b: tầng, mặc định 0), `bounds`, `outline? [{x,z}]` (M11a: phòng chữ L/T/U; `bounds` = khung bao; ánh sáng và phép thử trong phòng theo outline; đèn mặc định ở tâm mảnh chữ nhật lớn nhất), `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }` (`at`: vị trí đèn trên trần, mặc định tâm phòng; M7 sửa được trong editor, ánh sáng vẫn tính theo cả phòng). Trần nhà = `building.height`.
 
 `retiredLocalIds?` (M5, sắp xếp): local ID đã xóa/đổi tên trong prefab editor; không cấp lại, dùng lại là lỗi `retired-id-reused`.
 
@@ -107,16 +109,16 @@ File được ghi bằng `formatJson`: giữ thứ tự khóa, và object/mảng
 
 Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi ghi rõ `severity, code, message, path` (dạng `chunks/c0_0.json#/instances/2/position`) và `entityId`. Runtime gặp lỗi thì ném `MapContentError`, **không** lùi về map mặc định.
 
-- **Lỗi** (chặn nạp/export): `unsupported-schema`, `schema`, `not-finite`, `out-of-range`, `invalid-rect`, `invalid-id`, `invalid-path`, `missing-file`, `duplicate-id`, `manifest-mismatch`, `version-mismatch`, `unknown-kind`, `unknown-prefab`, `unknown-loot-table`, `rooms-need-building`, `chunk-outside-bounds`, `owner-mismatch`, `missing-external-ref`, `stale-external-ref`, `missing-player-spawn`, `spawn-outside-play-area`, `spawn-blocked` (spawn cách một collider thấp dưới 0,4 m), `retired-id-reused`, `invalid-outline` (M11a: outline dưới 4 đỉnh, có cạnh chéo/dài 0, cạnh cắt nhau hoặc không có diện tích), `outline-bounds` (khung chữ nhật khác khung bao của outline).
+- **Lỗi** (chặn nạp/export): `unsupported-schema`, `schema`, `not-finite`, `out-of-range`, `invalid-rect`, `invalid-id`, `invalid-path`, `missing-file`, `duplicate-id`, `manifest-mismatch`, `version-mismatch`, `unknown-kind`, `unknown-prefab`, `unknown-loot-table`, `rooms-need-building`, `chunk-outside-bounds`, `owner-mismatch`, `missing-external-ref`, `stale-external-ref`, `missing-player-spawn`, `spawn-outside-play-area`, `spawn-blocked` (spawn cách một collider thấp dưới 0,4 m), `retired-id-reused`, `invalid-outline` (M11a: outline dưới 4 đỉnh, có cạnh chéo/dài 0, cạnh cắt nhau hoặc không có diện tích), `outline-bounds` (khung chữ nhật khác khung bao của outline), M11b: `storey-height` (nhà nhiều tầng cần tầng cao ≥ 2,6 m), `stairs-need-storeys`, `stairs-too-steep` (dốc hơn 45°), `level-not-allowed` (cây hoặc object trong chunk có `level`); `level` ngoài số tầng là `out-of-range`.
 - `checkWorldDocuments` là bản không ném lỗi của `loadWorldDocuments` (editor dùng cho bảng Validate và bản nháp).
 - Cây (M9): `height`, `canopy`, `trunk` ngoài khoảng hoặc thân không nhỏ hơn tán → `out-of-range`; `style` khác `round`/`pine` → `schema`. Spawn trên thân cây → `spawn-blocked` như mọi collider thấp.
 - **Migration nội dung** (M8): `content-migration` (file sai dạng, lỗi), `content-migration-rename` (đổi tên không khớp bản sau, lỗi), `content-migration-missing` (thiếu bước vN → vN+1: save vN sẽ không nạp được, cảnh báo).
-- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu **cùng lớp** chồng nhau, sẽ nhấp nháy; M7: đặt lớp khác để hết) — hai cái sau từ M4; `lamp-outside-room` (M7: đèn `at` nằm ngoài phòng của nó). M11a: `outside-footprint` và `lamp-outside-room` theo outline khi có.
+- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu **cùng lớp** chồng nhau, sẽ nhấp nháy; M7: đặt lớp khác để hết) — hai cái sau từ M4; `lamp-outside-room` (M7: đèn `at` nằm ngoài phòng của nó). M11a: `outside-footprint` và `lamp-outside-room` theo outline khi có. M11b: `stairs-outside-footprint` (cầu thang cộng 0,9 m chỗ bước lên/xuống ở hai đầu không nằm gọn trong nhà); deep check `stairs-unusable`.
 - **Kiểm tra sâu** (M6, `src/map/analysis.ts`, cảnh báo): `interaction-unreachable`, `spawn-unreachable`, `spawn-indoors`, `zone-unreachable`, `start-not-walkable`, `collider-overlap`, `container-outside-room`. Dùng NavGrid/interactable/LOS của game nên chạy trong editor, test và `npm run map:check -- --deep` (qua Vite), không trong validator Node thuần. Chưa có: zone quá dày.
 
 ## 8. Save
 
-- Save v8 dùng ID ổn định và ghi `contentVersion`.
+- Save v8 dùng ID ổn định và ghi `contentVersion`. Save v9 (M11b): `y` của mọi vị trí (người chơi, zombie, ký ức, túi đồ rơi) là độ cao chân; bước v8 → v9 đưa về 0 (trước đó chỉ có một tầng).
 - Save v1–v7 được kiểm tra và migrate bằng **map cũ đóng băng** (`migrations/legacy-v7-map.json`, đúng bản trước M2). Nhờ vậy các bước migrate cũ và các hằng `CONTAINERS_ADDED_V3/V5`, `DOORS_ADDED_V7`, `WALL_PREFIXES_ADDED_V7` (nay ở `world/legacyContent.ts`) chạy y như trước.
 - Bước v7 → v8 đổi tên qua `migrations/legacy-v7-ids.json` cho cửa, container cố định, rèm (cửa sổ), đèn, zone của zombie và cửa đang bị vây, rồi xếp lại theo thứ tự map.
 - Túi đồ rơi giữ ID `drop:…`. ID inventory và item **không đổi**, nên vật phẩm vẫn mang tên tủ cũ, ví dụ `loot:…:ct-safehouse-closet:1`. Việc này không ảnh hưởng gì vì ID chỉ cần duy nhất.
@@ -129,7 +131,7 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
   - container bị bỏ: mỗi vật phẩm thành một túi `drop:<itemId>` tại chỗ tủ cũ (ID vật phẩm giữ nguyên);
   - zombie của zone bị bỏ theo luật `zoneFor`; zombie đang vây một cửa bị bỏ chuyển sang `SEARCH`;
   - người chơi, zombie và túi đồ bị vật cản mới che được dời ra cạnh vật cản và vào trong vùng chơi.
-  - Kết quả được kiểm tra lại như một save của bản hiện tại. Bản gốc lưu ở `<slot>.backup-v8-content-v<N>`; menu hiện thông báo bản đồ đã cập nhật.
+  - Kết quả được kiểm tra lại như một save của bản hiện tại. Bản gốc lưu ở `<slot>.backup-v<save>-content-v<N>` (vd. `backup-v9-content-v1`); menu hiện thông báo bản đồ đã cập nhật.
 
 ## 9. Công cụ
 

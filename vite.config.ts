@@ -37,7 +37,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
-    // Tests read the frozen neighbourhood (src/test/fixtures/maps/), not the live content/maps copy.
+    // Tests read the frozen worlds (src/test/fixtures/maps/: the neighbourhood, the floors lab), not the live content/maps copies.
     alias: [{ find: /^\.\/bundledFiles$/, replacement: fileURLToPath(new URL('./src/test/bundledFiles.ts', import.meta.url)) }],
   },
 })

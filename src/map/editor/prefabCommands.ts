@@ -1,5 +1,5 @@
 import { MAP_SCHEMA_VERSION, type PrefabDocument, type PrefabObject, type QuarterTurns, type Rect, type RoomObject, type WallRunObject, type XZ } from '../schema.ts'
-import { resolveInstance, type ResolvedRecord } from '../resolve.ts'
+import { resolveInstance, stairRect, type ResolvedRecord } from '../resolve.ts'
 import { addQuarterTurns, PREFAB_ID, quantize, rotateXZ, SLUG } from '../transform.ts'
 import type { CommandResult } from './commands.ts'
 import { instancesOf, withExternalRefs, type AnyRecord, type MapDocument } from './document.ts'
@@ -70,6 +70,8 @@ export function objectRect(o: PrefabObject): Rect {
     case 'tree':
       // Picked at the trunk and inner canopy (the whole canopy would cover the items under it).
       return rectAround(o.position, Math.max(2 * o.trunk, o.canopy), Math.max(2 * o.trunk, o.canopy))
+    case 'stairs':
+      return stairRect(o)
     default:
       return rectAround(o.position, o.size[0], o.size[2])
   }
@@ -502,7 +504,7 @@ export function rotatePrefabItems(doc: MapDocument, prefabId: string, keys: read
   const next = copyPrefab(prefab)
   next.objects = prefab.objects.map((o) => {
     if (!want.has(o.localId)) return o
-    if (o.kind === 'door' || o.kind === 'window') {
+    if (o.kind === 'door' || o.kind === 'window' || o.kind === 'stairs') {
       count++
       return { ...o, quarterTurns: addQuarterTurns(o.quarterTurns, turns) }
     }

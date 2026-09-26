@@ -3,6 +3,7 @@ import { SpatialHash } from '../core/spatialHash'
 import { mapWindows, type MapData } from './mapData'
 import { doorLeafTransform, type DoorStatus } from './doors'
 import { segmentBoxEntry } from './visionOccluders'
+import { SLAB_THICKNESS } from './floors'
 
 /**
  * R2: the solid boxes zombies collide with, owned by the simulation (the same set Rapier gets:
@@ -16,7 +17,11 @@ import { segmentBoxEntry } from './visionOccluders'
  * simulation no longer needs any collider of the physics engine for AI.
  */
 
-export type StaticColliderKind = 'wall' | 'container' | 'window' | 'door'
+/**
+ * M11b: `floor` = an upper floor slab. It blocks sight and attacks between storeys (`segmentBlocked`)
+ * but never movement: bodies stand on it through `FloorField`, not by colliding.
+ */
+export type StaticColliderKind = 'wall' | 'container' | 'window' | 'door' | 'floor'
 
 export interface StaticCollider {
   id: string
@@ -69,13 +74,16 @@ export class StaticColliderRegistry {
     return this.byId.size
   }
 
-  /** Solid colliders whose footprint overlaps the box. The returned array is reused by the next call. */
+  /**
+   * Solid colliders whose footprint overlaps the box (floor slabs excluded: nobody walks into them).
+   * The returned array is reused by the next call.
+   */
   querySolid(minX: number, minZ: number, maxX: number, maxZ: number): readonly StaticCollider[] {
     const out = this.scratch
     out.length = 0
     this.index.queryAABB(minX, minZ, maxX, maxZ, out)
     let n = 0
-    for (const c of out) if (!c.isSolid || c.isSolid()) out[n++] = c
+    for (const c of out) if (c.kind !== 'floor' && (!c.isSolid || c.isSolid())) out[n++] = c
     out.length = n
     return out
   }
@@ -122,9 +130,12 @@ function box(center: Vec3, size: readonly [number, number, number]): { min: Vec3
   }
 }
 
-/** Registers the colliders of a map (walls, containers, window panes, both poses of every door leaf). */
+/** Registers the colliders of a map (walls, containers, window panes, both poses of every door leaf, M11b floor slabs). */
 export function registerMapColliders(registry: StaticColliderRegistry, map: MapData, doorState: (id: string) => DoorStatus | undefined): void {
   for (const w of map.walls) registry.registerStaticCollider({ id: w.id, kind: 'wall', ...box(w.position, w.size), color: w.color })
+  for (const s of map.floors ?? []) {
+    registry.registerStaticCollider({ id: s.id, kind: 'floor', min: { x: s.rect.minX, y: s.y - SLAB_THICKNESS, z: s.rect.minZ }, max: { x: s.rect.maxX, y: s.y, z: s.rect.maxZ } })
+  }
   for (const c of map.containers) registry.registerStaticCollider({ id: c.id, kind: 'container', ...box(c.position, c.size) })
   for (const win of mapWindows(map)) {
     const size: [number, number, number] = win.alongX ? [win.width, win.head - win.sill, win.thickness] : [win.thickness, win.head - win.sill, win.width]

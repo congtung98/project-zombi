@@ -87,16 +87,17 @@ export function isInsideVisionCone(observer: VisionObserver, target: Vec3, cosHa
   return (f.x * dx + f.z * dz) / len >= cosHalf
 }
 
+/** Eye point above the observer's feet (M11b: `position.y` is the floor it stands on). */
 export function eyePosition(observer: VisionObserver, cfg: PlayerVisionConfig, out: Vec3 = { x: 0, y: 0, z: 0 }): Vec3 {
   out.x = observer.position.x
-  out.y = cfg.playerEyeHeight
+  out.y = observer.position.y + cfg.playerEyeHeight
   out.z = observer.position.z
   return out
 }
 
 export function targetPoint(position: Vec3, cfg: PlayerVisionConfig, out: Vec3 = { x: 0, y: 0, z: 0 }): Vec3 {
   out.x = position.x
-  out.y = cfg.zombieTargetHeight
+  out.y = position.y + cfg.zombieTargetHeight
   out.z = position.z
   return out
 }

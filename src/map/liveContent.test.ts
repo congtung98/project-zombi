@@ -53,8 +53,10 @@ describe('frozen test neighbourhood', () => {
     expect(served.length).toBe(frozen.filter((p) => p.includes(`/maps/${DEFAULT_WORLD_ID}/`)).length)
   })
 
-  it('other worlds are the live ones', () => {
-    for (const p of Object.keys(LIVE).filter((p) => !p.startsWith(`/content/maps/${DEFAULT_WORLD_ID}/`))) expect(BUNDLED_FILES[p]).toBe(LIVE[p])
+  it('other worlds are the live ones (M11b: the floors lab is frozen too, for the storey tests)', () => {
+    const frozenWorlds = new Set(Object.keys(FROZEN).map((p) => p.split('/')[5]))
+    expect([...frozenWorlds].sort()).toEqual(['floors-lab', DEFAULT_WORLD_ID])
+    for (const p of Object.keys(LIVE).filter((p) => !frozenWorlds.has(p.split('/')[3]))) expect(BUNDLED_FILES[p]).toBe(LIVE[p])
   })
 
   it('still loads', () => {

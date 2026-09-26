@@ -11,7 +11,7 @@ import { LOOT_TABLES } from '../../game/world/lootTables'
 import { mapStatefulIds, validateSaveGame } from '../../game/systems/save'
 import { backupSlotFor } from '../../game/systems/saveStorage'
 import { NEIGHBORHOOD_MAP, type MapData } from '../../game/world/mapData'
-import type { SaveGame } from '../../types/save'
+import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { deleteRecords, placeInstance, updateWorld, type CommandResult } from './commands'
 import { documentFiles, type MapDocument } from './document'
 import { contentChanges, documentStatefulIds, migrationOf, setMigrationRename, suggestRenames, writeContentMigration } from './migration'
@@ -142,7 +142,7 @@ describe('content migrations: saves (M8)', () => {
     const v = validateSaveGame(before, ID, mapV2)
     expect(JSON.stringify(before)).toBe(original)
     if (!v.ok) throw new Error(v.detail)
-    expect(v).toMatchObject({ migrated: true, fromVersion: 8, contentFrom: 1 })
+    expect(v).toMatchObject({ migrated: true, fromVersion: SAVE_SCHEMA_VERSION, contentFrom: 1 })
     const save = v.save
     expect(save.contentVersion).toBe(2)
     const lamps = Object.fromEntries(save.lighting.lamps.map((l) => [l.id, l.on]))

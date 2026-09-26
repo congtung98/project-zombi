@@ -21,6 +21,8 @@ export const indoorUniforms = {
   uRoomCount: { value: 0 },
   uRoomRect: { value: Array.from({ length: INDOOR_MAX_ROOMS }, () => new Vector4()) },
   uRoomShade: { value: Array.from({ length: INDOOR_MAX_ROOMS }, () => new Vector4(1, 1, 1, 0)) },
+  /** M11b: floor height of each slot's room (fragments below it belong to the storey under it). */
+  uRoomFloor: { value: Array.from({ length: INDOOR_MAX_ROOMS }, () => 0) },
 }
 
 const VERTEX_DECL = /* glsl */ `
@@ -46,6 +48,7 @@ const FRAGMENT_DECL = /* glsl */ `
 uniform int uRoomCount;
 uniform vec4 uRoomRect[INDOOR_MAX_ROOMS];
 uniform vec4 uRoomShade[INDOOR_MAX_ROOMS];
+uniform float uRoomFloor[INDOOR_MAX_ROOMS];
 varying vec3 vIndoorWorld;
 `
 
@@ -54,7 +57,7 @@ const FRAGMENT_APPLY = /* glsl */ `
 for (int i = 0; i < INDOOR_MAX_ROOMS; i++) {
   if (i >= uRoomCount) break;
   vec4 r = uRoomRect[i];
-  if (vIndoorWorld.x >= r.x && vIndoorWorld.x <= r.y && vIndoorWorld.z >= r.z && vIndoorWorld.z <= r.w && vIndoorWorld.y < uRoomShade[i].w) {
+  if (vIndoorWorld.x >= r.x && vIndoorWorld.x <= r.y && vIndoorWorld.z >= r.z && vIndoorWorld.z <= r.w && vIndoorWorld.y < uRoomShade[i].w && vIndoorWorld.y >= uRoomFloor[i]) {
     vec3 worldNormal = inverseTransformDirection(normal, viewMatrix);
     float form = 0.7 + 0.3 * max(dot(worldNormal, normalize(vec3(0.35, 0.85, 0.4))), 0.0);
     outgoingLight = diffuseColor.rgb * uRoomShade[i].rgb * form + totalEmissiveRadiance;
@@ -64,7 +67,7 @@ for (int i = 0; i < INDOOR_MAX_ROOMS; i++) {
 #include <opaque_fragment>
 `
 
-const PROGRAM_KEY = 'indoor-lighting-v2'
+const PROGRAM_KEY = 'indoor-lighting-v3'
 
 type Shader = Parameters<MeshStandardMaterial['onBeforeCompile']>[0]
 

@@ -12,12 +12,16 @@ import type { ResolvedRecord } from './resolve'
  * rather than in the plain Node validator. Nothing here is a new rule set: reachability is the
  * runtime's NavGrid with every door open, interaction reach and line of sight are the runtime's
  * interactables and obstruction query, "indoors" is `isInsideBuilding`.
+ * M11b: reachability walks every storey through the flights (`NavWorld`); an interactable is reached
+ * from the floor it stands on.
  *
  * All results are warnings: content can be valid and still be a design slip.
  */
 
-/** Body centre height the runtime interacts from. */
+/** Body centre height (above the feet) the runtime interacts from. */
 const BODY_Y = 0.9
+/** The runtime's vertical interaction reach around the body centre (`runtime.ts` INTERACT_VERTICAL). */
+const REACH_Y = 1.4
 /** Low boxes (collide with bodies); overhead lintels and headers are ignored. */
 const OVERHEAD_BOTTOM = 1.6
 /** Overlap area that counts as suspicious (m²); touching or tiny overlaps are normal. */
@@ -70,15 +74,23 @@ type Add = (code: string, id: string, message: string) => void
 function reachability(map: MapData, zombieSpawnIds: readonly string[], add: Add): void {
   const rt = new GameRuntime(map)
   rt.setLineOfSightOverride(null)
-  for (const d of map.doors) rt.nav.setDoorState(d.id, 'open')
+  for (const d of map.doors) rt.navWorld.setDoorState(d.id, 'open')
   const nav = rt.nav
+  const world = rt.navWorld
   const start = map.playerSpawn
-  const home = nav.componentAt(start.x, start.z)
+  const home = world.componentAt({ x: start.x, y: 0, z: start.z })
   if (home < 0) {
     add('start-not-walkable', 'world/player-spawn', `the player spawn (${start.x}, ${start.z}) is not on a walkable cell`)
     return
   }
-  const reachable = (x: number, z: number) => nav.isWalkable(x, z) && nav.componentAt(x, z) === home
+  const reachableAt = (p: { x: number; y: number; z: number }) => world.isWalkable(p) && world.componentAt(p) === home
+  const reachable = (x: number, z: number) => reachableAt({ x, y: 0, z })
+
+  // M11b: a flight whose ends are not on floor is left out of navigation.
+  const usable = new Set(world.stairs.map((s) => s.stair.id))
+  for (const s of map.stairs ?? []) {
+    if (!usable.has(s.id)) add('stairs-unusable', s.id, `stairs ${s.id} cannot be used: the floor just past an end is blocked or missing`)
+  }
 
   // Every interactable (doors, containers, lamp switches, curtains) needs a reachable spot within
   // the runtime's reach with a clear line to it, like `selectInteractable` + `isBlocked`.
@@ -89,8 +101,10 @@ function reachability(map: MapData, zombieSpawnIds: readonly string[], add: Add)
         const a = (i / SAMPLES) * Math.PI * 2
         const x = item.position.x + Math.cos(a) * r
         const z = item.position.z + Math.sin(a) * r
-        if (!reachable(x, z)) continue
-        if (!rt.isBlocked({ x, y: BODY_Y, z }, item.position, [item.id])) ok = true
+        // Stand on the floor under the item's storey (the ground, or its slab).
+        const floor = rt.floors.surfaceAt(x, z, item.position.y - 0.2)
+        if (Math.abs(item.position.y - floor - BODY_Y) > REACH_Y || !reachableAt({ x, y: floor, z })) continue
+        if (!rt.isBlocked({ x, y: floor + BODY_Y, z }, item.position, [item.id])) ok = true
       }
       if (ok) break
     }

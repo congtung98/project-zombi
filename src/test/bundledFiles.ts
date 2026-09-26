@@ -1,7 +1,7 @@
 /**
  * Test build of `src/map/bundledFiles.ts` (vitest alias in `vite.config.ts`): every file eager (no
- * per-world loading), the live worlds of `content/maps/` except `neighborhood-50`, which comes from
- * the frozen copy in `src/test/fixtures/maps/neighborhood-50/`. Game and editor tests assert that copy's exact IDs,
+ * per-world loading), the live worlds of `content/maps/` except the frozen ones in
+ * `src/test/fixtures/maps/` (`neighborhood-50`, and M11b `floors-lab` for the storey tests). Game and editor tests assert that copy's exact IDs,
  * positions and loot, so the live neighbourhood can be edited (and given content migrations)
  * without rewriting them. `src/map/liveContent.test.ts` still loads every live world.
  * Never imported by the game or the editor.

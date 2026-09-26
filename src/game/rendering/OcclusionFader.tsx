@@ -11,6 +11,8 @@ const RAY_LENGTH = 80
  * tia bảo đảm bất kỳ khối nào che một phần nhân vật cũng được làm mờ.
  */
 const RAY_OFFSETS = [-0.75, 0, 0.8]
+/** Rays start around the body centre (M11b: `player.position.y` is the feet height). */
+const BODY_CENTRE = runtime.config.player.height / 2
 
 /**
  * Làm mờ các khối cao (tường, cửa, mái) nằm giữa camera và nhân vật để nhân
@@ -38,7 +40,7 @@ export function OcclusionFader() {
     const nowFaded = new Set<Occluder>()
     const r = ray.current
     for (const offset of RAY_OFFSETS) {
-      r.origin.set(p.x, p.y + offset, p.z)
+      r.origin.set(p.x, p.y + BODY_CENTRE + offset, p.z)
       r.direction.copy(dir)
       // Ray length until it rises above every occluder (capped by the old fixed length).
       const t = dir.y > 0 ? Math.min(RAY_LENGTH, (occlusionRegistry.maxTop - r.origin.y) / dir.y) : RAY_LENGTH

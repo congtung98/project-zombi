@@ -24,9 +24,9 @@ describe('indoor shading install (R1: no scene traversal)', () => {
       fragmentShader: '#include <common>\n#include <opaque_fragment>',
     }
     m.onBeforeCompile(shader as never, null as never)
-    expect(Object.keys(shader.uniforms)).toEqual(['uRoomCount', 'uRoomRect', 'uRoomShade'])
+    expect(Object.keys(shader.uniforms)).toEqual(['uRoomCount', 'uRoomRect', 'uRoomShade', 'uRoomFloor'])
     expect(shader.fragmentShader).toContain('uRoomShade[i].w')
-    expect(m.customProgramCacheKey()).toBe('indoor-lighting-v2')
+    expect(m.customProgramCacheKey()).toBe('indoor-lighting-v3')
   })
 
   it('takes the room limit from config (no scattered magic number)', () => {

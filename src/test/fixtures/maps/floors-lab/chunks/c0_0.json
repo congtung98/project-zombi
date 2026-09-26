@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_0",
+  "cx": 0,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c0_0/house",
+      "prefabId": "building/two-storey",
+      "position": { "x": 16, "y": 0, "z": 14 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [
+    { "roadId": "c0_0/roads/path", "position": { "x": 8, "z": 16 }, "size": [3, 28], "color": "#6d6a62" }
+  ],
+  "zones": [
+    {
+      "zoneId": "c0_0/zones/yard",
+      "kind": "zombiePopulation",
+      "name": "Sân",
+      "shape": "rect",
+      "center": { "x": 16, "z": 26 },
+      "size": [24, 6]
+    }
+  ],
+  "spawns": [
+    { "spawnId": "c0_0/spawns/player-start", "kind": "player", "position": { "x": 8, "z": 20 } },
+    { "spawnId": "c0_0/spawns/zombie-1", "kind": "zombie", "position": { "x": 26, "z": 27 } },
+    { "spawnId": "c0_0/spawns/zombie-2", "kind": "zombie", "position": { "x": 22, "z": 28 } }
+  ],
+  "externalRefs": []
+}

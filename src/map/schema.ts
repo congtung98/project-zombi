@@ -104,7 +104,13 @@ export interface GeneratorInfo {
 }
 
 export interface BuildingProps {
+  /** Storey height (m): floor to floor, the walls of one storey; the roof sits on the top storey. */
   height: number
+  /**
+   * M11b: number of storeys, 1..`MAX_STOREYS` (default 1). Storey k (0 = ground) has its floor at
+   * k·height; every upper storey gets a slab over the footprint/outline with holes over its stairs.
+   */
+  storeys?: number
   wallThickness: number
   wallColor: string
   roofColor: string
@@ -119,18 +125,28 @@ export interface BoxFields {
   color: string
 }
 
-export interface WallObject extends BoxFields {
+export const MAX_STOREYS = 4
+
+/**
+ * M11b: storey of a prefab object or room (0 = ground, default). The resolver raises it by
+ * `level · building.height`; positions stay relative to that storey's floor. Chunk objects have none.
+ */
+export interface Levelled {
+  level?: number
+}
+
+export interface WallObject extends BoxFields, Levelled {
   kind: 'wall'
   localId: string
 }
 
 /** Furniture or loose obstacle: same runtime behaviour as a wall, separate editor layer. */
-export interface PropObject extends BoxFields {
+export interface PropObject extends BoxFields, Levelled {
   kind: 'prop'
   localId: string
 }
 
-export interface ContainerObject extends BoxFields {
+export interface ContainerObject extends BoxFields, Levelled {
   kind: 'container'
   localId: string
   name: string
@@ -143,7 +159,7 @@ export interface ContainerObject extends BoxFields {
  * x = −width/2 and the closed leaf points +X; `openTowards` is the local Z side the leaf swings to.
  * Height is the engine constant `DOOR_HEIGHT`.
  */
-export interface DoorObject {
+export interface DoorObject extends Levelled {
   kind: 'door'
   localId: string
   name: string
@@ -156,7 +172,7 @@ export interface DoorObject {
 }
 
 /** Glass pane in a wall gap (blocks movement and zombie sight). q = 0: pane along X, inside = +Z. */
-export interface WindowObject {
+export interface WindowObject extends Levelled {
   kind: 'window'
   localId: string
   name: string
@@ -175,7 +191,7 @@ export interface WindowObject {
  * `from`/`to` are points on the wall centre line; the box extends `thickness / 2` past both ends
  * so corners close. Its pieces are plain walls with derived IDs `<entity>#<n>` (no saved state).
  */
-export interface WallRunObject {
+export interface WallRunObject extends Levelled {
   kind: 'wallRun'
   localId: string
   from: XZ
@@ -204,7 +220,24 @@ export interface TreeObject {
   style: 'round' | 'pine'
 }
 
-export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject | TreeObject
+/**
+ * M11b: straight flight from storey `level` (default 0) to `level + 1` of a multi-storey building.
+ * Own frame (q = 0): it climbs along +X, `length` long (the walked run) and `width` wide across Z,
+ * `position` is the centre of that rectangle. The resolver encloses it: side walls along the run up
+ * to a railing on the upper storey, a wall under the top end on the lower storey and a railing
+ * across the bottom end on the upper storey, and cuts its rectangle out of the upper slab. You walk
+ * in at the bottom end (lower storey) and out at the top end (upper storey).
+ */
+export interface StairsObject extends Levelled {
+  kind: 'stairs'
+  localId: string
+  position: XZ
+  quarterTurns: QuarterTurns
+  width: number
+  length: number
+}
+
+export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject | TreeObject | StairsObject
 
 export interface LampObject {
   localId: string
@@ -220,7 +253,7 @@ export interface LampObject {
 }
 
 /** Room for building lighting: rectangle on the wall centre lines, ceiling = building height. */
-export interface RoomObject {
+export interface RoomObject extends Levelled {
   localId: string
   name: string
   /** Rectangle, or the bounding box of `outline`. */

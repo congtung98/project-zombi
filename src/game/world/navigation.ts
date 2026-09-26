@@ -15,6 +15,10 @@ export interface NavGridOptions {
    */
   initialWarmMs?: number
   warmFrom?: { x: number; z: number }
+  /** M11b: floor height of this grid (an upper storey); the points it returns carry it as y. */
+  elevation?: number
+  /** M11b: cells whose centre is not on this grid's floor (outside a storey, over a stairwell) are blocked. */
+  floor?: (x: number, z: number) => boolean
 }
 
 /** Vật cản có đáy cao hơn ngưỡng này (dầm trên cửa) thì không chặn đường đi. */
@@ -24,7 +28,7 @@ const MAX_EXPANSIONS = 20000
 /** Hierarchical paths look this many waypoints ahead when straightening (bounded cost on long routes). */
 const SMOOTH_WINDOW = 48
 /** Planning cost (metres) of breaking through a closed door, versus walking around (plan §10.2). */
-const BREACH_COST = 12
+export const BREACH_COST = 12
 /** Bash slots sit this far either side of the door centre, along the wall. */
 const SLOT_SPREAD = 0.35
 
@@ -73,6 +77,8 @@ export class NavGrid {
   readonly originZ: number
   /** Tăng mỗi khi trạng thái cửa đổi; zombie so sánh để biết path đã cũ. */
   version = 0
+  /** M11b: floor height of the grid (0 = the ground). */
+  readonly elevation: number
 
   private readonly staticBlocked: Uint8Array
   private readonly blocked: Uint8Array
@@ -90,6 +96,7 @@ export class NavGrid {
 
   constructor(map: MapData, opts: NavGridOptions) {
     this.cellSize = opts.cellSize
+    this.elevation = opts.elevation ?? 0
     // One metre of margin around the play area (the fence stands there).
     const area = mapBounds(map)
     this.cols = Math.ceil((area.maxX - area.minX + 2) / opts.cellSize)
@@ -111,7 +118,7 @@ export class NavGrid {
     const r = opts.agentRadius
     for (const wall of map.walls) {
       const bottom = wall.position.y - wall.size[1] / 2
-      if (bottom >= OVERHEAD_MIN_BOTTOM) continue
+      if (bottom >= this.elevation + OVERHEAD_MIN_BOTTOM) continue
       this.fillRect(
         this.staticBlocked,
         wall.position.x - wall.size[0] / 2 - r,
@@ -145,15 +152,25 @@ export class NavGrid {
       }
       const alongX = door.hinge.x !== door.center.x
       const offset = thickness / 2 + r + this.cellSize
+      const y = this.elevation
       const sides = [-1, 1].map((sign) => ({
-        x: door.center.x + (alongX ? 0 : sign * offset), y: 0,
+        x: door.center.x + (alongX ? 0 : sign * offset), y,
         z: door.center.z + (alongX ? sign * offset : 0),
       })) as [Vec3, Vec3]
       const slots = sides.map((side) => [-1, 1].map((sign) => ({
-        x: side.x + (alongX ? sign * SLOT_SPREAD : 0), y: 0,
+        x: side.x + (alongX ? sign * SLOT_SPREAD : 0), y,
         z: side.z + (alongX ? 0 : sign * SLOT_SPREAD),
       }))) as [Vec3[], Vec3[]]
-      this.portals.set(door.id, { center: { x: door.center.x, y: 0, z: door.center.z }, sides, slots })
+      this.portals.set(door.id, { center: { x: door.center.x, y, z: door.center.z }, sides, slots })
+    }
+    // M11b: no floor there (outside an upper storey, a stairwell): blocked whatever the doors say.
+    if (opts.floor) {
+      for (let cz = 0; cz < this.rows; cz++) {
+        for (let cx = 0; cx < this.cols; cx++) {
+          const w = this.cellToWorld(cx, cz)
+          if (!opts.floor(w.x, w.z)) this.staticBlocked[cz * this.cols + cx] = 1
+        }
+      }
     }
     this.rebuild()
     // R3b: build the tile graph now (like loading a chunk) so the first long route is not the one to pay.
@@ -209,7 +226,7 @@ export class NavGrid {
   }
 
   cellToWorld(cx: number, cz: number): Vec3 {
-    return { x: this.originX + (cx + 0.5) * this.cellSize, y: 0, z: this.originZ + (cz + 0.5) * this.cellSize }
+    return { x: this.originX + (cx + 0.5) * this.cellSize, y: this.elevation, z: this.originZ + (cz + 0.5) * this.cellSize }
   }
 
   isWalkableCell(cx: number, cz: number): boolean {
@@ -299,7 +316,7 @@ export class NavGrid {
     cells ??= this.tiles.findCells(startIdx, goalIdx)
     if (!cells) return null
 
-    const points: Vec3[] = [{ x: from.x, y: 0, z: from.z }]
+    const points: Vec3[] = [{ x: from.x, y: this.elevation, z: from.z }]
     for (let i = 1; i < cells.length; i++) {
       const cx = cells[i] % this.cols
       points.push(this.cellToWorld(cx, (cells[i] - cx) / this.cols))
@@ -322,7 +339,7 @@ export class NavGrid {
   }
 
   private goalPoint(to: Vec3, goal: { cx: number; cz: number }): Vec3 {
-    return this.isWalkable(to.x, to.z) ? { x: to.x, y: 0, z: to.z } : this.cellToWorld(goal.cx, goal.cz)
+    return this.isWalkable(to.x, to.z) ? { x: to.x, y: this.elevation, z: to.z } : this.cellToWorld(goal.cx, goal.cz)
   }
 
   /** Kéo thẳng đường: từ mỗi điểm nhảy tới điểm xa nhất còn nhìn thấy trên lưới (trong `window` điểm tới). */

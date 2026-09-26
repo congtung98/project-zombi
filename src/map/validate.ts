@@ -1,5 +1,6 @@
 import {
   MAP_SCHEMA_VERSION,
+  MAX_STOREYS,
   RECORD_CATEGORIES,
   RECORD_NAMESPACES,
   RESERVED_INSTANCE_NAMES,
@@ -11,6 +12,7 @@ import {
   type PrefabDocument,
   type PrefabEntry,
   type Rect,
+  type StairsObject,
   type WorldDocument,
   type XZ,
 } from './schema.ts'
@@ -18,7 +20,7 @@ import { TREE_LIMITS } from '../game/world/trees.ts'
 import { contentMigrationPath, contentMigrationShapeProblems, renameProblems, statefulIds, type ContentMigration } from './contentMigration.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
 import { outlineBounds, outlineProblem, pointInOutline } from './polygon.ts'
-import { resolveChunk, type ResolvedRecord } from './resolve.ts'
+import { resolveChunk, stairRect, type ResolvedRecord } from './resolve.ts'
 import { zoneContains, zoneFor } from '../game/world/zones.ts'
 
 /**
@@ -63,6 +65,12 @@ const COLOR = /^#[0-9a-f]{6}$/i
 export const SPAWN_CLEARANCE = 0.4
 /** Boxes starting this high are overhead (lintels, headers): nobody collides with them. */
 export const OVERHEAD_BOTTOM = 1.6
+/** M11b: lowest storey height of a multi-storey building (a door, a slab and some headroom). */
+export const MIN_STOREY_HEIGHT = 2.6
+/** M11b: flight limits: at least a body wide, at most 45° steep. */
+export const STAIR_LIMITS = { width: [1, 4], length: [2, 12] } as const
+/** Where bodies step on and off a flight: this far past each end must be floor. */
+const STAIR_LANDING = 0.9
 
 class Checker {
   readonly issues: ValidationIssue[] = []
@@ -315,10 +323,23 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
   const footprintOk = c.rect(doc.footprint, '/footprint')
   const outline = doc.outline === undefined ? null : checkOutline(c, doc.outline, '/outline', footprintOk ? (doc.footprint as Rect) : null, 'footprint')
   const building = doc.building !== undefined && c.obj(doc.building, '/building') ? doc.building : null
+  let storeys = 1
   if (building) {
     c.num(building.height, '/building/height', { positive: true })
     c.num(building.wallThickness, '/building/wallThickness', { positive: true })
     for (const k of ['wallColor', 'roofColor', 'floorColor']) c.color(building[k], `/building/${k}`)
+    if (building.storeys !== undefined && c.num(building.storeys, '/building/storeys', { int: true, min: 1, max: MAX_STOREYS })) storeys = building.storeys as number
+    if (storeys > 1 && typeof building.height === 'number' && building.height < MIN_STOREY_HEIGHT) {
+      c.error('storey-height', '/building/height', `a building with ${storeys} storeys needs a storey height of at least ${MIN_STOREY_HEIGHT} m`)
+    }
+  }
+  // M11b: storey of an object or room (0 = ground), below the building's storey count.
+  const checkLevel = (v: unknown, path: string) => {
+    if (v !== undefined) c.num(v, path, { int: true, min: 0, max: storeys - 1 })
+  }
+  const inside = (x: number, z: number) => {
+    const f = doc.footprint as Rect
+    return x >= f.minX && x <= f.maxX && z >= f.minZ && z <= f.maxZ && (!outline || pointInOutline(outline, x, z))
   }
   const localIds = new Set<string>()
   const claim = (id: unknown, path: string) => {
@@ -333,6 +354,9 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       if (!c.obj(o, p)) return
       claim(o.localId, `${p}/localId`)
       const entityId = `${entry.prefabId}:${String(o.localId)}`
+      if (o.kind === 'tree') {
+        if (o.level !== undefined) c.error('level-not-allowed', `${p}/level`, 'trees stand on the ground (no level)')
+      } else checkLevel(o.level, `${p}/level`)
       switch (o.kind) {
         case 'wall':
         case 'prop':
@@ -376,14 +400,40 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
             c.error('out-of-range', p, 'sill must be below head')
           }
           break
+        case 'stairs': {
+          const ok = [
+            c.xz(o.position, `${p}/position`),
+            c.quarter(o.quarterTurns, `${p}/quarterTurns`),
+            c.num(o.width, `${p}/width`, { min: STAIR_LIMITS.width[0], max: STAIR_LIMITS.width[1] }),
+            c.num(o.length, `${p}/length`, { min: STAIR_LIMITS.length[0], max: STAIR_LIMITS.length[1] }),
+          ].every(Boolean)
+          if (!building || storeys < 2) {
+            c.error('stairs-need-storeys', p, `stairs "${String(o.localId)}" need a building with at least 2 storeys`)
+            break
+          }
+          if ((o.level ?? 0) as number > storeys - 2) c.error('out-of-range', `${p}/level`, `stairs "${String(o.localId)}" climb above the top storey`)
+          if (!ok) break
+          if ((building.height as number) > (o.length as number)) c.error('stairs-too-steep', `${p}/length`, `stairs "${String(o.localId)}" climb ${String(building.height)} m over ${String(o.length)} m (steeper than 45°)`)
+          if (footprintOk) {
+            const s = o as unknown as StairsObject
+            const r = stairRect(s)
+            const [ux, uz] = [[1, 0], [0, -1], [-1, 0], [0, 1]][s.quarterTurns]
+            const reach = s.length / 2 + STAIR_LANDING
+            const ends = [{ x: s.position.x - ux * reach, z: s.position.z - uz * reach }, { x: s.position.x + ux * reach, z: s.position.z + uz * reach }]
+            const corners = [{ x: r.minX, z: r.minZ }, { x: r.maxX, z: r.minZ }, { x: r.minX, z: r.maxZ }, { x: r.maxX, z: r.maxZ }]
+            if (![...corners, ...ends].every((q) => inside(q.x, q.z))) {
+              c.issue('warning', 'stairs-outside-footprint', `${p}/position`, `stairs "${String(o.localId)}" (with ${STAIR_LANDING} m to step on and off at both ends) do not fit inside the footprint`)
+            }
+          }
+          break
+        }
         default:
           c.error('unknown-kind', `${p}/kind`, `unknown object kind ${JSON.stringify(o.kind)}`)
       }
       if (footprintOk && (o.kind === 'door' || o.kind === 'window' || o.kind === 'container' || o.kind === 'prop') && c.obj(o.position, `${p}/position`)) {
-        const f = doc.footprint as Obj
         const x = o.position.x as number
         const z = o.position.z as number
-        if (x < (f.minX as number) || x > (f.maxX as number) || z < (f.minZ as number) || z > (f.maxZ as number) || (outline && !pointInOutline(outline, x, z))) {
+        if (!inside(x, z)) {
           c.issue('warning', 'outside-footprint', `${p}/position`, `${o.kind} "${String(o.localId)}" lies outside the footprint`)
         }
       }
@@ -396,6 +446,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       if (!c.obj(r, p)) return
       claim(r.localId, `${p}/localId`)
       c.str(r.name, `${p}/name`)
+      checkLevel(r.level, `${p}/level`)
       const boundsOk = c.rect(r.bounds, `${p}/bounds`)
       const roomOutline = r.outline === undefined ? null : checkOutline(c, r.outline, `${p}/outline`, boundsOk ? (r.bounds as Rect) : null, `room "${String(r.localId)}"`)
       if (r.lamp === undefined || !c.obj(r.lamp, `${p}/lamp`)) return
@@ -468,6 +519,7 @@ export function validateChunkDocument(doc: unknown, entry: ChunkEntry, world: Wo
           break
         case 'objects':
           if (!c.oneOf(r.kind, ['wall', 'prop', 'container', 'tree'], `${p}/kind`)) break
+          if (r.level !== undefined) c.error('level-not-allowed', `${p}/level`, 'objects placed in a chunk stand on the ground (storeys belong to prefabs)', id)
           if (r.kind === 'tree') {
             checkTree(c, r, p)
             if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "building/two-storey",
+  "contentVersion": 1,
+  "name": "Nhà hai tầng",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -5, "minZ": -4, "maxX": 5, "maxZ": 4 },
+  "building": {
+    "height": 3,
+    "storeys": 2,
+    "wallThickness": 0.3,
+    "wallColor": "#b9a58c",
+    "roofColor": "#6b3a2e",
+    "floorColor": "#8a7560"
+  },
+  "objects": [
+    { "kind": "wallRun", "localId": "wall-n", "from": { "x": -5, "z": -4 }, "to": { "x": 5, "z": -4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "localId": "wall-s", "from": { "x": -5, "z": 4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "localId": "wall-w", "from": { "x": -5, "z": -4 }, "to": { "x": -5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "localId": "wall-e", "from": { "x": 5, "z": -4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "door", "localId": "door", "name": "Cửa nhà hai tầng", "position": { "x": -5, "z": 0 }, "quarterTurns": 1, "width": 1.2, "openTowards": 1 },
+    { "kind": "window", "localId": "win-n", "name": "Cửa sổ tầng trệt", "position": { "x": -2, "z": -4 }, "quarterTurns": 0, "width": 1.2, "sill": 0.9, "head": 2.1, "thickness": 0.3 },
+    { "kind": "container", "localId": "cupboard", "name": "Tủ bếp", "position": { "x": -3.5, "y": 0.5, "z": -3.4 }, "size": [1.2, 1, 0.6], "color": "#7a6a58", "lootTableId": "house-kitchen" },
+    { "kind": "stairs", "localId": "stairs", "position": { "x": 0.5, "z": 2.95 }, "quarterTurns": 0, "width": 1.2, "length": 4 },
+    { "kind": "wallRun", "level": 1, "localId": "wall-n-1", "from": { "x": -5, "z": -4 }, "to": { "x": 5, "z": -4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-s-1", "from": { "x": -5, "z": 4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-w-1", "from": { "x": -5, "z": -4 }, "to": { "x": -5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-e-1", "from": { "x": 5, "z": -4 }, "to": { "x": 5, "z": 4 }, "height": 3, "thickness": 0.3, "color": "#b9a58c" },
+    { "kind": "wallRun", "level": 1, "localId": "wall-mid-1", "from": { "x": -5, "z": -0.5 }, "to": { "x": 5, "z": -0.5 }, "height": 3, "thickness": 0.2, "color": "#c9b89f" },
+    { "kind": "door", "level": 1, "localId": "door-bedroom", "name": "Cửa phòng ngủ", "position": { "x": 0, "z": -0.5 }, "quarterTurns": 0, "width": 1, "openTowards": 1, "initialState": "open" },
+    { "kind": "window", "level": 1, "localId": "win-n-1", "name": "Cửa sổ phòng ngủ", "position": { "x": 2, "z": -4 }, "quarterTurns": 0, "width": 1.2, "sill": 0.9, "head": 2.1, "thickness": 0.3 },
+    { "kind": "container", "level": 1, "localId": "wardrobe", "name": "Tủ quần áo", "position": { "x": -3.5, "y": 0.9, "z": -3.4 }, "size": [1.2, 1.8, 0.6], "color": "#6f5a45", "lootTableId": "house-wardrobe" },
+    { "kind": "prop", "level": 1, "localId": "bed", "position": { "x": 2.5, "y": 0.3, "z": -2.5 }, "size": [2, 0.6, 1.6], "color": "#8b6f5c" }
+  ],
+  "rooms": [
+    {
+      "localId": "hall",
+      "name": "Tầng trệt",
+      "bounds": { "minX": -5, "minZ": -4, "maxX": 5, "maxZ": 4 },
+      "lamp": { "localId": "lamp-hall", "name": "Đèn tầng trệt", "intensity": 0.8, "color": "#ffd9a0", "requiresElectricity": true, "switchAt": { "x": -4.6, "z": 1 } }
+    },
+    {
+      "level": 1,
+      "localId": "bedroom",
+      "name": "Phòng ngủ tầng trên",
+      "bounds": { "minX": -5, "minZ": -4, "maxX": 5, "maxZ": -0.5 },
+      "lamp": { "localId": "lamp-bedroom", "name": "Đèn phòng ngủ", "intensity": 0.7, "color": "#ffe2b8", "requiresElectricity": true, "switchAt": { "x": 0.8, "z": -0.8 } }
+    },
+    {
+      "level": 1,
+      "localId": "landing",
+      "name": "Hành lang tầng trên",
+      "bounds": { "minX": -5, "minZ": -0.5, "maxX": 5, "maxZ": 4 }
+    }
+  ]
+}

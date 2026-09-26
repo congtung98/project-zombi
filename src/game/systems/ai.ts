@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../core/config'
 import { UNAWARE_STATES, type MemorySource, type ZombieState } from '../entities/zombie'
 import type { DoorStatus } from '../world/doors'
 import type { DoorRoute } from '../world/navigation'
+import { LEVEL_TOLERANCE } from '../world/floors'
 import type { Vec2, Vec3, ZombieAIState } from '../../types'
 
 export interface ZombieStepResult {
@@ -100,6 +101,8 @@ export function stepZombie(
   const dx = target.x - zombie.position.x
   const dz = target.z - zombie.position.z
   const dist = Math.hypot(dx, dz)
+  // M11b: the player on another storey is never within reach, however close on the map.
+  const level = Math.abs(target.y - zombie.position.y) <= LEVEL_TOLERANCE
 
   zombie.detectTimer -= dt
   let percept: MemorySource | null = null
@@ -154,7 +157,7 @@ export function stepZombie(
       const goal = zombie.moveTarget
       zombie.moveTimer += dt
       const timeout = zombie.ai === 'WANDER' ? cfg.wanderTimeout : cfg.migrateTimeout
-      if (!goal || planarDistance(zombie.position, goal) <= cfg.arriveDistance || zombie.moveTimer >= timeout) {
+      if (!goal || arrived(zombie.position, goal, cfg.arriveDistance) || zombie.moveTimer >= timeout) {
         result.transition = rest(zombie, cfg, ctx)
         break
       }
@@ -172,7 +175,7 @@ export function stepZombie(
         result.transition = transition(zombie, 'SEARCH')
         break
       }
-      if (dist <= cfg.attackRange) {
+      if (dist <= cfg.attackRange && level) {
         clearPath(zombie)
         zombie.attackWindup = -1
         result.transition = transition(zombie, 'ATTACK')
@@ -196,12 +199,12 @@ export function stepZombie(
       if (percept === 'noise') zombie.loseTargetTimer = 0 // new footsteps: keep following them
       zombie.loseTargetTimer += dt
       const goal = zombie.lastKnownTarget
-      const arrived = !goal || planarDistance(zombie.position, goal) <= cfg.arriveDistance
-      if ((arrived && zombie.loseTargetTimer >= cfg.loseTargetDelay) || zombie.memoryAge >= cfg.memoryDuration) {
+      const atGoal = !goal || arrived(zombie.position, goal, cfg.arriveDistance)
+      if ((atGoal && zombie.loseTargetTimer >= cfg.loseTargetDelay) || zombie.memoryAge >= cfg.memoryDuration) {
         result.transition = giveUp(zombie, cfg, ctx)
         break
       }
-      if (goal && !arrived) {
+      if (goal && !atGoal) {
         const move = moveTowards(zombie, goal, dt, cfg.speed, ctx, navCfg)
         if (move.blocked) {
           // Closed door between the zombie and the memory: bash it; no route at all: give up.
@@ -226,7 +229,7 @@ export function stepZombie(
         result.transition = transition(zombie, 'IDLE')
         break
       }
-      if (dist > cfg.attackRange * 1.15 || !sees) {
+      if (dist > cfg.attackRange * 1.15 || !level || !sees) {
         zombie.attackWindup = -1
         result.transition = transition(zombie, 'CHASE')
         break
@@ -325,14 +328,15 @@ function stepStructure(
   }
   const slot = ctx.claimDoorSlot?.(zombie, doorId!, zombie.structureSide) ?? null
   zombie.structureSlot = slot
-  const toDoor = planarDistance(zombie.position, door.center)
+  // M11b: a door on another storey is never "close" (under it or above it).
+  const toDoor = Math.abs(door.center.y - zombie.position.y) <= LEVEL_TOLERANCE ? planarDistance(zombie.position, door.center) : Infinity
 
   if (zombie.ai === 'APPROACH_STRUCTURE') {
     if (zombie.memoryAge >= cfg.memoryDuration) {
       leaveStructure(zombie)
       return giveUp(zombie, cfg, ctx)
     }
-    if (slot && (planarDistance(zombie.position, slot) <= cfg.arriveDistance * 0.6 || toDoor <= c.structure.reach * 0.9)) {
+    if (slot && (arrived(zombie.position, slot, cfg.arriveDistance * 0.6) || toDoor <= c.structure.reach * 0.9)) {
       clearPath(zombie)
       zombie.attackWindup = -1
       zombie.siegeTimer = 0
@@ -499,6 +503,11 @@ function planarDistance(a: Vec3, b: Vec3): number {
   return Math.hypot(a.x - b.x, a.z - b.z)
 }
 
+/** Within `d` on the map and on the same storey (M11b: a goal right above or below is not reached). */
+function arrived(a: Vec3, b: Vec3, d: number): boolean {
+  return planarDistance(a, b) <= d && Math.abs(a.y - b.y) <= LEVEL_TOLERANCE
+}
+
 /**
  * Chọn hướng đi tới `goal`: đi thẳng nếu lưới cho phép, nếu không thì bám theo
  * path A*. Tìm đường lại khi đích dời xa, lưới đổi (cửa), hết path hoặc kẹt.
@@ -547,10 +556,7 @@ function moveTowards(
         if (!path) return { velocity: { x: 0, z: 0 }, blocked: true }
       }
     }
-    while (
-      zombie.pathIndex < zombie.path.length - 1 &&
-      Math.hypot(zombie.path[zombie.pathIndex].x - pos.x, zombie.path[zombie.pathIndex].z - pos.z) <= navCfg.waypointReachDist
-    ) {
+    while (zombie.pathIndex < zombie.path.length - 1 && arrived(zombie.path[zombie.pathIndex], pos, navCfg.waypointReachDist)) {
       zombie.pathIndex += 1
     }
     if (zombie.pathIndex < zombie.path.length) waypoint = zombie.path[zombie.pathIndex]
