@@ -8,12 +8,66 @@
     {
       "instanceId": "c-1_-1/safehouse",
       "prefabId": "building/safehouse",
-      "position": { "x": 18, "y": 0, "z": 24 },
+      "position": { "x": 20.5, "y": 0, "z": 22 },
       "quarterTurns": 0
     }
   ],
-  "objects": [],
-  "roads": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-1_-1/objects/pine-1",
+      "position": { "x": 10.5, "z": 9 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_-1/objects/pine-2",
+      "position": { "x": 10.5, "z": 13.5 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_-1/objects/pine-3",
+      "position": { "x": 15, "z": 11.5 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_-1/objects/tree-1",
+      "position": { "x": 11, "z": 26 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-1_-1/roads/sidewalk-1",
+      "position": { "x": 28, "z": 18 },
+      "size": [2, 22],
+      "color": "#8c8a84"
+    },
+    {
+      "roadId": "c-1_-1/roads/sidewalk-2",
+      "position": { "x": 17, "z": 28 },
+      "size": [20, 2],
+      "color": "#8c8a84"
+    }
+  ],
   "zones": [
     {
       "zoneId": "c-1_-1/zones/north",
@@ -33,7 +87,7 @@
     }
   ],
   "spawns": [
-    { "spawnId": "c-1_-1/spawns/player-start", "kind": "player", "position": { "x": 18, "z": 24 } },
+    { "spawnId": "c-1_-1/spawns/player-start", "kind": "player", "position": { "x": 21.5, "z": 22.5 } },
     { "spawnId": "c-1_-1/spawns/zombie-4", "kind": "zombie", "position": { "x": 30, "z": 12 } }
   ],
   "externalRefs": [

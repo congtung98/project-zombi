@@ -135,7 +135,7 @@ try {
   await menu()
   assert.equal((await current()).runtime, TEST_WORLD)
   list = await worldList()
-  assert.ok(list.every((w) => w.id === 'neighborhood-50-lab' || w.save === 'ready'), JSON.stringify(list))
+  assert.ok([HOME, TEST_WORLD].every((id) => list.find((w) => w.id === id)?.save === 'ready'), JSON.stringify(list))
 
   // 4. Back to the neighbourhood: stored choice cleared, its save continues.
   await choose(HOME)

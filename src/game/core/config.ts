@@ -274,6 +274,17 @@ export const GAME_CONFIG = {
   streaming: {
     /** Rapier colliders exist for the player's chunk and this many chunks around it (plus map-long boxes). */
     colliderChunkRadius: 1,
+    /**
+     * M10: the scene mounts static batches, doors, containers, windows and lamps only for the chunks
+     * the camera sees (`rendering/viewChunks.ts`); false (or `?stream=off`) mounts every chunk.
+     */
+    view: true,
+    /** Metres around the view's ground rectangle (an item up to a chunk wide belongs to its centre's chunk). */
+    viewMargin: 16,
+    /** Extra metres a shown chunk may drift out of view before it unloads (no flicker on chunk lines). */
+    viewKeep: 16,
+    /** Height (m) of the tallest things drawn (trees): their tops still show from just outside the footprint. */
+    viewTop: 20,
   },
   /** R2 pathfinding queue: A* searches run after the AI pass, within these budgets (at least one per tick). */
   pathfinding: {
@@ -281,6 +292,10 @@ export const GAME_CONFIG = {
     maxPathMs: 2,
     /** R3b: idle time per tick (queue empty) spent precomputing nav tile-graph edges. */
     warmMs: 0.5,
+    /** M10: tile-graph warm-up while the runtime is built (nearest the start first); the rest warms idle. */
+    initialWarmMs: 30,
+    /** M10: warm-up per frame while the game is not running (menu, pause, character creation). */
+    idleWarmMs: 4,
   },
   /**
    * damage/range/cooldown/stamina are the Phase 1 bat baseline that `ITEMS.baseball_bat` reuses;

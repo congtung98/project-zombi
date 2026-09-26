@@ -49,9 +49,63 @@
       "size": [0.9, 0.7, 0.5],
       "color": "#b0472f",
       "lootTableId": "park-toolbox"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_0/objects/tree-1",
+      "position": { "x": 22, "z": 9 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_0/objects/tree-2",
+      "position": { "x": 11.5, "z": 17 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_0/objects/pine-1",
+      "position": { "x": 10, "z": 8 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_0/objects/pine-2",
+      "position": { "x": 22.5, "z": 18 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
     }
   ],
-  "roads": [{ "roadId": "c-1_0/roads/ns", "position": { "x": 31, "z": 0 }, "size": [4, 50], "color": "#3a3a3f" }],
+  "roads": [
+    { "roadId": "c-1_0/roads/ns", "position": { "x": 31, "z": 0 }, "size": [4, 50], "color": "#3a3a3f" },
+    {
+      "roadId": "c0_-1/roads/sidewalk-2",
+      "position": { "x": 17, "z": 2 },
+      "size": [20, 2],
+      "color": "#8c8a84"
+    },
+    {
+      "roadId": "c-1_-1/roads/sidewalk-3",
+      "position": { "x": 28, "z": 13 },
+      "size": [2, 24],
+      "color": "#8c8a84"
+    }
+  ],
   "zones": [
     {
       "zoneId": "c-1_0/zones/park",
@@ -72,7 +126,9 @@
   ],
   "spawns": [
     { "spawnId": "c-1_0/spawns/zombie-1", "kind": "zombie", "position": { "x": 18, "z": 13 } },
-    { "spawnId": "c-1_0/spawns/zombie-7", "kind": "zombie", "position": { "x": 10, "z": 0 } }
+    { "spawnId": "c-1_0/spawns/zombie-7", "kind": "zombie", "position": { "x": 10, "z": 0 } },
+    { "spawnId": "c-1_0/spawns/zombie-2", "kind": "zombie", "position": { "x": 14.5, "z": 15 } },
+    { "spawnId": "c-1_0/spawns/zombie-3", "kind": "zombie", "position": { "x": 17, "z": 16.5 } }
   ],
   "externalRefs": [
     { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },

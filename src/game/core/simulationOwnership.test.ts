@@ -123,7 +123,7 @@ describe('R2: zombie simulation owns its transform', () => {
     const rt = new GameRuntime(buildStressMap(4))
     rt.newGame(3)
     losGrid(rt)
-    rt.pathBudget = { maxPathsPerTick: 3, maxPathMs: Infinity, warmMs: 0 }
+    rt.pathBudget = { ...rt.pathBudget, maxPathsPerTick: 3, maxPathMs: Infinity, warmMs: 0 }
     // Everyone hears the player at once: a request storm.
     for (const z of rt.zombies.values()) {
       z.lastKnownTarget = { ...rt.player.position }

@@ -1,11 +1,22 @@
 import { LOOT_TABLES } from '../game/world/lootTables'
 import type { MapData } from '../game/world/mapData'
-import { BUNDLED_FILES } from './bundledFiles'
+import { BUNDLED_FILES, loadBundledWorldFiles } from './bundledFiles'
 import { ChunkLifecycle } from './loader'
 import { loadWorldDocuments, type ValidationIssue, type WorldDocuments } from './validate'
 
 /** Bundled content files (`bundledFiles.ts`; tests see the frozen neighbourhood). */
 const FILES = BUNDLED_FILES
+
+/**
+ * M10: a world other than the default one must be loaded before its files are read (the game loads
+ * the world it plays before building the runtime; the editor loads every world at start).
+ */
+export { loadBundledWorldFiles }
+
+/** Load every bundled world (editor, tools). */
+export function loadAllBundledWorlds(): Promise<void> {
+  return Promise.all(bundledWorldIds().map(loadBundledWorldFiles)).then(() => undefined)
+}
 
 /** Reader for one world folder (`world.json`, `chunks/…`, `prefabs/…`, `migrations/…`). */
 export function bundledWorldReader(worldId: string): (path: string) => unknown {

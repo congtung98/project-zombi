@@ -1,4 +1,4 @@
-import { bundledWorldCatalog, loadBundledWorld, type BundledWorldEntry } from '../../map/content'
+import { bundledWorldCatalog, loadBundledWorld, loadBundledWorldFiles, type BundledWorldEntry } from '../../map/content'
 import type { MapData } from './mapData'
 
 /**
@@ -79,13 +79,32 @@ function readStored(): string | null {
   }
 }
 
+function urlWorld(): string | null {
+  return typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('world') || null
+}
+
+/**
+ * M10: load the files of the world this visit asks for (URL, else the stored choice) before the
+ * runtime module is imported (`main.tsx`): worlds other than the default one are not in the main
+ * bundle. A world that is gone or fails to load is left to `selectWorld`, which falls back.
+ */
+export async function preloadStartupWorld(): Promise<void> {
+  const worldId = urlWorld() ?? (typeof window === 'undefined' ? null : readStored())
+  if (!worldId || !bundledWorldCatalog().some((w) => w.worldId === worldId)) return
+  try {
+    await loadBundledWorldFiles(worldId)
+  } catch {
+    // Missing files make the load in `selectWorld` fail: default world + notice.
+  }
+}
+
 let selection: WorldSelection | null = null
 
 /** World for the runtime singleton (called once, from `runtime.ts`). */
 export function startupWorld(loadDefault: () => MapData): MapData {
   const browser = typeof window !== 'undefined'
   selection = selectWorld({
-    url: browser ? new URLSearchParams(window.location.search).get('world') || null : null,
+    url: urlWorld(),
     stored: browser ? readStored() : null,
     catalog: bundledWorldCatalog(),
     load: (id) => loadBundledWorld(id).map,
@@ -93,7 +112,7 @@ export function startupWorld(loadDefault: () => MapData): MapData {
     strictUrl: import.meta.env.DEV,
   })
   // A stored world that could not be played is forgotten: the notice shows once.
-  if (selection.notice && selection.source === 'default' && browser && !new URLSearchParams(window.location.search).get('world')) {
+  if (selection.notice && selection.source === 'default' && browser && !urlWorld()) {
     try {
       localStorage.removeItem(STORAGE_KEY)
     } catch {

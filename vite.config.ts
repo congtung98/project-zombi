@@ -15,6 +15,15 @@ export default defineConfig({
       output: {
         advancedChunks: {
           groups: [
+            // M10: each lazily loaded world is one chunk (`src/map/bundledFiles.ts`), fetched when played.
+            // world.json files and the default world stay in the main bundle (null = no group).
+            {
+              name: (id: string) => {
+                const m = /content[\\/]maps[\\/]([^\\/]+)[\\/](.+)\.json$/.exec(id)
+                return m && m[1] !== 'neighborhood-50' && m[2] !== 'world' ? `world-${m[1]}` : null
+              },
+              test: /content[\\/]maps[\\/]/,
+            },
             { name: 'rapier', test: /node_modules\/@dimforge\// },
             { name: 'three', test: /node_modules\/three\// },
             { name: 'r3f', test: /node_modules\/@react-three\// },

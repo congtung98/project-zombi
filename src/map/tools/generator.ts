@@ -32,6 +32,8 @@ import { documentFiles, resolvedRecords, withExternalRefs, type MapDocument } fr
 export const GENERATOR_NAME = 'town-grid'
 /** Bump when the output for the same options changes (v2, M9: layouts, trees, rectangular play area). */
 export const GENERATOR_VERSION = 2
+/** Largest town: 16 × 16 blocks (about 500 × 500 m, ~290 chunks). */
+export const MAX_BLOCKS = 16
 
 export const LAYOUTS = ['grid', 'varied'] as const
 export type Layout = (typeof LAYOUTS)[number]
@@ -42,7 +44,7 @@ export interface GeneratorOptions {
   worldId: string
   name: string
   seed: number
-  /** Blocks along X and Z (1..4). */
+  /** Blocks along X and Z (1..`MAX_BLOCKS`; M10 streaming made 16 × 16, ~500 m, playable). */
   blocksX: number
   blocksZ: number
   /**
@@ -145,8 +147,8 @@ function overlaps(a: Rect, b: Rect, margin = 0): boolean {
 
 /** Build a town. Throws if the result does not validate (a generator bug, never silently shipped). */
 export function generateTown(opts: GeneratorOptions, catalog: Catalog, validation: ValidationOptions = {}): MapDocument {
-  if (!(Number.isInteger(opts.blocksX) && Number.isInteger(opts.blocksZ) && opts.blocksX >= 1 && opts.blocksZ >= 1 && opts.blocksX <= 4 && opts.blocksZ <= 4)) {
-    throw new Error('generator: blocksX/blocksZ must be integers 1..4')
+  if (!(Number.isInteger(opts.blocksX) && Number.isInteger(opts.blocksZ) && opts.blocksX >= 1 && opts.blocksZ >= 1 && opts.blocksX <= MAX_BLOCKS && opts.blocksZ <= MAX_BLOCKS)) {
+    throw new Error(`generator: blocksX/blocksZ must be integers 1..${MAX_BLOCKS}`)
   }
   if (!Number.isInteger(opts.seed)) throw new Error('generator: seed must be an integer')
   const layout = opts.layout ?? 'grid'

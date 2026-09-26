@@ -13,7 +13,9 @@ describe('static render batches (R3b)', () => {
     const walls = rt.map.walls.length
     expect(items).toHaveLength(walls + rt.map.containers.length + rt.map.buildings.length * 2)
     const chunks = groupByChunk(items, mapChunkSize(rt.map))
-    expect([...chunks.keys()].sort()).toEqual(['-1,-1', '-1,0', '0,-1', '0,0'])
+    expect([...chunks.keys()].sort()).toEqual(['-1,-1', '-1,0', '0,-1', '0,0', 'wide'])
+    // M10: the 52 m boundary fence spans more than a chunk: always mounted.
+    expect(chunks.get('wide')!.every((i) => Math.max(i.size[0], i.size[2]) > mapChunkSize(rt.map))).toBe(true)
     expect([...chunks.values()].reduce((n, l) => n + l.length, 0)).toBe(items.length)
     // Tall walls and roofs fade; low props, containers and floors never do.
     expect(items.filter((i) => i.roofOf)).toHaveLength(3)

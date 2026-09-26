@@ -45,6 +45,9 @@ export function GameLoop({ paused }: GameLoopProps) {
       }
       // Autosave ngay sau tick: snapshot ở ranh giới tick, không thấy trạng thái nửa chừng.
       if (runtime.consumeAutosave()) void useUiStore.getState().saveGame('Đã tự động lưu.')
+    } else {
+      // M10: menu/pause frames warm the nav graph of big worlds (a few ms each, until done).
+      runtime.idleWork()
     }
 
     hudTimer.current += delta

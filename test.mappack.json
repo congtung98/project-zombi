@@ -1,0 +1,1221 @@
+{
+  "format": "zombie-outbreak/map-pack",
+  "formatVersion": 1,
+  "worldId": "neighborhood-50-lab",
+  "files": {
+    "world.json": {
+      "schemaVersion": 1,
+      "worldId": "neighborhood-50-lab",
+      "name": "Khu phố 50 m (thử nghiệm)",
+      "listed": false,
+      "contentVersion": 1,
+      "chunkSize": 32,
+      "coordinateSystem": "y-up-xz-meters",
+      "playArea": { "size": 50 },
+      "boundary": { "height": 2, "thickness": 1 },
+      "chunkBounds": { "minCx": -1, "maxCx": 0, "minCz": -1, "maxCz": 0 },
+      "chunks": [
+        { "chunkId": "c-1_-1", "cx": -1, "cz": -1, "path": "chunks/c-1_-1.json" },
+        { "chunkId": "c0_-1", "cx": 0, "cz": -1, "path": "chunks/c0_-1.json" },
+        { "chunkId": "c-1_0", "cx": -1, "cz": 0, "path": "chunks/c-1_0.json" },
+        { "chunkId": "c0_0", "cx": 0, "cz": 0, "path": "chunks/c0_0.json" }
+      ],
+      "prefabs": [
+        { "prefabId": "building/safehouse", "contentVersion": 1, "path": "prefabs/safehouse.json" },
+        { "prefabId": "building/store", "contentVersion": 1, "path": "prefabs/store.json" },
+        { "prefabId": "building/house", "contentVersion": 1, "path": "prefabs/house.json" },
+        { "prefabId": "building/new-house", "contentVersion": 1, "path": "prefabs/new-house.json" }
+      ],
+      "playerSpawn": "c-1_-1/spawns/player-start"
+    },
+    "prefabs/safehouse.json": {
+      "schemaVersion": 1,
+      "prefabId": "building/safehouse",
+      "contentVersion": 1,
+      "name": "Nhà an toàn",
+      "pivot": { "x": 0, "y": 0, "z": 0 },
+      "footprint": { "minX": -4, "minZ": -4, "maxX": 4, "maxZ": 4 },
+      "building": {
+        "height": 3,
+        "wallThickness": 0.3,
+        "wallColor": "#b9a78a",
+        "roofColor": "#6b4f3a",
+        "floorColor": "#7d6b55"
+      },
+      "objects": [
+        {
+          "kind": "wall",
+          "localId": "win-n-sill",
+          "position": { "x": 2, "y": 0.45, "z": -4 },
+          "size": [1.2, 0.9, 0.3],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-n-header",
+          "position": { "x": 2, "y": 2.55, "z": -4 },
+          "size": [1.2, 0.9, 0.3],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-n-0",
+          "position": { "x": -1.3, "y": 1.5, "z": -4 },
+          "size": [5.4, 3, 0.3],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-n-1",
+          "position": { "x": 3.3, "y": 1.5, "z": -4 },
+          "size": [1.4, 3, 0.3],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-lintel",
+          "position": { "x": 1, "y": 2.6, "z": 4 },
+          "size": [1.4, 0.8, 0.3],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-0",
+          "position": { "x": -1.85, "y": 1.5, "z": 4 },
+          "size": [4.3, 3, 0.3],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-1",
+          "position": { "x": 2.85, "y": 1.5, "z": 4 },
+          "size": [2.3, 3, 0.3],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-w-0",
+          "position": { "x": -4, "y": 1.5, "z": 0 },
+          "size": [0.3, 3, 7.7],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-e-sill",
+          "position": { "x": 4, "y": 0.45, "z": 2.2 },
+          "size": [0.3, 0.9, 1.2],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-e-header",
+          "position": { "x": 4, "y": 2.55, "z": 2.2 },
+          "size": [0.3, 0.9, 1.2],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-e-0",
+          "position": { "x": 4, "y": 1.5, "z": -1.125 },
+          "size": [0.3, 3, 5.45],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-e-1",
+          "position": { "x": 4, "y": 1.5, "z": 3.325 },
+          "size": [0.3, 3, 1.05],
+          "color": "#b9a78a"
+        },
+        {
+          "kind": "container",
+          "localId": "cabinet",
+          "name": "Tủ đồ nhà an toàn",
+          "position": { "x": -3, "y": 0.5, "z": -3.4 },
+          "size": [1.2, 1, 0.6],
+          "color": "#8b5e3c",
+          "lootTableId": "safehouse-cabinet"
+        },
+        {
+          "kind": "container",
+          "localId": "closet",
+          "name": "Tủ quần áo nhà an toàn",
+          "position": { "x": 3.5, "y": 0.9, "z": -1.5 },
+          "size": [0.6, 1.8, 1.4],
+          "color": "#6d4c35",
+          "lootTableId": "safehouse-closet"
+        },
+        {
+          "kind": "container",
+          "localId": "toolbox",
+          "name": "Hộp đồ nghề nhà an toàn",
+          "position": { "x": -3.5, "y": 0.3, "z": 1 },
+          "size": [0.5, 0.6, 0.9],
+          "color": "#4f6d7a",
+          "lootTableId": "safehouse-toolbox"
+        },
+        {
+          "kind": "door",
+          "localId": "door",
+          "name": "Cửa nhà an toàn",
+          "position": { "x": 1, "z": 4 },
+          "quarterTurns": 0,
+          "width": 1.4,
+          "openTowards": -1
+        },
+        {
+          "kind": "window",
+          "localId": "win-n",
+          "name": "Cửa sổ phía bắc nhà an toàn",
+          "position": { "x": 2, "z": -4 },
+          "quarterTurns": 0,
+          "width": 1.2,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        },
+        {
+          "kind": "window",
+          "localId": "win-e",
+          "name": "Cửa sổ phía đông nhà an toàn",
+          "position": { "x": 4, "z": 2.2 },
+          "quarterTurns": 3,
+          "width": 1.2,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        }
+      ],
+      "rooms": [
+        {
+          "localId": "room",
+          "name": "Nhà an toàn",
+          "bounds": { "minX": -4, "minZ": -4, "maxX": 4, "maxZ": 4 },
+          "lamp": {
+            "localId": "lamp",
+            "name": "Đèn nhà an toàn",
+            "intensity": 0.8,
+            "color": "#ffd9a0",
+            "requiresElectricity": true,
+            "switchAt": { "x": -0.3, "z": 3.75 }
+          }
+        }
+      ]
+    },
+    "prefabs/store.json": {
+      "schemaVersion": 1,
+      "prefabId": "building/store",
+      "contentVersion": 1,
+      "name": "Cửa hàng tiện lợi",
+      "pivot": { "x": 0, "y": 0, "z": 0 },
+      "footprint": { "minX": -6, "minZ": -4, "maxX": 6, "maxZ": 4 },
+      "building": {
+        "height": 3,
+        "wallThickness": 0.3,
+        "wallColor": "#8f9aa8",
+        "roofColor": "#4d5561",
+        "floorColor": "#9aa0a6"
+      },
+      "objects": [
+        {
+          "kind": "wall",
+          "localId": "wall-n-0",
+          "position": { "x": 0, "y": 1.5, "z": -4 },
+          "size": [12, 3, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-lintel",
+          "position": { "x": -3, "y": 2.6, "z": 4 },
+          "size": [1.6, 0.8, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-s1-sill",
+          "position": { "x": 1, "y": 0.45, "z": 4 },
+          "size": [1.6, 0.9, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-s1-header",
+          "position": { "x": 1, "y": 2.55, "z": 4 },
+          "size": [1.6, 0.9, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-s2-sill",
+          "position": { "x": 4, "y": 0.45, "z": 4 },
+          "size": [1.6, 0.9, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-s2-header",
+          "position": { "x": 4, "y": 2.55, "z": 4 },
+          "size": [1.6, 0.9, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-0",
+          "position": { "x": -4.9, "y": 1.5, "z": 4 },
+          "size": [2.2, 3, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-1",
+          "position": { "x": -1, "y": 1.5, "z": 4 },
+          "size": [2.4, 3, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-2",
+          "position": { "x": 2.5, "y": 1.5, "z": 4 },
+          "size": [1.4, 3, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-3",
+          "position": { "x": 5.4, "y": 1.5, "z": 4 },
+          "size": [1.2, 3, 0.3],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-w-0",
+          "position": { "x": -6, "y": 1.5, "z": 0 },
+          "size": [0.3, 3, 7.7],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-e-0",
+          "position": { "x": 6, "y": 1.5, "z": 0 },
+          "size": [0.3, 3, 7.7],
+          "color": "#8f9aa8"
+        },
+        {
+          "kind": "prop",
+          "localId": "counter",
+          "position": { "x": 1, "y": 0.5, "z": 2 },
+          "size": [4, 1, 0.8],
+          "color": "#6a7480"
+        },
+        {
+          "kind": "container",
+          "localId": "shelf-1",
+          "name": "Kệ hàng 1",
+          "position": { "x": -4, "y": 0.8, "z": -3.4 },
+          "size": [2, 1.6, 0.6],
+          "color": "#5b6b7a",
+          "lootTableId": "store-shelf"
+        },
+        {
+          "kind": "container",
+          "localId": "shelf-2",
+          "name": "Kệ hàng 2",
+          "position": { "x": 0, "y": 0.8, "z": -3.4 },
+          "size": [2, 1.6, 0.6],
+          "color": "#5b6b7a",
+          "lootTableId": "store-shelf"
+        },
+        {
+          "kind": "container",
+          "localId": "shelf-3",
+          "name": "Kệ hàng 3",
+          "position": { "x": 4, "y": 0.8, "z": -3.4 },
+          "size": [2, 1.6, 0.6],
+          "color": "#5b6b7a",
+          "lootTableId": "store-shelf"
+        },
+        {
+          "kind": "container",
+          "localId": "fridge",
+          "name": "Tủ lạnh",
+          "position": { "x": 5.3, "y": 0.9, "z": 2 },
+          "size": [0.8, 1.8, 0.8],
+          "color": "#d8dee6",
+          "lootTableId": "store-fridge"
+        },
+        {
+          "kind": "container",
+          "localId": "tools",
+          "name": "Kệ dụng cụ",
+          "position": { "x": -5.5, "y": 0.8, "z": 0.5 },
+          "size": [0.6, 1.6, 2],
+          "color": "#7a5f3a",
+          "lootTableId": "tool-shelf"
+        },
+        {
+          "kind": "container",
+          "localId": "hardware",
+          "name": "Kệ vật liệu",
+          "position": { "x": 5.45, "y": 0.8, "z": -1.3 },
+          "size": [0.6, 1.6, 1.8],
+          "color": "#8a6a3a",
+          "lootTableId": "hardware-shelf"
+        },
+        {
+          "kind": "door",
+          "localId": "door",
+          "name": "Cửa cửa hàng",
+          "position": { "x": -3, "z": 4 },
+          "quarterTurns": 0,
+          "width": 1.6,
+          "openTowards": -1
+        },
+        {
+          "kind": "window",
+          "localId": "win-s1",
+          "name": "Tủ kính cửa hàng",
+          "position": { "x": 1, "z": 4 },
+          "quarterTurns": 2,
+          "width": 1.6,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        },
+        {
+          "kind": "window",
+          "localId": "win-s2",
+          "name": "Tủ kính cửa hàng (góc)",
+          "position": { "x": 4, "z": 4 },
+          "quarterTurns": 2,
+          "width": 1.6,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        }
+      ],
+      "rooms": [
+        {
+          "localId": "room",
+          "name": "Cửa hàng tiện lợi",
+          "bounds": { "minX": -6, "minZ": -4, "maxX": 6, "maxZ": 4 },
+          "lamp": {
+            "localId": "lamp",
+            "name": "Đèn cửa hàng",
+            "intensity": 0.9,
+            "color": "#e8f2ff",
+            "requiresElectricity": true,
+            "switchAt": { "x": -4.4, "z": 3.75 }
+          }
+        }
+      ]
+    },
+    "prefabs/house.json": {
+      "schemaVersion": 1,
+      "prefabId": "building/house",
+      "contentVersion": 1,
+      "name": "Nhà dân",
+      "pivot": { "x": 0, "y": 0, "z": 0 },
+      "footprint": { "minX": -4.5, "minZ": -3.5, "maxX": 4.5, "maxZ": 3.5 },
+      "building": {
+        "height": 3,
+        "wallThickness": 0.3,
+        "wallColor": "#c4a484",
+        "roofColor": "#7a3f2f",
+        "floorColor": "#8a7560"
+      },
+      "objects": [
+        {
+          "kind": "wall",
+          "localId": "wall-n-lintel",
+          "position": { "x": -2, "y": 2.6, "z": -3.5 },
+          "size": [1.4, 0.8, 0.3],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-n-sill",
+          "position": { "x": 0, "y": 0.45, "z": -3.5 },
+          "size": [1.2, 0.9, 0.3],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-n-header",
+          "position": { "x": 0, "y": 2.55, "z": -3.5 },
+          "size": [1.2, 0.9, 0.3],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-n-0",
+          "position": { "x": -3.6, "y": 1.5, "z": -3.5 },
+          "size": [1.8, 3, 0.3],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-n-1",
+          "position": { "x": -0.95, "y": 1.5, "z": -3.5 },
+          "size": [0.7, 3, 0.3],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-n-2",
+          "position": { "x": 2.55, "y": 1.5, "z": -3.5 },
+          "size": [3.9, 3, 0.3],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-s-0",
+          "position": { "x": 0, "y": 1.5, "z": 3.5 },
+          "size": [9, 3, 0.3],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-w-sill",
+          "position": { "x": -4.5, "y": 0.45, "z": -0.5 },
+          "size": [0.3, 0.9, 1.2],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "win-w-header",
+          "position": { "x": -4.5, "y": 2.55, "z": -0.5 },
+          "size": [0.3, 0.9, 1.2],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-w-0",
+          "position": { "x": -4.5, "y": 1.5, "z": -2.225 },
+          "size": [0.3, 3, 2.25],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-w-1",
+          "position": { "x": -4.5, "y": 1.5, "z": 1.725 },
+          "size": [0.3, 3, 3.25],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "wall-e-0",
+          "position": { "x": 4.5, "y": 1.5, "z": 0 },
+          "size": [0.3, 3, 6.7],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "partition-lintel",
+          "position": { "x": 1, "y": 2.6, "z": 1 },
+          "size": [0.3, 0.8, 1.4],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "partition-0",
+          "position": { "x": 1, "y": 1.5, "z": -1.525 },
+          "size": [0.3, 3, 3.65],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wall",
+          "localId": "partition-1",
+          "position": { "x": 1, "y": 1.5, "z": 2.525 },
+          "size": [0.3, 3, 1.65],
+          "color": "#c4a484"
+        },
+        {
+          "kind": "prop",
+          "localId": "bed",
+          "position": { "x": 2.5, "y": 0.3, "z": -1.5 },
+          "size": [2, 0.6, 1.6],
+          "color": "#8c4a5a"
+        },
+        {
+          "kind": "container",
+          "localId": "wardrobe",
+          "name": "Tủ quần áo",
+          "position": { "x": 3.5, "y": 1, "z": 2.9 },
+          "size": [1.6, 2, 0.6],
+          "color": "#6d4c35",
+          "lootTableId": "house-wardrobe"
+        },
+        {
+          "kind": "container",
+          "localId": "kitchen",
+          "name": "Tủ bếp",
+          "position": { "x": -3.4, "y": 0.5, "z": 2.9 },
+          "size": [1.4, 1, 0.6],
+          "color": "#9c7a5a",
+          "lootTableId": "house-kitchen"
+        },
+        {
+          "kind": "container",
+          "localId": "nightstand",
+          "name": "Tủ đầu giường",
+          "position": { "x": 4.05, "y": 0.35, "z": 0 },
+          "size": [0.5, 0.7, 0.5],
+          "color": "#7b5a44",
+          "lootTableId": "house-nightstand"
+        },
+        {
+          "kind": "door",
+          "localId": "door",
+          "name": "Cửa nhà dân",
+          "position": { "x": -2, "z": -3.5 },
+          "quarterTurns": 0,
+          "width": 1.4,
+          "openTowards": 1
+        },
+        {
+          "kind": "door",
+          "localId": "door-bedroom",
+          "name": "Cửa phòng ngủ",
+          "position": { "x": 1, "z": 1 },
+          "quarterTurns": 3,
+          "width": 1.4,
+          "openTowards": 1,
+          "initialState": "open"
+        },
+        {
+          "kind": "window",
+          "localId": "win-n",
+          "name": "Cửa sổ phòng khách",
+          "position": { "x": 0, "z": -3.5 },
+          "quarterTurns": 0,
+          "width": 1.2,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        },
+        {
+          "kind": "window",
+          "localId": "win-w",
+          "name": "Cửa sổ phía tây phòng khách",
+          "position": { "x": -4.5, "z": -0.5 },
+          "quarterTurns": 1,
+          "width": 1.2,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        }
+      ],
+      "rooms": [
+        {
+          "localId": "room-living",
+          "name": "Phòng khách",
+          "bounds": { "minX": -4.5, "minZ": -3.5, "maxX": 1, "maxZ": 3.5 },
+          "lamp": {
+            "localId": "lamp-living",
+            "name": "Đèn phòng khách",
+            "intensity": 0.8,
+            "color": "#ffd9a0",
+            "requiresElectricity": true,
+            "switchAt": { "x": -0.95, "z": -3.25 }
+          }
+        },
+        {
+          "localId": "room-bedroom",
+          "name": "Phòng ngủ",
+          "bounds": { "minX": 1, "minZ": -3.5, "maxX": 4.5, "maxZ": 3.5 },
+          "lamp": {
+            "localId": "lamp-bedroom",
+            "name": "Đèn phòng ngủ",
+            "intensity": 0.7,
+            "color": "#ffd9a0",
+            "requiresElectricity": true,
+            "switchAt": { "x": 1.25, "z": 2.3 }
+          }
+        }
+      ]
+    },
+    "prefabs/new-house.json": {
+      "schemaVersion": 1,
+      "prefabId": "building/new-house",
+      "contentVersion": 1,
+      "name": "Tiệm thuốc",
+      "pivot": { "x": 0, "y": 0, "z": 0 },
+      "footprint": { "minX": -3, "minZ": -3, "maxX": 3, "maxZ": 3 },
+      "building": {
+        "height": 3,
+        "wallThickness": 0.3,
+        "wallColor": "#c4a484",
+        "roofColor": "#7a3f2f",
+        "floorColor": "#8a7560"
+      },
+      "objects": [
+        {
+          "kind": "wallRun",
+          "localId": "wall-n",
+          "from": { "x": -3, "z": -3 },
+          "to": { "x": 3, "z": -3 },
+          "height": 3,
+          "thickness": 0.3,
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wallRun",
+          "localId": "wall-s",
+          "from": { "x": -3, "z": 3 },
+          "to": { "x": 3, "z": 3 },
+          "height": 3,
+          "thickness": 0.3,
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wallRun",
+          "localId": "wall-w",
+          "from": { "x": -3, "z": -3 },
+          "to": { "x": -3, "z": 3 },
+          "height": 3,
+          "thickness": 0.3,
+          "color": "#c4a484"
+        },
+        {
+          "kind": "wallRun",
+          "localId": "wall-e",
+          "from": { "x": 3, "z": -3 },
+          "to": { "x": 3, "z": 3 },
+          "height": 3,
+          "thickness": 0.3,
+          "color": "#c4a484"
+        },
+        {
+          "kind": "door",
+          "localId": "door",
+          "name": "Cửa Tiệm thuốc",
+          "position": { "x": 0, "z": 3 },
+          "quarterTurns": 2,
+          "width": 1.2,
+          "openTowards": 1
+        },
+        {
+          "kind": "prop",
+          "localId": "counter-2",
+          "position": { "x": -1.5, "y": 0.5, "z": -1 },
+          "size": [3, 1, 0.6],
+          "color": "#9a8f84"
+        },
+        {
+          "kind": "container",
+          "localId": "shelf-1",
+          "name": "Kệ hàng",
+          "position": { "x": -1.5, "y": 0.8, "z": -2.5 },
+          "size": [2, 1.6, 0.6],
+          "color": "#8a8580",
+          "lootTableId": "store-shelf"
+        },
+        {
+          "kind": "container",
+          "localId": "shelf-2",
+          "name": "Kệ hàng",
+          "position": { "x": 1, "y": 0.8, "z": -2.5 },
+          "size": [2, 1.6, 0.6],
+          "color": "#8a8580",
+          "lootTableId": "store-shelf"
+        },
+        {
+          "kind": "prop",
+          "localId": "sofa-1",
+          "position": { "x": 2.5, "y": 0.4, "z": 1 },
+          "size": [0.9, 0.8, 2],
+          "color": "#5a6b7b"
+        },
+        {
+          "kind": "window",
+          "localId": "win-1",
+          "name": "Cửa sổ",
+          "position": { "x": -3, "z": -2 },
+          "quarterTurns": 1,
+          "width": 1.2,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        },
+        {
+          "kind": "window",
+          "localId": "win-2",
+          "name": "Cửa sổ",
+          "position": { "x": -1.5, "z": 3 },
+          "quarterTurns": 2,
+          "width": 1.2,
+          "sill": 0.9,
+          "head": 2.1,
+          "thickness": 0.3
+        }
+      ],
+      "rooms": [
+        {
+          "localId": "room-1",
+          "name": "Phòng chính",
+          "bounds": { "minX": -3, "minZ": -3, "maxX": 3, "maxZ": 3 },
+          "lamp": {
+            "localId": "lamp-1",
+            "name": "Đèn phòng chính",
+            "intensity": 0.8,
+            "color": "#ffd9a0",
+            "requiresElectricity": true,
+            "switchAt": { "x": 1, "z": 2.75 }
+          }
+        }
+      ],
+      "retiredLocalIds": ["counter-1"]
+    },
+    "chunks/c-1_-1.json": {
+      "schemaVersion": 1,
+      "contentVersion": 1,
+      "chunkId": "c-1_-1",
+      "cx": -1,
+      "cz": -1,
+      "instances": [
+        {
+          "instanceId": "c-1_-1/safehouse",
+          "prefabId": "building/safehouse",
+          "position": { "x": 20.5, "y": 0, "z": 22 },
+          "quarterTurns": 0
+        }
+      ],
+      "objects": [
+        {
+          "kind": "tree",
+          "objectId": "c-1_-1/objects/pine-1",
+          "position": { "x": 10.5, "z": 9 },
+          "height": 8,
+          "canopy": 1.8,
+          "trunk": 0.2,
+          "color": "#2f5a3a",
+          "style": "pine"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c-1_-1/objects/pine-2",
+          "position": { "x": 10.5, "z": 13.5 },
+          "height": 8,
+          "canopy": 1.8,
+          "trunk": 0.2,
+          "color": "#2f5a3a",
+          "style": "pine"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c-1_-1/objects/pine-3",
+          "position": { "x": 15, "z": 11.5 },
+          "height": 8,
+          "canopy": 1.8,
+          "trunk": 0.2,
+          "color": "#2f5a3a",
+          "style": "pine"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c-1_-1/objects/tree-1",
+          "position": { "x": 11, "z": 26 },
+          "height": 6,
+          "canopy": 2.5,
+          "trunk": 0.25,
+          "color": "#3f6b35",
+          "style": "round"
+        }
+      ],
+      "roads": [
+        {
+          "roadId": "c-1_-1/roads/sidewalk-1",
+          "position": { "x": 28, "z": 18 },
+          "size": [2, 22],
+          "color": "#8c8a84"
+        },
+        {
+          "roadId": "c-1_-1/roads/sidewalk-2",
+          "position": { "x": 17, "z": 28 },
+          "size": [20, 2],
+          "color": "#8c8a84"
+        }
+      ],
+      "zones": [
+        {
+          "zoneId": "c-1_-1/zones/north",
+          "kind": "zombiePopulation",
+          "name": "Bãi đất phía bắc",
+          "shape": "circle",
+          "center": { "x": 30, "z": 13 },
+          "radius": 3.5
+        },
+        {
+          "zoneId": "c-1_-1/zones/cross",
+          "kind": "zombiePopulation",
+          "name": "Ngã tư",
+          "shape": "circle",
+          "center": { "x": 31, "z": 31 },
+          "radius": 4
+        }
+      ],
+      "spawns": [
+        { "spawnId": "c-1_-1/spawns/player-start", "kind": "player", "position": { "x": 21.5, "z": 22.5 } },
+        { "spawnId": "c-1_-1/spawns/zombie-4", "kind": "zombie", "position": { "x": 30, "z": 12 } }
+      ],
+      "externalRefs": [
+        { "id": "c-1_-1/zones/west", "ownerChunkId": "c-1_0" },
+        { "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" },
+        { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" }
+      ]
+    },
+    "chunks/c0_-1.json": {
+      "schemaVersion": 1,
+      "contentVersion": 1,
+      "chunkId": "c0_-1",
+      "cx": 0,
+      "cz": -1,
+      "instances": [
+        {
+          "instanceId": "c0_-1/store",
+          "prefabId": "building/store",
+          "position": { "x": 12, "y": 0, "z": 22 },
+          "quarterTurns": 0
+        }
+      ],
+      "objects": [
+        {
+          "kind": "prop",
+          "objectId": "c0_-1/objects/car-1",
+          "position": { "x": 4, "y": 0.7, "z": 31 },
+          "size": [4, 1.4, 2],
+          "color": "#7a3b3b"
+        },
+        {
+          "kind": "prop",
+          "objectId": "c0_-1/objects/crate-3",
+          "position": { "x": 21, "y": 0.5, "z": 12 },
+          "size": [1, 1, 1],
+          "color": "#a67c52"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c0_-1/objects/tree-1",
+          "position": { "x": 6, "z": 10.5 },
+          "height": 6,
+          "canopy": 2.5,
+          "trunk": 0.25,
+          "color": "#3f6b35",
+          "style": "round"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c0_-1/objects/tree-2",
+          "position": { "x": 11.5, "z": 13.5 },
+          "height": 6,
+          "canopy": 2.5,
+          "trunk": 0.25,
+          "color": "#3f6b35",
+          "style": "round"
+        }
+      ],
+      "roads": [
+        { "roadId": "c0_-1/roads/ew", "position": { "x": 0, "z": 31 }, "size": [50, 4], "color": "#3a3a3f" },
+        {
+          "roadId": "c0_-1/roads/sidewalk-1",
+          "position": { "x": 2, "z": 18 },
+          "size": [2, 22],
+          "color": "#8c8a84"
+        },
+        {
+          "roadId": "c0_-1/roads/sidewalk-3",
+          "position": { "x": 14, "z": 28 },
+          "size": [22, 2],
+          "color": "#8c8a84"
+        }
+      ],
+      "zones": [
+        {
+          "zoneId": "c0_-1/zones/store",
+          "kind": "zombiePopulation",
+          "name": "Sân cửa hàng",
+          "shape": "circle",
+          "center": { "x": 11, "z": 30 },
+          "radius": 3.5
+        },
+        {
+          "zoneId": "c0_0/zones/east",
+          "kind": "zombiePopulation",
+          "name": "Đường phía đông",
+          "shape": "circle",
+          "center": { "x": 21.5, "z": 30.5 },
+          "radius": 3
+        }
+      ],
+      "spawns": [
+        { "spawnId": "c0_-1/spawns/zombie-5", "kind": "zombie", "position": { "x": 11, "z": 30.5 } },
+        { "spawnId": "c0_0/spawns/zombie-3", "kind": "zombie", "position": { "x": 20, "z": 30.5 } },
+        { "spawnId": "c0_-1/spawns/zombie-1", "kind": "zombie", "position": { "x": 16.5, "z": 22.5 } }
+      ],
+      "externalRefs": [
+        { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },
+        { "id": "c-1_-1/zones/north", "ownerChunkId": "c-1_-1" },
+        { "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" }
+      ]
+    },
+    "chunks/c-1_0.json": {
+      "schemaVersion": 1,
+      "contentVersion": 1,
+      "chunkId": "c-1_0",
+      "cx": -1,
+      "cz": 0,
+      "instances": [],
+      "objects": [
+        {
+          "kind": "prop",
+          "objectId": "c-1_0/objects/fence-park-n",
+          "position": { "x": 17.5, "y": 0.5, "z": 6 },
+          "size": [15, 1, 0.15],
+          "color": "#7a6a55"
+        },
+        {
+          "kind": "prop",
+          "objectId": "c-1_0/objects/fence-park-e",
+          "position": { "x": 25, "y": 0.5, "z": 13 },
+          "size": [0.15, 1, 8],
+          "color": "#7a6a55"
+        },
+        {
+          "kind": "prop",
+          "objectId": "c-1_0/objects/fence-park-s",
+          "position": { "x": 17.5, "y": 0.5, "z": 20 },
+          "size": [15, 1, 0.15],
+          "color": "#7a6a55"
+        },
+        {
+          "kind": "prop",
+          "objectId": "c-1_0/objects/crate-1",
+          "position": { "x": 12, "y": 0.5, "z": 10 },
+          "size": [1, 1, 1],
+          "color": "#a67c52"
+        },
+        {
+          "kind": "prop",
+          "objectId": "c-1_0/objects/crate-2",
+          "position": { "x": 13, "y": 0.5, "z": 11 },
+          "size": [1, 1, 1],
+          "color": "#a67c52"
+        },
+        {
+          "kind": "container",
+          "objectId": "c-1_0/objects/park-toolbox",
+          "name": "Thùng dụng cụ công viên",
+          "position": { "x": 10.5, "y": 0.35, "z": 12.5 },
+          "size": [0.9, 0.7, 0.5],
+          "color": "#b0472f",
+          "lootTableId": "park-toolbox"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c-1_0/objects/tree-1",
+          "position": { "x": 22, "z": 9 },
+          "height": 6,
+          "canopy": 2.5,
+          "trunk": 0.25,
+          "color": "#3f6b35",
+          "style": "round"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c-1_0/objects/tree-2",
+          "position": { "x": 11.5, "z": 17 },
+          "height": 6,
+          "canopy": 2.5,
+          "trunk": 0.25,
+          "color": "#3f6b35",
+          "style": "round"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c-1_0/objects/pine-1",
+          "position": { "x": 10, "z": 8 },
+          "height": 8,
+          "canopy": 1.8,
+          "trunk": 0.2,
+          "color": "#2f5a3a",
+          "style": "pine"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c-1_0/objects/pine-2",
+          "position": { "x": 22.5, "z": 18 },
+          "height": 8,
+          "canopy": 1.8,
+          "trunk": 0.2,
+          "color": "#2f5a3a",
+          "style": "pine"
+        }
+      ],
+      "roads": [
+        { "roadId": "c-1_0/roads/ns", "position": { "x": 31, "z": 0 }, "size": [4, 50], "color": "#3a3a3f" },
+        {
+          "roadId": "c0_-1/roads/sidewalk-2",
+          "position": { "x": 17, "z": 2 },
+          "size": [20, 2],
+          "color": "#8c8a84"
+        },
+        {
+          "roadId": "c-1_-1/roads/sidewalk-3",
+          "position": { "x": 28, "z": 13 },
+          "size": [2, 24],
+          "color": "#8c8a84"
+        }
+      ],
+      "zones": [
+        {
+          "zoneId": "c-1_0/zones/park",
+          "kind": "zombiePopulation",
+          "name": "Công viên",
+          "shape": "circle",
+          "center": { "x": 17, "z": 13 },
+          "radius": 5
+        },
+        {
+          "zoneId": "c-1_-1/zones/west",
+          "kind": "zombiePopulation",
+          "name": "Đường phía tây",
+          "shape": "circle",
+          "center": { "x": 11, "z": 0.5 },
+          "radius": 3.5
+        }
+      ],
+      "spawns": [
+        { "spawnId": "c-1_0/spawns/zombie-1", "kind": "zombie", "position": { "x": 18, "z": 13 } },
+        { "spawnId": "c-1_0/spawns/zombie-7", "kind": "zombie", "position": { "x": 10, "z": 0 } },
+        { "spawnId": "c-1_0/spawns/zombie-2", "kind": "zombie", "position": { "x": 14.5, "z": 15 } },
+        { "spawnId": "c-1_0/spawns/zombie-3", "kind": "zombie", "position": { "x": 17, "z": 16.5 } }
+      ],
+      "externalRefs": [
+        { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },
+        { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" }
+      ]
+    },
+    "chunks/c0_0.json": {
+      "schemaVersion": 1,
+      "contentVersion": 1,
+      "chunkId": "c0_0",
+      "cx": 0,
+      "cz": 0,
+      "instances": [
+        {
+          "instanceId": "c0_0/house",
+          "prefabId": "building/house",
+          "position": { "x": 16.5, "y": 0, "z": 8.5 },
+          "quarterTurns": 0
+        },
+        {
+          "instanceId": "c0_0/new-house-1",
+          "prefabId": "building/new-house",
+          "position": { "x": 6.5, "y": 0, "z": 8 },
+          "quarterTurns": 2
+        }
+      ],
+      "objects": [
+        {
+          "kind": "prop",
+          "objectId": "c0_0/objects/pillar-1",
+          "position": { "x": 2, "y": 1, "z": 20 },
+          "size": [1.2, 2, 1.2],
+          "color": "#6f6a63"
+        },
+        {
+          "kind": "prop",
+          "objectId": "c0_0/objects/pillar-2",
+          "position": { "x": 5, "y": 1, "z": 20 },
+          "size": [1.2, 2, 1.2],
+          "color": "#6f6a63"
+        },
+        {
+          "kind": "container",
+          "objectId": "c0_0/objects/house-scrap",
+          "name": "Đống phế liệu sau nhà",
+          "position": { "x": 14, "y": 0.4, "z": 16 },
+          "size": [1.4, 0.8, 1],
+          "color": "#6b6f73",
+          "lootTableId": "scrap-pile"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c0_0/objects/pine-1",
+          "position": { "x": 17, "z": 14.5 },
+          "height": 8,
+          "canopy": 1.8,
+          "trunk": 0.2,
+          "color": "#2f5a3a",
+          "style": "pine"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c0_0/objects/pine-2",
+          "position": { "x": 21.5, "z": 14.5 },
+          "height": 8,
+          "canopy": 1.8,
+          "trunk": 0.2,
+          "color": "#2f5a3a",
+          "style": "pine"
+        },
+        {
+          "kind": "tree",
+          "objectId": "c0_0/objects/tree-1",
+          "position": { "x": 10, "z": 18.5 },
+          "height": 6,
+          "canopy": 2.5,
+          "trunk": 0.25,
+          "color": "#3f6b35",
+          "style": "round"
+        }
+      ],
+      "roads": [
+        {
+          "roadId": "c-1_0/roads/sidewalk-1",
+          "position": { "x": 14, "z": 2 },
+          "size": [22, 2],
+          "color": "#8c8a84"
+        },
+        {
+          "roadId": "c-1_0/roads/sidewalk-2",
+          "position": { "x": 2, "z": 13 },
+          "size": [2, 24],
+          "color": "#8c8a84"
+        }
+      ],
+      "zones": [
+        {
+          "zoneId": "c0_0/zones/south",
+          "kind": "zombiePopulation",
+          "name": "Phố phía nam",
+          "shape": "circle",
+          "center": { "x": 4, "z": 17 },
+          "radius": 4
+        },
+        {
+          "zoneId": "c0_0/zones/yard",
+          "kind": "zombiePopulation",
+          "name": "Sân sau nhà dân",
+          "shape": "circle",
+          "center": { "x": 20, "z": 20 },
+          "radius": 3.5
+        }
+      ],
+      "spawns": [
+        { "spawnId": "c0_0/spawns/zombie-2", "kind": "zombie", "position": { "x": 4, "z": 14 } },
+        { "spawnId": "c0_0/spawns/zombie-6", "kind": "zombie", "position": { "x": 22, "z": 20 } },
+        { "spawnId": "c0_0/spawns/zombie-8", "kind": "zombie", "position": { "x": 8, "z": 22 } },
+        { "spawnId": "c0_0/spawns/zombie-1", "kind": "zombie", "position": { "x": 18.5, "z": 10 } }
+      ],
+      "externalRefs": [
+        { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },
+        { "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" },
+        { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" },
+        { "id": "c0_-1/zones/store", "ownerChunkId": "c0_-1" },
+        { "id": "c0_0/zones/east", "ownerChunkId": "c0_-1" }
+      ]
+    }
+  }
+}

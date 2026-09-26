@@ -208,7 +208,7 @@ export class GameRuntime {
 
   constructor(map: MapData = NEIGHBORHOOD_MAP) {
     this.map = map
-    this.nav = new NavGrid(map, GAME_CONFIG.nav)
+    this.nav = new NavGrid(map, { ...GAME_CONFIG.nav, initialWarmMs: GAME_CONFIG.pathfinding.initialWarmMs, warmFrom: map.playerSpawn })
     this.interactables = buildInteractables(map)
     this.interactableById = new Map(this.interactables.map((i) => [i.id, i]))
     for (const b of map.buildings) this.buildingIndex.insert(b.id, b, b.center.x, b.center.z, b.size.w / 2, b.size.d / 2)
@@ -433,6 +433,7 @@ export class GameRuntime {
     const p = this.player
     const lim = GAME_CONFIG.player
     p.position = { ...save.player.position }
+    this.nav.prioritizeWarm(p.position)
     p.facing = save.player.facing
     p.health = clamp(save.player.health, 0, lim.maxHealth)
     p.stamina = clamp(save.player.stamina, 0, lim.maxStamina)
@@ -1275,6 +1276,16 @@ export class GameRuntime {
     this.moveZombies(dt)
     this.perf.end('movement', t)
     return { attacks, structureHits }
+  }
+
+  /**
+   * M10: work for frames without a tick (menu, pause): warm the nav tile graph of a big world so the
+   * game does not pay for it later. Returns whether anything was left to do.
+   */
+  idleWork(budgetMs = GAME_CONFIG.pathfinding.idleWarmMs): boolean {
+    if (this.nav.tiles.warmed) return false
+    this.nav.tiles.warm(budgetMs)
+    return true
   }
 
   /** Serve queued A* requests within `GAME_CONFIG.pathfinding` (count and time), ACTIVE first. */

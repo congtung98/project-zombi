@@ -362,6 +362,32 @@ export class NavTiles {
     this.warmComplete = true
     return done
   }
+  /** Every transition of every tile has its in-tile edges (nothing left for `warm`). */
+  get warmed(): boolean {
+    return this.warmComplete
+  }
+
+  /** Tiles still waiting for `warm`. */
+  get pendingWarm(): number {
+    return this.warmComplete ? 0 : this.warmQueue.size
+  }
+
+  /** Tiles still waiting for `warm`, in the order they will warm (tests). */
+  pendingWarmTiles(): number[] {
+    return this.warmComplete ? [] : [...this.warmQueue]
+  }
+
+  /** Warm the tiles nearest this cell's tile first (Chebyshev distance, then tile order). */
+  prioritize(cell: number): void {
+    const t0 = this.tileOfCell(cell)
+    const x0 = t0 % this.tilesX
+    const z0 = Math.floor(t0 / this.tilesX)
+    const distance = (t: number) => Math.max(Math.abs((t % this.tilesX) - x0), Math.abs(Math.floor(t / this.tilesX) - z0))
+    const order = [...this.warmQueue].sort((a, b) => distance(a) - distance(b) || a - b)
+    this.warmQueue.clear()
+    for (const t of order) this.warmQueue.add(t)
+  }
+
   /** Tiles that may miss in-tile edges. */
   private readonly warmQueue = new Set<number>()
   /** Every transition has its edges (reset when a tile changes). */

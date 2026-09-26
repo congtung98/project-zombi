@@ -63,7 +63,7 @@ describe('offline generator (M6)', () => {
       expect(deepCheck(doc).issues, `seed ${seed}`).toEqual([])
       expect(resolvedRecords(doc).filter((r) => r.category === 'instances').length).toBeGreaterThan(0)
     }
-    expect(() => generateTown({ worldId: 'x', name: 'x', seed: 1, blocksX: 5, blocksZ: 1 }, catalog())).toThrow()
+    expect(() => generateTown({ worldId: 'x', name: 'x', seed: 1, blocksX: 17, blocksZ: 1 }, catalog())).toThrow()
   })
 
   it('turns every building so its door faces the street of its lot', () => {

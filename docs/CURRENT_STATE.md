@@ -1,10 +1,24 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-26**, hoàn thành sprint chen **chọn world trong game + khu phố đóng băng cho test**; M9 đã commit (b88cebc). Lộ trình tiếp: M10 streaming chunk → M11 phòng đa giác + nhiều tầng. Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
-> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-guide.md**.
+> Cập nhật: **2026-09-26**, hoàn thành **map editor M10 (streaming theo chunk trong runtime)**; sprint chọn world đã commit (bf51d94). Lộ trình tiếp: M11 phòng đa giác + nhiều tầng (có thể nhiều sprint). Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit (P2-S6/S7 tạm dừng theo quyết định chủ dự án).
+> Đọc file này, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0. Chọn world trong game + khu phố đóng băng cho test (mới nhất, chưa commit — chi tiết docs/world-menu.md)
+## 0. Map editor M10 — streaming theo chunk trong runtime (mới nhất, chưa commit — chi tiết docs/map-editor-m10.md)
+
+Save không đổi (v8), schema map v1 không đổi, content không đổi; generator vẫn v2, giới hạn 16×16 khối (`MAX_BLOCKS`).
+
+- **Đo trước**: thị trấn 16×16 (528 × 498 m) — mô phỏng 0,24 ms/tick (không phải vấn đề); vấn đề là scene mount cả world (12 058 object, ~2 700 `useFrame`/frame, CPU 10 ms), dựng runtime 1,76 s (1,56 s làm nóng HPA*), mọi world nằm trong gói JS chính.
+- **Hiển thị theo camera**: `rendering/viewChunks.ts` (thuần: `viewGroundRect` từ tia góc frustum ở y=0 và `viewTop`, `chunksInRect` + `viewMargin`, trễ `viewKeep`, `chunksAround` người chơi, `itemChunkKey`/`WIDE_KEY`), `ChunkStreamer.tsx` + `viewChunkStore.ts` (phát khi tập đổi; `?stream=off`), `StaticBatches` → `StaticChunk` mỗi chunk hiện, `Scene` → `StreamedViews`/`ChunkViews` (`chunkEntities.ts`: cửa/tủ/cửa sổ/đèn theo chunk). Config `streaming.view/viewMargin/viewKeep/viewTop`.
+- **Nav**: `NavGridOptions.initialWarmMs/warmFrom`, `NavTiles.prioritize/pendingWarm/pendingWarmTiles/warmed`, `NavGrid.prioritizeWarm`; runtime làm nóng 30 ms quanh spawn, `runtime.idleWork()` (4 ms/frame khi không chạy, từ `GameLoop`), `loadSnapshot` ưu tiên quanh người chơi. Config `pathfinding.initialWarmMs/idleWarmMs`.
+- **Content theo world**: `bundledFiles.ts` (eager: mọi `world.json` + `neighborhood-50`; lazy: world khác, `loadBundledWorldFiles`), `content.ts` `loadAllBundledWorlds`; `vite.config.ts` gom mỗi world thành chunk `world-<id>`; `main.tsx` `preloadStartupWorld()` rồi mới import App/runtime; editor tải mọi world khi mở. `check:bundle`: chunk riêng cho mỗi world, không import tĩnh; marker generator đổi thành `blocksX/blocksZ must be integers`.
+- **Không stream mô phỏng** (0,22 ms/tick, ~33 MB ở 528 m); để khi cần world vài km.
+- **Kết quả** (GPU, 16×16): CPU/frame 10 → 3,5 ms, object 12 058 → ~1 860, menu 2,6 → 1,07 s, vào game 3,4 → 0,84 s, heap 314 → ~205 MB. Node: dựng runtime 1 741 → 154 ms.
+- **Kiểm chứng**: 510 test (+13 skip; mới `rendering/streaming.test.ts` 8, `core/scale.bench.test.ts` gated `SCALE_BENCH=1`); tsc/oxlint/build/build:editor/check:bundle/map:check --deep sạch; Playwright `scripts/m10-streaming-browser.mjs` PASS; production preview (world tải theo nhu cầu) OK; hồi quy m3–m9, worlds, p2-s2/s4/s5/lighting/vision PASS.
+
+Commit message gợi ý: **feat(game): chunk streaming M10 (camera-driven mounting of static batches, doors, containers, windows and lamps with hysteresis, per-world lazy content chunks, budgeted nav warm-up near the player and on idle frames, generator up to 16x16 blocks, scale benchmark)**
+
+## 0-W. Chọn world trong game + khu phố đóng băng cho test (đã commit bf51d94 — chi tiết docs/world-menu.md)
 
 Save không đổi (v8), content `neighborhood-50` không đổi, schema map v1 + trường tùy chọn `world.json` `listed`.
 
@@ -14,7 +28,6 @@ Save không đổi (v8), content `neighborhood-50` không đổi, schema map v1 
 - **Test đóng băng**: `src/map/bundledFiles.ts` (glob content) ↔ vitest alias `src/test/bundledFiles.ts` (thay `neighborhood-50` bằng `src/test/fixtures/maps/neighborhood-50/`); `editor.test.ts` đọc fixture; `src/map/liveContent.test.ts` nạp content thật; `check:bundle` marker `src/test/fixtures`. Thử dời 3 tủ + đổi tên khu phố thật: toàn bộ test vẫn pass.
 - **Kiểm chứng**: 502 test (+10 skip; mới `worldChoice.test.ts` 8, `liveContent.test.ts` 7); tsc/oxlint/build/build:editor/map:check --deep/check:bundle sạch; Playwright `scripts/worlds-browser.mjs` PASS; hồi quy m3, m6, m8, m9, p2-s5, p2-s2, p2-vision PASS.
 
-Commit message gợi ý: **feat(game): world menu (play any bundled world from the main menu with per-world save slots, remembered choice, listed flag to hide lab worlds) and frozen test copy of the neighbourhood**
 
 ## 0-M9. Map editor M9 — generator nhiều biến thể + cây cối (đã commit b88cebc — chi tiết docs/map-editor-m9.md)
 

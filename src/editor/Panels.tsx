@@ -604,7 +604,7 @@ export function NewDialog() {
             <label className="field">
               <span>Khối</span>
               <select value={blocks} onChange={(e) => setBlocks(e.target.value)} data-gen-blocks>
-                {['1x1', '2x1', '2x2', '3x2', '3x3', '4x4'].map((b) => (
+                {['1x1', '2x1', '2x2', '3x2', '3x3', '4x4', '6x6', '8x8', '12x12', '16x16'].map((b) => (
                   <option key={b} value={b}>
                     {b}
                   </option>

@@ -1,8 +1,8 @@
 import { Vector3 } from 'three'
-import { chunkIndex } from '../../map/transform'
 import type { MapData } from '../world/mapData'
 import type { StaticColliderRegistry } from '../world/staticColliders'
 import { TREE_TRUNK_COLOR, treeProfile } from '../world/trees'
+import { itemChunkKey } from './viewChunks'
 
 /**
  * R3b: what `StaticBatches` draws, as plain data: every wall/prop box (from the collider registry),
@@ -76,11 +76,14 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   return items
 }
 
-/** Items per chunk key `cx,cz` (chunk of the item centre), in collection order. */
+/**
+ * Items per chunk key `cx,cz` (chunk of the item centre), in collection order; items longer than a
+ * chunk (fence, long walls) go to `WIDE_KEY` (M10: always mounted, whatever chunks are shown).
+ */
 export function groupByChunk(items: StaticItem[], chunkSize: number): Map<string, StaticItem[]> {
   const byChunk = new Map<string, StaticItem[]>()
   for (const item of items) {
-    const key = `${chunkIndex(item.center.x, chunkSize)},${chunkIndex(item.center.z, chunkSize)}`
+    const key = itemChunkKey(item.center.x, item.center.z, item.size[0], item.size[2], chunkSize)
     const list = byChunk.get(key)
     if (list) list.push(item)
     else byChunk.set(key, [item])

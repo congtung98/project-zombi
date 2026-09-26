@@ -8,6 +8,13 @@ import { NavTiles } from './navTiles'
 export interface NavGridOptions {
   cellSize: number
   agentRadius: number
+  /**
+   * M10: time (ms) spent precomputing the tile graph while building the grid, nearest tiles to
+   * `warmFrom` first; the rest warms later (`tiles.warm`, idle time). Default: all of it (tools, tests).
+   * Warming only moves when edges are computed, never a route.
+   */
+  initialWarmMs?: number
+  warmFrom?: { x: number; z: number }
 }
 
 /** Vật cản có đáy cao hơn ngưỡng này (dầm trên cửa) thì không chặn đường đi. */
@@ -150,11 +157,19 @@ export class NavGrid {
     }
     this.rebuild()
     // R3b: build the tile graph now (like loading a chunk) so the first long route is not the one to pay.
-    this.tiles.warm(Infinity)
+    // M10: within a budget on big worlds, around the start first (a 500 m town takes ~1.5 s in full).
+    if (opts.warmFrom) this.prioritizeWarm(opts.warmFrom)
+    this.tiles.warm(opts.initialWarmMs ?? Infinity)
     // Slots that fall on blocked cells (furniture, walls) use the side point instead.
     for (const portal of this.portals.values()) {
       portal.slots = portal.slots.map((list, i) => list.map((p) => (this.staticWalkable(p) ? p : { ...portal.sides[i] }))) as [Vec3[], Vec3[]]
     }
+  }
+
+  /** Tiles nearest this point warm first (start of a game, a loaded save's player position). */
+  prioritizeWarm(p: { x: number; z: number }): void {
+    const { cx, cz } = this.worldToCell(p.x, p.z)
+    this.tiles.prioritize(Math.min(this.rows - 1, Math.max(0, cz)) * this.cols + Math.min(this.cols - 1, Math.max(0, cx)))
   }
 
   setDoorOpen(id: string, open: boolean): void {

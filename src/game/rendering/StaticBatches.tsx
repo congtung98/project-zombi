@@ -22,9 +22,12 @@ import { mapChunkSize } from '../world/mapData'
 import { FADED_OPACITY, occlusionRegistry } from './occlusionRegistry'
 import { fadedVariant, sharedBox, sharedStandardMaterial } from './sharedResources'
 import { collectStaticItems, groupByChunk, type Shape, type StaticItem } from './staticBatchData'
+import { WIDE_KEY } from './viewChunks'
+import { useViewChunks } from './viewChunkStore'
 
 /**
- * R3b: static world geometry drawn as one `BatchedMesh` per chunk instead of one mesh per object:
+ * R3b: static world geometry drawn as one `BatchedMesh` per chunk instead of one mesh per object
+ * (M10: only for the chunks the camera sees, `ChunkStreamer`):
  * walls and props (from `runtime.staticColliders`), container bodies, building floors and roofs.
  * One multi-draw per visible chunk (plus its shadow pass) replaces hundreds of draw calls; three.js
  * still culls per instance. Colours are per instance on one shared white material, so the indoor
@@ -116,34 +119,31 @@ interface ChunkBatch {
   disposed: boolean
 }
 
-function buildBatches(items: StaticItem[], chunkSize: number, overlays: Group): ChunkBatch[] {
-  const byChunk = groupByChunk(items, chunkSize)
-  const matrix = new Matrix4()
-  const identity = new Quaternion()
-  const scale = new Vector3()
-  const color = new Color()
-  const out: ChunkBatch[] = []
-  for (const list of byChunk.values()) {
-    // Boxes first (the only shape before M9), then whatever other shapes the chunk has.
-    const shapes = [...new Set<Shape>(['box', ...list.map((i) => i.shape)])]
-    const verts = shapes.reduce((n, s) => n + UNIT[s].attributes.position.count, 0)
-    const indices = shapes.reduce((n, s) => n + (UNIT[s].index?.count ?? 0), 0)
-    const mesh = new BatchedMesh(list.length, verts, indices, BATCH_MATERIAL)
-    mesh.castShadow = true
-    mesh.receiveShadow = true
-    mesh.sortObjects = false
-    const geometry = new Map(shapes.map((s) => [s, mesh.addGeometry(UNIT[s])]))
-    const pieces: BatchedPiece[] = []
-    for (const item of list) {
-      const instance = mesh.addInstance(geometry.get(item.shape)!)
-      scale.set(item.size[0], item.shape === 'floor' ? 1 : item.size[1], item.size[2])
-      mesh.setMatrixAt(instance, matrix.compose(item.center, identity, scale))
-      mesh.setColorAt(instance, color.set(item.color))
-      if (item.occluder) pieces.push(new BatchedPiece(mesh, instance, item, overlays))
-    }
-    out.push({ mesh, pieces, attached: false, disposed: false })
+const matrix = new Matrix4()
+const identity = new Quaternion()
+const scale = new Vector3()
+const color = new Color()
+
+/** One chunk's items as one batch. */
+function buildBatch(list: readonly StaticItem[], overlays: Group): ChunkBatch {
+  // Boxes first (the only shape before M9), then whatever other shapes the chunk has.
+  const shapes = [...new Set<Shape>(['box', ...list.map((i) => i.shape)])]
+  const verts = shapes.reduce((n, s) => n + UNIT[s].attributes.position.count, 0)
+  const indices = shapes.reduce((n, s) => n + (UNIT[s].index?.count ?? 0), 0)
+  const mesh = new BatchedMesh(list.length, verts, indices, BATCH_MATERIAL)
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  mesh.sortObjects = false
+  const geometry = new Map(shapes.map((s) => [s, mesh.addGeometry(UNIT[s])]))
+  const pieces: BatchedPiece[] = []
+  for (const item of list) {
+    const instance = mesh.addInstance(geometry.get(item.shape)!)
+    scale.set(item.size[0], item.shape === 'floor' ? 1 : item.size[1], item.size[2])
+    mesh.setMatrixAt(instance, matrix.compose(item.center, identity, scale))
+    mesh.setColorAt(instance, color.set(item.color))
+    if (item.occluder) pieces.push(new BatchedPiece(mesh, instance, item, overlays))
   }
-  return out
+  return { mesh, pieces, attached: false, disposed: false }
 }
 
 /** Hook the pieces up to the fader and the roof controller; the returned function undoes it and frees the batches. */
@@ -183,20 +183,31 @@ function attachBatches(batches: ChunkBatch[]): () => void {
   }
 }
 
+/**
+ * One chunk's batch, built when the chunk is shown and freed when it leaves the view (M10).
+ * Registration happens in the effect so a discarded render (StrictMode) leaves nothing behind.
+ */
+function StaticChunk({ items, overlays }: { items: readonly StaticItem[]; overlays: Group }) {
+  const batch = useMemo(() => buildBatch(items, overlays), [items, overlays])
+  useEffect(() => attachBatches([batch]), [batch])
+  return <primitive object={batch.mesh} />
+}
+
 export function StaticBatches() {
   const registry = runtime.staticColliders
   const subscribe = useCallback((listener: () => void) => registry.subscribe(listener), [registry])
   const version = useSyncExternalStore(subscribe, () => registry.version)
   const overlays = useMemo(() => new Group(), [])
-  // Rebuilt when colliders are (un)registered (the version); registration happens in the effect so a
-  // discarded render (StrictMode) leaves nothing behind.
-  const batches = useMemo(() => (version >= 0 ? buildBatches(collectStaticItems(runtime.map, registry), mapChunkSize(runtime.map), overlays) : []), [overlays, registry, version])
-  useEffect(() => attachBatches(batches), [batches])
+  // Items per chunk, regrouped when colliders are (un)registered (the version).
+  const groups = useMemo(() => (version >= 0 ? groupByChunk(collectStaticItems(runtime.map, registry), mapChunkSize(runtime.map)) : new Map<string, StaticItem[]>()), [registry, version])
+  // M10: the shown chunks (null = all) and the always-mounted wide group.
+  const shown = useViewChunks()
+  const keys = shown === null ? [...groups.keys()] : [WIDE_KEY, ...shown].filter((k) => groups.has(k))
 
   return (
     <>
-      {batches.map((b) => (
-        <primitive key={b.mesh.uuid} object={b.mesh} />
+      {keys.map((k) => (
+        <StaticChunk key={`${k}@${version}`} items={groups.get(k)!} overlays={overlays} />
       ))}
       <primitive object={overlays} />
     </>

@@ -93,7 +93,10 @@ npm run map:generate -- --seed 42 --blocks 2x2 --world-id town-42      # → con
 npm run map:generate -- --seed 42 --blocks 3x3 --pack town.mappack.json # pack để Import vào editor
 npm run map:generate -- --seed 42 --blocks 2x2 --dry                    # chỉ in tóm tắt
 npm run map:generate -- --seed 7 --blocks 4x4 --layout varied --trees 1 --dry   # bố cục đa dạng, nhiều cây
+npm run map:generate -- --seed 3 --blocks 16x16 --layout varied --world-id big-town   # thị trấn lớn nhất (~530 m)
 ```
+
+- **Kích thước** (`--blocks`, từ 1×1 tới 16×16): từ M10, world lớn chơi mượt vì game chỉ mount phần camera thấy và chỉ tải world đang chơi (`docs/map-editor-m10.md`). Thị trấn 16×16 có 288 chunk, khoảng 500 nhà và 500 zombie. Editor vẫn dựng mọi chunk, nên sửa world rất lớn sẽ chậm hơn.
 
 - **Bố cục** (`--layout`): `grid` (mặc định) có khối 28 m đều nhau, 4 lô mỗi khối. `varied` có khối 22/28/34 m, mỗi dãy 1–3 lô rộng không đều, và khoảng 1/5 số khối thành công viên (cây, ghế, zone).
 - **Cây** (`--trees 0..1`, mặc định 0,5): cây nhỏ dọc đường ở ranh lô (không che giữa mặt nhà), cây góc vườn, cây trong công viên. Cây dùng luồng ngẫu nhiên riêng, nên đổi mật độ cây không đổi phần còn lại của thị trấn.

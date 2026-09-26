@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { runAnimators } from './character/animators'
 import { Physics } from '@react-three/rapier'
@@ -20,7 +20,10 @@ import { IndoorLighting } from './IndoorLighting'
 import { WindowView } from './WindowView'
 import { LampView } from './LampView'
 import { BuildingLightingDebug } from './BuildingLightingDebug'
-import { mapRooms, mapWindows } from '../world/mapData'
+import { mapChunkSize } from '../world/mapData'
+import { indexChunkEntities, type ChunkEntities } from './chunkEntities'
+import { ChunkStreamer } from './ChunkStreamer'
+import { useViewChunks } from './viewChunkStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { PlayerView } from './PlayerView'
 import { Roads } from './Roads'
@@ -92,6 +95,40 @@ function Drops() {
   )
 }
 
+/** Doors, containers, windows and lamps of one chunk (M10: mounted while the chunk is shown). */
+const ChunkViews = memo(function ChunkViews({ entities }: { entities: ChunkEntities }) {
+  return (
+    <>
+      {entities.doors.map((door) => (
+        <DoorView key={door.id} door={door} />
+      ))}
+      {entities.containers.map((c) => (
+        <ContainerView key={c.id} container={c} />
+      ))}
+      {entities.windows.map((w) => (
+        <WindowView key={w.id} win={w} />
+      ))}
+      {entities.lamps.map((lamp) => (
+        <LampView key={lamp.id} lamp={lamp} />
+      ))}
+    </>
+  )
+})
+
+/** Interactive views of the shown chunks (every chunk when streaming is off). */
+function StreamedViews() {
+  const index = useMemo(() => indexChunkEntities(runtime.map, mapChunkSize(runtime.map)), [])
+  const shown = useViewChunks()
+  const keys = shown === null ? [...index.keys()] : shown.filter((k) => index.has(k))
+  return (
+    <>
+      {keys.map((k) => (
+        <ChunkViews key={k} entities={index.get(k)!} />
+      ))}
+    </>
+  )
+}
+
 /**
  * Scene được remount (key = sessionId) khi bắt đầu ván mới hoặc load để mọi
  * physics body được tạo lại từ trạng thái runtime (vị trí đã lưu). Danh sách
@@ -99,7 +136,6 @@ function Drops() {
  */
 export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: SceneProps) {
   const visionOverlay = useSettingsStore((s) => s.visionOverlay) && runtime.config.visionOverlay.enabled
-  const map = runtime.map
 
   return (
     <>
@@ -107,6 +143,7 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <Lights />
       <CameraRig />
       <CursorProbe />
+      <ChunkStreamer />
       <Roads />
       <Drops />
       <StaticBatches />
@@ -114,20 +151,12 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <Physics gravity={[0, -9.81, 0]} paused={paused} debug={debug} timeStep={1 / 60}>
         <Ground />
         <ChunkColliders />
-        {map.doors.map((door) => (
-          <DoorView key={door.id} door={door} />
-        ))}
-        {map.containers.map((c) => (
-          <ContainerView key={c.id} container={c} />
-        ))}
-        {mapWindows(map).map((w) => (
-          <WindowView key={w.id} win={w} />
-        ))}
+        {/* Door leaves carry their own bodies: inside Physics. Windows and lamps have none. */}
+        <StreamedViews />
         <PlayerView />
         <ZombieBodies />
       </Physics>
       <ZombieVisuals />
-      {mapRooms(map).flatMap((r) => (r.lamp ? [<LampView key={r.lamp.id} lamp={r.lamp} />] : []))}
       <OcclusionFader />
       {/* Building lighting: indoor fragments take the room light; outdoor ones keep the day/night lights. */}
       <IndoorLighting />

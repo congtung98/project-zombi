@@ -13,12 +13,12 @@ npm test           # unit test (Vitest) cho luật game cốt lõi
 npm run build      # tsc -b && vite build  → dist/ (base './', chạy được ở root hoặc sub-path)
 npm run preview    # phục vụ dist/ để chơi thử bản production
 npm run lint
-# Map editor (M3–M9): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
+# Map editor (M3–M10): npm run dev rồi mở http://localhost:5173/editor.html — hướng dẫn docs/map-editor-guide.md
 npm run build:editor   # → dist-editor/ (tách khỏi bản build game; npm run check:bundle kiểm tra)
 npm run map:unpack -- <world>.mappack.json   # ghi file Export của editor vào content/maps/<world>/ → chơi: menu chính › Đổi world
 npm run map:unpack -- <pack> --world-id <id>  # ghi pack thành world mới (như nút Lưu thành… của editor)
 npm run map:check -- --deep                  # validate + kiểm tra sâu (đi tới được, tầm tương tác, collider chồng)
-npm run map:generate -- --seed 42 --blocks 2x2 [--layout varied] [--trees 0..1]   # thị trấn sinh tự động (tất định) → content/maps/gen-42/
+npm run map:generate -- --seed 42 --blocks 2x2 [--layout varied] [--trees 0..1]   # thị trấn sinh tự động (tất định, tới 16x16) → content/maps/gen-42/
 ```
 
 ## Phát hành
@@ -120,6 +120,11 @@ Nguyên tắc:
 - **Cấu hình tập trung** trong `src/game/core/config.ts`; số liệu là giá trị thử nghiệm để chỉnh sau playtest.
 
 ## Trạng thái theo kế hoạch
+
+### Map editor M10: streaming theo chunk trong runtime (26/09/2026)
+
+- Game chỉ mount phần camera thấy (batch tĩnh, cửa, tủ, cửa sổ, đèn theo chunk, có trễ khi gỡ), chỉ tải JSON của world đang chơi (mỗi world một chunk JS), và làm nóng đồ thị nav dần dần (ở menu, lúc rảnh) thay vì làm hết khi khởi động.
+- Thị trấn 16×16 (~530 m): CPU/frame 10 → 3,5 ms, object trong scene 12 058 → ~1 850, vào game 3,4 → 0,8 s. Generator cho phép tới 16×16. Save không đổi (v8). Chi tiết `docs/map-editor-m10.md`.
 
 ### Chọn world trong game + khu phố đóng băng cho test (26/09/2026)
 

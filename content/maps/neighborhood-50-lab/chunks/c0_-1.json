@@ -8,7 +8,7 @@
     {
       "instanceId": "c0_-1/store",
       "prefabId": "building/store",
-      "position": { "x": 12.5, "y": 0, "z": 24 },
+      "position": { "x": 12, "y": 0, "z": 22 },
       "quarterTurns": 0
     }
   ],
@@ -26,9 +26,43 @@
       "position": { "x": 21, "y": 0.5, "z": 12 },
       "size": [1, 1, 1],
       "color": "#a67c52"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_-1/objects/tree-1",
+      "position": { "x": 6, "z": 10.5 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_-1/objects/tree-2",
+      "position": { "x": 11.5, "z": 13.5 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
     }
   ],
-  "roads": [{ "roadId": "c0_-1/roads/ew", "position": { "x": 0, "z": 31 }, "size": [50, 4], "color": "#3a3a3f" }],
+  "roads": [
+    { "roadId": "c0_-1/roads/ew", "position": { "x": 0, "z": 31 }, "size": [50, 4], "color": "#3a3a3f" },
+    {
+      "roadId": "c0_-1/roads/sidewalk-1",
+      "position": { "x": 2, "z": 18 },
+      "size": [2, 22],
+      "color": "#8c8a84"
+    },
+    {
+      "roadId": "c0_-1/roads/sidewalk-3",
+      "position": { "x": 14, "z": 28 },
+      "size": [22, 2],
+      "color": "#8c8a84"
+    }
+  ],
   "zones": [
     {
       "zoneId": "c0_-1/zones/store",
@@ -49,7 +83,8 @@
   ],
   "spawns": [
     { "spawnId": "c0_-1/spawns/zombie-5", "kind": "zombie", "position": { "x": 11, "z": 30.5 } },
-    { "spawnId": "c0_0/spawns/zombie-3", "kind": "zombie", "position": { "x": 20, "z": 30.5 } }
+    { "spawnId": "c0_0/spawns/zombie-3", "kind": "zombie", "position": { "x": 20, "z": 30.5 } },
+    { "spawnId": "c0_-1/spawns/zombie-1", "kind": "zombie", "position": { "x": 16.5, "z": 22.5 } }
   ],
   "externalRefs": [
     { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },

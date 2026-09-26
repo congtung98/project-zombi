@@ -8,13 +8,13 @@
     {
       "instanceId": "c0_0/house",
       "prefabId": "building/house",
-      "position": { "x": 15.5, "y": 0, "z": 5.5 },
+      "position": { "x": 16.5, "y": 0, "z": 8.5 },
       "quarterTurns": 0
     },
     {
       "instanceId": "c0_0/new-house-1",
       "prefabId": "building/new-house",
-      "position": { "x": 6, "y": 0, "z": 5 },
+      "position": { "x": 6.5, "y": 0, "z": 8 },
       "quarterTurns": 2
     }
   ],
@@ -37,13 +37,56 @@
       "kind": "container",
       "objectId": "c0_0/objects/house-scrap",
       "name": "Đống phế liệu sau nhà",
-      "position": { "x": 20.5, "y": 0.4, "z": 12 },
+      "position": { "x": 14, "y": 0.4, "z": 16 },
       "size": [1.4, 0.8, 1],
       "color": "#6b6f73",
       "lootTableId": "scrap-pile"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_0/objects/pine-1",
+      "position": { "x": 17, "z": 14.5 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_0/objects/pine-2",
+      "position": { "x": 21.5, "z": 14.5 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_0/objects/tree-1",
+      "position": { "x": 10, "z": 18.5 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
     }
   ],
-  "roads": [],
+  "roads": [
+    {
+      "roadId": "c-1_0/roads/sidewalk-1",
+      "position": { "x": 14, "z": 2 },
+      "size": [22, 2],
+      "color": "#8c8a84"
+    },
+    {
+      "roadId": "c-1_0/roads/sidewalk-2",
+      "position": { "x": 2, "z": 13 },
+      "size": [2, 24],
+      "color": "#8c8a84"
+    }
+  ],
   "zones": [
     {
       "zoneId": "c0_0/zones/south",
@@ -65,7 +108,8 @@
   "spawns": [
     { "spawnId": "c0_0/spawns/zombie-2", "kind": "zombie", "position": { "x": 4, "z": 14 } },
     { "spawnId": "c0_0/spawns/zombie-6", "kind": "zombie", "position": { "x": 22, "z": 20 } },
-    { "spawnId": "c0_0/spawns/zombie-8", "kind": "zombie", "position": { "x": 8, "z": 22 } }
+    { "spawnId": "c0_0/spawns/zombie-8", "kind": "zombie", "position": { "x": 8, "z": 22 } },
+    { "spawnId": "c0_0/spawns/zombie-1", "kind": "zombie", "position": { "x": 18.5, "z": 10 } }
   ],
   "externalRefs": [
     { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },
