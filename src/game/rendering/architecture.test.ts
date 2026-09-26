@@ -149,15 +149,18 @@ describe('four quarter turns of one prefab (G2)', () => {
           let x = i.center.x - building.center.x
           let z = i.center.z - building.center.z
           let [sx, sz] = [i.size[0], i.size[2]]
-          for (let k = 0; k < q; k++) {
-            ;[x, z] = [-z, x]
-            ;[sx, sz] = [sz, sx]
-          }
+          for (let k = 0; k < q; k++) [x, z] = [-z, x]
+          // G3b: a box turned by its yaw and by q quarter turns; bring the turn into [0°, 90°),
+          // each quarter turn taken off swapping its sides (turned 90° a box is its sides swapped).
+          let t = (i.yaw ?? 0) - (q * Math.PI) / 2
+          const quarters = Math.floor(t / (Math.PI / 2) + 1e-6)
+          t -= (quarters * Math.PI) / 2
+          if (quarters & 1) [sx, sz] = [sz, sx]
           // To the millimetre; the small bias keeps values on a half millimetre (furniture parts, G3a)
           // from rounding both ways with float noise.
           const r = (v: number) => Math.round(v * 1000 + 1e-4) / 1000 + 0
           const axis = i.hip ? (q % 2 === 1 ? (i.hip.axis === 'x' ? 'z' : 'x') : i.hip.axis) : ''
-          return `${i.role}|${i.shape}|${axis}|${r(x)},${r(i.center.y)},${r(z)}|${r(sx)},${r(i.size[1])},${r(sz)}|${unpackSurface(i.surface).a}`
+          return `${i.role}|${i.shape}|${axis}|${r(x)},${r(i.center.y)},${r(z)}|${r(sx)},${r(i.size[1])},${r(sz)}|${r(t)}|${unpackSurface(i.surface).a}`
         })
         .sort()
     }

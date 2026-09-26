@@ -11,6 +11,7 @@ export const LAYERS = [
   { id: 'props', label: 'Tường / vật cản' },
   { id: 'vegetation', label: 'Cây' },
   { id: 'containers', label: 'Container' },
+  { id: 'decor', label: 'Trang trí' },
   { id: 'surfaces', label: 'Nền / đường' },
   { id: 'zones', label: 'Zone' },
   { id: 'zombies', label: 'Spawn zombie' },
@@ -35,7 +36,7 @@ export function layerOf(r: ResolvedRecord): LayerId {
     case 'instances':
       return 'buildings'
     case 'objects':
-      return r.parts.containers?.length ? 'containers' : r.parts.trees?.length ? 'vegetation' : 'props'
+      return r.parts.containers?.length ? 'containers' : r.parts.trees?.length ? 'vegetation' : r.parts.decor?.length ? 'decor' : 'props'
     case 'roads':
       return 'surfaces'
     case 'zones':

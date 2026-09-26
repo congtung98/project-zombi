@@ -18,7 +18,9 @@ import {
 } from './schema.ts'
 import { TREE_LIMITS } from '../game/world/trees.ts'
 import { SURFACE_IDS } from '../game/rendering/surfaces/catalog.ts'
-import { isFurnitureId } from '../game/rendering/furniture/catalog.ts'
+import { FURNITURE_VARIANTS, isFurnitureId } from '../game/rendering/furniture/catalog.ts'
+import { DECOR, decorFootprint, isDecorId } from '../game/rendering/decor/catalog.ts'
+import { VARIANT_IDS } from '../game/rendering/variants.ts'
 import { contentMigrationPath, contentMigrationShapeProblems, renameProblems, statefulIds, type ContentMigration } from './contentMigration.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
 import { outlineBounds, outlineProblem, pointInOutline } from './polygon.ts'
@@ -295,6 +297,61 @@ function checkFurnitureVisual(c: Checker, v: unknown, p: string, entityId: strin
     c.issue('warning', 'unknown-asset', `${p}/assetId`, `furniture asset "${v.assetId}" is not in the registry (drawn as a plain box)`, entityId)
   }
   if (v.facing !== undefined) c.quarter(v.facing, `${p}/facing`)
+  // G3b: a small turn inside the box, and one of the asset's looks.
+  if (v.yaw !== undefined) c.num(v.yaw, `${p}/yaw`, { min: -45, max: 45 })
+  if (v.variantId !== undefined && c.str(v.variantId, `${p}/variantId`) && isFurnitureId(v.assetId) && !(FURNITURE_VARIANTS[v.assetId] ?? []).includes(v.variantId)) {
+    c.issue('warning', 'unknown-variant', `${p}/variantId`, `${v.assetId} has no look "${v.variantId}" (drawn with its default)`, entityId)
+  }
+}
+
+/**
+ * G3b: a decor object (drawn only). An asset missing from the registry is a warning (a small plain
+ * box stands in); `variants` must name house variants.
+ */
+function checkDecor(c: Checker, o: Obj, p: string, entityId: string): void {
+  if (c.str(o.assetId, `${p}/assetId`) && !isDecorId(o.assetId)) {
+    c.issue('warning', 'unknown-asset', `${p}/assetId`, `decor asset "${o.assetId}" is not in the registry (drawn as a small plain box)`, entityId)
+  }
+  if (c.xyz(o.position, `${p}/position`)) c.num((o.position as { y: unknown }).y, `${p}/position/y`, { min: 0 })
+  if (o.yaw !== undefined) c.num(o.yaw, `${p}/yaw`)
+  if (o.color !== undefined) c.color(o.color, `${p}/color`)
+  if (o.variants !== undefined && c.arr(o.variants, `${p}/variants`)) o.variants.forEach((v, i) => c.oneOf(v, VARIANT_IDS, `${p}/variants/${i}`))
+}
+
+/** Radius (m) around a container's top centre kept free for its loot marker. */
+const MARKER_CLEARANCE = 0.25
+
+/**
+ * G3b warnings: decor over a container's loot marker (it hides the marker, the player takes it for
+ * loot) or on the floor where a door swings (clutter at the one place the player walks through).
+ * Flat decor (rugs, papers, stains) never clutters.
+ */
+function checkDecorPlacement(c: Checker, objects: readonly Obj[]): void {
+  const pos = (o: Obj) => (o.position && typeof o.position === 'object' ? (o.position as { x?: unknown; y?: unknown; z?: unknown }) : null)
+  objects.forEach((o, i) => {
+    if (o.kind !== 'decor' || !isDecorId(o.assetId)) return
+    const at = pos(o)
+    if (typeof at?.x !== 'number' || typeof at.z !== 'number' || typeof at.y !== 'number') return
+    const [w, d] = decorFootprint(o.assetId, typeof o.yaw === 'number' ? o.yaw : 0)
+    const level = o.level ?? 0
+    for (const other of objects) {
+      if ((other.level ?? 0) !== level) continue
+      const q = pos(other)
+      if (typeof q?.x !== 'number' || typeof q.z !== 'number') continue
+      if (other.kind === 'container' && Array.isArray(other.size) && typeof q.y === 'number') {
+        const top = q.y + (other.size[1] as number) / 2
+        const near = Math.abs(at.x - q.x) <= w / 2 + MARKER_CLEARANCE && Math.abs(at.z - q.z) <= d / 2 + MARKER_CLEARANCE
+        if (near && Math.abs(at.y - top) < 0.05) c.issue('warning', 'decor-on-container', `/objects/${i}/position`, `decor "${String(o.localId)}" covers the loot marker of container "${String(other.localId)}"`)
+      }
+      if (other.kind === 'door' && typeof other.width === 'number' && at.y < 0.05 && !isFlat(o.assetId)) {
+        if (Math.hypot(at.x - q.x, at.z - q.z) < other.width) c.issue('warning', 'decor-in-doorway', `/objects/${i}/position`, `decor "${String(o.localId)}" stands where door "${String(other.localId)}" swings`)
+      }
+    }
+  })
+}
+
+function isFlat(assetId: string): boolean {
+  return isDecorId(assetId) && !!DECOR[assetId].flat
 }
 
 function checkContainerFields(c: Checker, o: Obj, p: string, opts: ValidationOptions, entityId: string): void {
@@ -387,6 +444,9 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
         case 'tree':
           checkTree(c, o, p)
           break
+        case 'decor':
+          checkDecor(c, o, p, entityId)
+          break
         case 'door':
           doors++
           c.str(o.name, `${p}/name`)
@@ -448,7 +508,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
         default:
           c.error('unknown-kind', `${p}/kind`, `unknown object kind ${JSON.stringify(o.kind)}`)
       }
-      if (footprintOk && (o.kind === 'door' || o.kind === 'window' || o.kind === 'container' || o.kind === 'prop') && c.obj(o.position, `${p}/position`)) {
+      if (footprintOk && (o.kind === 'door' || o.kind === 'window' || o.kind === 'container' || o.kind === 'prop' || o.kind === 'decor') && c.obj(o.position, `${p}/position`)) {
         const x = o.position.x as number
         const z = o.position.z as number
         if (!inside(x, z)) {
@@ -457,6 +517,11 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       }
     })
   }
+  // G3b: house variants offered, and decor that clutters what the player uses.
+  if (doc.visual !== undefined && c.obj(doc.visual, '/visual') && doc.visual.variants !== undefined && c.arr(doc.visual.variants, '/visual/variants')) {
+    doc.visual.variants.forEach((v, i) => c.oneOf(v, VARIANT_IDS, `/visual/variants/${i}`))
+  }
+  if (Array.isArray(doc.objects)) checkDecorPlacement(c, doc.objects as Obj[])
   if (c.arr(doc.rooms, '/rooms')) {
     if (doc.rooms.length > 0 && !building) c.error('rooms-need-building', '/rooms', 'rooms need building properties (ceiling height)')
     doc.rooms.forEach((r, i) => {
@@ -539,10 +604,16 @@ export function validateChunkDocument(doc: unknown, entry: ChunkEntry, world: Wo
           if (!prefabIds.has(r.prefabId)) c.error('unknown-prefab', `${p}/prefabId`, `prefab ${r.prefabId} is not in the manifest`, id)
           if (c.xyz(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
           c.quarter(r.quarterTurns, `${p}/quarterTurns`)
+          if (r.visual !== undefined && c.obj(r.visual, `${p}/visual`) && r.visual.variantId !== undefined) c.oneOf(r.visual.variantId, VARIANT_IDS, `${p}/visual/variantId`)
           break
         case 'objects':
-          if (!c.oneOf(r.kind, ['wall', 'prop', 'container', 'tree'], `${p}/kind`)) break
+          if (!c.oneOf(r.kind, ['wall', 'prop', 'container', 'tree', 'decor'], `${p}/kind`)) break
           if (r.level !== undefined) c.error('level-not-allowed', `${p}/level`, 'objects placed in a chunk stand on the ground (storeys belong to prefabs)', id)
+          if (r.kind === 'decor') {
+            checkDecor(c, r, p, id)
+            if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
+            break
+          }
           if (r.kind === 'tree') {
             checkTree(c, r, p)
             if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
@@ -629,6 +700,14 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
   const records = resolveAll(docs)
   const chunkPath = (id: string) => world.chunks.find((c) => c.chunkId === id)?.path ?? id
 
+  // G3b: an instance's variant must be one its prefab offers (else the seed picks one).
+  for (const [chunkId, chunk] of docs.chunks) {
+    chunk.instances.forEach((inst, i) => {
+      const chosen = inst.visual?.variantId
+      const offered = docs.prefabs.get(inst.prefabId)?.visual?.variants ?? []
+      if (chosen && !offered.includes(chosen)) add('warning', 'variant-not-offered', `${chunkPath(chunkId)}#/instances/${i}/visual/variantId`, `${inst.instanceId}: prefab ${inst.prefabId} does not offer variant "${chosen}" (a seeded one is shown)`, inst.instanceId)
+    })
+  }
   const owners = new Map<string, string>()
   const retired = new Set(world.retiredIds ?? [])
   for (const r of records) {

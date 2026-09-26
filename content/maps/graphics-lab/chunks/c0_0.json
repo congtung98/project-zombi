@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contentVersion": 1,
+  "contentVersion": 2,
   "chunkId": "c0_0",
   "cx": 0,
   "cz": 0,
@@ -9,14 +9,17 @@
       "instanceId": "c0_0/house-a",
       "prefabId": "building/lab-house",
       "position": { "x": 16, "y": 0, "z": 12 },
-      "quarterTurns": 0
+      "quarterTurns": 0,
+      "visual": { "variantId": "lived-in" }
     },
     {
       "instanceId": "c0_0/house-b",
       "prefabId": "building/lab-house",
       "position": { "x": 32, "y": 0, "z": 36 },
-      "quarterTurns": 2
-    }
+      "quarterTurns": 2,
+      "visual": { "variantId": "abandoned" }
+    },
+    { "instanceId": "c0_0/garage", "prefabId": "building/lab-garage", "position": { "x": 33, "y": 0, "z": 11 }, "quarterTurns": 0 }
   ],
   "objects": [
     { "kind": "prop", "objectId": "c0_0/objects/fence-a-n", "position": { "x": 16, "y": 0.5, "z": 5 }, "size": [15, 1, 0.15], "color": "#7a6a55" },
@@ -38,7 +41,8 @@
     { "roadId": "c0_0/roads/sidewalk-n", "position": { "x": 24, "z": 20.25 }, "size": [48, 1.5], "color": "#9b968c", "layer": 1 },
     { "roadId": "c0_0/roads/sidewalk-s", "position": { "x": 24, "z": 27.75 }, "size": [48, 1.5], "color": "#9b968c", "layer": 1 },
     { "roadId": "c0_0/roads/path-a", "position": { "x": 14.5, "z": 18 }, "size": [1.4, 3], "color": "#a39d91", "layer": 1 },
-    { "roadId": "c0_0/roads/path-b", "position": { "x": 33.5, "z": 30 }, "size": [1.4, 3], "color": "#a39d91", "layer": 1 }
+    { "roadId": "c0_0/roads/path-b", "position": { "x": 33.5, "z": 30 }, "size": [1.4, 3], "color": "#a39d91", "layer": 1 },
+    { "roadId": "c0_0/roads/driveway", "position": { "x": 34.2, "z": 16.75 }, "size": [3, 5.5], "color": "#8c8a84" }
   ],
   "zones": [],
   "spawns": [

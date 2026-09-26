@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { bundledWorldCatalog, loadBundledWorld } from './content'
 import { GameRuntime } from '../game/core/runtime'
 import { collectStaticItems } from '../game/rendering/staticBatchData'
+import { variantColor } from '../game/rendering/variants'
 
 /**
  * G0: the graphics lab (`content/maps/graphics-lab`, live, not frozen: later graphics sprints add
@@ -24,6 +25,14 @@ describe('graphics lab world', () => {
     expect(instances.map((i) => [i.instanceId, i.prefabId, i.quarterTurns])).toEqual([
       [A, 'building/lab-house', 0],
       [B, 'building/lab-house', 2],
+      // G3b: a garage (workbench, tool rack, cans, oil stains) with its driveway.
+      ['c0_0/garage', 'building/lab-garage', 0],
+    ])
+    // G3b: the same prefab shown lived-in and abandoned.
+    expect(map.buildings.map((b) => [b.id, b.variant ?? null])).toEqual([
+      [A, 'lived-in'],
+      [B, 'abandoned'],
+      ['c0_0/garage', null],
     ])
   })
 
@@ -43,20 +52,22 @@ describe('graphics lab world', () => {
       expect(map.buildings.find((b) => b.id === id)?.storeys).toBe(2)
       expect((map.stairs ?? []).filter((s) => s.buildingId === id)).toHaveLength(1)
     }
-    expect(map.roads.map((r) => r.id).sort()).toEqual(['c0_0/roads/path-a', 'c0_0/roads/path-b', 'c0_0/roads/sidewalk-n', 'c0_0/roads/sidewalk-s', 'c0_0/roads/street'])
+    expect(map.roads.map((r) => r.id).sort()).toEqual(['c0_0/roads/driveway', 'c0_0/roads/path-a', 'c0_0/roads/path-b', 'c0_0/roads/sidewalk-n', 'c0_0/roads/sidewalk-s', 'c0_0/roads/street'])
     expect(map.trees?.length).toBeGreaterThanOrEqual(3)
     expect(map.walls.some((w) => w.id === 'c0_0/objects/car')).toBe(true)
     expect(map.walls.filter((w) => w.id.startsWith('c0_0/objects/fence-')).length).toBeGreaterThanOrEqual(4)
   })
 
-  it('both copies draw the same pieces (one prefab, shared looks)', () => {
+  it('both copies draw the same building (one prefab, shared looks); the variant only recolours it', () => {
     const rt = new GameRuntime({ ...loaded().map, zombieSpawns: [] })
     const items = collectStaticItems(rt.map, rt.staticColliders)
-    const of = (id: string) => items.filter((i) => i.buildingId === id)
+    // G3b: furniture looks and decor differ by variant; the building itself is the same pieces.
+    const of = (id: string) => items.filter((i) => i.buildingId === id && !i.decor && !i.furniture)
     expect(of(A).length).toBeGreaterThan(50)
     expect(of(B).length).toBe(of(A).length)
-    const colours = (id: string) => of(id).map((i) => i.color).sort()
-    expect(colours(B)).toEqual(colours(A))
+    const colours = (id: string, recolour = (c: string) => c) => of(id).map((i) => recolour(i.color)).sort()
+    expect(colours(B)).toEqual(colours(A, (c) => variantColor(c, 'abandoned')))
+    expect(colours(B)).not.toEqual(colours(A))
   })
 
   it('the baseline script scenes stand where they should', () => {

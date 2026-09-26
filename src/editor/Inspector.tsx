@@ -3,7 +3,8 @@ import { findRecord, instancesOf, resolvedRecords, worldAnchor, type AnyRecord, 
 import { SURFACE_LAYER_MAX, type QuarterTurns, type TreeObject, type XYZ, type XZ } from '../map/schema'
 import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
-import { FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
+import { DecorFields, FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
+import { VARIANT_IDS, VARIANTS } from '../game/rendering/variants'
 import { PrefabInspector } from './PrefabInspector'
 import { SaveCompat } from './SaveCompat'
 import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
@@ -126,6 +127,26 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
         </>
       )}
 
+      {loc.category === 'instances' && (() => {
+        // G3b: the house variant of this instance (among the prefab's; none = the stable seed).
+        const offered = doc.prefabs.get(String(r.prefabId))?.visual?.variants ?? []
+        if (!offered.length) return null
+        const chosen = (r.visual as { variantId?: string } | undefined)?.variantId ?? ''
+        return (
+          <label className="field">
+            <span>Biến thể</span>
+            <select value={chosen} onChange={(e) => patch('Đổi biến thể', { visual: e.target.value ? { variantId: e.target.value } : undefined })} data-instance-variant>
+              <option value="">Tự động (seed theo ID)</option>
+              {VARIANT_IDS.filter((v) => offered.includes(v)).map((v) => (
+                <option key={v} value={v}>
+                  {VARIANTS[v].label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )
+      })()}
+
       {loc.category === 'objects' && (
         <>
           <ReadField label="Loại" value={String(r.kind)} />
@@ -140,7 +161,8 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
               onCommit={(n) => patch('Đổi kích thước', { size: (r.size as number[]).map((s, j) => (j === i ? n : s)) })}
             />
           ))}
-          {r.kind !== 'tree' && <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />}
+          {r.kind === 'decor' && <DecorFields decor={r} patch={patch} inPrefab={false} />}
+          {r.kind !== 'tree' && r.kind !== 'decor' && <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />}
           {(r.kind === 'prop' || r.kind === 'container') && <FurnitureFields visual={r.visual} patch={patch} />}
           {r.kind === 'container' && (
             <label className="field">

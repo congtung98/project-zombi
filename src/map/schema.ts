@@ -169,6 +169,31 @@ export interface ContainerObject extends BoxFields, Levelled {
 export interface FurnitureVisual {
   assetId: string
   facing?: QuarterTurns
+  /**
+   * G3b: extra turn about the box centre, degrees −45…45 (a chair pulled out askew); the asset shrinks
+   * to stay inside the box, which stays the collider.
+   */
+  yaw?: number
+  /** G3b: one of the asset's looks (`FURNITURE_VARIANTS`: an unmade bed, a tool rack); default: the house variant's, else the asset's first. */
+  variantId?: string
+}
+
+/**
+ * G3b: drawn-only decor (`game/rendering/decor/catalog.ts`: a cup, a packed bag, an oil stain). No
+ * collider, nav or sight blocker, no interaction, no saved state; an ID like every object (the editor
+ * keeps it). `position` is the centre of its base: `y` is the height of what it stands on above its
+ * storey's floor (0 = the floor, 0.75 = a table top). `yaw` in degrees, the sense of quarter turns
+ * (90 = one quarter turn); `color` tints the main part. `variants` = the house variants it belongs to
+ * (absent: every variant, and houses without variants).
+ */
+export interface DecorObject extends Levelled {
+  kind: 'decor'
+  localId: string
+  assetId: string
+  position: XYZ
+  yaw?: number
+  color?: string
+  variants?: string[]
 }
 
 /**
@@ -254,7 +279,7 @@ export interface StairsObject extends Levelled {
   length: number
 }
 
-export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject | TreeObject | StairsObject
+export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject | TreeObject | StairsObject | DecorObject
 
 export interface LampObject {
   localId: string
@@ -311,6 +336,11 @@ export interface PrefabDocument {
   objects: PrefabObject[]
   rooms: RoomObject[]
   /**
+   * G3b (graphics): house variants this prefab offers (`game/rendering/variants.ts`: `intact`,
+   * `lived-in`, `abandoned`); each instance shows one. Presentation only.
+   */
+  visual?: { variants?: string[] }
+  /**
    * Local IDs deleted or renamed in the prefab editor (M5, sorted). Never handed out again, so a
    * save holding state for `<instance>/<old id>` can't attach it to an unrelated new object.
    */
@@ -323,11 +353,16 @@ export interface InstanceRecord {
   prefabId: string
   position: XYZ
   quarterTurns: QuarterTurns
+  /**
+   * G3b (graphics): which of the prefab's variants this house shows (`game/rendering/variants.ts`);
+   * absent or not offered: one picked by a stable seed of the instance ID and the prefab version.
+   */
+  visual?: { variantId?: string }
 }
 
 type Standalone<T> = Omit<T, 'localId'> & { objectId: string }
 /** Object placed directly in a chunk. `objectId` = `<identityChunkId>/objects/<name>`. */
-export type StandaloneObject = Standalone<WallObject> | Standalone<PropObject> | Standalone<ContainerObject> | Standalone<TreeObject>
+export type StandaloneObject = Standalone<WallObject> | Standalone<PropObject> | Standalone<ContainerObject> | Standalone<TreeObject> | Standalone<DecorObject>
 
 /** Road surface (visual only, no collider). */
 export interface RoadRecord {

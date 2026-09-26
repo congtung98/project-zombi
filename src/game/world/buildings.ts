@@ -22,6 +22,10 @@ export interface WallDef {
 export interface FurnitureLook {
   assetId: string
   facing?: 0 | 1 | 2 | 3
+  /** G3b: extra turn about the box centre, degrees (schema `FurnitureVisual.yaw`). */
+  yaw?: number
+  /** G3b: the asset look named by the content (`FurnitureVisual.variantId`). */
+  variantId?: string
   /**
    * Quarter turns of the prefab instance, kept when `facing` is automatic: the automatic choice
    * starts from the prefab's own frame, so every turned copy of a house faces its furniture alike.
@@ -135,6 +139,22 @@ export interface BuildingInfo {
   floorColor: string
   /** M11a: non-rectangular footprint (L, T, U…); `center`/`size` are its bounding box. */
   outline?: Outline
+  /** G3b (graphics, presentation only): the house variant (`rendering/variants.ts`), resolved per instance. */
+  variant?: string
+}
+
+/**
+ * G3b: a drawn-only decor object (map schema `DecorObject`) in world space: `position` is its base
+ * centre, `floorY` the floor of its storey (a decor on the floor sits just above the floor layers),
+ * `yaw` radians about +Y.
+ */
+export interface DecorDef {
+  id: string
+  assetId: string
+  position: Vec3
+  floorY: number
+  yaw: number
+  color?: string
 }
 
 /**

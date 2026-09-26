@@ -16,9 +16,31 @@ export interface WorldBox {
 }
 
 export interface PlacedPart extends FurniturePart {
-  /** World bounds. */
+  /** World bounds (of the turned part when `yaw` is set). */
   min: [number, number, number]
   max: [number, number, number]
+  /** World centre and size before the yaw (the batch instance). */
+  center: [number, number, number]
+  size: [number, number, number]
+  /** G3b: turn about +Y through `center` (radians). */
+  yaw?: number
+}
+
+export interface PlaceOptions {
+  /** G3b: turn of the whole asset about the box centre (radians); it shrinks to stay inside the box. */
+  yaw?: number
+  /** G3b: asset variant (`FURNITURE_VARIANTS`); unknown or none = the asset's default. */
+  variant?: string
+}
+
+/**
+ * Share of the box an asset turned by `yaw` may fill so that its turned footprint stays inside the
+ * box (a chair pulled out askew is a smaller chair in the same collider).
+ */
+export function yawFit(sx: number, sz: number, yaw: number): number {
+  const c = Math.abs(Math.cos(yaw))
+  const s = Math.abs(Math.sin(yaw))
+  return Math.min(1, sx / (sx * c + sz * s), sz / (sx * s + sz * c))
 }
 
 /** Width across the front and depth for a world box `sx` × `sz` faced `q`. */
@@ -26,18 +48,36 @@ export function assetDims(size: readonly [number, number, number], q: QuarterTur
   return (q & 1) === 0 ? { w: size[0], h: size[1], d: size[2] } : { w: size[2], h: size[1], d: size[0] }
 }
 
-/** The parts of `asset` filling `box`, its front towards `rotateXZ(0, 1, facing)`. */
-export function placeFurniture(asset: FurnitureId, box: WorldBox, facing: QuarterTurns, color: string): PlacedPart[] {
-  const size: [number, number, number] = [box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z]
+/**
+ * The parts of `asset` filling `box`, its front towards `rotateXZ(0, 1, facing)`; G3b: turned by
+ * `yaw` about the box centre (a positive yaw turns +X towards −Z, like `rotation.y`).
+ */
+export function placeFurniture(asset: FurnitureId, box: WorldBox, facing: QuarterTurns, color: string, opts: PlaceOptions = {}): PlacedPart[] {
+  const yaw = opts.yaw ?? 0
+  const k = yaw ? yawFit(box.max.x - box.min.x, box.max.z - box.min.z, yaw) : 1
+  const size: [number, number, number] = [(box.max.x - box.min.x) * k, box.max.y - box.min.y, (box.max.z - box.min.z) * k]
   const cx = (box.min.x + box.max.x) / 2
   const cz = (box.min.z + box.max.z) / 2
-  return furnitureParts(asset, assetDims(size, facing), color).map((p) => {
+  const cos = Math.cos(yaw)
+  const sin = Math.sin(yaw)
+  return furnitureParts(asset, assetDims(size, facing), color, opts.variant).map((p) => {
     const [ax, az] = rotateXZ(p.min[0], p.min[2], facing)
     const [bx, bz] = rotateXZ(p.max[0], p.max[2], facing)
+    const sx = Math.abs(bx - ax)
+    const sz = Math.abs(bz - az)
+    const sy = p.max[1] - p.min[1]
+    const ox = (ax + bx) / 2
+    const oz = (az + bz) / 2
+    const center: [number, number, number] = [cx + ox * cos + oz * sin, box.min.y + (p.min[1] + p.max[1]) / 2, cz - ox * sin + oz * cos]
+    const hx = (Math.abs(cos) * sx + Math.abs(sin) * sz) / 2
+    const hz = (Math.abs(sin) * sx + Math.abs(cos) * sz) / 2
     return {
       ...p,
-      min: [cx + Math.min(ax, bx), box.min.y + p.min[1], cz + Math.min(az, bz)],
-      max: [cx + Math.max(ax, bx), box.min.y + p.max[1], cz + Math.max(az, bz)],
+      min: [center[0] - hx, box.min.y + p.min[1], center[2] - hz],
+      max: [center[0] + hx, box.min.y + p.max[1], center[2] + hz],
+      center,
+      size: [sx, sy, sz],
+      ...(yaw ? { yaw } : {}),
     }
   })
 }

@@ -175,7 +175,8 @@ describe('surface rules', () => {
     expect([...parts(`${A}/fridge`)].sort()).toEqual(['matte', 'paintedMetal'])
     expect(unpackSurface(byId('c0_0/objects/car').surface).a).toBe('matte')
     expect(unpackSurface(byId('world/boundary-n').surface).a).toBe('concrete')
-    expect([...pieces((i) => i.shape === 'trunk')].map((c) => unpackSurface(c).a)).toEqual(['bark'])
+    // G3b: decor uses the round unit shape too (cups, pots); tree trunks are bark.
+    expect([...pieces((i) => i.shape === 'trunk' && !i.decor)].map((c) => unpackSurface(c).a)).toEqual(['bark'])
     expect([...pieces((i) => i.shape === 'crown' || i.shape === 'cone')].map((c) => unpackSurface(c).a)).toEqual(['foliage'])
   })
 

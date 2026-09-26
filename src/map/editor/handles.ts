@@ -134,7 +134,7 @@ export function prefabItemHandles(prefab: PrefabDocument, key: string): Handle[]
       const { foot, top } = stairEnds(o)
       return [{ key: 'from', at: foot }, { key: 'to', at: top }]
     }
-    if (o.kind === 'door' || o.kind === 'window') return []
+    if (o.kind === 'door' || o.kind === 'window' || o.kind === 'decor') return []
     if (o.kind === 'tree') return [{ key: 'radius', at: { x: quantize(o.position.x + o.canopy), z: o.position.z } }]
     return rectHandles(centred(o.position, o.size[0], o.size[2]))
   }
@@ -189,6 +189,7 @@ export function dragPrefabHandle(doc: MapDocument, prefabId: string, key: string
       return updatePrefabItem(doc, prefabId, key, dragStairEnd(o, handle === 'from' ? 'foot' : 'top', p, (prefab.building ?? DEFAULT_BUILDING).height))
     }
     if (o.kind === 'tree') return updatePrefabItem(doc, prefabId, key, { canopy: treeCanopy(o, o.position, p) })
+    if (o.kind === 'decor') return fail('Đồ trang trí có kích thước cố định theo mẫu')
     const next = dragEdge(centred(o.position, o.size[0], o.size[2]), handle, p, MIN_SIZE.box)
     const position = { ...o.position, x: quantize((next.minX + next.maxX) / 2), z: quantize((next.minZ + next.maxZ) / 2) }
     return updatePrefabItem(doc, prefabId, key, { position, size: [quantize(next.maxX - next.minX), o.size[1], quantize(next.maxZ - next.minZ)] })

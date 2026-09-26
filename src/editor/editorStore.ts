@@ -40,7 +40,7 @@ export interface Playtest {
 export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record'; presetId: string } | { kind: 'prefabItem'; presetId: string }
 
 /** Palette tabs of the prefab editor (M5). */
-export type PrefabTab = 'structure' | 'openings' | 'furniture' | 'containers' | 'rooms'
+export type PrefabTab = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms'
 
 export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks'
 

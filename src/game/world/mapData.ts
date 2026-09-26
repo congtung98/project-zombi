@@ -11,6 +11,7 @@ import {
   type BuildingDef,
   type BuildingInfo,
   type ContainerDef,
+  type DecorDef,
   type DoorPlacement,
   type RoomPlacement,
   type WallDef,
@@ -63,6 +64,8 @@ export interface MapData {
   center?: { x: number; z: number }
   /** M9: trees to draw; each trunk is also a wall (same ID) in `walls`. */
   trees?: TreeDef[]
+  /** G3b: drawn-only decor (no collider, nav, sight or state). */
+  decor?: DecorDef[]
   /** M8: how saves of older content revisions map onto this one (`migrations/content-v<N>.json`). */
   contentMigrations?: readonly ContentMigration[]
   playerSpawn: Vec3

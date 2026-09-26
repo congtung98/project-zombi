@@ -88,6 +88,7 @@ const PREFAB_TABS: { id: PrefabTab; label: string }[] = [
   { id: 'openings', label: 'Cửa' },
   { id: 'furniture', label: 'Nội thất' },
   { id: 'containers', label: 'Tủ' },
+  { id: 'decor', label: 'Trang trí' },
   { id: 'rooms', label: 'Phòng' },
 ]
 
@@ -97,6 +98,8 @@ const PREFAB_HINTS: Record<PrefabTab, string> = {
   openings: 'Click sát một bức tường: cửa/cửa sổ bám vào tường và quay vào phía trong nhà (cửa mở vào trong). Xa tường: đặt theo góc R.',
   furniture: 'Nội thất là vật cản (collider, chặn đường đi). Click để đặt; quầy/khối: kéo để định kích thước.',
   containers: 'Tủ có loot: bảng loot chọn ở Inspector. Vòng xanh = tầm tương tác trong game.',
+  decor:
+    'Đồ trang trí chỉ để nhìn: không va chạm, không nhặt được, không lưu. Đặt lên bàn/kệ: sửa Y ở Inspector. Cụm: đặt một lần nhiều object có ID riêng (R xoay trước khi click). Không che dấu loot của tủ và lối cửa mở (validator cảnh báo).',
   rooms: 'Kéo khung phòng trên đường tâm tường. Phòng có đèn kèm công tắc (ô vàng, kéo để dời). Ánh sáng: cửa sổ và cửa nối các phòng.',
 }
 

@@ -164,6 +164,9 @@ export function rotateRecords(doc: MapDocument, selected: readonly string[], tur
     if (loc.category === 'instances') {
       const q = addQuarterTurns(r.quarterTurns as number, turns)
       if (q !== r.quarterTurns) next = { ...r, quarterTurns: q }
+    } else if (r.kind === 'decor') {
+      // G3b: decor turns about its base centre.
+      if (turns % 4 !== 0) next = { ...r, yaw: ((((r.yaw as number | undefined) ?? 0) + turns * 90) % 360 + 360) % 360 }
     } else if (Array.isArray(r.size)) {
       const s = r.size as number[]
       const swapped = s.length === 3 ? [s[2], s[1], s[0]] : [s[1], s[0]]

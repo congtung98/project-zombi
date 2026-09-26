@@ -8,7 +8,7 @@ import type { CommandResult } from '../../../map/editor/commands'
 import type { QuarterTurns } from '../../../map/schema'
 import { GameRuntime } from '../../core/runtime'
 import type { MapData } from '../../world/mapData'
-import { collectStaticItems } from '../staticBatchData'
+import { collectStaticItems, itemBounds } from '../staticBatchData'
 import { FURNITURE, FURNITURE_IDS, type FurnitureId } from './catalog'
 import { furnitureParts } from './assets'
 import { autoFacing, placeFurniture, type WorldBox } from './placement'
@@ -41,6 +41,7 @@ const SIZES: Record<FurnitureId, [number, number, number][]> = {
   'furniture/bookshelf': [[1.2, 2, 0.5], [0.8, 1.2, 0.3]],
   'furniture/shelving': [[1.4, 1.8, 0.5], [2, 1.6, 0.6], [2, 1.6, 0.6]],
   'furniture/crate': [[1, 1, 1], [0.5, 0.6, 0.9]],
+  'furniture/workbench': [[2, 0.9, 0.8], [1.2, 0.9, 0.6]],
 }
 
 /** A record without its furniture look. */
@@ -169,11 +170,13 @@ describe('furniture in the lab house (G3a)', () => {
       for (const p of partsOf(f.id)) {
         expect(p.anchor!.min.toArray()).toEqual([min.x, min.y, min.z])
         expect(p.anchor!.max.toArray()).toEqual([max.x, max.y, max.z])
-        for (const [k, axis] of (['x', 'y', 'z'] as const).entries()) {
-          expect(p.center[axis] - p.size[k] / 2).toBeGreaterThanOrEqual(min[axis] - 1e-6)
-          expect(p.center[axis] + p.size[k] / 2).toBeLessThanOrEqual(max[axis] + 1e-6)
+        // G3b: a part turned by the piece's yaw is tested with its turned bounds.
+        const b = itemBounds(p)
+        for (const axis of ['x', 'y', 'z'] as const) {
+          expect(b.min[axis], `${f.id} ${p.furniture?.part}`).toBeGreaterThanOrEqual(min[axis] - 1e-6)
+          expect(b.max[axis], `${f.id} ${p.furniture?.part}`).toBeLessThanOrEqual(max[axis] + 1e-6)
         }
-        expect(p.buildingId, f.id).toBe(f.id.startsWith(A) ? A : B)
+        expect(p.buildingId, f.id).toBe(f.id.slice(0, f.id.lastIndexOf('/')))
         expect(p.role).toBe('prop' in f && f.prop ? 'prop' : 'container')
         // Tall props fade together (every part registers the whole box); containers never did (unchanged).
         expect(p.occluder).toBe('prop' in f && !!f.prop && f.size[1] >= 1.5)

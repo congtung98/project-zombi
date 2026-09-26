@@ -16,6 +16,11 @@ import type { FurnitureLook } from '../world/buildings'
 import type { QuarterTurns } from '../../map/schema'
 import { isFurnitureId, type FurnitureId } from './furniture/catalog'
 import { autoFacing, placeFurniture, type WorldBox } from './furniture/placement'
+import { decorParts } from './decor/assets'
+import { isDecorId, type DecorId } from './decor/catalog'
+import { isVariantId, variantColor, VARIANTS, type VariantId } from './variants'
+import { ROOM_FLOOR_LIFT } from './architecture'
+import type { DecorDef } from '../world/buildings'
 
 /**
  * R3b: what `StaticBatches` draws, as plain data: every wall/prop box (from the collider registry),
@@ -84,6 +89,24 @@ export interface StaticItem {
    * box (cutaway and fader treat the piece of furniture as one). `facing` is the one used (given or automatic).
    */
   furniture?: { assetId: FurnitureId; part: string; facing: QuarterTurns }
+  /** G3b: a part of a decor object (drawn only); `anchor` is the whole decor's bounds. */
+  decor?: { assetId: DecorId | 'unknown'; part: string }
+  /**
+   * G3b: turn about +Y through the centre (radians; a chair pulled out askew, decor). Absent = axis
+   * aligned like everything else; the cutaway and the fader then use the turned box's bounds.
+   */
+  yaw?: number
+}
+
+/** World bounds of an item (G3b: of its turned box when it has a yaw). */
+export function itemBounds(item: Pick<StaticItem, 'center' | 'size' | 'shape' | 'yaw'>): { min: Vector3; max: Vector3 } {
+  const { center, size, shape, yaw } = item
+  const c = yaw ? Math.abs(Math.cos(yaw)) : 1
+  const s = yaw ? Math.abs(Math.sin(yaw)) : 0
+  const hx = (c * size[0] + s * size[2]) / 2
+  const hz = (s * size[0] + c * size[2]) / 2
+  const hy = shape === 'floor' ? 0 : size[1] / 2
+  return { min: new Vector3(center.x - hx, center.y - hy, center.z - hz), max: new Vector3(center.x + hx, center.y + hy, center.z + hz) }
 }
 
 /** Ground cell size of the building lookup below (m). */
@@ -165,7 +188,11 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     const item: StaticItem = { shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false, id: c.id, surface: packSurface(PIECE_SURFACES.furniture), ...member(memberOf(c.id, c.position.x, c.position.z), 'container') }
     if (!furnish(item, c.visual)) items.push(item)
   }
-  items.push(...furnitureItems(furnished, items, props))
+  const variantOf = (id: string | undefined): VariantId | undefined => {
+    const v = id ? buildingById.get(id)?.variant : undefined
+    return isVariantId(v) ? v : undefined
+  }
+  items.push(...furnitureItems(furnished, items, props, variantOf))
   items.push(...architectureDetails(map, items, buildingById))
   for (const b of map.buildings) {
     // M11a: an L/T/U building is floored and roofed piece by piece (rectangles tiling its outline).
@@ -213,8 +240,61 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     // The canopy fades like a roof when it hides the player; it blocks nothing.
     items.push({ shape: t.style === 'pine' ? 'cone' : 'crown', center: new Vector3(t.position.x, f.canopyBottom + depth / 2, t.position.z), size: [2 * t.canopy, depth, 2 * t.canopy], color: t.color, occluder: true, surface: packSurface(PIECE_SURFACES.canopy) })
   }
+  // G3b: decor (drawn only), then the house variants' palette on every piece of a house but decor.
+  for (const d of map.decor ?? []) items.push(...decorItems(d, memberOf(d.id, d.position.x, d.position.z)))
+  for (const item of items) {
+    const v = variantOf(item.buildingId)
+    if (v && !item.decor) item.color = variantColor(item.color, v)
+  }
   return items
 }
+
+/** Unknown decor asset: a small plain box, easy to spot, never an error (plan §9). */
+const UNKNOWN_DECOR = { size: [0.3, 0.3, 0.3] as [number, number, number], color: '#9a8f9e' }
+
+/**
+ * G3b: a decor object's parts in the world. On the floor (base at its storey's floor) it sits just
+ * above the floor layers (house floor, room floor, roads), so flat decor never flickers with them.
+ */
+export function decorItems(d: DecorDef, buildingId: string | undefined): StaticItem[] {
+  const onFloor = d.position.y - d.floorY < 0.005
+  const lift = !onFloor ? 0 : buildingId ? (d.floorY < 0.01 ? FLOOR_Y : 0) + ROOM_FLOOR_LIFT + 0.002 : OUTDOOR_DECOR_LIFT
+  const base = d.position.y + lift
+  const parts = isDecorId(d.assetId)
+    ? decorParts(d.assetId, d.color)
+    : [{ name: 'unknown', shape: 'box' as const, center: [0, UNKNOWN_DECOR.size[1] / 2, 0] as [number, number, number], size: UNKNOWN_DECOR.size, color: UNKNOWN_DECOR.color, surface: 'matte' as const }]
+  const cos = Math.cos(d.yaw)
+  const sin = Math.sin(d.yaw)
+  const out: StaticItem[] = parts.map((p) => {
+    const [px, py, pz] = p.center
+    const yaw = d.yaw + (p.yaw ?? 0)
+    return {
+      shape: p.shape === 'cyl' ? 'trunk' : 'box',
+      center: new Vector3(round(d.position.x + px * cos + pz * sin), round(base + py), round(d.position.z - px * sin + pz * cos)),
+      size: [p.size[0], p.size[1], p.size[2]],
+      color: p.color,
+      occluder: false,
+      id: d.id,
+      surface: packSurface({ a: p.surface }),
+      decor: { assetId: isDecorId(d.assetId) ? d.assetId : 'unknown', part: p.name },
+      ...(yaw ? { yaw } : {}),
+      ...member(buildingId, 'prop'),
+    }
+  })
+  // The cutaway and the fader treat the decor as one piece: its bounds.
+  const min = new Vector3(Infinity, Infinity, Infinity)
+  const max = new Vector3(-Infinity, -Infinity, -Infinity)
+  for (const i of out) {
+    const b = itemBounds(i)
+    min.min(b.min)
+    max.max(b.max)
+  }
+  for (const i of out) i.anchor = { min, max }
+  return out
+}
+
+/** Flat decor outdoors sits above the road layers (a few millimetres) and below any floor. */
+const OUTDOOR_DECOR_LIFT = 0.012
 
 /**
  * G2: a hipped roof on an eaves board (`center`/`size` of the board): its ridge runs along the longer
@@ -276,7 +356,12 @@ function architectureDetails(map: MapData, collected: readonly StaticItem[], bui
  * G3a: the parts of every furnished box. The facing is the content's, or the back to the nearest wall
  * of the same building (outside buildings: loose walls, not other props).
  */
-function furnitureItems(furnished: readonly { item: StaticItem; look: FurnitureLook & { assetId: FurnitureId } }[], collected: readonly StaticItem[], props: ReadonlySet<string>): StaticItem[] {
+function furnitureItems(
+  furnished: readonly { item: StaticItem; look: FurnitureLook & { assetId: FurnitureId } }[],
+  collected: readonly StaticItem[],
+  props: ReadonlySet<string>,
+  variantOf: (buildingId: string | undefined) => VariantId | undefined,
+): StaticItem[] {
   const out: StaticItem[] = []
   const boxOf = (i: StaticItem): WorldBox => ({
     min: { x: i.center.x - i.size[0] / 2, y: i.center.y - i.size[1] / 2, z: i.center.z - i.size[2] / 2 },
@@ -287,16 +372,21 @@ function furnitureItems(furnished: readonly { item: StaticItem; look: FurnitureL
     const box = boxOf(item)
     const facing = look.facing ?? autoFacing(look.assetId, box, walls.filter((w) => w.buildingId === item.buildingId).map(boxOf), look.turn)
     const anchor = { min: new Vector3(box.min.x, box.min.y, box.min.z), max: new Vector3(box.max.x, box.max.y, box.max.z) }
-    for (const p of placeFurniture(look.assetId, box, facing, item.color)) {
+    // G3b: the content's look, else the house variant's default for this asset.
+    const house = variantOf(item.buildingId)
+    const variant = look.variantId ?? (house ? VARIANTS[house].furniture[look.assetId] : undefined)
+    const yaw = look.yaw ? (look.yaw * Math.PI) / 180 : 0
+    for (const p of placeFurniture(look.assetId, box, facing, item.color, { yaw, variant })) {
       out.push({
         ...item,
         // Rounded like the sizes: a turned copy gives the very same piece (no float noise).
-        center: new Vector3(round((p.min[0] + p.max[0]) / 2), round((p.min[1] + p.max[1]) / 2), round((p.min[2] + p.max[2]) / 2)),
-        size: [round(p.max[0] - p.min[0]), round(p.max[1] - p.min[1]), round(p.max[2] - p.min[2])],
+        center: new Vector3(round(p.center[0]), round(p.center[1]), round(p.center[2])),
+        size: [round(p.size[0]), round(p.size[1]), round(p.size[2])],
         color: p.color,
         surface: packSurface({ a: p.surface }),
         anchor,
         furniture: { assetId: look.assetId, part: p.name, facing },
+        ...(p.yaw ? { yaw: p.yaw } : {}),
       })
     }
   }

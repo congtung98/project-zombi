@@ -10,7 +10,7 @@ import type { AnyRecord } from './document.ts'
  * Sizes follow the neighbourhood buildings.
  */
 
-export type PrefabPresetGroup = 'structure' | 'openings' | 'furniture' | 'containers' | 'rooms'
+export type PrefabPresetGroup = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms'
 
 export interface PrefabPreset {
   id: string
@@ -21,6 +21,12 @@ export interface PrefabPreset {
   drag: DragMode
   /** Object template without `localId` (rooms: room template), keys in content-file order. */
   template: AnyRecord
+  /**
+   * G3b: a decor cluster: the objects it places at once, each a template with its local-ID base
+   * (`name`) and its position relative to the click (`y` absolute: what it stands on). Each becomes
+   * an ordinary object with its own ID (no nested prefab).
+   */
+  cluster?: { name: string; template: AnyRecord }[]
 }
 
 /** Wall/door defaults of a prefab without building properties. */
@@ -38,6 +44,32 @@ const box = (kind: 'prop' | 'container', size: [number, number, number], color: 
 })
 
 const lamp = { name: 'Đèn', intensity: 0.8, color: '#ffd9a0', requiresElectricity: true }
+
+/** G3b: a decor template at `(x, y, z)` relative to the click. */
+const decor = (assetId: string, x = 0, y = 0, z = 0, extra: AnyRecord = {}): AnyRecord => ({ kind: 'decor', assetId, position: { x, y, z }, ...extra })
+/** G3b: a prop/container template at `(x, z)` relative to the click, standing on the floor. */
+const at = (t: AnyRecord, x: number, z: number): AnyRecord => ({ ...t, position: { x, y: (t.position as { y: number }).y, z } })
+
+const DECOR_PRESETS: [string, string, string][] = [
+  ['cup', 'decor/cup', 'Cốc'],
+  ['plate', 'decor/plate', 'Đĩa'],
+  ['pot', 'decor/pot', 'Nồi'],
+  ['board', 'decor/cutting-board', 'Thớt + bánh mì'],
+  ['food', 'decor/food-boxes', 'Hộp thực phẩm'],
+  ['cans', 'decor/cans', 'Lon đồ hộp'],
+  ['bottle', 'decor/bottle', 'Chai'],
+  ['books', 'decor/books', 'Chồng sách'],
+  ['papers', 'decor/papers', 'Giấy tờ vương vãi'],
+  ['clothes', 'decor/clothes', 'Đống quần áo'],
+  ['rug', 'decor/rug', 'Thảm'],
+  ['carton', 'decor/carton', 'Thùng các-tông'],
+  ['duffel', 'decor/duffel-bag', 'Túi du lịch'],
+  ['backpack', 'decor/backpack', 'Ba lô'],
+  ['jerrycan', 'decor/jerrycan', 'Can xăng'],
+  ['toolbox', 'decor/toolbox', 'Hộp đồ nghề'],
+  ['tires', 'decor/tires', 'Chồng lốp xe'],
+  ['stain', 'decor/oil-stain', 'Vệt dầu'],
+]
 
 export const PREFAB_PRESETS: readonly PrefabPreset[] = [
   { id: 'structure/wall-run', group: 'structure', label: 'Tường (kéo theo trục)', name: 'wall', drag: 'line', template: { kind: 'wallRun' } },
@@ -73,6 +105,72 @@ export const PREFAB_PRESETS: readonly PrefabPreset[] = [
   { id: 'container/shelf', group: 'containers', label: 'Kệ hàng', name: 'shelf', drag: 'point', template: box('container', [2, 1.6, 0.6], '#8a8580', { name: 'Kệ hàng', lootTableId: 'store-shelf' }, 'furniture/shelving') },
   { id: 'container/fridge', group: 'containers', label: 'Tủ lạnh', name: 'fridge', drag: 'point', template: box('container', [0.8, 1.8, 0.8], '#d8dde0', { name: 'Tủ lạnh', lootTableId: 'store-fridge' }, 'furniture/fridge') },
   { id: 'container/empty', group: 'containers', label: 'Tủ trống (không loot)', name: 'cabinet', drag: 'point', template: box('container', [1, 1, 0.6], '#6b5a3a', { name: 'Tủ' }, 'furniture/cabinet') },
+
+  // G3b: drawn-only decor, one asset each (Y = what it stands on, set in the Inspector).
+  ...DECOR_PRESETS.map(([name, assetId, label]): PrefabPreset => ({ id: `decor/${name}`, group: 'decor', label, name, drag: 'point', template: decor(assetId) })),
+  // G3b: clusters (plan §7): placed at once, each object with its own ID; R before clicking turns them.
+  {
+    id: 'cluster/dinner',
+    group: 'decor',
+    label: 'Cụm: bàn ăn bỏ dở',
+    name: 'dinner',
+    drag: 'point',
+    template: {},
+    cluster: [
+      { name: 'table', template: box('prop', [1.4, 0.75, 0.9], '#8b6f5c', null, 'furniture/table') },
+      { name: 'chair', template: at({ ...box('prop', [0.45, 0.9, 0.45], '#7a5f48'), visual: { assetId: 'furniture/chair', facing: 2 } }, 0, 0.95) },
+      { name: 'chair', template: at({ ...box('prop', [0.6, 0.9, 0.6], '#7a5f48'), visual: { assetId: 'furniture/chair', facing: 0, yaw: 25 } }, 0.05, -1) },
+      { name: 'plate', template: decor('decor/plate', 0, 0.75, 0.25) },
+      { name: 'plate', template: decor('decor/plate', -0.1, 0.75, -0.25) },
+      { name: 'cup', template: decor('decor/cup', 0.38, 0.75, 0.22) },
+    ],
+  },
+  {
+    id: 'cluster/kitchen',
+    group: 'decor',
+    label: 'Cụm: góc bếp',
+    name: 'kitchen',
+    drag: 'point',
+    template: {},
+    cluster: [
+      { name: 'worktop', template: box('prop', [1.8, 0.9, 0.6], '#9a8b76', null, 'furniture/counter') },
+      { name: 'pot', template: decor('decor/pot', 0.6, 0.9, -0.02) },
+      { name: 'board', template: decor('decor/cutting-board', -0.25, 0.9, 0, { yaw: 8 }) },
+      { name: 'food', template: decor('decor/food-boxes', -0.62, 0.9, -0.06, { yaw: -6 }) },
+    ],
+  },
+  {
+    id: 'cluster/evacuation',
+    group: 'decor',
+    label: 'Cụm: chuẩn bị di tản',
+    name: 'evac',
+    drag: 'point',
+    template: {},
+    cluster: [
+      { name: 'carton', template: decor('decor/carton', 0, 0, 0, { yaw: 4 }) },
+      { name: 'carton', template: decor('decor/carton', 0.04, 0.37, -0.02, { yaw: -9 }) },
+      { name: 'carton', template: decor('decor/carton', -0.05, 0, -0.5, { yaw: 12 }) },
+      { name: 'duffel', template: decor('decor/duffel-bag', 0.55, 0, -0.3, { yaw: 30 }) },
+      { name: 'backpack', template: decor('decor/backpack', 0.6, 0, 0.3, { yaw: -20 }) },
+      { name: 'chair', template: at({ ...box('prop', [0.6, 0.9, 0.6], '#7a5f48'), visual: { assetId: 'furniture/chair', facing: 1, yaw: -30 } }, -0.7, 0.2) },
+    ],
+  },
+  {
+    id: 'cluster/garage',
+    group: 'decor',
+    label: 'Cụm: góc garage',
+    name: 'garage',
+    drag: 'point',
+    template: {},
+    cluster: [
+      { name: 'workbench', template: box('prop', [2, 0.9, 0.8], '#8a6b4a', null, 'furniture/workbench') },
+      { name: 'tool-rack', template: at({ ...box('container', [1.4, 1.8, 0.5], '#5d6166', { name: 'Kệ đồ nghề', lootTableId: 'tool-shelf' }), visual: { assetId: 'furniture/shelving', variantId: 'tools' } }, 1.9, 0.15) },
+      { name: 'toolbox', template: decor('decor/toolbox', -0.55, 0.8, -0.05, { yaw: 6 }) },
+      { name: 'jerrycan', template: decor('decor/jerrycan', -1.35, 0, 0.9, { yaw: 15 }) },
+      { name: 'jerrycan', template: decor('decor/jerrycan', -1.0, 0, 1.2, { yaw: -20, color: '#3f5a3a' }) },
+      { name: 'stain', template: decor('decor/oil-stain', 0.2, 0, 1.6, { yaw: 20 }) },
+    ],
+  },
 
   { id: 'room/lamp', group: 'rooms', label: 'Phòng có đèn (kéo khung)', name: 'room', drag: 'rect', template: { name: 'Phòng', lamp } },
   { id: 'room/plain', group: 'rooms', label: 'Phòng không đèn (kéo khung)', name: 'room', drag: 'rect', template: { name: 'Phòng' } },

@@ -23,6 +23,7 @@ export const FURNITURE_IDS = [
   'furniture/bookshelf',
   'furniture/shelving',
   'furniture/crate',
+  'furniture/workbench',
 ] as const
 export type FurnitureId = (typeof FURNITURE_IDS)[number]
 
@@ -55,6 +56,27 @@ export const FURNITURE: Record<FurnitureId, FurnitureInfo> = {
   'furniture/bookshelf': { label: 'Kệ sách', deep: false },
   'furniture/shelving': { label: 'Kệ kho', deep: false },
   'furniture/crate': { label: 'Thùng gỗ', deep: false },
+  'furniture/workbench': { label: 'Bàn thợ', deep: false },
+}
+
+/**
+ * G3b: looks an asset offers (`visual.variantId`), the first being the default. A house variant may
+ * pick another default (`variants.ts`: an abandoned house has unmade beds and emptied shelves).
+ */
+export const FURNITURE_VARIANTS: Partial<Record<FurnitureId, readonly string[]>> = {
+  'furniture/bed': ['made', 'unmade'],
+  'furniture/bookshelf': ['full', 'sparse'],
+  'furniture/shelving': ['goods', 'tools', 'sparse'],
+}
+
+/** Editor labels of the furniture variants. */
+export const FURNITURE_VARIANT_LABELS: Record<string, string> = {
+  made: 'Gọn gàng',
+  unmade: 'Bừa bộn',
+  full: 'Đầy sách',
+  sparse: 'Thưa, đã bị lấy bớt',
+  goods: 'Hàng hóa',
+  tools: 'Đồ nghề',
 }
 
 export function isFurnitureId(v: unknown): v is FurnitureId {

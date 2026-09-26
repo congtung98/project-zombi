@@ -9,6 +9,8 @@ import { distanceToOutline, outlineBounds, outlineCentre, outlineProblem, rectOu
 import { cutOutlineCorner, outlineWallRuns, turnOutline } from './outlines.ts'
 import { itemsFromStorey, levelField, levelOf, stairFromDrag, storeysOf } from './storeys.ts'
 import { MIN_STOREY_HEIGHT } from '../validate.ts'
+import { decorFootprint } from '../../game/rendering/decor/catalog.ts'
+import { isVariantId, VARIANT_IDS } from '../../game/rendering/variants.ts'
 
 /**
  * Prefab editing commands (M5): pure functions document → document, like the world commands, so
@@ -76,6 +78,11 @@ export function objectRect(o: PrefabObject): Rect {
       return rectAround(o.position, Math.max(2 * o.trunk, o.canopy), Math.max(2 * o.trunk, o.canopy))
     case 'stairs':
       return stairRect(o)
+    case 'decor': {
+      // G3b: the asset's footprint, turned with it.
+      const [w, d] = decorFootprint(o.assetId, o.yaw)
+      return rectAround(o.position, w, d)
+    }
     default:
       return rectAround(o.position, o.size[0], o.size[2])
   }
@@ -354,6 +361,8 @@ export interface PrefabPatch {
   /** M11a: the footprint outline (the footprint becomes its bounding box); null = back to the rectangle. */
   outline?: XZ[] | null
   building?: Partial<NonNullable<PrefabDocument['building']>>
+  /** G3b: house variants offered; [] or null = none. */
+  variants?: string[] | null
 }
 
 /** Prefab properties. `contentVersion` also updates the manifest pin, so they never disagree. */
@@ -391,6 +400,11 @@ export function updatePrefab(doc: MapDocument, prefabId: string, patch: PrefabPa
     if (left.length) return fail(`Còn ${left.length} mục ở tầng ${storeys + 1} trở lên (${left.slice(0, 3).join(', ')}${left.length > 3 ? ' …' : ''}): xóa hoặc chuyển tầng trước`)
     if (storeys === 1) delete b.storeys
     next.building = b
+  }
+  if (patch.variants !== undefined) {
+    const list = [...new Set(patch.variants ?? [])].filter(isVariantId)
+    if (list.length) next.visual = { ...src.visual, variants: VARIANT_IDS.filter((v) => list.includes(v)) }
+    else delete next.visual
   }
   let world = doc.world
   if (patch.contentVersion !== undefined) {
@@ -486,6 +500,20 @@ export function placePrefabItem(doc: MapDocument, prefabId: string, presetId: st
   const t = preset.template
   let key: string
 
+  if (preset.cluster) {
+    // G3b: each object of the cluster with its own fresh local ID, turned by `turns` about the click.
+    const q = ((turns % 4) + 4) % 4
+    const taken = new Set<string>()
+    const keys: string[] = []
+    for (const item of preset.cluster) {
+      const id = freshLocalId(prefab, item.name, taken)
+      taken.add(id)
+      keys.push(id)
+      next.objects.push(clusterObject(item.template, id, from, q, floor) as unknown as PrefabObject)
+    }
+    return { ok: true, doc: withPrefab(doc, next), selection: keys }
+  }
+
   if (preset.group === 'rooms') {
     if (!prefab.building) return fail('Phòng cần prefab là công trình (có building)')
     const bounds = dragRect(from, to, DEFAULT_ROOM)
@@ -574,6 +602,25 @@ function turnAbout(p: XZ, c: XZ, q: number): XZ {
   return { x: quantize(c.x + x), z: quantize(c.z + z) }
 }
 
+/** G3b: one object of a cluster at the click `at`, turned `q` quarter turns about it (offsets, yaw, facing, box sides). */
+function clusterObject(template: AnyRecord, localId: string, at: XZ, q: number, floor: number): AnyRecord {
+  const { kind, ...rest } = structuredClone(template)
+  const p = rest.position as { x: number; y: number; z: number }
+  const [dx, dz] = rotateXZ(p.x, p.z, q)
+  const out: AnyRecord = { kind, ...levelField(floor), localId, ...rest, position: { x: quantize(at.x + dx), y: p.y, z: quantize(at.z + dz) } }
+  if (kind === 'decor') {
+    const yaw = ((((out.yaw as number | undefined) ?? 0) + q * 90) % 360 + 360) % 360
+    if (yaw) out.yaw = yaw
+    else delete out.yaw
+  } else if (Array.isArray(out.size) && q & 1) {
+    const s = out.size as number[]
+    out.size = [s[2], s[1], s[0]]
+  }
+  const visual = out.visual as { facing?: number } | undefined
+  if (visual?.facing !== undefined) out.visual = { ...visual, facing: addQuarterTurns(visual.facing, q) }
+  return out
+}
+
 /**
  * Turn items by quarter turns: doors/windows about their centre (quarterTurns), boxes swap X/Z,
  * wall runs and rooms turn about their centre. Lamps have no orientation. G3a: a furniture look with
@@ -598,6 +645,11 @@ export function rotatePrefabItems(doc: MapDocument, prefabId: string, keys: read
       return { ...o, from: turnAbout(o.from, c, turns), to: turnAbout(o.to, c, turns) }
     }
     if (o.kind === 'tree') return o
+    if (o.kind === 'decor') {
+      if (turns % 4 === 0) return o
+      count++
+      return { ...o, yaw: (((o.yaw ?? 0) + turns * 90) % 360 + 360) % 360 }
+    }
     const facing = (o.kind === 'prop' || o.kind === 'container') && o.visual?.facing !== undefined && turns % 4 !== 0 ? { visual: { ...o.visual, facing: addQuarterTurns(o.visual.facing, turns) } } : null
     const swap = odd && o.size[0] !== o.size[2]
     if (!facing && !swap) return o

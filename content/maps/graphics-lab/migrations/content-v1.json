@@ -1,0 +1,158 @@
+{
+  "format": "zombie-outbreak/content-migration",
+  "fromVersion": 1,
+  "toVersion": 2,
+  "ids": {
+    "doors": [
+      "c0_0/house-a/door",
+      "c0_0/house-a/door-back",
+      "c0_0/house-a/door-bedroom",
+      "c0_0/house-a/door-kitchen",
+      "c0_0/house-a/door-upstairs",
+      "c0_0/house-b/door",
+      "c0_0/house-b/door-back",
+      "c0_0/house-b/door-bedroom",
+      "c0_0/house-b/door-kitchen",
+      "c0_0/house-b/door-upstairs"
+    ],
+    "containers": [
+      {
+        "id": "c0_0/house-a/bookshelf",
+        "position": {
+          "x": 10.5,
+          "z": 10.2
+        }
+      },
+      {
+        "id": "c0_0/house-a/counter",
+        "position": {
+          "x": 19.3,
+          "z": 8
+        }
+      },
+      {
+        "id": "c0_0/house-a/fridge",
+        "position": {
+          "x": 21.4,
+          "z": 8.15
+        }
+      },
+      {
+        "id": "c0_0/house-a/landing-shelf",
+        "position": {
+          "x": 20.8,
+          "z": 8
+        }
+      },
+      {
+        "id": "c0_0/house-a/nightstand",
+        "position": {
+          "x": 21.5,
+          "z": 13.1
+        }
+      },
+      {
+        "id": "c0_0/house-a/wardrobe",
+        "position": {
+          "x": 17.1,
+          "z": 16
+        }
+      },
+      {
+        "id": "c0_0/house-a/wardrobe-2",
+        "position": {
+          "x": 10.6,
+          "z": 11.5
+        }
+      },
+      {
+        "id": "c0_0/house-b/bookshelf",
+        "position": {
+          "x": 37.5,
+          "z": 37.8
+        }
+      },
+      {
+        "id": "c0_0/house-b/counter",
+        "position": {
+          "x": 28.7,
+          "z": 40
+        }
+      },
+      {
+        "id": "c0_0/house-b/fridge",
+        "position": {
+          "x": 26.6,
+          "z": 39.85
+        }
+      },
+      {
+        "id": "c0_0/house-b/landing-shelf",
+        "position": {
+          "x": 27.2,
+          "z": 40
+        }
+      },
+      {
+        "id": "c0_0/house-b/nightstand",
+        "position": {
+          "x": 26.5,
+          "z": 34.9
+        }
+      },
+      {
+        "id": "c0_0/house-b/wardrobe",
+        "position": {
+          "x": 30.9,
+          "z": 32
+        }
+      },
+      {
+        "id": "c0_0/house-b/wardrobe-2",
+        "position": {
+          "x": 37.4,
+          "z": 36.5
+        }
+      },
+      {
+        "id": "c0_0/objects/bin-a",
+        "position": {
+          "x": 12,
+          "z": 19
+        }
+      }
+    ],
+    "windows": [
+      "c0_0/house-a/win-bedroom-e",
+      "c0_0/house-a/win-bedroom-s",
+      "c0_0/house-a/win-kitchen-n",
+      "c0_0/house-a/win-landing-n",
+      "c0_0/house-a/win-living-s",
+      "c0_0/house-a/win-living-w",
+      "c0_0/house-a/win-up-e",
+      "c0_0/house-a/win-up-s",
+      "c0_0/house-b/win-bedroom-e",
+      "c0_0/house-b/win-bedroom-s",
+      "c0_0/house-b/win-kitchen-n",
+      "c0_0/house-b/win-landing-n",
+      "c0_0/house-b/win-living-s",
+      "c0_0/house-b/win-living-w",
+      "c0_0/house-b/win-up-e",
+      "c0_0/house-b/win-up-s"
+    ],
+    "lamps": [
+      "c0_0/house-a/lamp-bedroom",
+      "c0_0/house-a/lamp-bedroom-2",
+      "c0_0/house-a/lamp-kitchen",
+      "c0_0/house-a/lamp-landing",
+      "c0_0/house-a/lamp-living",
+      "c0_0/house-b/lamp-bedroom",
+      "c0_0/house-b/lamp-bedroom-2",
+      "c0_0/house-b/lamp-kitchen",
+      "c0_0/house-b/lamp-landing",
+      "c0_0/house-b/lamp-living"
+    ],
+    "zones": []
+  },
+  "renamed": {}
+}

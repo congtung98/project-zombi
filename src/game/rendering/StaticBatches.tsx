@@ -7,7 +7,7 @@ import { cutaway, pieceShow, type PieceShow } from './cutaway'
 import { FADED_OPACITY, occlusionRegistry } from './occlusionRegistry'
 import { fadedVariant } from './sharedResources'
 import { batchSurfaceMaterial, surfaceMaterial } from './surfaces/surfaceMaterial'
-import { collectStaticItems, groupByChunk, type StaticItem } from './staticBatchData'
+import { collectStaticItems, groupByChunk, itemBounds, type StaticItem } from './staticBatchData'
 import { geometryKey, unitGeometry } from './unitShapes'
 import { WIDE_KEY } from './viewChunks'
 import { useViewChunks } from './viewChunkStore'
@@ -43,6 +43,13 @@ let shadowProxies = true
 const pieceMatrix = new Matrix4()
 const pieceCenter = new Vector3()
 const pieceScale = new Vector3()
+const UP = new Vector3(0, 1, 0)
+const turn = new Quaternion()
+
+/** G3b: an item's rotation (its yaw about +Y; none for the axis-aligned rest). */
+function itemRotation(item: StaticItem): Quaternion {
+  return item.yaw ? turn.setFromAxisAngle(UP, item.yaw) : identity
+}
 
 /** A batch instance whose visibility depends on the cutaway and the fader. */
 class BatchedPiece {
@@ -70,9 +77,7 @@ class BatchedPiece {
 
   /** World box of the piece (the cutaway limits are heights). */
   get box(): { min: Vector3; max: Vector3 } {
-    const { center, size, shape } = this.item
-    const h = shape === 'floor' ? 0 : size[1] / 2
-    return { min: new Vector3(center.x - size[0] / 2, center.y - h, center.z - size[2] / 2), max: new Vector3(center.x + size[0] / 2, center.y + h, center.z + size[2] / 2) }
+    return itemBounds(this.item)
   }
 
   setLimit(limit: number): void {
@@ -113,6 +118,7 @@ class BatchedPiece {
       const { shape, size, center, color, surface } = this.item
       const m = new Mesh(unitGeometry(this.item), fadedVariant(surfaceMaterial(surface, color, true), FADED_OPACITY))
       m.position.copy(center)
+      m.quaternion.copy(itemRotation(this.item))
       m.scale.set(size[0], shape === 'floor' ? 1 : size[1], size[2])
       m.castShadow = true
       m.receiveShadow = true
@@ -137,7 +143,7 @@ class BatchedPiece {
       pieceCenter.copy(center)
       pieceScale.set(size[0], shape === 'floor' ? 1 : size[1], size[2])
     }
-    this.batch.setMatrixAt(this.instance, pieceMatrix.compose(pieceCenter, identity, pieceScale))
+    this.batch.setMatrixAt(this.instance, pieceMatrix.compose(pieceCenter, itemRotation(this.item), pieceScale))
     this.cutDrawn = cut
   }
 
@@ -193,7 +199,7 @@ function buildBatch(list: readonly StaticItem[], overlays: Group): ChunkBatch {
   for (const item of list) {
     const instance = mesh.addInstance(geometry.get(geometryKey(item))!)
     scale.set(item.size[0], item.shape === 'floor' ? 1 : item.size[1], item.size[2])
-    mesh.setMatrixAt(instance, matrix.compose(item.center, identity, scale))
+    mesh.setMatrixAt(instance, matrix.compose(item.center, itemRotation(item), scale))
     color.set(item.color)
     mesh.setColorAt(instance, colorAndSurface.set(color.r, color.g, color.b, item.surface))
     if (shadow) {
@@ -218,10 +224,10 @@ function attachBatches(batches: ChunkBatch[]): () => void {
         set.add(piece)
       }
       if (!item.occluder) continue
-      const half = new Vector3(item.size[0] / 2, item.size[1] / 2, item.size[2] / 2)
+      const bounds = itemBounds(item)
       occlusionRegistry.register(piece, {
         // G2: a detail fades when its wall or opening (its anchor) is in the way, together with it.
-        box: item.anchor ? new Box3(item.anchor.min.clone(), item.anchor.max.clone()) : new Box3(item.center.clone().sub(half), item.center.clone().add(half)),
+        box: item.anchor ? new Box3(item.anchor.min.clone(), item.anchor.max.clone()) : new Box3(bounds.min, bounds.max),
         // A cut or hidden piece is not in the way any more; only a whole one fades.
         isVisible: () => piece.show === 'full',
         setFaded: (f) => piece.setFaded(f),

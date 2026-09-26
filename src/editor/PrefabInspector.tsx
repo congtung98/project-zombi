@@ -5,7 +5,8 @@ import { instancesOf, type AnyRecord, type MapDocument } from '../map/editor/doc
 import { wallRunBoxes } from '../map/resolve'
 import type { PrefabDocument, PrefabObject, QuarterTurns, Rect, RoomObject, XZ } from '../map/schema'
 import { OPTS, useEditorStore } from './editorStore'
-import { FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
+import { DecorFields, FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
+import { VARIANT_IDS, VARIANTS } from '../game/rendering/variants'
 import { SURFACES, type SurfaceId } from '../game/rendering/surfaces/catalog'
 import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection } from './interaction'
 
@@ -24,6 +25,7 @@ const KIND_LABEL: Record<string, string> = {
   wall: 'Khối tường',
   prop: 'Nội thất / vật cản',
   container: 'Tủ (container)',
+  decor: 'Đồ trang trí (chỉ để nhìn)',
   door: 'Cửa đi',
   window: 'Cửa sổ',
   room: 'Phòng',
@@ -159,6 +161,21 @@ function PrefabProps({ doc, prefab }: { doc: MapDocument; prefab: PrefabDocument
           </p>
         </>
       )}
+      <h4>Biến thể nhà</h4>
+      <div className="field" data-prefab-variants>
+        <span>Có các biến thể</span>
+        {VARIANT_IDS.map((v) => (
+          <label key={v}>
+            <input
+              type="checkbox"
+              checked={!!prefab.visual?.variants?.includes(v)}
+              onChange={(e) => patch('Đổi biến thể nhà', { variants: VARIANT_IDS.filter((x) => (x === v ? e.target.checked : !!prefab.visual?.variants?.includes(x))) })}
+            />{' '}
+            {VARIANTS[v].label}
+          </label>
+        ))}
+      </div>
+      <p className="hint">Mỗi instance hiện một biến thể (chọn ở Inspector của instance, không chọn thì theo seed ổn định). Biến thể đổi màu, đồ trang trí và kiểu đồ đạc; không đổi va chạm hay loot.</p>
       <ReadField label="Pivot" value={`(${prefab.pivot.x}, ${prefab.pivot.z}) — chấm hồng`} />
       <ReadField label="Local ID đã xóa" value={String(prefab.retiredLocalIds?.length ?? 0)} />
       <p className="hint">
@@ -333,6 +350,16 @@ function ObjectFields({ object: o, prefab, patch }: { object: PrefabObject; pref
           Cầu thang leo theo +X của khung (xoay 0°), lên một tầng; đầu dưới mở ở tầng dưới, đầu trên mở ra sàn tầng trên. Kéo hai ô vuông ở chân/đỉnh để đổi độ dài; chỗ bước lên/xuống (0,9 m sau mỗi đầu)
           phải trống.
         </p>
+      </>
+    )
+  }
+  if (o.kind === 'decor') {
+    return (
+      <>
+        <NumField label="X" value={o.position.x} onCommit={(x) => patch('Di chuyển', { position: { ...o.position, x } })} />
+        <NumField label="Z" value={o.position.z} onCommit={(z) => patch('Di chuyển', { position: { ...o.position, z } })} />
+        <NumField label="Y (mặt đứng)" value={o.position.y} step={0.05} min={0} onCommit={(y) => patch('Đổi độ cao', { position: { ...o.position, y } })} />
+        <DecorFields decor={o} patch={patch} inPrefab />
       </>
     )
   }

@@ -3,6 +3,7 @@ import type { ResolvedRecord } from '../map/resolve'
 import { outlineRects } from '../map/polygon'
 import { TREE_TRUNK_COLOR, treeProfile } from '../game/world/trees'
 import { stairTreads } from '../game/rendering/staticBatchData'
+import { DECOR, decorFootprint, isDecorId } from '../game/rendering/decor/catalog'
 
 /**
  * Editor draw data (M7): a resolved record as plain boxes and markers (`drawItems`), shared by the
@@ -73,6 +74,12 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
   const trunks = new Set((p.trees ?? []).map((t) => t.id))
   for (const w of p.walls ?? []) if (!trunks.has(w.id)) add('box', 'solid', w.color ?? '#8a8580', [w.position.x, w.position.y, w.position.z], [...w.size])
   for (const c of p.containers ?? []) add('box', 'solid', c.color ?? '#6b5a3a', [c.position.x, c.position.y, c.position.z], [...c.size])
+  // G3b: decor as its footprint box (the game draws the asset).
+  for (const d of p.decor ?? []) {
+    const [w, depth] = decorFootprint(d.assetId, (d.yaw * 180) / Math.PI)
+    const h = Math.max(0.02, isDecorId(d.assetId) ? DECOR[d.assetId].size[1] : 0.3)
+    add('box', 'solid', d.color ?? (isDecorId(d.assetId) ? DECOR[d.assetId].color : '#c040c0'), [d.position.x, d.position.y + h / 2, d.position.z], [w, h, depth])
+  }
   for (const d of p.doors ?? []) {
     // Leaf from the hinge along local +X, turned by the closed angle (Three.js rotation.y).
     const cx = d.hinge.x + (Math.cos(d.closedAngle) * d.width) / 2

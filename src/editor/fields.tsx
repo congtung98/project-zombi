@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { FACING_LABELS, FURNITURE, FURNITURE_IDS } from '../game/rendering/furniture/catalog'
+import { FACING_LABELS, FURNITURE, FURNITURE_IDS, FURNITURE_VARIANT_LABELS, FURNITURE_VARIANTS, type FurnitureId } from '../game/rendering/furniture/catalog'
+import { DECOR, DECOR_IDS } from '../game/rendering/decor/catalog'
+import { VARIANT_IDS, VARIANTS } from '../game/rendering/variants'
 
 /**
  * Inspector inputs that commit once (Enter or blur), so typing is not a stream of commands and
@@ -90,10 +92,20 @@ export function ReadField({ label, value }: { label: string; value: string }) {
  * the back against the nearest wall). An asset missing from the registry is kept and shown as such.
  */
 export function FurnitureFields({ visual, patch }: { visual: unknown; patch: (label: string, fields: Record<string, unknown>) => void }) {
-  const v = visual && typeof visual === 'object' ? (visual as { assetId?: unknown; facing?: unknown }) : undefined
+  const v = visual && typeof visual === 'object' ? (visual as { assetId?: unknown; facing?: unknown; yaw?: unknown; variantId?: unknown }) : undefined
   const asset = typeof v?.assetId === 'string' ? v.assetId : ''
   const known = asset === '' || (FURNITURE_IDS as readonly string[]).includes(asset)
   const facing = typeof v?.facing === 'number' ? String(v.facing) : ''
+  const yaw = typeof v?.yaw === 'number' ? v.yaw : 0
+  const variant = typeof v?.variantId === 'string' ? v.variantId : ''
+  const looks = known && asset ? (FURNITURE_VARIANTS[asset as FurnitureId] ?? []) : []
+  // One place that rebuilds the look from its fields (unset ones left out of the file).
+  const look = (f: { facing?: string; yaw?: number; variant?: string }) => {
+    const q = f.facing ?? facing
+    const y = f.yaw ?? yaw
+    const vid = f.variant ?? variant
+    return { visual: { assetId: asset, ...(q ? { facing: Number(q) } : {}), ...(y ? { yaw: y } : {}), ...(vid ? { variantId: vid } : {}) } }
+  }
   return (
     <>
       <label className="field">
@@ -111,7 +123,7 @@ export function FurnitureFields({ visual, patch }: { visual: unknown; patch: (la
       {asset && (
         <label className="field">
           <span>Mặt trước</span>
-          <select value={facing} onChange={(e) => patch('Đổi hướng', { visual: { assetId: asset, ...(e.target.value ? { facing: Number(e.target.value) } : {}) } })} data-furniture-facing>
+          <select value={facing} onChange={(e) => patch('Đổi hướng', look({ facing: e.target.value }))} data-furniture-facing>
             <option value="">Tự động (lưng áp tường)</option>
             {FACING_LABELS.map((label, q) => (
               <option key={q} value={q}>
@@ -121,6 +133,62 @@ export function FurnitureFields({ visual, patch }: { visual: unknown; patch: (la
           </select>
         </label>
       )}
+      {asset && <NumField label="Lệch (độ, −45…45)" value={yaw} step={5} onCommit={(n) => patch('Đổi góc lệch', look({ yaw: Math.max(-45, Math.min(45, n)) }))} />}
+      {looks.length > 0 && (
+        <label className="field">
+          <span>Kiểu</span>
+          <select value={variant} onChange={(e) => patch('Đổi kiểu', look({ variant: e.target.value }))} data-furniture-variant>
+            <option value="">Theo biến thể nhà</option>
+            {looks.map((id) => (
+              <option key={id} value={id}>
+                {FURNITURE_VARIANT_LABELS[id] ?? id}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </>
+  )
+}
+
+/**
+ * G3b: a decor object's fields (asset, turn, colour, the house variants it shows in), shared by the
+ * world and prefab inspectors. Decor is drawn only: no collider, no interaction, no saved state.
+ */
+export function DecorFields({ decor, patch, inPrefab }: { decor: { assetId?: unknown; yaw?: unknown; color?: unknown; variants?: unknown }; patch: (label: string, fields: Record<string, unknown>) => void; inPrefab: boolean }) {
+  const asset = typeof decor.assetId === 'string' ? decor.assetId : ''
+  const known = (DECOR_IDS as readonly string[]).includes(asset)
+  const variants = Array.isArray(decor.variants) ? (decor.variants as string[]) : null
+  const toggle = (id: string, on: boolean) => {
+    const next = VARIANT_IDS.filter((v) => (v === id ? on : (variants ?? []).includes(v)))
+    patch('Đổi biến thể của đồ trang trí', { variants: next.length ? next : undefined })
+  }
+  return (
+    <>
+      <label className="field">
+        <span>Mẫu</span>
+        <select value={asset} onChange={(e) => patch('Đổi mẫu trang trí', { assetId: e.target.value })} data-decor-asset>
+          {!known && <option value={asset}>{asset} (không có trong registry)</option>}
+          {DECOR_IDS.map((id) => (
+            <option key={id} value={id}>
+              {DECOR[id].label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <NumField label="Xoay (độ)" value={typeof decor.yaw === 'number' ? decor.yaw : 0} step={15} onCommit={(yaw) => patch('Xoay đồ trang trí', { yaw: ((yaw % 360) + 360) % 360 || undefined })} />
+      <TextField label="Màu (trống = mặc định)" value={typeof decor.color === 'string' ? decor.color : ''} pattern={/^(#[0-9a-f]{6})?$/i} onCommit={(color) => patch('Đổi màu', { color: color || undefined })} />
+      {inPrefab && (
+        <div className="field" data-decor-variants>
+          <span>Chỉ hiện ở</span>
+          {VARIANT_IDS.map((id) => (
+            <label key={id}>
+              <input type="checkbox" checked={!!variants?.includes(id)} onChange={(e) => toggle(id, e.target.checked)} /> {VARIANTS[id].label}
+            </label>
+          ))}
+        </div>
+      )}
+      <p className="hint">Đồ trang trí chỉ để nhìn: không va chạm, không nhặt được, không lưu. Y là độ cao mặt nó đứng (0 = sàn). {inPrefab ? 'Không tick biến thể nào = hiện ở mọi biến thể.' : ''}</p>
     </>
   )
 }

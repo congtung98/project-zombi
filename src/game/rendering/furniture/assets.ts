@@ -1,5 +1,5 @@
 import type { SurfaceId } from '../surfaces/catalog'
-import type { FurnitureId } from './catalog'
+import { FURNITURE_VARIANTS, type FurnitureId } from './catalog'
 
 /**
  * G3a: the parts of every furniture asset, as boxes in the asset's own frame: x across the front
@@ -82,7 +82,7 @@ function slots(a: number, b: number, n: number, gap: number): [number, number][]
 }
 
 /** Frame, mattress, blanket over the foot end with its drapes, pillows at the head. */
-function bed(p: Parts, c: string): void {
+function bed(p: Parts, c: string, variant: string): void {
   const { w, h, d } = p.dims
   const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
   const head = Math.min(0.08, d * 0.05)
@@ -93,13 +93,26 @@ function bed(p: Parts, c: string): void {
   p.box('frame', x0, x1, 0, baseTop, z0 + head, z1, shade(WOOD_DARK, 0.12), 'wood')
   p.box('mattress', x0 + 0.03, x1 - 0.03, baseTop, mattressTop, z0 + head, z1 - 0.03, LINEN, 'fabric')
   const fold = z0 + head + (d - head) * 0.36
+  const pillows = w >= 1.25 ? 2 : 1
+  const pd = Math.min(0.34, (fold - z0 - head) * 0.8)
+  const top = Math.min(h, mattressTop + Math.max(0.05, h * 0.13))
+  if (variant === 'unmade') {
+    // Unmade: the blanket thrown back into a heap on one side of the foot end, one pillow gone.
+    const heap = x0 + (x1 - x0) * 0.6
+    const from = z1 - (d - head) * 0.45
+    p.box('blanket', x0 + 0.005, heap, mattressTop, top, from, z1 - 0.005, c, 'fabric')
+    p.box('blanket-foot', x0 + 0.005, heap, baseTop, mattressTop, z1 - 0.03, z1 - 0.005, c, 'fabric')
+    p.box('blanket-left', x0 + 0.005, x0 + 0.03, baseTop, mattressTop, from, z1 - 0.03, c, 'fabric')
+    const [a, b] = slots(x0 + 0.1, x1 - 0.1, pillows, 0.08)[pillows - 1]
+    const half = Math.min(0.32, (b - a) / 2)
+    const cx = Math.max(x0 + 0.1 + half, (a + b) / 2 - 0.08)
+    p.box('pillow-0', cx - half, cx + half, mattressTop, top, z0 + head + 0.12, z0 + head + 0.12 + pd, PILLOW, 'fabric')
+    return
+  }
   p.box('blanket', x0 + 0.005, x1 - 0.005, mattressTop, blanketTop, fold, z1 - 0.005, c, 'fabric')
   p.box('blanket-foot', x0 + 0.005, x1 - 0.005, baseTop, mattressTop, z1 - 0.03, z1 - 0.005, c, 'fabric')
   p.box('blanket-left', x0 + 0.005, x0 + 0.03, baseTop, mattressTop, fold, z1 - 0.03, c, 'fabric')
   p.box('blanket-right', x1 - 0.03, x1 - 0.005, baseTop, mattressTop, fold, z1 - 0.03, c, 'fabric')
-  const pillows = w >= 1.25 ? 2 : 1
-  const pd = Math.min(0.34, (fold - z0 - head) * 0.8)
-  const top = Math.min(h, mattressTop + Math.max(0.05, h * 0.13))
   slots(x0 + 0.1, x1 - 0.1, pillows, 0.08).forEach(([a, b], i) => {
     const cx = (a + b) / 2
     const half = Math.min(0.32, (b - a) / 2)
@@ -292,7 +305,7 @@ const BOOK_RUNS: readonly (readonly [number, number, number, number])[][] = [
 ]
 
 /** Sides, top, plinth, back, shelves; runs of books on each shelf (a fixed pattern). */
-function bookshelf(p: Parts, c: string): void {
+function bookshelf(p: Parts, c: string, variant: string): void {
   const { w, h, d } = p.dims
   const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
   const side = 0.03
@@ -313,6 +326,8 @@ function bookshelf(p: Parts, c: string): void {
     if (k > 0) p.box(`shelf-${k}`, x0 + side, x1 - side, floor - board, floor, z0 + back, z1 - 0.01, c, 'wood')
     const clear = plinth + (k + 1) * step - floor
     for (const [j, [start, width, tall, colour]] of BOOK_RUNS[k % BOOK_RUNS.length].entries()) {
+      // Sparse: most runs taken, a few books left here and there.
+      if (variant === 'sparse' && (k + j) % 3 !== 0) continue
       const a = x0 + side + start * inner
       p.box(`books-${k}-${j}`, a, a + width * inner, floor, floor + Math.min(0.3, tall * clear), z0 + back + 0.01, z0 + back + 0.01 + bookDepth, BOOKS[colour], 'matte')
     }
@@ -327,8 +342,16 @@ const RACK_GOODS: readonly (readonly [number, number, number, 'box' | 'cans'])[]
   [[0.04, 0.3, 0.55, 'box'], [0.4, 0.2, 0.45, 'cans']],
 ]
 
-/** Four posts, boards, goods on every level but the top. */
-function shelving(p: Parts, c: string): void {
+/** Tools on a rack, same shares as the goods: red toolboxes (`box`) and paint tins (`cans`). */
+const RACK_TOOLS: readonly (readonly [number, number, number, 'box' | 'cans'])[][] = [
+  [[0.06, 0.42, 0.45, 'box'], [0.56, 0.3, 0.55, 'cans']],
+  [[0.08, 0.3, 0.6, 'cans'], [0.5, 0.38, 0.4, 'box']],
+  [[0.1, 0.5, 0.35, 'box']],
+  [[0.52, 0.34, 0.5, 'cans']],
+]
+
+/** Four posts, boards, goods on every level but the top (tools, or little left when sparse). */
+function shelving(p: Parts, c: string, variant: string): void {
   const { w, h, d } = p.dims
   const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
   const post = 0.04
@@ -343,12 +366,15 @@ function shelving(p: Parts, c: string): void {
     p.box(`board-${k}`, x0 + 0.005, x1 - 0.005, y, y + board, z0 + 0.005, z1 - 0.005, c, 'wood')
     if (k === n - 1) continue
     const clear = step - board
-    for (const [j, [start, width, tall, kind]] of RACK_GOODS[k % RACK_GOODS.length].entries()) {
+    const tools = variant === 'tools'
+    const table = tools ? RACK_TOOLS : RACK_GOODS
+    for (const [j, [start, width, tall, kind]] of table[k % table.length].entries()) {
+      if (variant === 'sparse' && (k + j) % 3 !== 1) continue
       const a = x0 + post + start * (w - 2 * post)
       const b = a + width * (w - 2 * post)
       const top = y + board + tall * clear
-      if (kind === 'box') p.box(`goods-${k}-${j}`, a, b, y + board, top, z0 + 0.05, z1 - 0.08, CARDBOARD, 'matte')
-      else p.box(`goods-${k}-${j}`, a, b, y + board, top, -0.08, 0.08, '#6c7d8a', 'paintedMetal')
+      if (kind === 'box') p.box(`goods-${k}-${j}`, a, b, y + board, top, z0 + 0.05, z1 - 0.08, tools ? '#a3322a' : CARDBOARD, tools ? 'paintedMetal' : 'matte')
+      else p.box(`goods-${k}-${j}`, a, b, y + board, top, -0.08, 0.08, tools ? '#5d6b52' : '#6c7d8a', 'paintedMetal')
     }
   }
 }
@@ -368,7 +394,21 @@ function crate(p: Parts, c: string): void {
   slots(x0, x1, 3, 0.025).forEach(([a, b], i) => p.box(`lid-${i}`, a, b, h - t, h, z0, z1, shade(c, 0.05), 'wood'))
 }
 
-const BUILDERS: Record<FurnitureId, (p: Parts, color: string) => void> = {
+/** Legs, a thick top a little under the box top, a vice and a tray of tools on it, a toolbox on the shelf. */
+function workbench(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const top = h - 0.1
+  p.box('top', x0, x1, top - 0.06, top, z0, z1, c, 'wood')
+  legs(p, top - 0.06, 0.07, 0.03, shade(c, -0.2))
+  p.box('shelf', x0 + 0.05, x1 - 0.05, 0.12, 0.15, z0 + 0.05, z1 - 0.05, shade(c, -0.1), 'wood')
+  p.box('toolbox', x0 + 0.15, x0 + 0.15 + Math.min(0.45, w * 0.35), 0.15, 0.33, z0 + 0.08, z0 + 0.08 + Math.min(0.22, d - 0.16), '#a3322a', 'paintedMetal')
+  const vx = x1 - 0.22
+  p.box('vice', vx, vx + 0.16, top, h, z1 - 0.2, z1 - 0.04, '#3f5a6b', 'paintedMetal')
+  p.box('tray', x0 + 0.2, x0 + 0.5, top, top + 0.03, z0 + 0.1, z0 + 0.3, '#8e9398', 'paintedMetal')
+}
+
+const BUILDERS: Record<FurnitureId, (p: Parts, color: string, variant: string) => void> = {
   'furniture/bed': bed,
   'furniture/sofa': sofa,
   'furniture/table': table,
@@ -382,11 +422,13 @@ const BUILDERS: Record<FurnitureId, (p: Parts, color: string) => void> = {
   'furniture/bookshelf': bookshelf,
   'furniture/shelving': shelving,
   'furniture/crate': crate,
+  'furniture/workbench': workbench,
 }
 
 /** The parts of `asset` sized to `dims`, in the asset frame (`clipped`: parts cut back to the box). */
-export function furnitureParts(asset: FurnitureId, dims: Dims, color: string): FurniturePart[] & { clipped?: string[] } {
+export function furnitureParts(asset: FurnitureId, dims: Dims, color: string, variant?: string): FurniturePart[] & { clipped?: string[] } {
   const p = new Parts(dims)
-  BUILDERS[asset](p, color)
+  const offered = FURNITURE_VARIANTS[asset] ?? []
+  BUILDERS[asset](p, color, variant && offered.includes(variant) ? variant : (offered[0] ?? ''))
   return Object.assign(p.list, p.clipped.length ? { clipped: p.clipped } : {})
 }

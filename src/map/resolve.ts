@@ -3,6 +3,7 @@ import {
   DOOR_HEIGHT,
   type BuildingInfo,
   type ContainerDef,
+  type DecorDef,
   type DoorPlacement,
   type FurnitureLook,
   type RoomPlacement,
@@ -17,6 +18,7 @@ import {
   recordId,
   type BoxFields,
   type ChunkDocument,
+  type DecorObject,
   type FurnitureVisual,
   type InstanceRecord,
   type PrefabDocument,
@@ -33,6 +35,8 @@ import {
 } from './schema.ts'
 import { addQuarterTurns, chunkOrigin, playAreaRect, quantize, quarterAngle, rotateRect, rotateSize, rotateXZ, unionRect } from './transform.ts'
 import { outlineCentre, outlineRects } from './polygon.ts'
+import { resolveVariant } from '../game/rendering/variants.ts'
+import { decorFootprint } from '../game/rendering/decor/catalog.ts'
 
 /**
  * Resolver: content documents → neutral descriptors in world space (the `MapData` pieces every
@@ -55,6 +59,8 @@ export interface MapParts {
   /** M11b: upper floor slabs and flights of multi-storey buildings. */
   floors: FloorSlab[]
   stairs: StairPlacement[]
+  /** G3b: drawn-only decor. */
+  decor: DecorDef[]
 }
 
 export interface ResolvedRecord {
@@ -82,7 +88,7 @@ function boxRect(position: XZ, size: readonly number[]): Rect {
 }
 
 function emptyParts(): MapParts {
-  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [], trees: [], floors: [], stairs: [] }
+  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [], trees: [], floors: [], stairs: [], decor: [] }
 }
 
 /** An opening (door or window) cut into a wall run, as an interval along the run. */
@@ -191,7 +197,29 @@ export function stairRect(o: StairsObject): Rect {
 function look(v: FurnitureVisual | undefined, q: number): { visual?: FurnitureLook } {
   if (!v) return {}
   const turn = addQuarterTurns(q, 0)
-  return { visual: { assetId: v.assetId, ...(v.facing !== undefined ? { facing: addQuarterTurns(q, v.facing) } : turn ? { turn } : {}) } }
+  return {
+    visual: {
+      assetId: v.assetId,
+      ...(v.facing !== undefined ? { facing: addQuarterTurns(q, v.facing) } : turn ? { turn } : {}),
+      ...(v.yaw ? { yaw: v.yaw } : {}),
+      ...(v.variantId ? { variantId: v.variantId } : {}),
+    },
+  }
+}
+
+/**
+ * G3b: a decor object in the world: base centre at `at` (y above the storey floor `floorY`), yaw in
+ * radians turned with the instance (`q` quarter turns, the same sense as `rotateXZ`).
+ */
+function placeDecor(id: string, o: Omit<DecorObject, 'localId'>, at: XZ, y: number, floorY: number, q: number): DecorDef {
+  return {
+    id,
+    assetId: o.assetId,
+    position: { x: at.x, y, z: at.z },
+    floorY,
+    yaw: (((o.yaw ?? 0) * Math.PI) / 180 + (q * Math.PI) / 2) % (2 * Math.PI),
+    ...(o.color ? { color: o.color } : {}),
+  }
 }
 
 /** Place one prefab instance: every object, room and lamp gets `<instanceId>/<localId>`. */
@@ -221,6 +249,8 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
   let bounds: Rect = footprint
   const entityIds = [inst.instanceId]
   const b = prefab.building
+  // G3b: the house variant (explicit, else seeded by instance and prefab version).
+  const variant = resolveVariant(prefab.visual?.variants, inst.visual?.variantId, inst.instanceId, prefab.contentVersion)
   if (b) {
     parts.buildings.push({
       id: inst.instanceId,
@@ -234,6 +264,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       roofColor: b.roofColor,
       floorColor: b.floorColor,
       ...(prefab.outline ? { outline: prefab.outline.map(point) } : {}),
+      ...(variant ? { variant } : {}),
     })
   }
 
@@ -261,6 +292,12 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         parts.trees.push(t.tree)
         parts.walls.push(t.trunk)
         bounds = unionRect(bounds, t.bounds)
+        break
+      }
+      case 'decor': {
+        // Only in the variants it belongs to (none listed: always).
+        if (o.variants && !(variant && o.variants.includes(variant))) break
+        parts.decor.push(placeDecor(id(o.localId), o, point(o.position), height(o.position.y + lift(o)), height(lift(o)), q))
         break
       }
       case 'container': {
@@ -392,6 +429,13 @@ function resolveStandalone(o: StandaloneObject, origin: XZ): { parts: Partial<Ma
     const t = placeTree(o.objectId, o, { x: quantize(origin.x + o.position.x), z: quantize(origin.z + o.position.z) })
     return { parts: { trees: [t.tree], walls: [t.trunk] }, bounds: t.bounds }
   }
+  if (o.kind === 'decor') {
+    const at = { x: quantize(origin.x + o.position.x), z: quantize(origin.z + o.position.z) }
+    const bounds = boxRect(at, decorFootprint(o.assetId, o.yaw))
+    // A chunk has no variant: decor listing variants only shows in houses.
+    if (o.variants) return { parts: {}, bounds }
+    return { parts: { decor: [placeDecor(o.objectId, o, at, o.position.y, 0, 0)] }, bounds }
+  }
   const position = { x: quantize(origin.x + o.position.x), y: o.position.y, z: quantize(origin.z + o.position.z) }
   const bounds = boxRect(position, o.size)
   if (o.kind === 'container') {
@@ -510,6 +554,7 @@ export function assembleMapData(world: WorldDocument, records: Iterable<Resolved
     windows: all.windows,
     rooms: all.rooms,
     ...(all.trees.length ? { trees: all.trees } : {}),
+    ...(all.decor.length ? { decor: all.decor } : {}),
     ...(maxActive !== undefined ? { maxActiveZombies: maxActive } : {}),
     ...(all.floors.length ? { floors: all.floors } : {}),
     ...(all.stairs.length ? { stairs: all.stairs } : {}),
