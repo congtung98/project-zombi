@@ -164,10 +164,13 @@ export function rotateRecords(doc: MapDocument, selected: readonly string[], tur
     if (loc.category === 'instances') {
       const q = addQuarterTurns(r.quarterTurns as number, turns)
       if (q !== r.quarterTurns) next = { ...r, quarterTurns: q }
-    } else if (odd && Array.isArray(r.size)) {
+    } else if (Array.isArray(r.size)) {
       const s = r.size as number[]
       const swapped = s.length === 3 ? [s[2], s[1], s[0]] : [s[1], s[0]]
-      if (swapped.some((v, i) => v !== s[i])) next = { ...r, size: swapped }
+      if (odd && swapped.some((v, i) => v !== s[i])) next = { ...r, size: swapped }
+      // G3a: a furniture look with a set facing turns with its box.
+      const visual = r.visual as { facing?: number } | undefined
+      if (visual?.facing !== undefined && turns % 4 !== 0) next = { ...(next ?? r), visual: { ...visual, facing: addQuarterTurns(visual.facing, turns) } }
     }
     if (!next) continue
     draft.list(loc.chunkId, loc.category)[loc.index] = next

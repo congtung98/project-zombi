@@ -169,8 +169,10 @@ describe('surface rules', () => {
     expect([...pieces((i) => i.role === 'roof' && i.shape === 'box')].map(unpackSurface)).toEqual([{ a: 'matte', b: 'matte', faces: 0 }])
     expect([...pieces((i) => i.role === 'slab')].map(unpackSurface)).toEqual([{ a: 'plaster', b: 'woodFloor', faces: FACE.py }])
     expect([...pieces((i) => i.role === 'stairs')].map(unpackSurface)).toEqual([{ a: 'plaster', b: 'woodFloor', faces: FACE.py }])
-    expect(unpackSurface(byId(`${A}/sofa`).surface).a).toBe('matte')
-    expect(unpackSurface(byId(`${A}/fridge`).surface).a).toBe('matte')
+    // G3a: furniture assets pick a surface per part (upholstery, wood legs, painted metal fridge).
+    const parts = (id: string) => new Set(items.filter((i) => i.id === id).map((i) => unpackSurface(i.surface).a))
+    expect([...parts(`${A}/sofa`)].sort()).toEqual(['fabric', 'wood'])
+    expect([...parts(`${A}/fridge`)].sort()).toEqual(['matte', 'paintedMetal'])
     expect(unpackSurface(byId('c0_0/objects/car').surface).a).toBe('matte')
     expect(unpackSurface(byId('world/boundary-n').surface).a).toBe('concrete')
     expect([...pieces((i) => i.shape === 'trunk')].map((c) => unpackSurface(c).a)).toEqual(['bark'])

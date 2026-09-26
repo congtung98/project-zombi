@@ -576,7 +576,8 @@ function turnAbout(p: XZ, c: XZ, q: number): XZ {
 
 /**
  * Turn items by quarter turns: doors/windows about their centre (quarterTurns), boxes swap X/Z,
- * wall runs and rooms turn about their centre. Lamps have no orientation.
+ * wall runs and rooms turn about their centre. Lamps have no orientation. G3a: a furniture look with
+ * a set facing turns with its box (an automatic one follows the walls by itself).
  */
 export function rotatePrefabItems(doc: MapDocument, prefabId: string, keys: readonly string[], turns: number): CommandResult {
   const prefab = getPrefab(doc, prefabId)
@@ -596,9 +597,12 @@ export function rotatePrefabItems(doc: MapDocument, prefabId: string, keys: read
       count++
       return { ...o, from: turnAbout(o.from, c, turns), to: turnAbout(o.to, c, turns) }
     }
-    if (o.kind === 'tree' || !odd || o.size[0] === o.size[2]) return o
+    if (o.kind === 'tree') return o
+    const facing = (o.kind === 'prop' || o.kind === 'container') && o.visual?.facing !== undefined && turns % 4 !== 0 ? { visual: { ...o.visual, facing: addQuarterTurns(o.visual.facing, turns) } } : null
+    const swap = odd && o.size[0] !== o.size[2]
+    if (!facing && !swap) return o
     count++
-    return { ...o, size: [o.size[2], o.size[1], o.size[0]] as [number, number, number] }
+    return { ...o, ...(swap ? { size: [o.size[2], o.size[1], o.size[0]] as [number, number, number] } : {}), ...facing }
   })
   next.rooms = prefab.rooms.map((r) => {
     if (want.has(r.localId) && r.outline && turns % 4 !== 0) {

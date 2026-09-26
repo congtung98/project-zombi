@@ -14,6 +14,19 @@ export interface WallDef {
   color?: string
   /** M11c-1A: furniture (a prefab `prop`), not a wall: the cutaway never cuts it down. */
   prop?: boolean
+  /** G3a (graphics, presentation only): furniture asset drawn in the box, facing in world turns. */
+  visual?: FurnitureLook
+}
+
+/** G3a: a prop's or container's furniture asset (map schema `FurnitureVisual`), `facing` already turned with its instance. */
+export interface FurnitureLook {
+  assetId: string
+  facing?: 0 | 1 | 2 | 3
+  /**
+   * Quarter turns of the prefab instance, kept when `facing` is automatic: the automatic choice
+   * starts from the prefab's own frame, so every turned copy of a house faces its furniture alike.
+   */
+  turn?: 0 | 1 | 2 | 3
 }
 
 export interface DoorDef {
@@ -35,6 +48,8 @@ export interface ContainerDef {
   color: string
   /** ID bảng loot (xem `lootTables.ts`); không có thì container trống. */
   loot?: string
+  /** G3a (graphics, presentation only): furniture asset drawn in the box. */
+  visual?: FurnitureLook
 }
 
 /** Window cut into an exterior wall: low sill, glass pane (blocks movement, not sight), header above. */

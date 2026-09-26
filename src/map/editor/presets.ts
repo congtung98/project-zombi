@@ -48,7 +48,7 @@ export const TREE_TEMPLATES = {
 export const RECORD_PRESETS: readonly RecordPreset[] = [
   { id: 'object/wall', category: 'objects', label: 'Tường', name: 'wall', drag: 'line', template: box('wall', [4, 2.6, 0.2], '#9a8f84') },
   { id: 'object/fence', category: 'objects', label: 'Hàng rào gỗ', name: 'fence', drag: 'line', template: box('prop', [4, 1, 0.15], '#7a6a55') },
-  { id: 'object/crate', category: 'objects', label: 'Thùng gỗ', name: 'crate', drag: 'point', template: box('prop', [1, 1, 1], '#a67c52') },
+  { id: 'object/crate', category: 'objects', label: 'Thùng gỗ', name: 'crate', drag: 'point', template: { ...box('prop', [1, 1, 1], '#a67c52'), visual: { assetId: 'furniture/crate' } } },
   { id: 'object/car', category: 'objects', label: 'Xe hỏng', name: 'car', drag: 'point', template: box('prop', [4, 1.4, 2], '#7a3b3b') },
   { id: 'object/pillar', category: 'objects', label: 'Cột bê tông', name: 'pillar', drag: 'point', template: box('prop', [1.2, 2, 1.2], '#6f6a63') },
   { id: 'object/block', category: 'objects', label: 'Khối vật cản', name: 'block', drag: 'rect', template: box('prop', [2, 1, 2], '#77706a') },

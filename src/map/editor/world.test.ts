@@ -200,7 +200,7 @@ describe('palette records (M4)', () => {
     })
     expect(errorsOf(doc)).toEqual([])
     const crate = findRecord(doc, 'c0_0/objects/crate-1')!.record
-    expect(formatJson(crate)).toBe('{\n  "kind": "prop",\n  "objectId": "c0_0/objects/crate-1",\n  "position": { "x": 13, "y": 0.5, "z": 6 },\n  "size": [1, 1, 1],\n  "color": "#a67c52"\n}\n')
+    expect(formatJson(crate)).toBe('{\n  "kind": "prop",\n  "objectId": "c0_0/objects/crate-1",\n  "position": { "x": 13, "y": 0.5, "z": 6 },\n  "size": [1, 1, 1],\n  "color": "#a67c52",\n  "visual": { "assetId": "furniture/crate" }\n}\n')
     expect(Object.keys(findRecord(doc, 'c0_0/objects/scrap-1')!.record)).toEqual(['kind', 'objectId', 'name', 'position', 'size', 'color', 'lootTableId'])
     expect(Object.keys(findRecord(doc, 'c0_0/zones/zone-1')!.record)).toEqual(['zoneId', 'kind', 'name', 'shape', 'center', 'size'])
     expect(Object.keys(findRecord(doc, 'c0_0/spawns/player-1')!.record)).toEqual(['spawnId', 'kind', 'position'])

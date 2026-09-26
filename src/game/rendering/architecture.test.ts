@@ -153,7 +153,9 @@ describe('four quarter turns of one prefab (G2)', () => {
             ;[x, z] = [-z, x]
             ;[sx, sz] = [sz, sx]
           }
-          const r = (v: number) => Math.round(v * 1000) / 1000 + 0
+          // To the millimetre; the small bias keeps values on a half millimetre (furniture parts, G3a)
+          // from rounding both ways with float noise.
+          const r = (v: number) => Math.round(v * 1000 + 1e-4) / 1000 + 0
           const axis = i.hip ? (q % 2 === 1 ? (i.hip.axis === 'x' ? 'z' : 'x') : i.hip.axis) : ''
           return `${i.role}|${i.shape}|${axis}|${r(x)},${r(i.center.y)},${r(z)}|${r(sx)},${r(i.size[1])},${r(sz)}|${unpackSurface(i.surface).a}`
         })

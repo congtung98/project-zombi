@@ -1,6 +1,6 @@
 import type { InteriorVisibilityConfig, PlayerVisionConfig } from '../core/config'
 import { isInsideRoom, onRoomStorey, type RoomPlacement } from '../world/buildings'
-import type { VisionOccluderSet } from '../world/visionOccluders'
+import type { VisionOccluder, VisionOccluderSet } from '../world/visionOccluders'
 import type { Vec3 } from '../../types'
 import type { SavedExploration } from '../../types/save'
 import { cosHalfFov, facingForward } from './playerVision'
@@ -56,6 +56,8 @@ export class InteriorVisibility {
   private lastKey = ''
   private readonly cfg: InteriorVisibilityConfig
   private readonly vision: PlayerVisionConfig
+  /** Furniture occluders of the last occluder list seen (the list changes identity or length when chunks stream). */
+  private furnitureCache: { from: readonly VisionOccluder[]; length: number; list: VisionOccluder[] } | null = null
 
   constructor(rooms: readonly RoomPlacement[], cfg: InteriorVisibilityConfig, vision: PlayerVisionConfig) {
     this.cfg = cfg
@@ -159,6 +161,19 @@ export class InteriorVisibility {
           }
         }
       }
+      // G3a: tall furniture (a vision occluder) is seen whole when a cell next to it is: the rays stop
+      // at its face, so the cells under it would stay dark while the character looks right at it.
+      // Only its own footprint; nothing behind it.
+      for (const i of this.furnitureCells(g, occluders, seenHere)) {
+        if (g.seen[i]) continue
+        g.seen[i] = 1
+        changed = true
+        seenHere += 1
+        if (!g.explored[i]) {
+          g.explored[i] = 1
+          g.exploredCount += 1
+        }
+      }
       if (seenHere > 0) this.seenByBuilding.set(room.buildingId, (this.seenByBuilding.get(room.buildingId) ?? 0) + seenHere)
       if (peekHere > 0 && room.buildingId !== inside) peekCells.set(room.buildingId, (peekCells.get(room.buildingId) ?? 0) + peekHere)
     }
@@ -168,6 +183,46 @@ export class InteriorVisibility {
       changed = true
     }
     if (changed) this.revision += 1
+  }
+
+  /**
+   * Cells under the room's furniture occluders (centre inside the box) of pieces with a seen cell
+   * right around them in this pass (before any is revealed, so one piece never reveals the next).
+   */
+  private furnitureCells(g: RoomGrid, occluders: VisionOccluderSet, seenHere: number): number[] {
+    if (seenHere === 0) return []
+    const cell = this.cfg.cell
+    const floor = g.room.floorY ?? 0
+    const out: number[] = []
+    const all = occluders.all
+    if (!this.furnitureCache || this.furnitureCache.from !== all || this.furnitureCache.length !== all.length) {
+      this.furnitureCache = { from: all, length: all.length, list: all.filter((o) => o.kind === 'furniture') }
+    }
+    for (const o of this.furnitureCache.list) {
+      if (o.min.y < floor - 0.1 || o.min.y >= floor + g.room.height) continue
+      // Footprint cells: centre inside the box.
+      const c0 = Math.ceil((o.min.x - g.minX) / cell - 0.5)
+      const c1 = Math.floor((o.max.x - g.minX) / cell - 0.5)
+      const r0 = Math.ceil((o.min.z - g.minZ) / cell - 0.5)
+      const r1 = Math.floor((o.max.z - g.minZ) / cell - 0.5)
+      if (c1 < 0 || r1 < 0 || c0 >= g.cols || r0 >= g.rows || c0 > c1 || r0 > r1) continue
+      let near = false
+      for (let r = r0 - 1; r <= r1 + 1 && !near; r++) {
+        for (let c = c0 - 1; c <= c1 + 1; c++) {
+          if (r >= r0 && r <= r1 && c >= c0 && c <= c1) continue
+          if (r < 0 || c < 0 || r >= g.rows || c >= g.cols) continue
+          if (g.seen[r * g.cols + c]) {
+            near = true
+            break
+          }
+        }
+      }
+      if (!near) continue
+      for (let r = Math.max(0, r0); r <= Math.min(g.rows - 1, r1); r++) {
+        for (let c = Math.max(0, c0); c <= Math.min(g.cols - 1, c1); c++) if (g.inside[r * g.cols + c]) out.push(r * g.cols + c)
+      }
+    }
+    return out
   }
 
   /** Share of a room's cells explored (0..1); 0 for an unknown room. */

@@ -84,14 +84,18 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 | kind | Trường | Runtime |
 |---|---|---|
 | `wall` | `localId, position {x,y,z}` (tâm hộp), `size [x,y,z], color` | collider tĩnh, ô nav bị chặn (trừ phần trên cao ≥ 1,6 m), vật chắn tầm nhìn khi cao |
-| `prop` | như `wall` | như `wall`; tách layer riêng cho editor |
-| `container` | như hộp + `name, lootTableId?` | container có loot (seed theo ID ổn định) |
+| `prop` | như `wall` + `visual?` | như `wall`; tách layer riêng cho editor |
+| `container` | như hộp + `name, lootTableId?, visual?` | container có loot (seed theo ID ổn định) |
 | `door` | `localId, name, position {x,z}` (tâm khe cửa), `quarterTurns, width, openTowards ±1, initialState?` | khung q = 0: tường chạy theo X, bản lề ở x = −width/2, cánh đóng hướng +X, mở về phía Z = `openTowards`; cao `DOOR_HEIGHT` |
 | `window` | `localId, name, position {x,z}, quarterTurns, width, sill, head, thickness` | q = 0: kính chạy theo X, phía trong nhà là +Z |
 | `tree` (M9) | `localId, position {x,z}, height 2..20, canopy 0.5..8` (bán kính tán), `trunk 0.1..1` (bán kính thân, nhỏ hơn tán), `color` (màu tán), `style: "round"\|"pine"` | thân là một wall cùng ID (`trunkWall`): collider, chặn nav và tầm nhìn zombie như cái cột; tán chỉ để vẽ (batch theo chunk) và mờ đi khi che người chơi như mái; không xoay |
 | `wallRun` (M5) | `localId, from {x,z}, to {x,z}` (song song X hoặc Z, trên đường tâm tường), `height, thickness, color` | resolver tách thành hộp tường, khoét khe ở mỗi cửa/cửa sổ cùng prefab nằm trên nó (cùng trục, tâm trên tường), thêm lanh tô trên cửa (từ `DOOR_HEIGHT`) và bệ/đầu cửa sổ; kéo dài nửa độ dày ở hai đầu để kín góc. Mảnh có ID dẫn xuất `<entity>#<phần>`, không có trạng thái |
 
 **Tầng (M11b)**: `level?` (0 = tầng trệt) trên `wall`, `prop`, `container`, `door`, `window`, `wallRun`, `stairs` và phòng; resolver nâng lên `level · building.height`, tường chạy chỉ khoét cửa cùng tầng. Object `stairs { localId, level?, position {x,z}, quarterTurns, width 1–4, length 2–12 }`: ở hướng 0° leo theo +X, lên một tầng; resolver dựng tường hai bên (tới lan can 1 m ở tầng trên), tường dưới đầu trên (cao bằng cửa), lan can ngang đầu dưới ở tầng trên (ID phái sinh `#side-a`, `#side-b`, `#back`, `#rail`) và khoét lỗ trong tấm sàn tầng trên. Runtime: `MapData.floors` (tấm sàn), `MapData.stairs`.
+
+**Ngoại hình (đồ họa, chỉ để vẽ)**: không bao giờ đổi ID, collider, nav, tầm nhìn, loot hay save.
+- `prop`/`container` (G3a): `visual? { assetId, facing? }`. `assetId` là một mẫu trong registry đồ đạc (`src/game/rendering/furniture/catalog.ts`: `furniture/bed`, `sofa`, `table`, `desk`, `chair`, `counter`, `cabinet`, `fridge`, `wardrobe`, `nightstand`, `bookshelf`, `shelving`, `crate`). Mẫu được dựng vừa khít trong hộp của object; hộp vẫn là collider. `facing` 0–3 đặt mặt trước về `rotateXZ(0, 1, facing)` trong khung của object (0 = +Z, 1 = +X, 2 = −Z, 3 = −X) và xoay theo instance; bỏ trống thì lưng áp bức tường gần nhất (không có tường: theo dáng quen của mẫu). Mẫu lạ là cảnh báo và vẽ hộp trơn. Cũng dùng được cho object đặt thẳng trong chunk.
+- Phòng (G2): `visual? { floor?, floorColor? }`, `floor` là ID bề mặt trong catalog (`surfaces/catalog.ts`).
 
 Room: `localId, name, level?` (M11b: tầng, mặc định 0), `bounds`, `outline? [{x,z}]` (M11a: phòng chữ L/T/U; `bounds` = khung bao; ánh sáng và phép thử trong phòng theo outline; đèn mặc định ở tâm mảnh chữ nhật lớn nhất), `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }` (`at`: vị trí đèn trên trần, mặc định tâm phòng; M7 sửa được trong editor, ánh sáng vẫn tính theo cả phòng). Trần nhà = `building.height`.
 
@@ -113,7 +117,7 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - `checkWorldDocuments` là bản không ném lỗi của `loadWorldDocuments` (editor dùng cho bảng Validate và bản nháp).
 - Cây (M9): `height`, `canopy`, `trunk` ngoài khoảng hoặc thân không nhỏ hơn tán → `out-of-range`; `style` khác `round`/`pine` → `schema`. Spawn trên thân cây → `spawn-blocked` như mọi collider thấp.
 - **Migration nội dung** (M8): `content-migration` (file sai dạng, lỗi), `content-migration-rename` (đổi tên không khớp bản sau, lỗi), `content-migration-missing` (thiếu bước vN → vN+1: save vN sẽ không nạp được, cảnh báo).
-- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu **cùng lớp** chồng nhau, sẽ nhấp nháy; M7: đặt lớp khác để hết) — hai cái sau từ M4; `lamp-outside-room` (M7: đèn `at` nằm ngoài phòng của nó). M11a: `outside-footprint` và `lamp-outside-room` theo outline khi có. M11b: `stairs-outside-footprint` (cầu thang cộng 0,9 m chỗ bước lên/xuống ở hai đầu không nằm gọn trong nhà); deep check `stairs-unusable`.
+- **Cảnh báo**: `building-no-entrance`, `outside-footprint`, `outside-play-area`, `zone-assignment` (spawn zombie nằm trong một zone nhưng theo luật thuộc zone khác), `surface-overlap` (hai mặt nền khác màu **cùng lớp** chồng nhau, sẽ nhấp nháy; M7: đặt lớp khác để hết) — hai cái sau từ M4; `lamp-outside-room` (M7: đèn `at` nằm ngoài phòng của nó). M11a: `outside-footprint` và `lamp-outside-room` theo outline khi có. M11b: `stairs-outside-footprint` (cầu thang cộng 0,9 m chỗ bước lên/xuống ở hai đầu không nằm gọn trong nhà); deep check `stairs-unusable`. G3a: `unknown-asset` (`visual.assetId` không có trong registry đồ đạc: vẽ hộp trơn); `visual.facing` ngoài 0–3 là lỗi `schema`.
 - **Kiểm tra sâu** (M6, `src/map/analysis.ts`, cảnh báo): `interaction-unreachable`, `spawn-unreachable`, `spawn-indoors`, `zone-unreachable`, `start-not-walkable`, `collider-overlap`, `container-outside-room`. Dùng NavGrid/interactable/LOS của game nên chạy trong editor, test và `npm run map:check -- --deep` (qua Vite), không trong validator Node thuần. Chưa có: zone quá dày.
 
 ## 8. Save

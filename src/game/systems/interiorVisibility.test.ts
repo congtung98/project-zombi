@@ -165,4 +165,20 @@ describe('interior visibility (M11c-1B)', () => {
     state.update({ x: 9, y: 0, z: 11.5 }, [A], 11.1)
     expect([state.view?.buildingId, state.peekIds]).toEqual([A, []])
   })
+
+  it('G3a: tall furniture seen from the front is seen whole, never what is behind it', () => {
+    // Graphics lab, house A at (16, 12): the living-room bookshelf stands against the west wall,
+    // box x 10.25..10.75, z 9.6..10.8, 2 m tall (a vision occluder).
+    const rt = new GameRuntime({ ...loadBundledWorld('graphics-lab').map, zombieSpawns: [] })
+    const living = 'c0_0/house-a/living'
+    const look = (facing: number) => rt.interior.update({ position: { x: 14, y: 0, z: 11 }, facing }, rt.visionOccluders, 'c0_0/house-a')
+    look(-Math.PI / 2) // facing west, at the shelf
+    for (const [x, z] of [[10.4, 9.7], [10.4, 10.7], [10.6, 10.2]]) expect(cell(rt.interior, living, x, z).seen, `${x},${z}`).toBe(true)
+    // Facing east, away from it (and out of the near radius): dark again, but remembered.
+    look(Math.PI / 2)
+    expect(cell(rt.interior, living, 10.4, 10.2)).toEqual({ seen: false, explored: true })
+    // A shelf seen from the front shows nothing past it: the other storey and the next house stay unseen.
+    look(-Math.PI / 2)
+    expect(seenIn(rt.interior, 'c0_0/house-a/bedroom-2')).toBe(0)
+  })
 })

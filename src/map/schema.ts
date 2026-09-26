@@ -144,6 +144,8 @@ export interface WallObject extends BoxFields, Levelled {
 export interface PropObject extends BoxFields, Levelled {
   kind: 'prop'
   localId: string
+  /** G3a (graphics): drawn as a furniture asset inside the box; presentation only. */
+  visual?: FurnitureVisual
 }
 
 export interface ContainerObject extends BoxFields, Levelled {
@@ -152,6 +154,21 @@ export interface ContainerObject extends BoxFields, Levelled {
   name: string
   /** Key of `LOOT_TABLES`; omitted = always empty. */
   lootTableId?: string
+  /** G3a (graphics): drawn as a furniture asset inside the box; presentation only. */
+  visual?: FurnitureVisual
+}
+
+/**
+ * G3a: looks of a prop or container. `assetId` names an asset of the furniture registry
+ * (`game/rendering/furniture/catalog.ts`, e.g. `furniture/wardrobe`), built to fill the object's box:
+ * the box stays the collider, nav and sight blocker and interaction target, and IDs, loot and saves
+ * never depend on it. `facing` turns the asset's front towards `rotateXZ(0, 1, facing)` in the
+ * object's frame (0 = +Z, 1 = +X, 2 = −Z, 3 = −X), and turns with a prefab instance; omitted, the back
+ * goes against the nearest wall. An unknown asset is a warning and draws the plain box.
+ */
+export interface FurnitureVisual {
+  assetId: string
+  facing?: QuarterTurns
 }
 
 /**

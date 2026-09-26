@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FACING_LABELS, FURNITURE, FURNITURE_IDS } from '../game/rendering/furniture/catalog'
 
 /**
  * Inspector inputs that commit once (Enter or blur), so typing is not a stream of commands and
@@ -80,6 +81,47 @@ export function ReadField({ label, value }: { label: string; value: string }) {
       <span>{label}</span>
       <code title={value}>{value}</code>
     </div>
+  )
+}
+
+/**
+ * G3a: a prop's or container's furniture look (`visual`), shared by the world and prefab inspectors.
+ * The box keeps its size and collider; the asset fills it, its front towards the chosen side (automatic:
+ * the back against the nearest wall). An asset missing from the registry is kept and shown as such.
+ */
+export function FurnitureFields({ visual, patch }: { visual: unknown; patch: (label: string, fields: Record<string, unknown>) => void }) {
+  const v = visual && typeof visual === 'object' ? (visual as { assetId?: unknown; facing?: unknown }) : undefined
+  const asset = typeof v?.assetId === 'string' ? v.assetId : ''
+  const known = asset === '' || (FURNITURE_IDS as readonly string[]).includes(asset)
+  const facing = typeof v?.facing === 'number' ? String(v.facing) : ''
+  return (
+    <>
+      <label className="field">
+        <span>Mẫu hình</span>
+        <select value={asset} onChange={(e) => patch('Đổi mẫu hình', { visual: e.target.value ? { assetId: e.target.value, ...(facing ? { facing: Number(facing) } : {}) } : undefined })} data-furniture-asset>
+          <option value="">Hộp trơn</option>
+          {!known && <option value={asset}>{asset} (không có trong registry)</option>}
+          {FURNITURE_IDS.map((id) => (
+            <option key={id} value={id}>
+              {FURNITURE[id].label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {asset && (
+        <label className="field">
+          <span>Mặt trước</span>
+          <select value={facing} onChange={(e) => patch('Đổi hướng', { visual: { assetId: asset, ...(e.target.value ? { facing: Number(e.target.value) } : {}) } })} data-furniture-facing>
+            <option value="">Tự động (lưng áp tường)</option>
+            {FACING_LABELS.map((label, q) => (
+              <option key={q} value={q}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </>
   )
 }
 

@@ -3,7 +3,7 @@ import { findRecord, instancesOf, resolvedRecords, worldAnchor, type AnyRecord, 
 import { SURFACE_LAYER_MAX, type QuarterTurns, type TreeObject, type XYZ, type XZ } from '../map/schema'
 import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
-import { NumField, ReadField, TextField, TreeFields } from './fields'
+import { FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
 import { PrefabInspector } from './PrefabInspector'
 import { SaveCompat } from './SaveCompat'
 import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
@@ -141,6 +141,7 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
             />
           ))}
           {r.kind !== 'tree' && <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />}
+          {(r.kind === 'prop' || r.kind === 'container') && <FurnitureFields visual={r.visual} patch={patch} />}
           {r.kind === 'container' && (
             <label className="field">
               <span>Loot table</span>

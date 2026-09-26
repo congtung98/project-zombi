@@ -1,0 +1,81 @@
+import { rotateXZ } from '../../../map/transform'
+import type { QuarterTurns } from '../../../map/schema'
+import { FURNITURE, type FurnitureId } from './catalog'
+import { furnitureParts, type FurniturePart } from './assets'
+
+/**
+ * G3a: an asset's parts placed in the world box of its prop or container. Boxes are axis-aligned
+ * (a turned prefab swaps X and Z), so a facing only permutes axes: the parts stay axis-aligned boxes
+ * and are drawn in the static batches like everything else (no new draw call, the local surface
+ * mapping keeps the grain on each part).
+ */
+
+export interface WorldBox {
+  min: { x: number; y: number; z: number }
+  max: { x: number; y: number; z: number }
+}
+
+export interface PlacedPart extends FurniturePart {
+  /** World bounds. */
+  min: [number, number, number]
+  max: [number, number, number]
+}
+
+/** Width across the front and depth for a world box `sx` × `sz` faced `q`. */
+export function assetDims(size: readonly [number, number, number], q: QuarterTurns): { w: number; h: number; d: number } {
+  return (q & 1) === 0 ? { w: size[0], h: size[1], d: size[2] } : { w: size[2], h: size[1], d: size[0] }
+}
+
+/** The parts of `asset` filling `box`, its front towards `rotateXZ(0, 1, facing)`. */
+export function placeFurniture(asset: FurnitureId, box: WorldBox, facing: QuarterTurns, color: string): PlacedPart[] {
+  const size: [number, number, number] = [box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z]
+  const cx = (box.min.x + box.max.x) / 2
+  const cz = (box.min.z + box.max.z) / 2
+  return furnitureParts(asset, assetDims(size, facing), color).map((p) => {
+    const [ax, az] = rotateXZ(p.min[0], p.min[2], facing)
+    const [bx, bz] = rotateXZ(p.max[0], p.max[2], facing)
+    return {
+      ...p,
+      min: [cx + Math.min(ax, bx), box.min.y + p.min[1], cz + Math.min(az, bz)],
+      max: [cx + Math.max(ax, bx), box.min.y + p.max[1], cz + Math.max(az, bz)],
+    }
+  })
+}
+
+/** How far from a wall face a box side still counts as standing against it (m). */
+const WALL_GAP = 0.3
+/** Share of a side that must be covered by walls to count. */
+const WALL_COVER = 0.5
+
+/**
+ * Facing of an asset whose content leaves it out: its back against a wall. A side is against a wall
+ * when wall boxes within `WALL_GAP` behind it cover at least half of it at the asset's height.
+ * Among such sides the one that gives the asset its usual shape wins (a bed deeper than wide), then
+ * the first in facing order; with no wall, the facing that gives the usual shape (south or east).
+ * Facing order and the fallback start at `turn` (the prefab instance's quarter turns), so the
+ * choice is made in the prefab's frame and a turned copy of a house turns it along.
+ */
+export function autoFacing(asset: FurnitureId, box: WorldBox, walls: readonly WorldBox[], turn: QuarterTurns = 0): QuarterTurns {
+  const deep = FURNITURE[asset].deep
+  const sx = box.max.x - box.min.x
+  const sz = box.max.z - box.min.z
+  const shaped = (q: QuarterTurns) => {
+    const { w, d } = assetDims([sx, 0, sz], q)
+    return deep ? d >= w : w >= d
+  }
+  const near = walls.filter((w) => w.min.y < box.max.y - 0.05 && w.max.y > box.min.y + 0.05)
+  // Covered length of a side: along X for the north/south sides, along Z for east/west.
+  const cover = (q: QuarterTurns) => {
+    let sum = 0
+    for (const w of near) {
+      // q = back side: 0 back north (−Z), 1 back west (−X), 2 back south (+Z), 3 back east (+X).
+      const gap = q === 0 ? box.min.z - w.max.z : q === 1 ? box.min.x - w.max.x : q === 2 ? w.min.z - box.max.z : w.min.x - box.max.x
+      if (gap < -0.02 || gap > WALL_GAP) continue
+      sum += (q & 1) === 0 ? Math.max(0, Math.min(box.max.x, w.max.x) - Math.max(box.min.x, w.min.x)) : Math.max(0, Math.min(box.max.z, w.max.z) - Math.max(box.min.z, w.min.z))
+    }
+    return sum / ((q & 1) === 0 ? sx : sz)
+  }
+  const order = [0, 1, 2, 3].map((k) => ((turn + k) % 4) as QuarterTurns)
+  const against = order.filter((q) => cover(q) >= WALL_COVER)
+  return against.find(shaped) ?? against[0] ?? (shaped(order[0]) ? order[0] : order[1])
+}

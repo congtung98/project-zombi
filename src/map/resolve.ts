@@ -4,6 +4,7 @@ import {
   type BuildingInfo,
   type ContainerDef,
   type DoorPlacement,
+  type FurnitureLook,
   type RoomPlacement,
   type WallDef,
   type WindowPlacement,
@@ -16,6 +17,7 @@ import {
   recordId,
   type BoxFields,
   type ChunkDocument,
+  type FurnitureVisual,
   type InstanceRecord,
   type PrefabDocument,
   type PrefabObject,
@@ -185,6 +187,13 @@ export function stairRect(o: StairsObject): Rect {
   return { minX: quantize(o.position.x - hx), minZ: quantize(o.position.z - hz), maxX: quantize(o.position.x + hx), maxZ: quantize(o.position.z + hz) }
 }
 
+/** G3a: a furniture look with its facing turned by `q` (a turned instance turns its furniture). */
+function look(v: FurnitureVisual | undefined, q: number): { visual?: FurnitureLook } {
+  if (!v) return {}
+  const turn = addQuarterTurns(q, 0)
+  return { visual: { assetId: v.assetId, ...(v.facing !== undefined ? { facing: addQuarterTurns(q, v.facing) } : turn ? { turn } : {}) } }
+}
+
 /** Place one prefab instance: every object, room and lamp gets `<instanceId>/<localId>`. */
 export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, origin: XZ): { parts: MapParts; bounds: Rect; entityIds: string[] } {
   const q = inst.quarterTurns
@@ -243,7 +252,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       case 'wall':
       case 'prop': {
         const placed = box(o, lift(o))
-        parts.walls.push({ id: id(o.localId), ...placed, color: o.color, ...(o.kind === 'prop' ? { prop: true } : {}) })
+        parts.walls.push({ id: id(o.localId), ...placed, color: o.color, ...(o.kind === 'prop' ? { prop: true, ...look(o.visual, q) } : {}) })
         bounds = unionRect(bounds, boxRect(placed.position, placed.size))
         break
       }
@@ -256,7 +265,7 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
       }
       case 'container': {
         const placed = box(o, lift(o))
-        parts.containers.push({ id: id(o.localId), name: o.name, ...placed, color: o.color, ...(o.lootTableId ? { loot: o.lootTableId } : {}) })
+        parts.containers.push({ id: id(o.localId), name: o.name, ...placed, color: o.color, ...(o.lootTableId ? { loot: o.lootTableId } : {}), ...look(o.visual, q) })
         bounds = unionRect(bounds, boxRect(placed.position, placed.size))
         break
       }
@@ -386,9 +395,9 @@ function resolveStandalone(o: StandaloneObject, origin: XZ): { parts: Partial<Ma
   const position = { x: quantize(origin.x + o.position.x), y: o.position.y, z: quantize(origin.z + o.position.z) }
   const bounds = boxRect(position, o.size)
   if (o.kind === 'container') {
-    return { parts: { containers: [{ id: o.objectId, name: o.name, position, size: [...o.size], color: o.color, ...(o.lootTableId ? { loot: o.lootTableId } : {}) }] }, bounds }
+    return { parts: { containers: [{ id: o.objectId, name: o.name, position, size: [...o.size], color: o.color, ...(o.lootTableId ? { loot: o.lootTableId } : {}), ...look(o.visual, 0) }] }, bounds }
   }
-  return { parts: { walls: [{ id: o.objectId, position, size: [...o.size], color: o.color }] }, bounds }
+  return { parts: { walls: [{ id: o.objectId, position, size: [...o.size], color: o.color, ...(o.kind === 'prop' ? look(o.visual, 0) : {}) }] }, bounds }
 }
 
 /** Resolve one record of a chunk (the unit the chunk lifecycle adds and removes). */

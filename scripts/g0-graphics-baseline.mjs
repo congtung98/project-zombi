@@ -12,6 +12,7 @@
 //   --shadows=high|low|off, --dpr=1|1.5|2   game settings (default: high, 1)
 //   --warmup=<ms> --sample=<ms>              per scene (default 3000 / 6000)
 //   --menu-wait=<ms>   stay on the main menu this long before New Game (default 0)
+//   --scenes=a,b       only these scenes (by name; the lifecycle check still uses the world's first three)
 //   --compare=<dir>    pixel difference of each screenshot against another run's (reproducibility,
 //                      or before/after)
 // Needs the dev server (window.__runtime, __scene, __gl). Against a production build (vite preview)
@@ -69,6 +70,11 @@ const WORLDS = {
       { name: 'night-inside-lamp', at: [13, 0, 13.5], facing: Math.PI, time: 0.0, lamps: [`${A}/lamp-living`, `${A}/lamp-kitchen`] },
       // G1: the closest zoom (60 px/m) at A's front path, for texture scale and filtering.
       { name: 'day-close', at: [16.5, 0, 18.3], facing: Math.PI / 4, time: 0.5, zoom: 60 },
+      // G3a: furniture close up (zoom 60) in each furnished room of A.
+      { name: 'close-living', at: [13, 0, 13.5], facing: Math.PI, time: 0.5, zoom: 60 },
+      { name: 'close-kitchen', at: [19, 0, 10.5], facing: Math.PI, time: 0.5, zoom: 60 },
+      { name: 'close-bedroom', at: [18.5, 0, 14], facing: Math.PI / 2, time: 0.5, zoom: 60 },
+      { name: 'close-upstairs', at: [14, 3, 14], facing: Math.PI, time: 0.5, zoom: 60 },
     ],
   },
   // G2: the lab house at its four quarter turns (content/maps/graphics-rotations), each living room.
@@ -96,7 +102,9 @@ const WORLDS = {
 const WORLD = opt('world', 'graphics-lab')
 if (!WORLDS[WORLD]) throw new Error(`no scenes for world ${WORLD} (${Object.keys(WORLDS).join(', ')})`)
 const ZOMBIES = WORLDS[WORLD].zombies
+const ONLY = opt('scenes', null)?.split(',')
 const SCENES = WORLDS[WORLD].scenes
+const RUN_SCENES = ONLY ? SCENES.filter((s) => ONLY.includes(s.name)) : SCENES
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const launchArgs = gpu
@@ -357,7 +365,7 @@ try {
     }, ZOMBIES)
     await page.waitForTimeout(1500)
 
-    for (const scene of SCENES) {
+    for (const scene of RUN_SCENES) {
       await page.evaluate((s) => {
         const rt = window.__runtime
         const [x, y, z] = s.at

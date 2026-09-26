@@ -5,7 +5,7 @@ import { instancesOf, type AnyRecord, type MapDocument } from '../map/editor/doc
 import { wallRunBoxes } from '../map/resolve'
 import type { PrefabDocument, PrefabObject, QuarterTurns, Rect, RoomObject, XZ } from '../map/schema'
 import { OPTS, useEditorStore } from './editorStore'
-import { NumField, ReadField, TextField, TreeFields } from './fields'
+import { FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
 import { SURFACES, type SurfaceId } from '../game/rendering/surfaces/catalog'
 import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection } from './interaction'
 
@@ -346,6 +346,7 @@ function ObjectFields({ object: o, prefab, patch }: { object: PrefabObject; pref
         <NumField key={i} label={`Kích thước ${'XYZ'[i]}`} value={v} min={0.05} onCommit={(n) => patch('Đổi kích thước', { size: o.size.map((s, j) => (j === i ? n : s)) })} />
       ))}
       <TextField label="Màu" value={o.color} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />
+      {(o.kind === 'prop' || o.kind === 'container') && <FurnitureFields visual={o.visual} patch={patch} />}
       {o.kind === 'container' && (
         <>
           <label className="field">

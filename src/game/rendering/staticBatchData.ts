@@ -12,6 +12,10 @@ import { packSurface } from './surfaces/catalog'
 import { outdoorSurface, PIECE_SURFACES, SLAB_SURFACE, STAIR_SURFACE, wallSurface } from './surfaces/surfaceRules'
 import { doorDetails, roomFloorDetails, stoopDetail, TRIM, wallBaseDetails, windowDetails } from './architecture'
 import { mapRooms, mapWindows } from '../world/mapData'
+import type { FurnitureLook } from '../world/buildings'
+import type { QuarterTurns } from '../../map/schema'
+import { isFurnitureId, type FurnitureId } from './furniture/catalog'
+import { autoFacing, placeFurniture, type WorldBox } from './furniture/placement'
 
 /**
  * R3b: what `StaticBatches` draws, as plain data: every wall/prop box (from the collider registry),
@@ -75,6 +79,11 @@ export interface StaticItem {
   anchor?: { min: Vector3; max: Vector3 }
   /** G2: a drawn-only architectural detail (`architecture.ts`: frame, sill, baseboard, plinth, room floor, stoop). */
   detail?: boolean
+  /**
+   * G3a: a part of a furniture asset drawn in place of its prop's or container's box; `anchor` is that
+   * box (cutaway and fader treat the piece of furniture as one). `facing` is the one used (given or automatic).
+   */
+  furniture?: { assetId: FurnitureId; part: string; facing: QuarterTurns }
 }
 
 /** Ground cell size of the building lookup below (m). */
@@ -123,7 +132,16 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   // Tree trunks are walls (collider, nav, sight) but are drawn as trees below.
   const trunks = new Set((map.trees ?? []).map((t) => t.id))
   const props = new Set(map.walls.filter((w) => w.prop).map((w) => w.id))
+  const looks = new Map<string, FurnitureLook>()
+  for (const w of map.walls) if (w.visual) looks.set(w.id, w.visual)
   const buildingById = new Map(map.buildings.map((b) => [b.id, b]))
+  // G3a: boxes drawn as furniture assets, placed once every wall is known (automatic facing).
+  const furnished: { item: StaticItem; look: FurnitureLook & { assetId: FurnitureId } }[] = []
+  const furnish = (item: StaticItem, look: FurnitureLook | undefined): boolean => {
+    if (!look || !isFurnitureId(look.assetId)) return false
+    furnished.push({ item, look: { ...look, assetId: look.assetId } })
+    return true
+  }
   for (const w of colliders.list('wall')) {
     if (trunks.has(w.id)) continue
     const size: [number, number, number] = [round(w.max.x - w.min.x), round(w.max.y - w.min.y), round(w.max.z - w.min.z)]
@@ -131,7 +149,7 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     const buildingId = memberOf(w.id, center.x, center.z)
     const prop = props.has(w.id)
     const building = buildingId ? buildingById.get(buildingId) : undefined
-    items.push({
+    const item: StaticItem = {
       shape: 'box',
       center,
       size,
@@ -140,11 +158,14 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
       id: w.id,
       surface: packSurface(prop ? PIECE_SURFACES.furniture : building ? wallSurface(center, size, building) : outdoorSurface(w.id)),
       ...member(buildingId, prop ? 'prop' : 'wall'),
-    })
+    }
+    if (!furnish(item, looks.get(w.id))) items.push(item)
   }
   for (const c of map.containers) {
-    items.push({ shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false, id: c.id, surface: packSurface(PIECE_SURFACES.furniture), ...member(memberOf(c.id, c.position.x, c.position.z), 'container') })
+    const item: StaticItem = { shape: 'box', center: new Vector3(c.position.x, c.position.y, c.position.z), size: [...c.size], color: c.color, occluder: false, id: c.id, surface: packSurface(PIECE_SURFACES.furniture), ...member(memberOf(c.id, c.position.x, c.position.z), 'container') }
+    if (!furnish(item, c.visual)) items.push(item)
   }
+  items.push(...furnitureItems(furnished, items, props))
   items.push(...architectureDetails(map, items, buildingById))
   for (const b of map.buildings) {
     // M11a: an L/T/U building is floored and roofed piece by piece (rectangles tiling its outline).
@@ -247,6 +268,37 @@ function architectureDetails(map: MapData, collected: readonly StaticItem[], bui
   for (const room of mapRooms(map)) {
     const b = buildings.get(room.buildingId)
     if (b) out.push(...roomFloorDetails(room, b, map.stairs ?? [], FLOOR_Y))
+  }
+  return out
+}
+
+/**
+ * G3a: the parts of every furnished box. The facing is the content's, or the back to the nearest wall
+ * of the same building (outside buildings: loose walls, not other props).
+ */
+function furnitureItems(furnished: readonly { item: StaticItem; look: FurnitureLook & { assetId: FurnitureId } }[], collected: readonly StaticItem[], props: ReadonlySet<string>): StaticItem[] {
+  const out: StaticItem[] = []
+  const boxOf = (i: StaticItem): WorldBox => ({
+    min: { x: i.center.x - i.size[0] / 2, y: i.center.y - i.size[1] / 2, z: i.center.z - i.size[2] / 2 },
+    max: { x: i.center.x + i.size[0] / 2, y: i.center.y + i.size[1] / 2, z: i.center.z + i.size[2] / 2 },
+  })
+  const walls = collected.filter((i) => i.shape === 'box' && !(i.id && props.has(i.id)) && (i.role === 'wall' || !i.role))
+  for (const { item, look } of furnished) {
+    const box = boxOf(item)
+    const facing = look.facing ?? autoFacing(look.assetId, box, walls.filter((w) => w.buildingId === item.buildingId).map(boxOf), look.turn)
+    const anchor = { min: new Vector3(box.min.x, box.min.y, box.min.z), max: new Vector3(box.max.x, box.max.y, box.max.z) }
+    for (const p of placeFurniture(look.assetId, box, facing, item.color)) {
+      out.push({
+        ...item,
+        // Rounded like the sizes: a turned copy gives the very same piece (no float noise).
+        center: new Vector3(round((p.min[0] + p.max[0]) / 2), round((p.min[1] + p.max[1]) / 2), round((p.min[2] + p.max[2]) / 2)),
+        size: [round(p.max[0] - p.min[0]), round(p.max[1] - p.min[1]), round(p.max[2] - p.min[2])],
+        color: p.color,
+        surface: packSurface({ a: p.surface }),
+        anchor,
+        furniture: { assetId: look.assetId, part: p.name, facing },
+      })
+    }
   }
   return out
 }

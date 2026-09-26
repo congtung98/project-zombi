@@ -26,13 +26,15 @@ export interface PrefabPreset {
 /** Wall/door defaults of a prefab without building properties. */
 export const DEFAULT_BUILDING: BuildingProps = { height: 3, wallThickness: 0.3, wallColor: '#c4a484', roofColor: '#7a3f2f', floorColor: '#8a7560' }
 
-const box = (kind: 'prop' | 'container', size: [number, number, number], color: string, container?: { name: string; lootTableId?: string }): AnyRecord => ({
+/** G3a: `assetId` = furniture asset drawn in the box (facing automatic: back to the nearest wall). */
+const box = (kind: 'prop' | 'container', size: [number, number, number], color: string, container?: { name: string; lootTableId?: string } | null, assetId?: string): AnyRecord => ({
   kind,
   ...(container ? { name: container.name } : {}),
   position: { x: 0, y: size[1] / 2, z: 0 },
   size,
   color,
   ...(container?.lootTableId ? { lootTableId: container.lootTableId } : {}),
+  ...(assetId ? { visual: { assetId } } : {}),
 })
 
 const lamp = { name: 'Đèn', intensity: 0.8, color: '#ffd9a0', requiresElectricity: true }
@@ -54,19 +56,23 @@ export const PREFAB_PRESETS: readonly PrefabPreset[] = [
     template: { kind: 'window', name: 'Cửa sổ', position: { x: 0, z: 0 }, quarterTurns: 0, width: 1.2, sill: 0.9, head: 2.1, thickness: 0.3 },
   },
 
-  { id: 'furniture/bed', group: 'furniture', label: 'Giường', name: 'bed', drag: 'point', template: box('prop', [2, 0.6, 1.6], '#8c4a5a') },
-  { id: 'furniture/table', group: 'furniture', label: 'Bàn', name: 'table', drag: 'point', template: box('prop', [1.4, 0.8, 0.9], '#7b5a44') },
-  { id: 'furniture/sofa', group: 'furniture', label: 'Ghế sofa', name: 'sofa', drag: 'point', template: box('prop', [2, 0.8, 0.9], '#5a6b7b') },
-  { id: 'furniture/counter', group: 'furniture', label: 'Quầy', name: 'counter', drag: 'line', template: box('prop', [2, 1, 0.6], '#9a8f84') },
+  { id: 'furniture/bed', group: 'furniture', label: 'Giường', name: 'bed', drag: 'point', template: box('prop', [2, 0.6, 1.6], '#8c4a5a', null, 'furniture/bed') },
+  { id: 'furniture/table', group: 'furniture', label: 'Bàn', name: 'table', drag: 'point', template: box('prop', [1.4, 0.8, 0.9], '#7b5a44', null, 'furniture/table') },
+  { id: 'furniture/chair', group: 'furniture', label: 'Ghế tựa', name: 'chair', drag: 'point', template: box('prop', [0.45, 0.9, 0.45], '#7a5f48', null, 'furniture/chair') },
+  { id: 'furniture/desk', group: 'furniture', label: 'Bàn làm việc', name: 'desk', drag: 'point', template: box('prop', [1.4, 0.75, 0.7], '#8b6f5c', null, 'furniture/desk') },
+  { id: 'furniture/sofa', group: 'furniture', label: 'Ghế sofa', name: 'sofa', drag: 'point', template: box('prop', [2, 0.8, 0.9], '#5a6b7b', null, 'furniture/sofa') },
+  { id: 'furniture/armchair', group: 'furniture', label: 'Ghế bành', name: 'armchair', drag: 'point', template: box('prop', [0.85, 0.8, 0.85], '#7a6a58', null, 'furniture/sofa') },
+  { id: 'furniture/counter', group: 'furniture', label: 'Quầy', name: 'counter', drag: 'line', template: box('prop', [2, 1, 0.6], '#9a8f84', null, 'furniture/cabinet') },
   { id: 'furniture/tree', group: 'furniture', label: 'Cây (vườn)', name: 'tree', drag: 'point', template: { ...TREE_TEMPLATES.round, height: 5, canopy: 2 } },
   { id: 'furniture/block', group: 'furniture', label: 'Khối nội thất', name: 'furniture', drag: 'rect', template: box('prop', [1, 0.8, 1], '#77706a') },
 
-  { id: 'container/kitchen', group: 'containers', label: 'Tủ bếp', name: 'kitchen', drag: 'point', template: box('container', [1.4, 1, 0.6], '#9c7a5a', { name: 'Tủ bếp', lootTableId: 'house-kitchen' }) },
-  { id: 'container/wardrobe', group: 'containers', label: 'Tủ quần áo', name: 'wardrobe', drag: 'point', template: box('container', [1.6, 2, 0.6], '#6d4c35', { name: 'Tủ quần áo', lootTableId: 'house-wardrobe' }) },
-  { id: 'container/nightstand', group: 'containers', label: 'Tủ đầu giường', name: 'nightstand', drag: 'point', template: box('container', [0.5, 0.7, 0.5], '#7b5a44', { name: 'Tủ đầu giường', lootTableId: 'house-nightstand' }) },
-  { id: 'container/shelf', group: 'containers', label: 'Kệ hàng', name: 'shelf', drag: 'point', template: box('container', [2, 1.6, 0.6], '#8a8580', { name: 'Kệ hàng', lootTableId: 'store-shelf' }) },
-  { id: 'container/fridge', group: 'containers', label: 'Tủ lạnh', name: 'fridge', drag: 'point', template: box('container', [0.8, 1.8, 0.8], '#d8dde0', { name: 'Tủ lạnh', lootTableId: 'store-fridge' }) },
-  { id: 'container/empty', group: 'containers', label: 'Tủ trống (không loot)', name: 'cabinet', drag: 'point', template: box('container', [1, 1, 0.6], '#6b5a3a', { name: 'Tủ' }) },
+  { id: 'container/kitchen', group: 'containers', label: 'Tủ bếp', name: 'kitchen', drag: 'point', template: box('container', [1.4, 1, 0.6], '#9c7a5a', { name: 'Tủ bếp', lootTableId: 'house-kitchen' }, 'furniture/counter') },
+  { id: 'container/wardrobe', group: 'containers', label: 'Tủ quần áo', name: 'wardrobe', drag: 'point', template: box('container', [1.6, 2, 0.6], '#6d4c35', { name: 'Tủ quần áo', lootTableId: 'house-wardrobe' }, 'furniture/wardrobe') },
+  { id: 'container/nightstand', group: 'containers', label: 'Tủ đầu giường', name: 'nightstand', drag: 'point', template: box('container', [0.5, 0.7, 0.5], '#7b5a44', { name: 'Tủ đầu giường', lootTableId: 'house-nightstand' }, 'furniture/nightstand') },
+  { id: 'container/bookshelf', group: 'containers', label: 'Kệ sách', name: 'bookshelf', drag: 'point', template: box('container', [1.2, 2, 0.4], '#6f5a45', { name: 'Kệ sách', lootTableId: 'house-nightstand' }, 'furniture/bookshelf') },
+  { id: 'container/shelf', group: 'containers', label: 'Kệ hàng', name: 'shelf', drag: 'point', template: box('container', [2, 1.6, 0.6], '#8a8580', { name: 'Kệ hàng', lootTableId: 'store-shelf' }, 'furniture/shelving') },
+  { id: 'container/fridge', group: 'containers', label: 'Tủ lạnh', name: 'fridge', drag: 'point', template: box('container', [0.8, 1.8, 0.8], '#d8dde0', { name: 'Tủ lạnh', lootTableId: 'store-fridge' }, 'furniture/fridge') },
+  { id: 'container/empty', group: 'containers', label: 'Tủ trống (không loot)', name: 'cabinet', drag: 'point', template: box('container', [1, 1, 0.6], '#6b5a3a', { name: 'Tủ' }, 'furniture/cabinet') },
 
   { id: 'room/lamp', group: 'rooms', label: 'Phòng có đèn (kéo khung)', name: 'room', drag: 'rect', template: { name: 'Phòng', lamp } },
   { id: 'room/plain', group: 'rooms', label: 'Phòng không đèn (kéo khung)', name: 'room', drag: 'rect', template: { name: 'Phòng' } },

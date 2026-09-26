@@ -18,6 +18,7 @@ import {
 } from './schema.ts'
 import { TREE_LIMITS } from '../game/world/trees.ts'
 import { SURFACE_IDS } from '../game/rendering/surfaces/catalog.ts'
+import { isFurnitureId } from '../game/rendering/furniture/catalog.ts'
 import { contentMigrationPath, contentMigrationShapeProblems, renameProblems, statefulIds, type ContentMigration } from './contentMigration.ts'
 import { chunkIdOf, chunksOverlapping, parseChunkId, parseRecordId, playAreaRect, PREFAB_ID, SLUG } from './transform.ts'
 import { outlineBounds, outlineProblem, pointInOutline } from './polygon.ts'
@@ -284,6 +285,18 @@ function checkBox(c: Checker, o: Obj, p: string): void {
   c.color(o.color, `${p}/color`)
 }
 
+/**
+ * G3a: a prop's or container's furniture look. An asset missing from the registry is only a warning
+ * (the box is drawn plain): looks never block loading.
+ */
+function checkFurnitureVisual(c: Checker, v: unknown, p: string, entityId: string): void {
+  if (v === undefined || !c.obj(v, p)) return
+  if (c.str(v.assetId, `${p}/assetId`) && !isFurnitureId(v.assetId)) {
+    c.issue('warning', 'unknown-asset', `${p}/assetId`, `furniture asset "${v.assetId}" is not in the registry (drawn as a plain box)`, entityId)
+  }
+  if (v.facing !== undefined) c.quarter(v.facing, `${p}/facing`)
+}
+
 function checkContainerFields(c: Checker, o: Obj, p: string, opts: ValidationOptions, entityId: string): void {
   c.str(o.name, `${p}/name`)
   if (o.lootTableId !== undefined && c.str(o.lootTableId, `${p}/lootTableId`) && opts.lootTables && !opts.lootTables.has(o.lootTableId)) {
@@ -360,12 +373,16 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       } else checkLevel(o.level, `${p}/level`)
       switch (o.kind) {
         case 'wall':
+          checkBox(c, o, p)
+          break
         case 'prop':
           checkBox(c, o, p)
+          checkFurnitureVisual(c, o.visual, `${p}/visual`, entityId)
           break
         case 'container':
           checkBox(c, o, p)
           checkContainerFields(c, o, p, opts, entityId)
+          checkFurnitureVisual(c, o.visual, `${p}/visual`, entityId)
           break
         case 'tree':
           checkTree(c, o, p)
@@ -533,6 +550,7 @@ export function validateChunkDocument(doc: unknown, entry: ChunkEntry, world: Wo
           }
           checkBox(c, r, p)
           if (r.kind === 'container') checkContainerFields(c, r, p, opts, id)
+          if (r.kind === 'prop' || r.kind === 'container') checkFurnitureVisual(c, r.visual, `${p}/visual`, id)
           if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
           break
         case 'roads':
