@@ -120,6 +120,32 @@ const BUILDERS: Record<DecorId, Build> = {
   ],
 }
 
+/** A decor part in the world: centre, size, total yaw (radians) and batch shape. */
+export interface PlacedDecorPart extends DecorPart {
+  world: [number, number, number]
+  worldYaw: number
+}
+
+/** Unknown decor asset: a small plain box, easy to spot, never an error (plan §9). */
+export const UNKNOWN_DECOR = { size: [0.3, 0.3, 0.3] as [number, number, number], color: '#9a8f9e' }
+
+/**
+ * G5: a decor object's parts placed at its base centre `at` (y already lifted as the caller needs),
+ * turned by `yaw` (radians). One factory for the game's batches and the editor's viewport.
+ */
+export function placeDecorParts(assetId: string, at: { x: number; y: number; z: number }, yaw: number, color?: string): PlacedDecorPart[] {
+  const known = (Object.keys(DECOR) as string[]).includes(assetId)
+  const parts: DecorPart[] = known
+    ? decorParts(assetId as DecorId, color)
+    : [{ name: 'unknown', shape: 'box', center: [0, UNKNOWN_DECOR.size[1] / 2, 0], size: UNKNOWN_DECOR.size, color: UNKNOWN_DECOR.color, surface: 'matte' }]
+  const cos = Math.cos(yaw)
+  const sin = Math.sin(yaw)
+  return parts.map((p) => {
+    const [px, py, pz] = p.center
+    return { ...p, world: [at.x + px * cos + pz * sin, at.y + py, at.z - px * sin + pz * cos], worldYaw: yaw + (p.yaw ?? 0) }
+  })
+}
+
 /** The parts of a decor asset (`color`: the content's, else the asset's own). */
 export function decorParts(asset: DecorId, color?: string): DecorPart[] {
   return BUILDERS[asset](color ?? DECOR[asset].color).map((p) => ({ ...p, center: [...p.center] as [number, number, number], size: [...p.size] as [number, number, number] }))

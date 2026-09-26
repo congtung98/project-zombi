@@ -1,6 +1,8 @@
 import { rotateXZ } from '../../../map/transform'
 import type { QuarterTurns } from '../../../map/schema'
-import { FURNITURE, type FurnitureId } from './catalog'
+import { FURNITURE, isFurnitureId, type FurnitureId } from './catalog'
+import { VARIANTS, type VariantId } from '../variants'
+import type { FurnitureLook } from '../../world/buildings'
 import { furnitureParts, type FurniturePart } from './assets'
 
 /**
@@ -80,6 +82,20 @@ export function placeFurniture(asset: FurnitureId, box: WorldBox, facing: Quarte
       ...(yaw ? { yaw } : {}),
     }
   })
+}
+
+/**
+ * G5: the parts of a prop's or container's look in its box: its facing (given, else automatic against
+ * `walls`), yaw and look (given, else the house variant's default). Null for an unknown asset (the
+ * plain box is drawn). One factory for the game's batches and the editor's viewport.
+ */
+export function lookParts(look: FurnitureLook, box: WorldBox, color: string, walls: readonly WorldBox[], house?: VariantId): { facing: QuarterTurns; parts: PlacedPart[] } | null {
+  if (!isFurnitureId(look.assetId)) return null
+  const asset = look.assetId
+  const facing = look.facing ?? autoFacing(asset, box, walls, look.turn)
+  const variant = look.variantId ?? (house ? VARIANTS[house].furniture[asset] : undefined)
+  const yaw = look.yaw ? (look.yaw * Math.PI) / 180 : 0
+  return { facing, parts: placeFurniture(asset, box, facing, color, { yaw, variant }) }
 }
 
 /** How far from a wall face a box side still counts as standing against it (m). */

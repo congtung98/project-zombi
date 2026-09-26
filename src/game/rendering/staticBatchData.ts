@@ -15,10 +15,10 @@ import { mapRooms, mapWindows, roadY, type RoadDef } from '../world/mapData'
 import type { FurnitureLook } from '../world/buildings'
 import type { QuarterTurns } from '../../map/schema'
 import { isFurnitureId, type FurnitureId } from './furniture/catalog'
-import { autoFacing, placeFurniture, type WorldBox } from './furniture/placement'
-import { decorParts } from './decor/assets'
+import { lookParts, type WorldBox } from './furniture/placement'
+import { placeDecorParts } from './decor/assets'
 import { isDecorId, type DecorId } from './decor/catalog'
-import { isVariantId, variantColor, VARIANTS, type VariantId } from './variants'
+import { isVariantId, variantColor, type VariantId } from './variants'
 import { ROOM_FLOOR_LIFT } from './architecture'
 import type { DecorDef } from '../world/buildings'
 
@@ -321,8 +321,8 @@ export function roadDetails(roads: readonly RoadDef[]): StaticItem[] {
   return out
 }
 
-/** Unknown decor asset: a small plain box, easy to spot, never an error (plan §9). */
-const UNKNOWN_DECOR = { size: [0.3, 0.3, 0.3] as [number, number, number], color: '#9a8f9e' }
+/** Batch shape of each decor part shape. */
+export const DECOR_SHAPE = { box: 'box', cyl: 'trunk', ball: 'crown', spike: 'cone' } as const satisfies Record<string, Shape>
 
 /**
  * G3b: a decor object's parts in the world. On the floor (base at its storey's floor) it sits just
@@ -331,18 +331,12 @@ const UNKNOWN_DECOR = { size: [0.3, 0.3, 0.3] as [number, number, number], color
 export function decorItems(d: DecorDef, buildingId: string | undefined): StaticItem[] {
   const onFloor = d.position.y - d.floorY < 0.005
   const lift = !onFloor ? 0 : buildingId ? (d.floorY < 0.01 ? FLOOR_Y : 0) + ROOM_FLOOR_LIFT + 0.002 : OUTDOOR_DECOR_LIFT
-  const base = d.position.y + lift
-  const parts = isDecorId(d.assetId)
-    ? decorParts(d.assetId, d.color)
-    : [{ name: 'unknown', shape: 'box' as const, center: [0, UNKNOWN_DECOR.size[1] / 2, 0] as [number, number, number], size: UNKNOWN_DECOR.size, color: UNKNOWN_DECOR.color, surface: 'matte' as const }]
-  const cos = Math.cos(d.yaw)
-  const sin = Math.sin(d.yaw)
+  const parts = placeDecorParts(d.assetId, { x: d.position.x, y: d.position.y + lift, z: d.position.z }, d.yaw, d.color)
   const out: StaticItem[] = parts.map((p) => {
-    const [px, py, pz] = p.center
-    const yaw = d.yaw + (p.yaw ?? 0)
+    const yaw = p.worldYaw
     return {
-      shape: p.shape === 'cyl' ? 'trunk' : p.shape === 'ball' ? 'crown' : p.shape === 'spike' ? 'cone' : 'box',
-      center: new Vector3(round(d.position.x + px * cos + pz * sin), round(base + py), round(d.position.z - px * sin + pz * cos)),
+      shape: DECOR_SHAPE[p.shape],
+      center: new Vector3(round(p.world[0]), round(p.world[1]), round(p.world[2])),
       size: [p.size[0], p.size[1], p.size[2]],
       color: p.color,
       occluder: false,
@@ -442,13 +436,11 @@ function furnitureItems(
   const walls = collected.filter((i) => i.shape === 'box' && !(i.id && props.has(i.id)) && (i.role === 'wall' || !i.role))
   for (const { item, look } of furnished) {
     const box = boxOf(item)
-    const facing = look.facing ?? autoFacing(look.assetId, box, walls.filter((w) => w.buildingId === item.buildingId).map(boxOf), look.turn)
     const anchor = { min: new Vector3(box.min.x, box.min.y, box.min.z), max: new Vector3(box.max.x, box.max.y, box.max.z) }
-    // G3b: the content's look, else the house variant's default for this asset.
-    const house = variantOf(item.buildingId)
-    const variant = look.variantId ?? (house ? VARIANTS[house].furniture[look.assetId] : undefined)
-    const yaw = look.yaw ? (look.yaw * Math.PI) / 180 : 0
-    for (const p of placeFurniture(look.assetId, box, facing, item.color, { yaw, variant })) {
+    // G3b: the content's look, else the house variant's default for this asset (G5: `lookParts`, shared with the editor).
+    const placed = lookParts(look, box, item.color, walls.filter((w) => w.buildingId === item.buildingId).map(boxOf), variantOf(item.buildingId))!
+    const facing = placed.facing
+    for (const p of placed.parts) {
       out.push({
         ...item,
         // Rounded like the sizes: a turned copy gives the very same piece (no float noise).

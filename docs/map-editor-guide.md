@@ -57,6 +57,25 @@ Chuột: trái để chọn/kéo; phải hoặc giữa để kéo camera; lăn �
 
 Mọi thao tác đều có Hoàn tác / Làm lại (Ctrl+Z / Ctrl+Y).
 
+### Ngoại hình: đồ đạc, đồ trang trí, biến thể (G3–G5)
+
+Ngoại hình không bao giờ đổi ID, va chạm, loot hay save. Khung nhìn editor vẽ bằng đúng bộ dựng của game, nên thấy gì ở editor thì game hiện đúng như vậy (trừ mái, bóng, mask).
+- **Mẫu hình của prop/tủ** (Inspector → "Mẫu hình"):
+  - Mẫu được dựng vừa khít trong hộp của object; hộp vẫn là va chạm. Dải màu nhạt dưới chân là hộp thật đó, để đặt không chồng lên nhau.
+  - "Mặt trước": tự động (lưng áp tường gần nhất) hoặc một hướng.
+  - "Lệch" ±45° xoay mẫu trong hộp (ghế kéo lệch).
+  - "Kiểu" chọn giường gọn hoặc bừa, kệ đầy hoặc thưa, kệ đồ nghề.
+  - Preset ở tab Nội thất/Tủ đã có mẫu sẵn.
+- **Tab Trang trí:**
+  - Đồ trang trí chỉ để nhìn (không va chạm, không nhặt được, không lưu). Sửa **Y** để đặt lên bàn hoặc tủ (Y = độ cao mặt nó đứng).
+  - Không che dấu loot trên nóc tủ và không đặt vào vòng mở cửa (validator cảnh báo).
+  - **Cụm** (bàn ăn bỏ dở, góc bếp, chuẩn bị di tản, góc garage) đặt một lần nhiều object có ID riêng; nhấn R trước khi click để xoay cả cụm.
+- **Biến thể nhà:**
+  - Inspector prefab → "Biến thể nhà": tick các biến thể prefab có.
+  - Đồ trang trí → "Chỉ hiện ở": nó chỉ xuất hiện trong các biến thể đó.
+  - Ở world, Inspector của instance → "Biến thể": chọn một, hoặc để tự động (seed ổn định theo ID).
+- **Mẫu lạ** (file từ bản khác) vẫn giữ nguyên trong file, được báo là cảnh báo, và vẽ hộp trơn (đồ trang trí: hộp nhỏ tím xám).
+
 ## 2. Đặt lên world
 
 - Tab **Prefab**: click một prefab (có hình thu nhỏ), R để xoay, click lên viewport để đặt, Esc để thoát.

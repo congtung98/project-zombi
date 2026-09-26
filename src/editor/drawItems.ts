@@ -2,12 +2,18 @@ import { BatchedMesh, BoxGeometry, Color, ConeGeometry, CylinderGeometry, Double
 import type { ResolvedRecord } from '../map/resolve'
 import { outlineRects } from '../map/polygon'
 import { TREE_TRUNK_COLOR, treeProfile } from '../game/world/trees'
-import { stairTreads } from '../game/rendering/staticBatchData'
-import { DECOR, decorFootprint, isDecorId } from '../game/rendering/decor/catalog'
+import { DECOR_SHAPE, stairTreads } from '../game/rendering/staticBatchData'
+import { placeDecorParts } from '../game/rendering/decor/assets'
+import { lookParts, type WorldBox } from '../game/rendering/furniture/placement'
+import { isVariantId, variantColor } from '../game/rendering/variants'
+import type { FurnitureLook } from '../game/world/buildings'
 
 /**
  * Editor draw data (M7): a resolved record as plain boxes and markers (`drawItems`), shared by the
  * per-record meshes of `RecordView` and the per-chunk batches of `ChunkBatch` (`buildBatches`).
+ * G5: furniture and decor are drawn with the game's own factories (`lookParts`, `placeDecorParts`),
+ * so the editor shows what the game shows; a furnished box also gets a faint footprint on the floor
+ * (the real collider, to place things without overlap). Houses show their variant's palette.
  */
 
 const BOX = new BoxGeometry(1, 1, 1)
@@ -72,13 +78,38 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
   }
   for (const r of p.roads ?? []) add('plane', 'solid', r.color, [r.position.x, roadY(r.layer), r.position.z], [r.size[0], 1, r.size[1]])
   const trunks = new Set((p.trees ?? []).map((t) => t.id))
-  for (const w of p.walls ?? []) if (!trunks.has(w.id)) add('box', 'solid', w.color ?? '#8a8580', [w.position.x, w.position.y, w.position.z], [...w.size])
-  for (const c of p.containers ?? []) add('box', 'solid', c.color ?? '#6b5a3a', [c.position.x, c.position.y, c.position.z], [...c.size])
-  // G3b: decor as its footprint box (the game draws the asset).
+  // G5: the record's house variant (its palette and furniture looks) and its walls (automatic facings).
+  const house = p.buildings?.[0]?.variant
+  const variant = isVariantId(house) ? house : undefined
+  const tone = (c: string) => (p.buildings?.length ? variantColor(c, variant) : c)
+  const boxOf = (o: { position: { x: number; y: number; z: number }; size: readonly number[] }): WorldBox => ({
+    min: { x: o.position.x - o.size[0] / 2, y: o.position.y - o.size[1] / 2, z: o.position.z - o.size[2] / 2 },
+    max: { x: o.position.x + o.size[0] / 2, y: o.position.y + o.size[1] / 2, z: o.position.z + o.size[2] / 2 },
+  })
+  const walls = (p.walls ?? []).filter((w) => !w.prop && !trunks.has(w.id)).map(boxOf)
+  const furnished = (o: { position: { x: number; y: number; z: number }; size: readonly number[] }, look: FurnitureLook, color: string): boolean => {
+    const box = boxOf(o)
+    const placed = lookParts(look, box, color, walls, variant)
+    if (!placed) return false
+    for (const part of placed.parts) add('box', 'solid', tone(part.color), part.center, part.size, part.yaw ?? 0)
+    add('plane', 'zone', '#7fa7c9', [o.position.x, box.min.y + 0.03, o.position.z], [o.size[0], 1, o.size[2]])
+    return true
+  }
+  for (const w of p.walls ?? []) {
+    if (trunks.has(w.id)) continue
+    if (w.visual && furnished(w, w.visual, w.color ?? '#8a8580')) continue
+    add('box', 'solid', tone(w.color ?? '#8a8580'), [w.position.x, w.position.y, w.position.z], [...w.size])
+  }
+  for (const c of p.containers ?? []) {
+    if (c.visual && furnished(c, c.visual, c.color ?? '#6b5a3a')) continue
+    add('box', 'solid', tone(c.color ?? '#6b5a3a'), [c.position.x, c.position.y, c.position.z], [...c.size])
+  }
+  // G5: decor as the game draws it (a flat one lifted over the editor's floor plane at 0.02 m).
   for (const d of p.decor ?? []) {
-    const [w, depth] = decorFootprint(d.assetId, (d.yaw * 180) / Math.PI)
-    const h = Math.max(0.02, isDecorId(d.assetId) ? DECOR[d.assetId].size[1] : 0.3)
-    add('box', 'solid', d.color ?? (isDecorId(d.assetId) ? DECOR[d.assetId].color : '#c040c0'), [d.position.x, d.position.y + h / 2, d.position.z], [w, h, depth])
+    const lift = d.position.y - d.floorY < 0.005 ? 0.025 : 0
+    for (const part of placeDecorParts(d.assetId, { x: d.position.x, y: d.position.y + lift, z: d.position.z }, d.yaw, d.color)) {
+      add(DECOR_SHAPE[part.shape], 'solid', part.color, part.world, part.size, part.worldYaw)
+    }
   }
   for (const d of p.doors ?? []) {
     // Leaf from the hinge along local +X, turned by the closed angle (Three.js rotation.y).
