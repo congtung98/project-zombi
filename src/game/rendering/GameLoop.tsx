@@ -22,12 +22,14 @@ export function GameLoop({ paused }: GameLoopProps) {
   const scene = useThree((s) => s.scene)
 
   useFrame((_, delta) => {
-    // Dev only: last frame's renderer stats for scripts/p2-render-bench.mjs (not a GPU benchmark).
+    // Dev only: last frame's renderer stats for scripts/p2-render-bench.mjs (not a GPU benchmark);
+    // G0: the renderer itself for scripts/g0-graphics-baseline.mjs (config, memory counts).
     if (import.meta.env.DEV) {
       const r = gl.info.render
-      const w = window as unknown as { __renderInfo: object; __scene: object }
+      const w = window as unknown as { __renderInfo: object; __scene: object; __gl: object }
       w.__renderInfo = { calls: r.calls, triangles: r.triangles, fps: fps.current }
       w.__scene = scene
+      w.__gl = gl
     }
     fpsFrames.current += 1
     fpsTime.current += delta

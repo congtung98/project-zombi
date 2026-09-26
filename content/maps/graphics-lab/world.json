@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "worldId": "graphics-lab",
+  "name": "Phòng thử đồ họa (thử nghiệm)",
+  "listed": false,
+  "contentVersion": 1,
+  "chunkSize": 48,
+  "coordinateSystem": "y-up-xz-meters",
+  "playArea": { "size": 48, "center": { "x": 24, "z": 24 } },
+  "boundary": { "height": 2, "thickness": 1 },
+  "chunkBounds": { "minCx": 0, "maxCx": 0, "minCz": 0, "maxCz": 0 },
+  "chunks": [
+    { "chunkId": "c0_0", "cx": 0, "cz": 0, "path": "chunks/c0_0.json" }
+  ],
+  "prefabs": [
+    { "prefabId": "building/lab-house", "contentVersion": 1, "path": "prefabs/lab-house.json" }
+  ],
+  "playerSpawn": "c0_0/spawns/player-start"
+}

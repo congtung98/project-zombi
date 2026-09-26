@@ -62,6 +62,21 @@ export interface PerfSnapshot {
   frame: { avgMs: number; maxMs: number; fps: number; cpuAvgMs: number; cpuMaxMs: number }
 }
 
+/**
+ * G0: every render frame between `startFrameLog` and `takeFrameLog` (benchmark scripts read the
+ * distribution: median / p95, not only the window average). Draw calls and triangles are the gauges
+ * at the time of the frame.
+ */
+export interface FrameLog {
+  intervalMs: number[]
+  cpuMs: number[]
+  drawCalls: number[]
+  triangles: number[]
+}
+
+/** A frame log never holds more than this (a script that forgets to take it stops growing it). */
+export const FRAME_LOG_MAX = 20000
+
 const now: () => number =
   typeof performance !== 'undefined' && typeof performance.now === 'function' ? () => performance.now() : () => Date.now()
 
@@ -87,6 +102,7 @@ export class PerfMonitor {
   private readonly cpuRing: Float64Array
   private frameHead = 0
   private frameFilled = 0
+  private frameLog: FrameLog | null = null
 
   constructor(window = 120) {
     this.window = window
@@ -138,6 +154,25 @@ export class PerfMonitor {
     this.cpuRing[this.frameHead] = cpuMs
     this.frameHead = (this.frameHead + 1) % this.window
     this.frameFilled = Math.min(this.window, this.frameFilled + 1)
+    const log = this.frameLog
+    if (log && log.intervalMs.length < FRAME_LOG_MAX) {
+      log.intervalMs.push(ms)
+      log.cpuMs.push(cpuMs)
+      log.drawCalls.push(this.gauges.drawCalls)
+      log.triangles.push(this.gauges.triangles)
+    }
+  }
+
+  /** Start logging every frame (a running log starts over). */
+  startFrameLog(): void {
+    this.frameLog = { intervalMs: [], cpuMs: [], drawCalls: [], triangles: [] }
+  }
+
+  /** The frames since `startFrameLog` (empty when none was started); logging stops. */
+  takeFrameLog(): FrameLog {
+    const log = this.frameLog ?? { intervalMs: [], cpuMs: [], drawCalls: [], triangles: [] }
+    this.frameLog = null
+    return log
   }
 
   reset(): void {

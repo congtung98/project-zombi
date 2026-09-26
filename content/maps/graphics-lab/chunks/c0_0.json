@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_0",
+  "cx": 0,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c0_0/house-a",
+      "prefabId": "building/lab-house",
+      "position": { "x": 16, "y": 0, "z": 12 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c0_0/house-b",
+      "prefabId": "building/lab-house",
+      "position": { "x": 32, "y": 0, "z": 36 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    { "kind": "prop", "objectId": "c0_0/objects/fence-a-n", "position": { "x": 16, "y": 0.5, "z": 5 }, "size": [15, 1, 0.15], "color": "#7a6a55" },
+    { "kind": "prop", "objectId": "c0_0/objects/fence-a-w", "position": { "x": 8.5, "y": 0.5, "z": 12.25 }, "size": [0.15, 1, 14.5], "color": "#7a6a55" },
+    { "kind": "prop", "objectId": "c0_0/objects/fence-a-e", "position": { "x": 23.5, "y": 0.5, "z": 12.25 }, "size": [0.15, 1, 14.5], "color": "#7a6a55" },
+    { "kind": "prop", "objectId": "c0_0/objects/fence-b-1", "position": { "x": 28.55, "y": 0.4, "z": 29.2 }, "size": [8.1, 0.8, 0.12], "color": "#d8d2c4" },
+    { "kind": "prop", "objectId": "c0_0/objects/fence-b-2", "position": { "x": 36.95, "y": 0.4, "z": 29.2 }, "size": [5.1, 0.8, 0.12], "color": "#d8d2c4" },
+    { "kind": "prop", "objectId": "c0_0/objects/car", "position": { "x": 38, "y": 0.7, "z": 25.6 }, "size": [4, 1.4, 2], "color": "#7a3b3b" },
+    { "kind": "prop", "objectId": "c0_0/objects/mailbox", "position": { "x": 16.6, "y": 0.6, "z": 19.1 }, "size": [0.3, 1.2, 0.3], "color": "#3d4f66" },
+    { "kind": "container", "objectId": "c0_0/objects/bin-a", "name": "Thùng rác", "position": { "x": 12, "y": 0.55, "z": 19 }, "size": [0.6, 1.1, 0.6], "color": "#3f5a3f", "lootTableId": "scrap-pile" },
+    { "kind": "prop", "objectId": "c0_0/objects/bin-b", "position": { "x": 40.5, "y": 0.55, "z": 29.4 }, "size": [0.6, 1.1, 0.6], "color": "#3f5a3f" },
+    { "kind": "tree", "objectId": "c0_0/objects/tree-a", "position": { "x": 21, "z": 18 }, "height": 5, "canopy": 1.6, "trunk": 0.2, "color": "#56693f", "style": "round" },
+    { "kind": "tree", "objectId": "c0_0/objects/tree-b", "position": { "x": 43, "z": 36 }, "height": 7, "canopy": 1.8, "trunk": 0.25, "color": "#3f5a3a", "style": "pine" },
+    { "kind": "tree", "objectId": "c0_0/objects/tree-c", "position": { "x": 5, "z": 32 }, "height": 5.5, "canopy": 2, "trunk": 0.22, "color": "#5b6e42", "style": "round" },
+    { "kind": "tree", "objectId": "c0_0/objects/tree-d", "position": { "x": 43, "z": 10 }, "height": 6, "canopy": 2.2, "trunk": 0.24, "color": "#4f6340", "style": "round" }
+  ],
+  "roads": [
+    { "roadId": "c0_0/roads/street", "position": { "x": 24, "z": 24 }, "size": [48, 6], "color": "#55534f" },
+    { "roadId": "c0_0/roads/sidewalk-n", "position": { "x": 24, "z": 20.25 }, "size": [48, 1.5], "color": "#9b968c", "layer": 1 },
+    { "roadId": "c0_0/roads/sidewalk-s", "position": { "x": 24, "z": 27.75 }, "size": [48, 1.5], "color": "#9b968c", "layer": 1 },
+    { "roadId": "c0_0/roads/path-a", "position": { "x": 14.5, "z": 18 }, "size": [1.4, 3], "color": "#a39d91", "layer": 1 },
+    { "roadId": "c0_0/roads/path-b", "position": { "x": 33.5, "z": 30 }, "size": [1.4, 3], "color": "#a39d91", "layer": 1 }
+  ],
+  "zones": [],
+  "spawns": [
+    { "spawnId": "c0_0/spawns/player-start", "kind": "player", "position": { "x": 6, "z": 20.2 } },
+    { "spawnId": "c0_0/spawns/zombie-e", "kind": "zombie", "position": { "x": 44, "z": 24 } },
+    { "spawnId": "c0_0/spawns/zombie-sw", "kind": "zombie", "position": { "x": 4, "z": 42 } },
+    { "spawnId": "c0_0/spawns/zombie-ne", "kind": "zombie", "position": { "x": 44, "z": 4 } }
+  ],
+  "externalRefs": []
+}

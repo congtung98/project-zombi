@@ -43,9 +43,10 @@ export function PerfProbe({ countObjects }: { countObjects: boolean }) {
       const f = frame.current
       if (f.start === 0) return
       const perf = runtime.perf
-      perf.recordFrame(f.interval, performance.now() - f.start)
+      // Gauges first: a frame log (G0) records them with the frame.
       perf.gauge('drawCalls', info.render.calls)
       perf.gauge('triangles', info.render.triangles)
+      perf.recordFrame(f.interval, performance.now() - f.start)
     }
     Object.assign(target, { onAfterRender: hook })
     return () => {
