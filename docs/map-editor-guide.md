@@ -169,6 +169,16 @@ npm run map:generate -- --seed 3 --blocks 16x16 --layout varied --world-id big-t
   - việc sinh chạy nền (editor không đứng); nút **Hủy** trong tab Generator dừng mà không đổi gì.
 
   Chi tiết: `docs/world-generator-wg5.md`.
+- **Bản vẽ (WG6)**:
+  - tab **Bản vẽ** → Nhập ảnh… (bản đồ bạn có quyền dùng) → **Đo tỷ lệ** (click hai đầu một khoảng đã biết, nhập mét) hoặc thêm **Điểm hiệu chỉnh**;
+  - vẽ **Đường**: click từng điểm, Enter để xong; bắt vào đường khác thì thành giao lộ, đường cắt nhau tự thành giao lộ;
+  - **Giao lộ** gộp các đầu đường suýt chạm; **Vùng đất** và **Vùng cấm** khép bằng Enter;
+  - **Chọn** để sửa thuộc tính, kéo đỉnh, Delete để xóa;
+  - **Tạo world từ bản vẽ**: world mới mang theo ảnh và nét vẽ;
+  - sau đó sửa nét vẽ rồi **Cập nhật world từ bản vẽ**: xem trước, Áp dụng; phần sửa tay và lô khóa được giữ;
+  - world sinh từ GeoJSON cập nhật bằng **Cập nhật từ GeoJSON…** ở tab Generator.
+
+  Chi tiết: `docs/world-generator-wg6.md`.
 
 ## 7. Quy tắc cần nhớ
 

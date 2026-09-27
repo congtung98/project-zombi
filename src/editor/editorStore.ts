@@ -12,13 +12,16 @@ import { defaultLayers, isEditable, LAYERS, layerOf, type LayerId, type LayerSta
 import { documentFromFiles, exportPack, parsePack, validateDocument } from '../map/editor/pack'
 import { applyCommand, initialEditState, redo, undo, type EditState } from '../map/editor/session'
 import { listDrafts, readDraft, saveDraft, type DraftRecord } from './drafts'
-import { generatorBlockReason, layoutWorldFromGeoJson, libraryCatalog, LIBRARY_WORLD, type LayoutWorldRequest } from '../map/editor/generator'
+import { documentReference, generatorBlockReason, layoutWorldFromGeoJson, libraryCatalog, LIBRARY_WORLD, reimportLayout, tracingGeoJson, withReference, type LayoutWorldRequest } from '../map/editor/generator'
 import type { PrefabCatalog } from '../map/layout/buildings'
 import type { LayoutIssue } from '../map/layout/schema'
-import { syncGenerated, type SyncReport, type SyncRequest } from '../map/layout/worldSync'
+import { documentLayout, syncGenerated, type SyncReport, type SyncRequest } from '../map/layout/worldSync'
 import { editorWorldFiles } from './layoutFiles'
 import { applyPatch } from '../map/editor/docPatch'
 import { cancelJob, runJob, workersAvailable } from './generatorJobs'
+import { addArea, addRoad, emptyTracing, markJunction, metresPerPixel, metresToPixel, referenceTransform, removeFeatures, ROAD_DEFAULTS, snapRoadPoint, type ReferenceTracing, type TracedRoad } from '../map/layout/reference'
+import { sourceToWorld, worldToSource, type ImagePoint } from '../map/layout/coordinates'
+import type { GridFrame, LandUseZone, RestrictedKind } from '../map/layout/schema'
 
 /**
  * Editor state (M3, M4). The document and its history (`EditState`) are the only map data; the rest
@@ -30,8 +33,11 @@ export const OPTS = { lootTables: REGISTERED_LOOT_TABLES }
 export const SNAP_STEPS = [1, 0.5, 0.25, 0] as const
 export const DEFAULT_WORLD = 'neighborhood-50'
 
-/** parcel (WG4, Generator tab): click picks a parcel of the world's layout (and its building). */
-export type Tool = 'select' | 'place' | 'chunk' | 'play' | 'parcel'
+/** parcel (WG4, Generator tab): click picks a parcel of the world's layout (and its building). trace (WG6, Bản vẽ tab). */
+export type Tool = 'select' | 'place' | 'chunk' | 'play' | 'parcel' | 'trace'
+
+/** WG6: what a click does in the Bản vẽ tab. */
+export type TraceMode = 'select' | 'road' | 'junction' | 'zone' | 'restricted' | 'calibrate' | 'measure'
 
 /** A running Play From Here session (M6): the snapshot sent to the playtest frame. */
 export interface Playtest {
@@ -50,7 +56,7 @@ export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record';
 /** Palette tabs of the prefab editor (M5). */
 export type PrefabTab = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms'
 
-export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks' | 'generator'
+export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks' | 'generator' | 'reference'
 
 /** WG4: layout layers drawn over the viewport (session state, never exported). */
 export interface LayoutView {
@@ -147,6 +153,19 @@ interface EditorStore {
   genReport: GeneratorReport | null
   /** WG5: generator job running in the worker (the tab shows it with a Hủy button). */
   genBusy: { label: string; started: number } | null
+  /** WG6 (Bản vẽ tab): tracing tool state, never exported. Draft points are image pixels. */
+  trace: {
+    mode: TraceMode
+    draft: ImagePoint[]
+    selected: string | null
+    road: TracedRoad
+    zone: LandUseZone
+    restricted: RestrictedKind
+    autoJunctions: boolean
+    opacity: number
+    showImage: boolean
+    measure: ImagePoint[]
+  }
 
   openDocument(doc: MapDocument, source: string, issues?: ValidationIssue[]): void
   run(label: string, command: (doc: MapDocument, selection: string[]) => CommandResult): boolean
@@ -197,9 +216,41 @@ interface EditorStore {
   finishGenerated(label: string, base: MapDocument, doc: MapDocument, summary: string, report: SyncReport, ms: number, preview: boolean): boolean
   /** Result of an import (worker or in place): open the new world. */
   openLayoutWorld(req: LayoutWorldRequest, doc: MapDocument, issues: LayoutIssue[]): boolean
+
+  /** WG6: tracing. */
+  setTrace(patch: Partial<EditorStore['trace']>): void
+  /** Change the reference of the document as one command (a tracing is created when there is none). */
+  editReference(label: string, fn: (ref: ReferenceTracing) => ReferenceTracing): boolean
+  /** Click at a world point with a snapping reach (m on screen) in the current trace mode. */
+  traceClick(at: XZ, reachMetres: number): void
+  traceFinish(): void
+  traceCancel(): void
+  traceBackspace(): void
+  /** Draw from the tracing: a new world (like Mới → Từ GeoJSON). */
+  createWorldFromTracing(req: Omit<LayoutWorldRequest, 'text' | 'origin' | 'extras'>): boolean
+  /** Update this world from its changed reference (tracing or a new GeoJSON file): previewed, then applied. */
+  updateWorldFromReference(text: string | null, file?: string, overwrite?: boolean): boolean
+}
+
+/** WG6: source metres (the tracing's frame) ↔ world, through the layout's frame when the world has one. */
+export function referenceFrame(doc: MapDocument): GridFrame | null {
+  return documentLayout(doc).layout?.normalized?.frame ?? null
+}
+
+export function worldToPixel(doc: MapDocument, ref: ReferenceTracing, at: XZ): ImagePoint {
+  const frame = referenceFrame(doc)
+  return metresToPixel(ref, frame ? worldToSource(frame, at) : at)
+}
+
+export function pixelToWorld(doc: MapDocument, ref: ReferenceTracing, p: ImagePoint): XZ {
+  const m = referenceTransform(ref)
+  const src = { x: m.a * p.u + m.b * p.v + m.tx, z: m.c * p.u + m.d * p.v + m.tz }
+  const frame = referenceFrame(doc)
+  return frame ? sourceToWorld(frame, src) : src
 }
 
 const LOOT_TABLE_IDS = [...REGISTERED_LOOT_TABLES]
+const REFERENCE_FILE_PATH = 'layout/reference.json'
 
 let catalogMemo: { catalog: PrefabCatalog | null } | null = null
 /** Prefab library of the generator (the repo world `prefab-library`), read once. */
@@ -317,6 +368,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   genPending: null,
   genReport: null,
   genBusy: null,
+  trace: { mode: 'road', draft: [], selected: null, road: { ...ROAD_DEFAULTS.local }, zone: 'residential', restricted: 'water', autoJunctions: true, opacity: 0.6, showImage: true, measure: [] },
 
   openDocument(doc, source, issues) {
     // A generator job of the previous document never lands on this one.
@@ -740,6 +792,142 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       if (r.kind === 'import') get().openLayoutWorld(req, r.doc, r.issues)
     })
     return true
+  },
+
+  setTrace(patch) {
+    set({ trace: { ...get().trace, ...patch } })
+  },
+
+  editReference(label, fn) {
+    return get().run(label, (doc, sel) => {
+      const { ref, issues } = documentReference(doc)
+      if (!ref && issues.length) return { ok: false, error: `${label}: layout/reference.json hỏng (${issues[0].message})` }
+      try {
+        return { ok: true, doc: withReference(doc, fn(ref ?? emptyTracing())), selection: sel }
+      } catch (e) {
+        return { ok: false, error: `${label}: ${e instanceof Error ? e.message : String(e)}` }
+      }
+    })
+  },
+
+  traceClick(at, reachMetres) {
+    const { edit, trace } = get()
+    if (!edit) return
+    const ref = documentReference(edit.doc).ref ?? emptyTracing()
+    const px = worldToPixel(edit.doc, ref, at)
+    const tol = reachMetres / Math.max(1e-6, metresPerPixel(referenceTransform(ref)))
+    switch (trace.mode) {
+      case 'road': {
+        // Snapping may put a vertex into an existing road (a junction): that part is a command of its own.
+        const snap = snapRoadPoint(ref, px, tol)
+        if (snap.ref !== ref) get().editReference('Thêm giao lộ', () => snap.ref)
+        const last = trace.draft[trace.draft.length - 1]
+        // Clicking the last point again finishes the road.
+        if (last && Math.hypot(last.u - snap.point.u, last.v - snap.point.v) < Math.max(0.5, tol / 3)) return get().traceFinish()
+        get().setTrace({ draft: [...trace.draft, snap.point] })
+        return
+      }
+      case 'zone':
+      case 'restricted': {
+        const first = trace.draft[0]
+        if (first && trace.draft.length >= 3 && Math.hypot(first.u - px.u, first.v - px.v) < tol) return get().traceFinish()
+        get().setTrace({ draft: [...trace.draft, px] })
+        return
+      }
+      case 'junction': {
+        let roads = 0
+        const ok = get().editReference('Đánh dấu giao lộ', (r) => {
+          const m = markJunction(r, px, tol * 1.5)
+          roads = m.roads
+          return m.ref
+        })
+        if (ok) get().setStatus(roads >= 2 ? `Giao lộ: ${roads} đường gặp nhau` : 'Không có hai đường nào trong tầm: không tạo giao lộ', roads >= 2 ? 'info' : 'error')
+        return
+      }
+      case 'calibrate': {
+        // A new control point where the picture is now: nothing moves until its world position is edited.
+        get().editReference('Thêm điểm hiệu chỉnh', (r) => ({ ...r, calibration: { ...r.calibration, points: [...r.calibration.points, { image: { u: Math.round(px.u * 10) / 10, v: Math.round(px.v * 10) / 10 }, world: (() => { const m = referenceTransform(r); const w = { x: m.a * px.u + m.b * px.v + m.tx, z: m.c * px.u + m.d * px.v + m.tz }; return { x: Math.round(w.x * 100) / 100, z: Math.round(w.z * 100) / 100 } })() }] } }))
+        return
+      }
+      case 'measure': {
+        const pts = trace.measure.length >= 2 ? [px] : [...trace.measure, px]
+        get().setTrace({ measure: pts })
+        return
+      }
+      case 'select': {
+        return
+      }
+    }
+  },
+
+  traceFinish() {
+    const { trace } = get()
+    const pts = trace.draft
+    if (trace.mode === 'road') {
+      if (pts.length < 2) return get().setStatus('Đường cần ít nhất 2 điểm', 'error')
+      if (get().editReference('Vẽ đường', (r) => addRoad(r, pts, trace.road, trace.autoJunctions).ref)) get().setTrace({ draft: [] })
+      return
+    }
+    if (trace.mode === 'zone' || trace.mode === 'restricted') {
+      if (pts.length < 3) return get().setStatus('Vùng cần ít nhất 3 điểm', 'error')
+      const area = trace.mode === 'zone' ? { zone: trace.zone } : { restricted: trace.restricted }
+      if (get().editReference(trace.mode === 'zone' ? 'Khoanh vùng đất' : 'Khoanh vùng cấm', (r) => addArea(r, pts, area).ref)) get().setTrace({ draft: [] })
+    }
+  },
+
+  traceCancel() {
+    const { trace } = get()
+    if (trace.draft.length || trace.measure.length) set({ trace: { ...trace, draft: [], measure: [] } })
+    else if (trace.selected) set({ trace: { ...trace, selected: null } })
+    else get().setTool('select')
+  },
+
+  traceBackspace() {
+    const { trace } = get()
+    if (trace.draft.length) return set({ trace: { ...trace, draft: trace.draft.slice(0, -1) } })
+    if (trace.selected) {
+      const id = trace.selected
+      if (get().editReference('Xóa nét vẽ', (r) => removeFeatures(r, [id]))) set({ trace: { ...get().trace, selected: null } })
+    }
+  },
+
+  createWorldFromTracing(req) {
+    const { edit } = get()
+    if (!edit) return false
+    const { ref } = documentReference(edit.doc)
+    if (!ref) return (get().setStatus('Chưa có bản vẽ', 'error'), false)
+    const { text, issues } = tracingGeoJson(ref)
+    const error = issues.find((i) => i.severity === 'error')
+    if (error) return (get().setStatus(`Tạo world từ bản vẽ: ${error.message}`, 'error'), false)
+    // Traced in world metres around the origin; the new world keeps the reference to trace on and update.
+    return get().newLayoutWorld({ ...req, text, origin: { x: 0, y: 0 }, extras: [[REFERENCE_FILE_PATH, ref]] })
+  },
+
+  updateWorldFromReference(text, file, overwrite = false) {
+    const { edit } = get()
+    if (!edit) return false
+    const { layout } = documentLayout(edit.doc)
+    if (!layout) return (get().setStatus('World này chưa có layout: tạo world từ bản vẽ trước', 'error'), false)
+    let source = text
+    if (source === null) {
+      const { ref } = documentReference(edit.doc)
+      if (!ref) return (get().setStatus('Chưa có bản vẽ', 'error'), false)
+      if (layout.projection.method !== 'local-metres') return (get().setStatus('Layout này đến từ dữ liệu địa lý: cập nhật bằng file GeoJSON mới (tab Generator)', 'error'), false)
+      const t = tracingGeoJson(ref)
+      const error = t.issues.find((i) => i.severity === 'error')
+      if (error) return (get().setStatus(error.message, 'error'), false)
+      source = t.text
+    }
+    let updated
+    try {
+      updated = reimportLayout(layout, source, file)
+    } catch (e) {
+      return (get().setStatus(`Không đọc được reference: ${e instanceof Error ? e.message : String(e)}`, 'error'), false)
+    }
+    if (!updated.normalized?.valid) return (get().setStatus(`Mạng đường mới có lỗi: ${updated.normalized?.issues.find((i) => i.severity === 'error')?.message ?? 'không có đường'}`, 'error'), false)
+    set({ paletteTab: 'generator' })
+    get().setTool('parcel')
+    return get().generate(text === null ? 'Cập nhật từ bản vẽ' : `Cập nhật từ ${file ?? 'GeoJSON'}`, { kind: 'layout', layout: updated, overwrite }, { preview: true })
   },
 
   openLayoutWorld(req, doc, layoutIssues) {

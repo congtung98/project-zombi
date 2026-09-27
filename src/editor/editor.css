@@ -687,3 +687,17 @@ h4 {
   grid-template-columns: 18px 1fr;
   gap: 6px;
 }
+
+/* WG6: Bản vẽ tab */
+.ref-modes button.active {
+  outline: 2px solid var(--accent);
+}
+
+.ref-points {
+  width: 100%;
+  font-size: 12px;
+}
+
+.ref-points input {
+  width: 64px;
+}

@@ -10,6 +10,10 @@ import { chunkIdOf, chunkOrigin, playAreaRect } from '../map/transform'
 import { useEditorStore } from './editorStore'
 import { handleAt, handlesUsable, type HandleKey } from '../map/editor/handles'
 import { LayoutOverlay } from './LayoutOverlay'
+import { ReferenceOverlay } from './ReferenceOverlay'
+import { documentReference, withReference } from '../map/editor/generator'
+import { featureAt, metresPerPixel, moveVertex, referenceTransform } from '../map/layout/reference'
+import { worldToPixel } from './editorStore'
 import { chunkClick, commitPlace, parcelClick, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
 import { PrefabScene } from './PrefabScene'
 import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
@@ -233,6 +237,7 @@ function EditorScene() {
       ))}
       <Selection doc={doc} ids={preview?.ghostIds.length ? preview.ghostIds : edit.selection} />
       <LayoutOverlay doc={doc} />
+      <ReferenceOverlay doc={doc} />
       <Handles />
       <Marquee />
     </group>
@@ -240,8 +245,10 @@ function EditorScene() {
 }
 
 interface Drag {
-  /** move: selection; pan: camera; box: selection rectangle; place: sizing a new record; handle: resizing (M7). */
-  kind: 'move' | 'pan' | 'box' | 'place' | 'handle'
+  /** move: selection; pan: camera; box: selection rectangle; place: sizing a new record; handle: resizing (M7); vertex: a traced vertex (WG6). */
+  kind: 'move' | 'pan' | 'box' | 'place' | 'handle' | 'vertex'
+  /** vertex: which feature and vertex. */
+  vertex?: { id: string; index: number }
   start: XZ
   ids: string[]
   delta: XZ
@@ -354,6 +361,21 @@ function Controls() {
         parcelClick(g)
         return
       }
+      if (s.tool === 'trace') {
+        // Reach for snapping and picking: 10 screen pixels.
+        const reach = 10 / camera().zoom
+        if (s.trace.mode === 'select') {
+          const ref = documentReference(s.edit.doc).ref
+          if (!ref) return
+          const px = worldToPixel(s.edit.doc, ref, g)
+          const hit = featureAt(ref, px, reach / Math.max(1e-6, metresPerPixel(referenceTransform(ref))))
+          s.setTrace({ selected: hit?.id ?? null })
+          if (hit && hit.vertex !== null) drag.current = { kind: 'vertex', start: g, ids: [], delta: { x: 0, z: 0 }, vertex: { id: hit.id, index: hit.vertex } }
+          return
+        }
+        s.traceClick(g, reach)
+        return
+      }
       if (s.tool === 'place') {
         if (s.place?.kind === 'prefab') {
           commitPlace(snapPoint(g))
@@ -409,6 +431,13 @@ function Controls() {
         updatePlacePreview(g, d.start)
         return
       }
+      if (d?.kind === 'vertex' && s.edit && d.vertex) {
+        const ref = documentReference(s.edit.doc).ref
+        if (!ref) return
+        d.at = g
+        s.setPreview({ doc: withReference(s.edit.doc, moveVertex(ref, d.vertex.id, d.vertex.index, worldToPixel(s.edit.doc, ref, g))), ghostIds: [] })
+        return
+      }
       if (d?.kind === 'handle' && s.edit) {
         const at = snapPoint(g)
         if (d.at && d.at.x === at.x && d.at.z === at.z) return
@@ -460,6 +489,15 @@ function Controls() {
         const rect = { minX: d.start.x, minZ: d.start.z, maxX: g.x, maxZ: g.z }
         const inside = keysInRect(rect)
         s.select(d.additive ? [...new Set([...s.edit.selection, ...inside])] : inside)
+        return
+      }
+      if (d?.kind === 'vertex' && d.vertex) {
+        const at = d.at
+        s.setPreview(null)
+        if (!at || !s.edit) return
+        const v = d.vertex
+        const reach = 10 / camera().zoom
+        s.editReference('Dời đỉnh', (ref) => moveVertex(ref, v.id, v.index, worldToPixel(s.edit!.doc, ref, at), reach / Math.max(1e-6, metresPerPixel(referenceTransform(ref)))))
         return
       }
       if (d?.kind === 'handle') {

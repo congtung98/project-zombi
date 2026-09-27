@@ -168,6 +168,8 @@ export interface OrthogonalParams {
   maxDeviation: number
   /** Warn when a snapped edge's length changes by more than this fraction. */
   maxLengthChange: number
+  /** WG6: fixed frame offset (with a fixed `alignment`) instead of centring the network: updates keep the frame. */
+  offset?: XZ
 }
 
 export interface NormalizedEdge {

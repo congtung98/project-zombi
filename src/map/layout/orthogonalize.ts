@@ -196,7 +196,8 @@ export function orthogonalize(network: RoadNetwork, roads: readonly LayoutRoad[]
   const rotationDeg = p.alignment === 'auto' ? dominantAngle(edges.map((e) => e.points)) : p.alignment
   const rotated = new Map(edges.map((e) => [e.id, e.points.map((q) => rotateDeg(q, rotationDeg))]))
   const box = boundsOf([...rotated.values()].flat()) ?? { minX: 0, minZ: 0, maxX: 0, maxZ: 0 }
-  const offset = { x: quantize(-Math.round((box.minX + box.maxX) / 2 / p.grid) * p.grid), z: quantize(-Math.round((box.minZ + box.maxZ) / 2 / p.grid) * p.grid) }
+  // WG6: a pinned offset keeps the world frame of an updated layout (unchanged streets stay where they were).
+  const offset = p.offset ?? { x: quantize(-Math.round((box.minX + box.maxX) / 2 / p.grid) * p.grid), z: quantize(-Math.round((box.minZ + box.maxZ) / 2 / p.grid) * p.grid) }
   const frame: GridFrame = { rotationDeg, offset }
   const toFrame = (q: XZ): XZ => ({ x: q.x + offset.x, z: q.z + offset.z })
   const sourceWorld = new Map([...rotated].map(([id, pts]) => [id, pts.map(toFrame)]))

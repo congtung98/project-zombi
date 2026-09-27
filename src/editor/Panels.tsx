@@ -14,6 +14,7 @@ import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, typ
 import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
 import { PrefabThumbnail } from './Thumbnail'
 import { EnvironmentFields, GeneratorPanel } from './GeneratorPanel'
+import { ReferencePanel } from './ReferencePanel'
 import { PROFILE_LABEL } from '../map/editor/generator'
 import { DEFAULT_ENVIRONMENT } from '../map/layout/environment'
 import type { EnvironmentParams } from '../map/layout/schema'
@@ -30,6 +31,7 @@ const TABS: { id: PaletteTab; label: string }[] = [
   { id: 'spawns', label: 'Spawn' },
   { id: 'chunks', label: 'Chunk' },
   { id: 'generator', label: 'Generator' },
+  { id: 'reference', label: 'Bản vẽ' },
 ]
 
 const DRAG_HINT = { point: 'click', line: 'click hoặc kéo (dài)', rect: 'click hoặc kéo (khung)', radius: 'click hoặc kéo (bán kính)' } as const
@@ -318,6 +320,7 @@ export function Palette() {
     s.set({ paletteTab: id })
     if (id === 'chunks') s.setTool('chunk')
     else if (id === 'generator') s.setTool('parcel')
+    else if (id === 'reference') s.setTool('trace')
     else if (s.tool !== 'select') s.setTool('select')
   }
   return (
@@ -330,9 +333,10 @@ export function Palette() {
         ))}
       </nav>
       {tab === 'prefabs' && <PrefabList />}
-      {tab !== 'prefabs' && tab !== 'chunks' && tab !== 'generator' && <PresetList category={tab} />}
+      {tab !== 'prefabs' && tab !== 'chunks' && tab !== 'generator' && tab !== 'reference' && <PresetList category={tab} />}
       {tab === 'chunks' && <ChunkPanel />}
       {tab === 'generator' && <GeneratorPanel />}
+      {tab === 'reference' && <ReferencePanel />}
       <LayersPanel />
     </aside>
   )

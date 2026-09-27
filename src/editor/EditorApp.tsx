@@ -24,6 +24,12 @@ function onKey(e: KeyboardEvent): void {
   const mod = e.ctrlKey || e.metaKey
   const key = e.key.toLowerCase()
   const handled = () => e.preventDefault()
+  // WG6: tracing keys (Enter finishes, Esc cancels, Backspace/Delete drop the last point or the selected feature).
+  if (s.tool === 'trace' && !mod) {
+    if (e.key === 'Enter') return handled(), s.traceFinish()
+    if (e.key === 'Escape') return handled(), s.traceCancel()
+    if (e.key === 'Backspace' || e.key === 'Delete') return handled(), s.traceBackspace()
+  }
   if (mod && key === 'z' && !e.shiftKey) return handled(), s.undo()
   if (mod && (key === 'y' || (key === 'z' && e.shiftKey))) return handled(), s.redo()
   if (mod && key === 's' && e.shiftKey) {

@@ -258,6 +258,13 @@ export type SyncRequest =
   | { kind: 'revert'; ids: string[] }
   /** Lock or unlock parcels or generated records (a building's lock is its parcel's). */
   | { kind: 'lock'; ids: string[]; locked: boolean }
+  /**
+   * WG6: a new source layout for the world (the reference changed: a traced road added, an updated
+   * GeoJSON), best imported with the old frame pinned (`reimportLayout`). Replanned with the same
+   * parameters keeping locked, hand-chosen and hand-edited parcels that still fit, then merged:
+   * unchanged areas come out identical, hand edits stay unless overwrite.
+   */
+  | { kind: 'layout'; layout: WorldLayout; overwrite?: boolean }
 
 export interface SyncContext {
   /** Prefab library (FULL); the world's own copy of a prefab wins over the library's. */
@@ -471,7 +478,9 @@ const standing = (plan: LayoutPlan) => new Map(plan.parcels.map((q) => [q.id, ca
 export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncContext): SyncResult {
   const { layout, issues: layoutProblems } = documentLayout(doc)
   if (!layout) return fail(layoutProblems.length ? `layout hỏng: ${layoutProblems[0].message}` : 'world này không sinh từ layout')
-  if (!layout.normalized?.valid) return fail('mạng đường đã nắn có lỗi: chưa sinh lại được')
+  // The layout the world is generated from after this action (a new one for `layout`).
+  const target = request.kind === 'layout' ? { ...request.layout, plan: undefined, generated: undefined } : layout
+  if (!target.normalized?.valid) return fail('mạng đường đã nắn có lỗi: chưa sinh lại được')
   const man = layout.generated ?? null
   const mode: WorldMode = request.kind === 'world' && request.mode ? request.mode : (man?.mode ?? (layout.plan?.catalog ? 'full' : 'layout-only'))
   if (mode === 'full' && !ctx.catalog) return fail('không có thư viện prefab (content/maps/prefab-library)')
@@ -594,6 +603,24 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
         }
         break
       }
+      case 'layout': {
+        const overwrite = !!request.overwrite
+        const edited = new Set<string>()
+        if (!overwrite) for (const s of status.records.values()) if (s.parcel && (s.modified === 'edited' || s.modified === 'deleted')) edited.add(s.parcel)
+        const keep = (plan0?.parcels ?? []).filter((q) => q.locked || (!overwrite && (q.build?.source === 'manual' || edited.has(q.id))))
+        // Kept parcels the new streets run over are dropped by the planner (`kept-parcel-conflict`).
+        plan1 = planLayout(target, plan0?.params ?? {}, { keep })
+        if (plan0?.catalog) plan1 = { ...plan1, catalog: plan0.catalog }
+        if (plan0?.environment) plan1 = { ...plan1, environment: plan0.environment }
+        issues.push(...plan1.issues.filter((i) => i.severity !== 'info'))
+        if (catalog) {
+          const r = placeBuildings(plan1, catalog)
+          plan1 = r.plan
+          issues.push(...r.issues)
+        }
+        policy = () => ({ scope: null, force: new Set(), overwrite })
+        break
+      }
       case 'revert': {
         if (!plan0) return fail('layout chưa có kế hoạch lô')
         for (const id of request.ids) {
@@ -614,7 +641,7 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
 
   let fresh: MapDocument
   try {
-    fresh = buildLayoutWorld(layout, plan1, { worldId: doc.world.worldId, name: doc.world.name, mode, catalog: catalog ?? undefined, validation: ctx.validation, validate: false })
+    fresh = buildLayoutWorld(target, plan1, { worldId: doc.world.worldId, name: doc.world.name, mode, catalog: catalog ?? undefined, validation: ctx.validation, validate: false })
   } catch (e) {
     return fail(e instanceof Error ? e.message : String(e))
   }
@@ -625,7 +652,8 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
   issues.push(...overlapWarnings(merged.doc, plan1, changedParcels, status))
   const generated: GeneratedManifest = { ...freshManifest, records: merged.records, locked: man?.locked ?? [], rolls: nextRolls }
   const report: SyncReport = { ...merged.report, parcels: changedParcels, issues }
-  return { ok: true, doc: withLayout(merged.doc, { ...layout, plan: plan1, generated }), report, summary: summarize(report) }
+  const next: WorldLayout = { ...target, plan: plan1, generated }
+  return { ok: true, doc: withLayout(merged.doc, next), report, summary: summarize(report) }
 }
 
 /** New buildings that overlap something placed by hand (kept as it is: the author decides). */

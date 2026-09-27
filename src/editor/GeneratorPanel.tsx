@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { findRecord, type MapDocument } from '../map/editor/document'
 import { PROFILES } from '../map/layout/plan'
 import { layoutPreviewSvg } from '../map/layout/preview'
@@ -264,6 +264,40 @@ export function EnvironmentFields({ env, onChange }: { env: EnvironmentParams; o
   )
 }
 
+/** WG6: a changed reference file for this world (same origin, clip and frame): previewed like a regeneration. */
+function UpdateFromGeoJson({ blocked, geographic }: { blocked: string | null; geographic: boolean }) {
+  const file = useRef<HTMLInputElement>(null)
+  const [overwrite, setOverwrite] = useState(false)
+  return (
+    <details className="gen-block">
+      <summary>Cập nhật reference</summary>
+      <p className="hint">
+        {geographic
+          ? 'Nhập bản GeoJSON đã sửa của cùng khu vực (thêm, bớt, nắn lại đường): giữ gốc tọa độ và khung, nên phần không đổi của world giữ nguyên; xem trước rồi Áp dụng.'
+          : 'World sinh từ bản vẽ: sửa nét vẽ ở tab Bản vẽ rồi bấm “Cập nhật world từ bản vẽ” (hoặc nhập GeoJSON đã xuất và sửa ở đây).'}
+      </p>
+      <label className="field check">
+        <input type="checkbox" checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)} />
+        <span>Ghi đè cả object đã sửa tay</span>
+      </label>
+      <button disabled={!!blocked} title={blocked ?? ''} onClick={() => file.current?.click()} data-gen-update-geojson>
+        Cập nhật từ GeoJSON…
+      </button>
+      <input
+        ref={file}
+        type="file"
+        accept=".geojson,.json,application/geo+json,application/json"
+        hidden
+        onChange={async (e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (f) store().updateWorldFromReference(await f.text(), f.name, overwrite)
+        }}
+      />
+    </details>
+  )
+}
+
 /** WG5: the running worker job, with its time and a Hủy button. */
 function Busy() {
   const busy = useEditorStore((s) => s.genBusy)
@@ -344,6 +378,7 @@ export function GeneratorPanel() {
       </details>
       {parcel ? <ParcelSection key={parcel.id} layout={layout} status={status} parcel={parcel} blocked={blocked} doc={doc} /> : <p className="hint">Click một lô trong viewport để xem, khóa, thay prefab hay sinh lại.</p>}
       <WorldRegen key={doc.world.worldId} layout={layout} blocked={blocked} />
+      <UpdateFromGeoJson blocked={blocked} geographic={layout.projection.method !== 'local-metres'} />
       {report && (
         <details open className="gen-block" data-gen-report>
           <summary>Lần chạy gần nhất: {report.label}</summary>
