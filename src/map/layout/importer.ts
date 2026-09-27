@@ -254,5 +254,45 @@ export function checkWorldLayout(data: unknown): LayoutIssue[] {
       if (!same(e.points[0], pos.get(e.from)) || !same(e.points[e.points.length - 1], pos.get(e.to))) err('geometry', `normalized ${e.id}: đầu mút không trùng node`, [e.id])
     }
   }
+
+  // WG2 plan (optional): structure, IDs and references.
+  const plan = L.plan
+  if (plan !== null && plan !== undefined) {
+    if (!n) err('reference', 'plan: cần lớp normalized')
+    if (!isRect(plan.area) || !Array.isArray(plan.surfaces) || !Array.isArray(plan.accessRoads) || !Array.isArray(plan.blocks) || !Array.isArray(plan.parcels) || !Array.isArray(plan.issues) || !plan.params) {
+      err('schema', 'plan không hợp lệ')
+      return issues
+    }
+    const planIds = new Set<string>()
+    const planUnique = (id: unknown, what: string) => {
+      if (typeof id !== 'string' || !SLUG.test(id)) return void err('invalid-id', `plan ${what}: ID ${JSON.stringify(id)} không phải slug`)
+      if (planIds.has(id)) err('duplicate-id', `plan ${what}: ID ${id} bị trùng`, [id])
+      planIds.add(id)
+    }
+    for (const s of plan.surfaces) {
+      planUnique(s.id, 'mặt đường')
+      if (!['asphalt', 'dirt', 'sidewalk'].includes(s.kind) || !isRect(s.rect) || s.rect.maxX <= s.rect.minX || s.rect.maxZ <= s.rect.minZ) err('schema', `plan mặt đường ${s.id} không hợp lệ`, [s.id])
+    }
+    const edgeIds = new Set([...(n?.edges ?? []).map((e) => e.id), ...plan.accessRoads.map((a) => a.id)])
+    for (const a of plan.accessRoads) {
+      planUnique(a.id, 'đường vào')
+      line(a.points, 2, `plan đường vào ${a.id}`)
+      if (!Array.isArray(a.joins) || a.joins.some((j) => !edgeIds.has(j))) err('reference', `plan đường vào ${a.id}: nối vào cạnh không tồn tại`, [a.id])
+    }
+    const blockIds = new Set<string>()
+    for (const b of plan.blocks) {
+      planUnique(b.id, 'khối')
+      blockIds.add(b.id)
+      if (!Array.isArray(b.rects) || !b.rects.every(isRect)) err('schema', `plan khối ${b.id} không hợp lệ`, [b.id])
+    }
+    for (const q of plan.parcels) {
+      planUnique(q.id, 'lô')
+      line(q.polygon, 4, `plan lô ${q.id}`)
+      if (!(LAND_USE_ZONES as readonly string[]).includes(q.zone) || !['lot', 'open', 'interior'].includes(q.kind) || typeof q.locked !== 'boolean' || !Number.isInteger(q.seed)) err('schema', `plan lô ${q.id}: thuộc tính không hợp lệ`, [q.id])
+      if (q.access && (!['N', 'S', 'E', 'W'].includes(q.access.side) || !edgeIds.has(q.access.edge))) err('reference', `plan lô ${q.id}: lối ra đường không hợp lệ`, [q.id])
+      if (q.buildable !== null && !isRect(q.buildable)) err('schema', `plan lô ${q.id}: buildable không hợp lệ`, [q.id])
+      if (!blockIds.has(q.block)) err('reference', `plan lô ${q.id}: khối ${q.block} không tồn tại`, [q.id])
+    }
+  }
   return issues
 }

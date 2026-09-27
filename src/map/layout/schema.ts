@@ -248,4 +248,129 @@ export interface WorldLayout {
   /** Import issues (the normalisation has its own list). */
   issues: LayoutIssue[]
   normalized: NormalizedNetwork | null
+  /** WG2: street surfaces, blocks and parcels planned from `normalized` (absent in WG1 files = none yet). */
+  plan?: LayoutPlan | null
+}
+
+// ---- WG2: street geometry and parcels (world frame, axis-aligned) ----
+
+export type Side = 'N' | 'S' | 'E' | 'W'
+
+/** Surface pieces of the streets: become `RoadRecord`s (asphalt/dirt/concrete by colour) in map content. */
+export type SurfaceKind = 'asphalt' | 'dirt' | 'sidewalk'
+
+export interface StreetSurface {
+  /** `<kind>-<hash>` of its rectangle: stable while the geometry is. */
+  id: string
+  kind: SurfaceKind
+  rect: Rect
+  /** Network edges (or access roads) it belongs to. */
+  edges: string[]
+}
+
+/** A lane the planner adds into a deep block so its inner lots reach a street (not in the source). */
+export interface AccessRoad {
+  id: string
+  /** Two points, axis-aligned, from carriageway edge to carriageway edge. */
+  points: [XZ, XZ]
+  width: number
+  /** The network edges it joins at each end. */
+  joins: [string, string]
+}
+
+export interface ZoneProfile {
+  /** Lots of this zone are cut along the street (false: one open parcel per block piece). */
+  subdivide: boolean
+  /** Street frontage of a lot (m): minimum, target, maximum. */
+  frontage: [number, number, number]
+  /** Lot depth from the street (m): minimum, target, maximum. */
+  depth: [number, number, number]
+}
+
+export interface PlanParams {
+  seed: number
+  /** Named lot-size preset (`default`: the current prefabs; `vn-urban`: tube houses). */
+  profile: string
+  /** Per-zone overrides of the preset. */
+  zones?: Partial<Record<LandUseZone, ZoneProfile>>
+  /** Sidewalk width (m) of streets that have them, or null for the preset's value per road class. */
+  sidewalk: number | null
+  /** Add access lanes into deep residential/commercial blocks. */
+  accessRoads: boolean
+  accessWidth: number
+  /** Land kept around the network (m), so the outer streets get lots on their outer side too. */
+  margin: number
+  /** Raster cell (m) for water, railways and no-build land (covered conservatively). */
+  restrictedCell: number
+  /** Inset (m) of a parcel's buildable rectangle from its edges. */
+  inset: number
+}
+
+export interface LayoutBlock {
+  /** `block-<hash>` of its rectangles. */
+  id: string
+  /** Rectangles exactly tiling the block (free land between streets and unbuildable areas). */
+  rects: Rect[]
+  area: number
+  /** Touches the plan area's edge (open land beyond the outer streets). */
+  edge: boolean
+}
+
+export type ParcelKind = 'lot' | 'open' | 'interior'
+
+export interface ParcelAccess {
+  /** Network edge or access road the parcel fronts. */
+  edge: string
+  /** Where the street is, seen from the parcel: the side a building's entrance should face. */
+  side: Side
+  frontage: number
+  roadClass: RoadClass
+}
+
+export interface LayoutParcel {
+  /** `lot-<hash>` of its rectangle: stable while the geometry is. */
+  id: string
+  block: string
+  /** Outline, counter-clockwise (a rectangle in WG2; rectilinear outlines later). */
+  polygon: XZ[]
+  area: number
+  zone: LandUseZone
+  /** lot: fronts a street, for a building; open: land of an unsubdivided zone (forest, farmland, empty); interior: no street. */
+  kind: ParcelKind
+  access: ParcelAccess | null
+  /** Rectangle available for placement (parcel inset), or null when too small. */
+  buildable: Rect | null
+  /** Seed for what WG3 puts on the parcel. */
+  seed: number
+  locked: boolean
+}
+
+export interface PlanMetrics {
+  surfaces: number
+  asphalt: number
+  dirt: number
+  sidewalks: number
+  accessRoads: number
+  blocks: number
+  parcels: number
+  lots: number
+  open: number
+  interior: number
+  /** Areas (m²). */
+  streetArea: number
+  parcelArea: number
+}
+
+export interface LayoutPlan {
+  /** Bump when the output for the same layout and params changes. */
+  version: number
+  params: PlanParams
+  /** World rectangle the plan covers (the play area of a generated world). */
+  area: Rect
+  surfaces: StreetSurface[]
+  accessRoads: AccessRoad[]
+  blocks: LayoutBlock[]
+  parcels: LayoutParcel[]
+  metrics: PlanMetrics
+  issues: LayoutIssue[]
 }

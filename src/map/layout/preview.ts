@@ -38,6 +38,8 @@ export function layoutPreviewSvg(layout: WorldLayout, opts: { scale?: number; ch
   for (const z of layout.zones) all.push(...z.polygon.outer.map(w))
   for (const r of layout.restricted) all.push(...(r.geometry.type === 'line' ? r.geometry.points : r.geometry.polygon.outer).map(w))
   if (n) for (const e of n.edges) all.push(...e.points)
+  const plan = layout.plan ?? null
+  if (plan) all.push({ x: plan.area.minX, z: plan.area.minZ }, { x: plan.area.maxX, z: plan.area.maxZ })
   const b = boundsOf(all) ?? { minX: -50, minZ: -50, maxX: 50, maxZ: 50 }
   const pad = 20
   const vx = b.minX - pad
@@ -64,8 +66,27 @@ export function layoutPreviewSvg(layout: WorldLayout, opts: { scale?: number; ch
   }
   for (const bh of layout.buildings) out.push(`<path d="${poly(bh.polygon)}" fill="#d8d0c4" stroke="#b8ad9c" stroke-width="0.3"/>`)
 
-  // Snapped network at road width, then the source roads over it.
-  if (n) {
+  // WG2 plan: parcels (zone fill, lots outlined, interior hatched grey), then the street surfaces.
+  if (plan) {
+    const a = plan.area
+    out.push(`<rect x="${f(a.minX)}" y="${f(a.minZ)}" width="${f(a.maxX - a.minX)}" height="${f(a.maxZ - a.minZ)}" fill="none" stroke="#999" stroke-width="0.6" stroke-dasharray="4 2"/>`)
+    for (const q of plan.parcels) {
+      const fill = q.kind === 'interior' ? '#cfcfcf' : ZONE_FILL[q.zone]
+      const stroke = q.locked ? '#1f6fd1' : q.kind === 'lot' ? '#7a6a4f' : '#9a9a9a'
+      out.push(`<path d="${path(q.polygon, true)}" fill="${fill}" fill-opacity="0.9" stroke="${stroke}" stroke-width="${q.locked ? 0.9 : 0.35}"><title>${esc(`${q.id}: ${q.kind} ${q.zone}${q.access ? `, mặt tiền ${q.access.frontage} m hướng ${q.access.side} (${q.access.edge})` : ''}${q.locked ? ', khóa' : ''}`)}</title></path>`)
+      if (q.access) {
+        const c = { x: (q.polygon[0].x + q.polygon[2].x) / 2, z: (q.polygon[0].z + q.polygon[2].z) / 2 }
+        const d = { N: { x: 0, z: -1 }, S: { x: 0, z: 1 }, E: { x: 1, z: 0 }, W: { x: -1, z: 0 } }[q.access.side]
+        out.push(`<path d="M${f(c.x)} ${f(c.z)}l${f(d.x * 2.5)} ${f(d.z * 2.5)}" stroke="#7a6a4f" stroke-width="0.4"/>`)
+      }
+    }
+    const SURFACE_FILL = { asphalt: '#44444a', dirt: '#8a6a45', sidewalk: '#b9b5ac' }
+    for (const sf of plan.surfaces) out.push(`<rect x="${f(sf.rect.minX)}" y="${f(sf.rect.minZ)}" width="${f(sf.rect.maxX - sf.rect.minX)}" height="${f(sf.rect.maxZ - sf.rect.minZ)}" fill="${SURFACE_FILL[sf.kind]}"><title>${esc(`${sf.id} (${sf.edges.join(', ')})`)}</title></rect>`)
+  }
+
+  // Snapped network at road width (thin centre lines once the streets are planned), then the source roads over it.
+  if (n && plan) for (const e of n.edges) out.push(`<path d="${path(e.points)}" stroke="#f2f2f2" stroke-width="0.25" fill="none" stroke-dasharray="1.5 1.5"/>`)
+  if (n && !plan) {
     const roadOf = new Map(layout.roads.map((r) => [r.id, r]))
     const edgeRoad = new Map(layout.network.edges.map((e) => [e.id, roadOf.get(e.roadId)!]))
     for (const e of n.edges) {
@@ -82,7 +103,7 @@ export function layoutPreviewSvg(layout: WorldLayout, opts: { scale?: number; ch
     }
   }
   // Issues.
-  const issues = [...layout.issues, ...(n?.issues ?? [])]
+  const issues = [...layout.issues, ...(n?.issues ?? []), ...(plan?.issues ?? [])]
   for (const i of issues) {
     if (!i.at || i.severity === 'info') continue
     const at = n && layout.issues.includes(i) ? w(i.at) : i.at
@@ -95,7 +116,11 @@ export function layoutPreviewSvg(layout: WorldLayout, opts: { scale?: number; ch
   const warnings = issues.filter((i) => i.severity === 'warning').length
   const head = `${layout.name} — ${layout.roads.length} đường, ${n ? `${m!.nodes} node, ${m!.edges} cạnh, xoay ${frame.rotationDeg}°, lệch tối đa ${m!.maxDeviation.toFixed(1)} m` : 'chưa nắn'} — ${errors} lỗi, ${warnings} cảnh báo${n && !n.valid ? ' — KHÔNG HỢP LỆ' : ''}`
   out.push(`<text x="${f(vx + 4)}" y="${f(vz + 10)}" font-size="7" fill="${n && !n.valid ? '#e0112b' : '#222'}">${esc(head)}</text>`)
-  if (layout.source.attribution) out.push(`<text x="${f(vx + 4)}" y="${f(vz + 20)}" font-size="5" fill="#555">${esc(layout.source.attribution)}</text>`)
+  if (plan) {
+    const pm = plan.metrics
+    out.push(`<text x="${f(vx + 4)}" y="${f(vz + 18)}" font-size="5.5" fill="#222">${esc(`kế hoạch (profile ${plan.params.profile}, seed ${plan.params.seed}): ${pm.asphalt + pm.dirt} mặt đường, ${pm.sidewalks} vỉa hè, ${pm.accessRoads} đường vào, ${pm.blocks} khối, ${pm.lots} lô, ${pm.open} đất trống, ${pm.interior} lô trong`)}</text>`)
+  }
+  if (layout.source.attribution) out.push(`<text x="${f(vx + 4)}" y="${f(vz + 26)}" font-size="5" fill="#555">${esc(layout.source.attribution)}</text>`)
   out.push('</svg>')
   return out.join('\n') + '\n'
 }
