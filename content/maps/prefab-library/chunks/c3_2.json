@@ -9,5 +9,5 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": []
+  "externalRefs": [{ "id": "c3_3/dormitory-1", "ownerChunkId": "c3_3" }]
 }

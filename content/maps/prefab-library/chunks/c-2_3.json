@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-2_3",
+  "cx": -2,
+  "cz": 3,
+  "instances": [
+    {
+      "instanceId": "c-2_3/police-station-1",
+      "prefabId": "public/police-station",
+      "position": { "x": 25, "y": 0, "z": 5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_4/hospital-hospital-1", "ownerChunkId": "c-2_4" },
+    { "id": "c-3_3/hospital-1", "ownerChunkId": "c-3_3" }
+  ]
+}

@@ -86,3 +86,32 @@ Cùng với lab-garage có sẵn, thư viện có 3 loại garage.
 - **Bảng loot theo địa điểm** (`lootTables.ts`, chỉ dùng 15 vật phẩm có sẵn, theo D5): `office-desk`, `bank-vault`, `bookstore-shelf`, `garage-shelf`, `workshop-bench`, `medical-cabinet`, `pharmacy-shelf`, `police-armory` (chỉ vũ khí cận chiến), `locker`, `canteen-fridge`, `kiosk-counter`. Muốn đổi loot một loại địa điểm thì sửa bảng, không phải sửa prefab.
 - **Sửa generator:** trước đây điểm spawn zombie chỉ cần không nằm trên vật cản. Với các công trình công nghiệp đặt sát nhau, một điểm spawn rơi vào khoảng sân bị bao kín (deep check báo `spawn-unreachable`). Giờ generator loang trên lưới 0,5 m (vật cản nở 0,4 m, như lưới nav) từ điểm xuất phát của người chơi và chỉ giữ điểm spawn tới được.
 - **Kiểm chứng:** 5/5 prefab qua deep check thật khi đứng riêng; world thư viện sạch; `npm test` 923 pass, 13 skip; tsc, oxlint sạch; chơi thử thấy ngân hàng và nhà sách hiện đúng.
+
+## P4 — công trình công cộng lớn (5 prefab, 4 compound)
+
+Theo D6, các công trình này chỉ đặt tay: prefab không có `placement` nên generator không bao giờ tự chọn. Compound thì có sẵn footprint và `placement` (zone công cộng, mặt tiền) để sau này generator dùng.
+
+Cả năm công trình dựng theo cùng một kiểu (`corridorBuilding` trong `p4-public.ts`):
+- mỗi tầng có một hành lang, phòng ở hai bên, mỗi phòng có cửa ra hành lang và cửa sổ ở tường ngoài;
+- lõi cầu thang 7 m đi zig-zag: làn A đi lên từ tầng chẵn, làn B từ tầng lẻ;
+- đồ đạc bày theo loại phòng: phòng bệnh, phòng khám, nhà thuốc, căng tin, phòng mổ, văn phòng, phòng họp, kho vũ khí, phòng thay đồ, buồng giam, lớp học, giảng đường, thư viện, kho;
+- cửa ở hai đầu hành lang mở ra ngoài, để cánh cửa không chắn hành lang.
+
+| prefabId | Tên | Kích thước | Tầng | Nội dung |
+|---|---|---|---|---|
+| public/hospital | Bệnh viện | 40 × 24 | 3 | 2 lõi thang; cấp cứu, 5 phòng khám, nhà thuốc (`pharmacy-shelf`), căng tin (`canteen-fridge`), sảnh; 9 phòng bệnh, trạm y tá, kho thuốc; 2 phòng mổ, hồi sức, văn phòng (`medical-cabinet`, `office-desk`) |
+| public/police-station | Đồn cảnh sát | 26 × 18 | 2 | Trực ban, kho vũ khí (`police-armory`), phòng thay đồ (`locker`), 2 buồng giam, hỏi cung; tầng trên là văn phòng, phòng trưởng đồn, kho hồ sơ |
+| public/school-block | Dãy lớp học | 44 × 12 | 2 | Hành lang chạy dọc phía nam; 6 lớp học, phòng giáo viên, thư viện |
+| public/lecture-hall | Giảng đường | 48 × 16 | 3 | 2 lõi thang; 7 giảng đường, phòng seminar, phòng thí nghiệm, thư viện, văn phòng khoa, căng tin |
+| public/dormitory | Ký túc xá | 30 × 14 | 3 | Theo kiểu chung cư |
+
+| compoundId | Tên | Thành phần |
+|---|---|---|
+| compound/police-station | Đồn cảnh sát có bãi xe | Đồn, bãi đỗ nhựa, 2 xe cảnh sát, đèn đường, cột cờ |
+| compound/hospital | Bệnh viện có sân trước | Bệnh viện, sân bê tông, chỗ đỗ xe cứu thương và xe, cây, ghế |
+| compound/high-school | Trường cấp ba | 2 dãy lớp xếp chữ L quanh sân trường, sân bóng rổ, cột rổ, cột cờ, hàng rào có cổng phía nam, cây, ghế, thùng rác |
+| compound/university | Khuôn viên đại học | 2 giảng đường xếp chữ U, ký túc xá, quảng trường lát gạch, bãi cỏ, lối đi, đài phun nước (mặt nước chặn đi lại), cây, ghế |
+
+- **Kiểm chứng:** 5 prefab và 4 compound qua deep check thật khi đứng riêng (compound kiểm tra cả việc các thành phần không chồng collider lên nhau); world thư viện sạch; `npm test` 932 pass, 13 skip; build và check:bundle sạch.
+- **Chơi thử:** trường cấp ba hiện đúng (2 dãy lớp, sân, sân bóng rổ, rào có cổng, cây).
+- **Test được cập nhật:** test WG3 giờ chấp nhận prefab không có placement, với điều kiện đó là công trình công cộng đặt tay. Test "thêm cả thư viện vào world trống" kiểm tra rằng compound quá lớn so với world bị từ chối trọn vẹn, không đặt dở dang.

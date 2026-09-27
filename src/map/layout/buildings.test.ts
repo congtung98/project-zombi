@@ -35,8 +35,10 @@ describe('WG3 prefab library (hidden world)', () => {
     const checked = checkWorldDocuments((p) => LIB.get(p), OPTS)
     expect(checked.issues).toEqual([])
     expect(deepCheck(loadWorld((p) => LIB.get(p)).docs).issues).toEqual([])
-    expect(libPrefabs.every((p) => p.doc.placement)).toBe(true)
-    expect(catalog.prefabs).toHaveLength(libPrefabs.length)
+    // Prefab library P4 (owner decision D6): the large public buildings are placed by hand only.
+    const manual = libPrefabs.filter((p) => !p.doc.placement)
+    expect(manual.every((p) => p.doc.catalog?.group === 'public' && p.entry.prefabId.startsWith('public/'))).toBe(true)
+    expect(catalog.prefabs).toHaveLength(libPrefabs.length - manual.length)
   })
 
   it('covers every building zone, with the four placeholder prefabs and the existing houses', () => {

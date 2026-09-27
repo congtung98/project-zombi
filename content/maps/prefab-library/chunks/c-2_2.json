@@ -16,5 +16,9 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": [{ "id": "c-3_2/bookstore-1", "ownerChunkId": "c-3_2" }]
+  "externalRefs": [
+    { "id": "c-2_3/police-station-1", "ownerChunkId": "c-2_3" },
+    { "id": "c-3_2/bookstore-1", "ownerChunkId": "c-3_2" },
+    { "id": "c-3_3/hospital-1", "ownerChunkId": "c-3_3" }
+  ]
 }

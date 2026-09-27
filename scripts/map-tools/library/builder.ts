@@ -653,3 +653,35 @@ export function buildAll<T>(builders: (() => T)[]): T[] {
   if (errors.length) throw new Error(errors.join('\n'))
   return out
 }
+
+/**
+ * A compound document from a `Compound`: its footprint is the union of its buildings' footprints
+ * (turned) and its objects' areas around the pivot.
+ */
+export function compoundDoc(c: Compound, prefabs: ReadonlyMap<string, PrefabDocument>): CompoundDocument {
+  let fp: Rect | null = null
+  const add = (r: Rect) => {
+    fp = fp ? { minX: Math.min(fp.minX, r.minX), minZ: Math.min(fp.minZ, r.minZ), maxX: Math.max(fp.maxX, r.maxX), maxZ: Math.max(fp.maxZ, r.maxZ) } : r
+  }
+  for (const i of c.instances) {
+    const p = prefabs.get(i.prefabId)
+    if (!p) throw new Error(`${c.compoundId}: no prefab ${i.prefabId}`)
+    const f = p.footprint
+    const corners = [
+      [f.minX - p.pivot.x, f.minZ - p.pivot.z],
+      [f.maxX - p.pivot.x, f.maxZ - p.pivot.z],
+    ].map(([x, z]) => {
+      const t = i.quarterTurns & 3
+      return t === 0 ? [x, z] : t === 1 ? [z, -x] : t === 2 ? [-x, -z] : [-z, x]
+    })
+    add(rect(i.position.x + Math.min(corners[0][0], corners[1][0]), i.position.z + Math.min(corners[0][1], corners[1][1]), i.position.x + Math.max(corners[0][0], corners[1][0]), i.position.z + Math.max(corners[0][1], corners[1][1])))
+  }
+  for (const o of c.objects) {
+    const p = o.position as XZ
+    const s = (o as { size?: number[] }).size
+    if (o.kind === 'tree') add(rect(p.x - o.canopy, p.z - o.canopy, p.x + o.canopy, p.z + o.canopy))
+    else if (s) add(rect(p.x - s[0] / 2, p.z - s[s.length - 1] / 2, p.x + s[0] / 2, p.z + s[s.length - 1] / 2))
+    else add(rect(p.x - 0.5, p.z - 0.5, p.x + 0.5, p.z + 0.5))
+  }
+  return { schemaVersion: MAP_SCHEMA_VERSION, compoundId: c.compoundId, contentVersion: 1, name: c.name, footprint: fp!, catalog: c.catalog, ...(c.placement ? { placement: c.placement } : {}), instances: c.instances, objects: c.objects }
+}

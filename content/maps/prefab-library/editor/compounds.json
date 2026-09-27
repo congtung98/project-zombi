@@ -23,6 +23,150 @@
         { "member": "tree", "id": "c1_0/objects/tree-1", "hash": "cyrb53:1adf828ecae823" },
         { "member": "pine", "id": "c1_0/objects/pine-1", "hash": "cyrb53:017629d3252428" }
       ]
+    },
+    {
+      "groupId": "police-station-1",
+      "name": "Đồn cảnh sát có bãi xe",
+      "compoundId": "compound/police-station",
+      "source": {
+        "library": "prefab-library",
+        "id": "compound/police-station",
+        "version": 1,
+        "hash": "cyrb53:0f567c54ca5c26"
+      },
+      "pivot": { "x": -85, "z": 133 },
+      "quarterTurns": 0,
+      "members": [
+        {
+          "member": "police-station",
+          "id": "c-3_4/police-station-police-station-1",
+          "hash": "cyrb53:1bb9cf2d9ca658"
+        },
+        {
+          "member": "parking",
+          "id": "c-3_4/objects/police-station-parking-1",
+          "hash": "cyrb53:15c79427d21d77"
+        },
+        { "member": "steps", "id": "c-3_4/objects/police-station-steps-1", "hash": "cyrb53:0950be63243ed3" },
+        {
+          "member": "police-car",
+          "id": "c-3_4/objects/police-station-police-car-1",
+          "hash": "cyrb53:0ac7a650eaab79"
+        },
+        {
+          "member": "police-car-2",
+          "id": "c-3_4/objects/police-station-police-car-2",
+          "hash": "cyrb53:0c05d1d61bd7f7"
+        },
+        {
+          "member": "streetlight",
+          "id": "c-4_4/objects/police-station-streetlight-1",
+          "hash": "cyrb53:0f5981cf7f6b88"
+        },
+        {
+          "member": "flagpole",
+          "id": "c-3_4/objects/police-station-flagpole-1",
+          "hash": "cyrb53:10963e99cfadc3"
+        }
+      ]
+    },
+    {
+      "groupId": "hospital-1",
+      "name": "Bệnh viện có sân trước",
+      "compoundId": "compound/hospital",
+      "source": {
+        "library": "prefab-library",
+        "id": "compound/hospital",
+        "version": 1,
+        "hash": "cyrb53:0687873a0c33e7"
+      },
+      "pivot": { "x": -42, "z": 136 },
+      "quarterTurns": 0,
+      "members": [
+        { "member": "hospital", "id": "c-2_4/hospital-hospital-1", "hash": "cyrb53:1994a2e9009802" },
+        { "member": "forecourt", "id": "c-2_4/objects/hospital-forecourt-1", "hash": "cyrb53:0e0e449e36aa7b" },
+        {
+          "member": "ambulance-bay",
+          "id": "c-2_4/objects/hospital-ambulance-bay-1",
+          "hash": "cyrb53:106a8257624836"
+        },
+        { "member": "ambulance", "id": "c-2_4/objects/hospital-ambulance-1", "hash": "cyrb53:1ca5f15db54310" },
+        { "member": "tree", "id": "c-2_4/objects/hospital-tree-1", "hash": "cyrb53:12f63808af8437" },
+        { "member": "tree-2", "id": "c-1_4/objects/hospital-tree-1", "hash": "cyrb53:19efa85f125f7d" },
+        { "member": "tree-3", "id": "c-1_4/objects/hospital-tree-2", "hash": "cyrb53:07009e66ed8d94" },
+        { "member": "bench", "id": "c-2_4/objects/hospital-bench-1", "hash": "cyrb53:0b64e52c365f7d" },
+        { "member": "bench-2", "id": "c-1_4/objects/hospital-bench-1", "hash": "cyrb53:02400e529ad423" }
+      ]
+    },
+    {
+      "groupId": "high-school-1",
+      "name": "Trường cấp ba",
+      "compoundId": "compound/high-school",
+      "source": {
+        "library": "prefab-library",
+        "id": "compound/high-school",
+        "version": 1,
+        "hash": "cyrb53:09e2d8736b2b15"
+      },
+      "pivot": { "x": 24, "z": 152 },
+      "quarterTurns": 0,
+      "members": [
+        { "member": "block-a", "id": "c0_4/high-school-block-a-1", "hash": "cyrb53:0a0ae387d6e285" },
+        { "member": "block-b", "id": "c-1_4/high-school-block-b-1", "hash": "cyrb53:078ad384ed7af4" },
+        {
+          "member": "schoolyard",
+          "id": "c0_5/objects/high-school-schoolyard-1",
+          "hash": "cyrb53:1f8e6482453172"
+        },
+        { "member": "court", "id": "c1_5/objects/high-school-court-1", "hash": "cyrb53:1a6214213d4cd9" },
+        { "member": "hoop", "id": "c0_5/objects/high-school-hoop-1", "hash": "cyrb53:0d9fa36f2fa406" },
+        { "member": "hoop-2", "id": "c1_5/objects/high-school-hoop-1", "hash": "cyrb53:1893449c6843f7" },
+        { "member": "flagpole", "id": "c0_4/objects/high-school-flagpole-1", "hash": "cyrb53:1d6fc5ab4e157f" },
+        { "member": "fence", "id": "c0_3/objects/high-school-fence-1", "hash": "cyrb53:1c12e4949afc18" },
+        { "member": "fence-2", "id": "c0_5/objects/high-school-fence-1", "hash": "cyrb53:194864d185deb5" },
+        { "member": "fence-3", "id": "c1_5/objects/high-school-fence-1", "hash": "cyrb53:1b5c4e3ad94b81" },
+        { "member": "fence-4", "id": "c-1_4/objects/high-school-fence-1", "hash": "cyrb53:06ec1a6f84d802" },
+        { "member": "fence-5", "id": "c1_4/objects/high-school-fence-1", "hash": "cyrb53:1d696bf6ba35d3" },
+        { "member": "tree", "id": "c1_4/objects/high-school-tree-1", "hash": "cyrb53:07dcc76d0e78f0" },
+        { "member": "tree-2", "id": "c1_4/objects/high-school-tree-2", "hash": "cyrb53:118d46472987a1" },
+        { "member": "tree-3", "id": "c1_4/objects/high-school-tree-3", "hash": "cyrb53:0d347aea50e2c8" },
+        { "member": "tree-4", "id": "c1_5/objects/high-school-tree-1", "hash": "cyrb53:19d178bbf6332b" },
+        { "member": "tree-5", "id": "c1_5/objects/high-school-tree-2", "hash": "cyrb53:11ffc18830fcd0" },
+        { "member": "bench", "id": "c0_5/objects/high-school-bench-1", "hash": "cyrb53:127ea234980295" },
+        { "member": "bench-2", "id": "c0_5/objects/high-school-bench-2", "hash": "cyrb53:173ed9364aa169" },
+        { "member": "bin", "id": "c1_4/objects/high-school-bin-1", "hash": "cyrb53:00b255d0ee6093" }
+      ]
+    },
+    {
+      "groupId": "university-1",
+      "name": "Khuôn viên đại học",
+      "compoundId": "compound/university",
+      "source": {
+        "library": "prefab-library",
+        "id": "compound/university",
+        "version": 1,
+        "hash": "cyrb53:12e49c1a8a9ccf"
+      },
+      "pivot": { "x": -59, "z": 224 },
+      "quarterTurns": 0,
+      "members": [
+        { "member": "hall-north", "id": "c-2_6/university-hall-north-1", "hash": "cyrb53:043cf867bb4dd9" },
+        { "member": "hall-east", "id": "c-1_7/university-hall-east-1", "hash": "cyrb53:17b44871ea0dc2" },
+        { "member": "dormitory", "id": "c-3_7/university-dormitory-1", "hash": "cyrb53:036d3c6dc30738" },
+        { "member": "plaza", "id": "c-2_7/objects/university-plaza-1", "hash": "cyrb53:0ba9f29f30d5b8" },
+        { "member": "lawn", "id": "c-3_7/objects/university-lawn-1", "hash": "cyrb53:09952313bc39fe" },
+        { "member": "lawn-2", "id": "c-2_7/objects/university-lawn-1", "hash": "cyrb53:027c3af249551e" },
+        { "member": "path", "id": "c-2_7/objects/university-path-1", "hash": "cyrb53:07832f0c66a856" },
+        { "member": "fountain", "id": "c-2_7/objects/university-fountain-1", "hash": "cyrb53:12737ef3e29fa0" },
+        { "member": "tree", "id": "c-3_7/objects/university-tree-1", "hash": "cyrb53:1fc7349f9afd96" },
+        { "member": "tree-2", "id": "c-3_7/objects/university-tree-2", "hash": "cyrb53:0aa38c653ba246" },
+        { "member": "tree-3", "id": "c-2_7/objects/university-tree-1", "hash": "cyrb53:1e97d530a2bb00" },
+        { "member": "tree-4", "id": "c-2_7/objects/university-tree-2", "hash": "cyrb53:13689521d0355a" },
+        { "member": "tree-5", "id": "c-3_7/objects/university-tree-3", "hash": "cyrb53:0b067091881930" },
+        { "member": "tree-6", "id": "c-2_7/objects/university-tree-3", "hash": "cyrb53:05663d17ddd492" },
+        { "member": "bench", "id": "c-2_7/objects/university-bench-1", "hash": "cyrb53:18ade969c3ddfd" },
+        { "member": "bench-2", "id": "c-2_7/objects/university-bench-2", "hash": "cyrb53:1bc465905f4082" }
+      ]
     }
   ]
 }

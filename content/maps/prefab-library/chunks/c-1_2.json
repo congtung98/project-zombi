@@ -16,5 +16,9 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": [{ "id": "c0_2/machine-shop-1", "ownerChunkId": "c0_2" }]
+  "externalRefs": [
+    { "id": "c-2_3/police-station-1", "ownerChunkId": "c-2_3" },
+    { "id": "c0_2/machine-shop-1", "ownerChunkId": "c0_2" },
+    { "id": "c0_3/school-block-1", "ownerChunkId": "c0_3" }
+  ]
 }

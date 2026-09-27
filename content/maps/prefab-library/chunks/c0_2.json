@@ -16,5 +16,5 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": []
+  "externalRefs": [{ "id": "c0_3/school-block-1", "ownerChunkId": "c0_3" }]
 }

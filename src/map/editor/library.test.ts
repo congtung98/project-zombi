@@ -367,12 +367,15 @@ describe('compound prefabs and groups (P1)', () => {
 })
 
 describe('library content in the repo (P1)', () => {
-  it('every library entry validates and a blank world takes every library prefab cleanly', () => {
+  it('every library entry validates and a blank world takes every library prefab cleanly (compounds: libraryContent.test.ts)', () => {
     const lib: SharedLibrary = libraryFromFiles(bundledWorldFiles('prefab-library'), OPTS)!
+    expect(lib.issues).toEqual([])
     let doc = blank()
     for (const id of lib.prefabs.keys()) doc = ok(importPrefab(doc, lib, id, doc.prefabs.has(id) ? freePrefabId(doc, id) : id)).doc
     expect(errors(doc)).toEqual([])
-    for (const c of lib.compounds.keys()) expect(placeCompound(doc, lib, c, { x: 0, z: 0 }, 0).ok).toBe(true)
+    // A compound too big for the 2 × 2 chunk world is refused whole, nothing half placed.
+    const big = [...lib.compounds.values()].find((c) => c.footprint.maxX - c.footprint.minX > 64)!
+    expect(placeCompound(doc, lib, big.compoundId, { x: 0, z: 0 }, 0).ok).toBe(false)
   })
 })
 

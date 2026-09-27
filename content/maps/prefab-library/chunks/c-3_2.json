@@ -22,5 +22,5 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": []
+  "externalRefs": [{ "id": "c-3_3/hospital-1", "ownerChunkId": "c-3_3" }]
 }

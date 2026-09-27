@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_4",
+  "cx": -1,
+  "cz": 4,
+  "instances": [
+    {
+      "instanceId": "c-1_4/high-school-block-b-1",
+      "prefabId": "public/school-block",
+      "position": { "x": 28, "y": 0, "z": 28 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-1_4/objects/hospital-tree-1",
+      "position": { "x": 2, "z": 29 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-1_4/objects/hospital-tree-2",
+      "position": { "x": 8, "z": 29 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_4/objects/hospital-bench-1",
+      "position": { "x": 0, "y": 0.25, "z": 24 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_4/objects/high-school-fence-1",
+      "position": { "x": 18, "y": 0.6, "z": 27 },
+      "size": [0.15, 1.2, 61.85],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_4/hospital-hospital-1", "ownerChunkId": "c-2_4" },
+    { "id": "c-2_4/objects/hospital-forecourt-1", "ownerChunkId": "c-2_4" }
+  ]
+}

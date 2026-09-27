@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/high-school",
+  "contentVersion": 1,
+  "name": "Trường cấp ba",
+  "footprint": { "minX": -38.075, "minZ": -28.075, "maxX": 36.075, "maxZ": 34.075 },
+  "catalog": { "group": "public", "architectureStyle": "vietnamese", "tags": ["truong-hoc", "cap-3"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public"],
+    "weight": 1,
+    "setback": 2,
+    "sideGap": 2,
+    "roadFacing": true,
+    "frontage": [70, 110]
+  },
+  "instances": [
+    {
+      "member": "block-a",
+      "prefabId": "public/school-block",
+      "position": { "x": 4, "y": 0, "z": -18 },
+      "quarterTurns": 0
+    },
+    {
+      "member": "block-b",
+      "prefabId": "public/school-block",
+      "position": { "x": -28, "y": 0, "z": 4 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "schoolyard",
+      "shape": "rect",
+      "size": [50, 40],
+      "material": "concrete",
+      "color": "#9c988f",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 5, "z": 10 }
+    },
+    {
+      "kind": "surface",
+      "member": "court",
+      "shape": "rect",
+      "size": [28, 15],
+      "material": "asphalt",
+      "color": "#3d3d40",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 10, "z": 16 }
+    },
+    {
+      "kind": "prop",
+      "member": "hoop",
+      "position": { "x": -3.5, "y": 1.5, "z": 16 },
+      "size": [0.3, 3, 0.3],
+      "color": "#d0d4d8"
+    },
+    {
+      "kind": "prop",
+      "member": "hoop-2",
+      "position": { "x": 23.5, "y": 1.5, "z": 16 },
+      "size": [0.3, 3, 0.3],
+      "color": "#d0d4d8"
+    },
+    {
+      "kind": "prop",
+      "member": "flagpole",
+      "position": { "x": 4, "y": 3.5, "z": -8 },
+      "size": [0.2, 7, 0.2],
+      "color": "#c9ccd0"
+    },
+    {
+      "kind": "prop",
+      "member": "fence",
+      "position": { "x": -1, "y": 0.6, "z": -28 },
+      "size": [74, 1.2, 0.15],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-2",
+      "position": { "x": -22, "y": 0.6, "z": 34 },
+      "size": [32, 1.2, 0.15],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-3",
+      "position": { "x": 19, "y": 0.6, "z": 34 },
+      "size": [34, 1.2, 0.15],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-4",
+      "position": { "x": -38, "y": 0.6, "z": 3 },
+      "size": [0.15, 1.2, 61.85],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-5",
+      "position": { "x": 36, "y": 0.6, "z": 3 },
+      "size": [0.15, 1.2, 61.85],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "member": "tree",
+      "position": { "x": 33, "z": -20 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-2",
+      "position": { "x": 33, "z": -8 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-3",
+      "position": { "x": 33, "z": 4 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-4",
+      "position": { "x": 33, "z": 16 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-5",
+      "position": { "x": 33, "z": 28 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "member": "bench",
+      "position": { "x": -18, "y": 0.25, "z": 30 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "bench-2",
+      "position": { "x": -8, "y": 0.25, "z": 30 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "container",
+      "member": "bin",
+      "name": "Thùng rác",
+      "position": { "x": 28, "y": 0.55, "z": -6 },
+      "size": [0.8, 1.1, 0.8],
+      "color": "#3f5f3a",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin" }
+    }
+  ]
+}
