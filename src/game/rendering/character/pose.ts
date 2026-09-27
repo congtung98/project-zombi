@@ -1,3 +1,5 @@
+import { POSTURES, type ZombiePosture } from './zombieVariants'
+
 /**
  * Pure procedural animation: simulation state in, joint angles out. Animations are in place
  * (the controller/physics own the position); damage timing stays in combat/AI, the pose only
@@ -91,6 +93,10 @@ export interface PoseInput {
   hurtDir?: number
   /** C4: death fall (default 'back'). */
   fall?: FallKind
+  /** C5 (zombies): body posture and gait variant (default 'shambler'). */
+  posture?: ZombiePosture
+  /** C5 (zombies): 0 = arms hanging (wandering), 1 = reaching for the player (hunting); default 1. */
+  reach?: number
 }
 
 export const WALK_REFERENCE_SPEED = 2
@@ -216,14 +222,18 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
   const zombie = input.kind === 'zombie'
 
   // Legs: opposite phases; the knee bends while the leg swings forward (left: cos < 0), a little in
-  // stance; the ankle keeps the foot near level.
-  const legAmp = zombie ? 0.38 * walk : 0.5 * walk + 0.25 * run
-  out.legL = s * legAmp
-  out.legR = -s * legAmp
-  const swingBend = zombie ? 0.45 * walk : 0.6 * walk + 0.55 * run
-  const stanceBend = zombie ? 0.14 : 0.04 + 0.06 * walk
-  out.kneeL = stanceBend + swingBend * Math.max(0, -c)
-  out.kneeR = stanceBend + swingBend * Math.max(0, c)
+  // stance; the ankle keeps the foot near level. C5: zombies by posture (stride, bends, a dragged leg
+  // with a short stiff swing).
+  const P = POSTURES[input.posture ?? 'shambler']
+  const legAmp = zombie ? 0.38 * walk * P.stride : 0.5 * walk + 0.25 * run
+  const dragL = zombie && P.drag > 0 ? 0.6 : 1
+  const dragR = zombie && P.drag < 0 ? 0.6 : 1
+  out.legL = s * legAmp * dragL
+  out.legR = -s * legAmp * dragR
+  const swingBend = zombie ? P.swingBend * walk : 0.6 * walk + 0.55 * run
+  const stanceBend = zombie ? P.stanceBend : 0.04 + 0.06 * walk
+  out.kneeL = stanceBend + swingBend * Math.max(0, -c) * (dragL < 1 ? 0.25 : 1)
+  out.kneeR = stanceBend + swingBend * Math.max(0, c) * (dragR < 1 ? 0.25 : 1)
   out.ankleL = -(out.legL + out.kneeL) * 0.75
   out.ankleR = -(out.legR + out.kneeR) * 0.75
   out.legSplayL = zombie ? 0.05 : 0.025
@@ -232,11 +242,12 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
   const hipTurn = input.hipTurn ?? 0
   const strideYaw = (zombie ? 0.05 : 0.09) * s * walk
   out.hipsYaw = strideYaw + hipTurn
-  out.hipsRoll = 0
-  out.bodyPitch = zombie ? 0.14 + 0.04 * walk : 0.16 * run
+  // A limping zombie lurches its pelvis over the good leg.
+  out.hipsRoll = zombie ? P.lurch * s * walk : 0
+  out.bodyPitch = zombie ? P.lean + 0.04 * walk : 0.16 * run
   out.torsoTwist = -strideYaw * 0.7 - hipTurn
-  out.torsoRoll = 0
-  out.headPitch = zombie ? 0.18 : 0
+  out.torsoRoll = zombie ? P.shoulderTilt : 0
+  out.headPitch = zombie ? P.headPitch : 0
   out.headYaw = 0
   if (!zombie) {
     // C3 idle: slow weight shift from foot to foot (the free knee bends a little), the pelvis tilts
@@ -251,22 +262,26 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     out.ankleR = -(out.legR + out.kneeR) * 0.75
     out.headYaw = 0.06 * Math.sin(input.time * 0.31) * idle
   }
-  out.headRoll = zombie ? 0.22 + 0.06 * Math.sin(input.time * 1.3) : 0
+  out.headRoll = zombie ? P.headRoll + 0.06 * Math.sin(input.time * P.headSpeed) : 0
   out.rootPitch = 0
   out.rootRoll = 0
   out.rootLift = 0
 
   if (zombie) {
-    // Classic reach: arms forward, slightly apart, swaying with the shamble.
-    const sway = 0.08 * Math.sin(input.time * 1.7) + 0.12 * s * walk
-    out.armL.x = -1.25 + sway
-    out.armR.x = -1.25 - sway
+    // C5: hunting zombies reach forward (the lurcher with one arm), wandering ones let the arms hang
+    // and swing loosely with the walk; `reach` blends between the two (eased by the view).
+    const r = clamp01(input.reach ?? 1)
+    const rR = r * P.reachRight
+    const sway = P.sway * 0.7 * Math.sin(input.time * 1.7) + 0.12 * s * walk
+    const hangSwing = 0.3 * s * walk
+    out.armL.x = lerp(P.hang - hangSwing, P.reach + sway, r)
+    out.armR.x = lerp(P.hang + hangSwing, P.reach - sway, rR)
     out.armL.y = 0
     out.armR.y = 0
-    out.armL.z = 0.12
-    out.armR.z = -0.12
-    out.elbowL = -0.14
-    out.elbowR = -0.18
+    out.armL.z = lerp(0.07, 0.12, r)
+    out.armR.z = -lerp(0.07, 0.12, rR)
+    out.elbowL = lerp(P.hangElbow, -0.14, r)
+    out.elbowR = lerp(P.hangElbow, -0.18, rR)
     if (input.attack >= 0) {
       // Raise both arms over the head, then slam down forward at progress 1 (the damage frame).
       const a = input.attack

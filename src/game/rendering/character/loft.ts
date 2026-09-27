@@ -1,4 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute, Uint16BufferAttribute } from 'three'
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 /**
  * C1 (character plan): low-poly shapes for the character mesh, built as lofts: a run of cross
@@ -173,8 +174,11 @@ export class MeshBuilder {
     g.setAttribute('skinIndex', new Uint16BufferAttribute(this.skinIndex, 4))
     g.setAttribute('skinWeight', new Float32BufferAttribute(this.skinWeight, 4))
     g.setAttribute('paint', new Float32BufferAttribute(this.paint, 1))
-    g.computeBoundingBox()
-    g.computeBoundingSphere()
-    return g
+    // Indexed: vertices shared by smooth surfaces are stored once (C5: about half the memory).
+    const indexed = mergeVertices(g)
+    g.dispose()
+    indexed.computeBoundingBox()
+    indexed.computeBoundingSphere()
+    return indexed
   }
 }

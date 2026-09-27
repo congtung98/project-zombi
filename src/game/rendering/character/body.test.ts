@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '../../core/config'
 import { BODY_PRESETS, DEFAULT_APPEARANCE, HAIR_STYLES, OUTFIT_STYLES } from '../../entities/appearance'
 import { BONES, SLOT, SLOT_COUNT, bodyGeometry, bodyGeometryCount } from './body'
 import { FALL_KINDS, computePose, createPose, type PoseInput } from './pose'
+import { ZOMBIE_POSTURES } from './zombieVariants'
 import { applyPose, buildCharacter, lookPalette, playerLook, zombieLook, type CharacterRig } from './rig'
 
 const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.43, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false, work: -1 }
@@ -42,14 +43,16 @@ describe('C1 skinned body', () => {
       expect(paint.getX(i)).toBeGreaterThanOrEqual(0)
       expect(paint.getX(i)).toBeLessThan(SLOT_COUNT)
     }
-    // Low-poly budget: the whole body stays under 2 500 triangles.
-    expect(g.getAttribute('position').count / 3).toBeLessThan(2500)
+    // Low-poly budget: the whole body stays under 2 500 triangles; indexed (shared vertices).
+    expect(g.index!.count / 3).toBeLessThan(2500)
+    expect(g.getAttribute('position').count).toBeLessThan(g.index!.count * 0.75)
     rig.dispose()
   })
 
   it('geometry is shared per body shape: a crowd of 40 zombies uses at most one per preset × hair × outfit', () => {
     const before = bodyGeometryCount()
-    const shapesMax = BODY_PRESETS.length * HAIR_STYLES.length * OUTFIT_STYLES.length
+    // × 2: clean and worn (C5) clothes.
+    const shapesMax = BODY_PRESETS.length * HAIR_STYLES.length * OUTFIT_STYLES.length * 2
     const rigs = Array.from({ length: 40 }, (_, i) => buildCharacter(zombieLook(`zombie-${i + 1}`)))
     const shapes = new Set(rigs.map((r) => r.mesh.geometry))
     expect(shapes.size).toBeLessThanOrEqual(shapesMax)
@@ -98,6 +101,21 @@ describe('C1 skinned body', () => {
         const { min } = posedBounds(rig)
         expect(min.y, `${kind} ${speed} phase ${k}`).toBeGreaterThan(-0.03)
         expect(min.y, `${kind} ${speed} phase ${k}`).toBeLessThan(0.035)
+      }
+      rig.dispose()
+    }
+  })
+
+  it('C5: every zombie posture walks and reaches with a foot on the floor; worn shapes stay inside the capsule', () => {
+    for (const posture of ZOMBIE_POSTURES) for (const reach of [0, 1]) {
+      const rig = buildCharacter({ ...zombieLook('zombie-3'), worn: true })
+      const pose = createPose()
+      for (let k = 0; k < 12; k++) {
+        applyPose(rig, computePose({ ...base, kind: 'zombie', posture, reach, speed: 2.3, time: k * 0.3, gaitPhase: (k / 12) * Math.PI * 2 }, pose))
+        const { min, max } = posedBounds(rig)
+        expect(min.y, `${posture} ${k}`).toBeGreaterThan(-0.03)
+        expect(min.y, `${posture} ${k}`).toBeLessThan(0.04)
+        if (reach === 0) expect(max.x - min.x).toBeLessThanOrEqual(0.8)
       }
       rig.dispose()
     }

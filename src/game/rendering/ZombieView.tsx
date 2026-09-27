@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CapsuleCollider, RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import type { Group, Mesh } from 'three'
 import { runtime } from '../core/runtime'
@@ -6,6 +6,7 @@ import { cutaway } from './cutaway'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { computePose, createPose, type FallKind } from './character/pose'
 import { chooseFall, fallOrder, FALL_ROOM } from './character/death'
+import { REACHING_STATES, zombieMotion } from './character/zombieVariants'
 import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, setCharacterGlow, setCharacterOpacity, shadowDetail, zombieLook } from './character/rig'
 import { advanceMeasuredGait, createMeasuredGait } from './character/gait'
@@ -17,6 +18,8 @@ const HALF_HEIGHT = (CFG.height - 2 * CFG.radius) / 2
 const FALL_DURATION = 0.45
 /** Metres per gait cycle: a slow shamble (chase 2.3 m/s ≈ 1.4 cycles/s, wander ≈ 0.55). */
 const STRIDE = 1.6
+/** Arms rise to reach / drop to hang over about this long (s). */
+const REACH_TAU = 0.35
 /** Visual turn rate: path corners and retargets no longer snap the body around. */
 const TURN_SMOOTHING = 10
 /** Longest stagger (push) used to normalise the hit-reaction pose. */
@@ -45,8 +48,11 @@ export function ZombieView({ id }: ZombieViewProps) {
   const rig = useMemo(() => buildCharacter(zombieLook(id), shadowDetail(shadows)), [id, shadows])
   const pose = useRef(createPose())
   const zombie = runtime.zombies.get(id)
+  // C5: posture, gait phase offset, stride and clock offset from the ID (presentation only).
+  const [motion] = useState(() => zombieMotion(id))
   const anim = useRef({
-    gait: createMeasuredGait(), time: (zombie?.id.length ?? 0) * 0.37, strike: 0, windup: -1, facing: zombie?.facing ?? 0,
+    gait: { ...createMeasuredGait(), phase: motion.phase }, time: motion.time, strike: 0, windup: -1, facing: zombie?.facing ?? 0,
+    reach: zombie && REACHING_STATES.has(zombie.ai) ? 1 : 0,
     // C4: direction of the last hit (relative to the facing) and when; the fall chosen at death;
     // `settled` once the corpse pose is on the rig (no more posing).
     stagger: 0, hurtDir: Math.PI, hurtAt: -1e9, fall: null as FallKind | null, settled: false,
@@ -67,7 +73,9 @@ export function ZombieView({ id }: ZombieViewProps) {
     a.facing = dampAngle(a.facing, z.facing, TURN_SMOOTHING, delta)
     visual.rotation.y = a.facing
     // Filtered speed + integrated phase: steady legs at 60, 144 or 240 Hz (physics steps at 60 Hz).
-    advanceMeasuredGait(a.gait, z.position.x, z.position.z, delta, STRIDE, z.ai !== 'DEAD')
+    advanceMeasuredGait(a.gait, z.position.x, z.position.z, delta, STRIDE * motion.stride, z.ai !== 'DEAD')
+    // Arms reach while hunting, hang while wandering (eased; the AI state is the only input).
+    a.reach += ((REACHING_STATES.has(z.ai) ? 1 : 0) - a.reach) * (1 - Math.exp(-delta / REACH_TAU))
 
     // attackWindup counts down to the damage frame, then resets to −1: hold the slam briefly.
     let attack = z.attackWindup >= 0 ? 1 - z.attackWindup / CFG.attackWindup : -1
@@ -113,6 +121,8 @@ export function ZombieView({ id }: ZombieViewProps) {
           attack: z.ai === 'DEAD' ? -1 : attack,
           hurt: z.ai === 'DEAD' ? 0 : z.staggerTimer / MAX_STAGGER,
           hurtDir: a.hurtDir,
+          posture: motion.posture,
+          reach: a.reach,
           dead: z.ai === 'DEAD' ? Math.min(1, z.deadTimer / FALL_DURATION) : -1,
           fall: a.fall ?? 'back',
           armed: false,
@@ -125,7 +135,7 @@ export function ZombieView({ id }: ZombieViewProps) {
     }
 
     // Red eyes while hunting the player or besieging a door (not while wandering/searching).
-    setCharacterGlow(rig, z.hitFlashTimer > 0, z.ai === 'CHASE' || z.ai === 'ATTACK' || z.ai === 'APPROACH_STRUCTURE' || z.ai === 'ATTACK_STRUCTURE')
+    setCharacterGlow(rig, z.hitFlashTimer > 0, REACHING_STATES.has(z.ai))
 
     const bar = healthBarRef.current
     if (bar) {
@@ -139,7 +149,7 @@ export function ZombieView({ id }: ZombieViewProps) {
         fill.position.x = -(1 - ratio) * 0.45
       }
     }
-  }), [rig, id])
+  }), [rig, id, motion])
 
   if (!zombie) return null
   const spawn = zombie.position

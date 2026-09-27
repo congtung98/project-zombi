@@ -19,8 +19,8 @@ export const BONE_PARENT: Record<BoneName, BoneName | null> = {
 const B = Object.fromEntries(BONES.map((b, i) => [b, i])) as Record<BoneName, number>
 
 /** Palette slots (index into the material's colour array). `eyes` glows (zombies hunting). */
-export const SLOT = { skin: 0, top: 1, trim: 2, bottom: 3, shoes: 4, hair: 5, eyes: 6, belt: 7, sole: 8, stain: 9 } as const
-export const SLOT_COUNT = 10
+export const SLOT = { skin: 0, top: 1, trim: 2, bottom: 3, shoes: 4, hair: 5, eyes: 6, belt: 7, sole: 8, stain: 9, metal: 10 } as const
+export const SLOT_COUNT = 11
 
 /** Joint positions and body widths of one preset (m). Same heights for every preset. */
 export interface BodyFrame {
@@ -93,6 +93,8 @@ export interface BodyShape {
   preset: BodyPreset
   hair: HairStyle
   outfit: OutfitId
+  /** C5: worn clothes (zombies): grime/blood patches (palette slot `stain`) and a ragged hem. */
+  worn?: boolean
 }
 
 /** Helper: a loft on a bone, rings relative to that bone's rest position. */
@@ -265,7 +267,7 @@ function belt(b: Body, fit = 1): void {
     { at: 0.1, w: 0.374 * k, d: 0.246 * q },
     { at: 0.135, w: 0.373 * k, d: 0.245 * q },
   ], { c: 0.32, caps: [false, false] })
-  b.box('hips', SLOT.stain, [0, 0.117, 0.123 * q + 0.004], [0.045, 0.032, 0.01])
+  b.box('hips', SLOT.metal, [0, 0.117, 0.123 * q + 0.004], [0.045, 0.032, 0.01])
 }
 
 function legs(b: Body, slot: number, fit = 1): void {
@@ -381,8 +383,8 @@ function arms(b: Body, sleeve: Sleeve, topSlot: number, o: { grow?: number; cuff
 }
 
 /** T-shirt over trousers and trainers: crew neck, short sleeves, untucked hem. */
-function outfitTee(b: Body): void {
-  torso(b, SLOT.top)
+function outfitTee(b: Body): Ring[] {
+  const rings = torso(b, SLOT.top)
   b.loft('torso', SLOT.trim, [
     { at: 0.465, w: 0.2, d: 0.165, o: -0.006 },
     { at: 0.5, w: 0.152, d: 0.132, o: -0.008 },
@@ -398,10 +400,11 @@ function outfitTee(b: Body): void {
   legs(b, SLOT.bottom)
   arms(b, 'short', SLOT.top)
   shoes(b, 'low')
+  return rings
 }
 
 /** Open jacket over a light T-shirt, jeans: longer, straighter and thicker, a fold-down collar. */
-function outfitJacket(b: Body): void {
+function outfitJacket(b: Body): Ring[] {
   const rings = torso(b, SLOT.top, { grow: 0.03, hem: -0.2, waist: 0.36 })
   // Open front: the T-shirt shows between the zip edges.
   strip(b, 'torso', SLOT.trim, rings, { from: -0.19, to: 0.44, w: 0.085, lift: 0.002 })
@@ -415,10 +418,11 @@ function outfitJacket(b: Body): void {
   legs(b, SLOT.bottom)
   arms(b, 'long', SLOT.top, { grow: 0.018 })
   shoes(b, 'low')
+  return rings
 }
 
 /** Button shirt tucked into office trousers with a belt: collar points, placket, cuffs. */
-function outfitShirt(b: Body): void {
+function outfitShirt(b: Body): Ring[] {
   const rings = torso(b, SLOT.top, { hem: -0.015 })
   strip(b, 'torso', SLOT.trim, rings, { from: -0.015, to: 0.45, w: 0.026, lift: 0.002 })
   b.loft('torso', SLOT.top, [
@@ -431,24 +435,49 @@ function outfitShirt(b: Body): void {
   legs(b, SLOT.bottom, 0.95)
   arms(b, 'long', SLOT.top, { cuff: SLOT.trim })
   shoes(b, 'low')
+  return rings
 }
 
 /** Work clothes: shirt with rolled sleeves under bib overalls with straps and buckles, boots. */
-function outfitWork(b: Body): void {
+function outfitWork(b: Body): Ring[] {
   const rings = torso(b, SLOT.top, { hem: -0.015 })
   pelvis(b, SLOT.bottom, { tucked: true, fit: 1.05 })
   strip(b, 'torso', SLOT.bottom, rings, { from: -0.015, to: 0.3, w: 0.25, lift: 0.006 })
   for (const x of [0.085, -0.085]) {
     strip(b, 'torso', SLOT.bottom, rings, { from: 0.28, to: 0.47, w: 0.042, x, lift: 0.006 })
     strip(b, 'torso', SLOT.bottom, rings, { from: -0.015, to: 0.47, w: 0.042, x, back: true, lift: 0.006 })
-    b.box('torso', SLOT.belt, [x, 0.29, 0.125 * b.f.depth + 0.012], [0.03, 0.028, 0.01])
+    b.box('torso', SLOT.metal, [x, 0.29, 0.125 * b.f.depth + 0.012], [0.03, 0.028, 0.01])
   }
   legs(b, SLOT.bottom, 1.08)
   arms(b, 'rolled', SLOT.top, { cuff: SLOT.trim })
   shoes(b, 'boots')
+  return rings
 }
 
-const OUTFIT_BUILDERS: Record<OutfitId, (b: Body) => void> = { tee: outfitTee, jacket: outfitJacket, shirt: outfitShirt, work: outfitWork }
+/**
+ * C5: worn clothes for zombies. Large grime/blood patches (palette slot `stain`, so each zombie has
+ * its own shade: dirt or dried blood) that stay readable at gameplay zoom, and a ragged hem on
+ * untucked tops. Same patches for every worn shape of an outfit: no per-zombie geometry.
+ */
+function wear(b: Body, rings: readonly Ring[]): void {
+  strip(b, 'torso', SLOT.stain, rings, { from: Math.max(rings[0].at + 0.01, -0.1), to: 0.16, w: 0.11, x: 0.06, lift: 0.004 })
+  strip(b, 'torso', SLOT.stain, rings, { from: 0.18, to: 0.38, w: 0.13, x: -0.04, back: true, lift: 0.004 })
+  strip(b, 'torso', SLOT.stain, rings, { from: 0.2, to: 0.33, w: 0.06, x: -0.1, lift: 0.004 })
+  const k = b.f.bulk
+  // A patch on the right thigh and on the left shin (trouser fronts).
+  b.box('hipR', SLOT.stain, [0, -0.2, 0.078 * k + 0.004], [0.08, 0.13, 0.012])
+  b.box('kneeL', SLOT.stain, [0, -0.16, 0.055 * k + 0.004], [0.06, 0.09, 0.012])
+  // Ragged hem: strips of the top hanging below an untucked hem.
+  const hem = rings[0]
+  if (hem.at <= -0.1) {
+    const front = (hem.o ?? 0) + hem.d / 2 - 0.004
+    for (const [x, len, side] of [[0.11, 0.05, 1], [-0.04, 0.035, 1], [-0.12, 0.06, 1], [0.08, 0.045, -1], [-0.09, 0.03, -1]] as const) {
+      b.box('torso', SLOT.top, [x * k, hem.at - len / 2 + 0.01, side * front], [0.035, len, 0.012])
+    }
+  }
+}
+
+const OUTFIT_BUILDERS: Record<OutfitId, (b: Body) => Ring[]> = { tee: outfitTee, jacket: outfitJacket, shirt: outfitShirt, work: outfitWork }
 
 const cache = new Map<string, BufferGeometry>()
 
@@ -457,13 +486,14 @@ const cache = new Map<string, BufferGeometry>()
  * and every session).
  */
 export function bodyGeometry(shape: BodyShape): BufferGeometry {
-  const key = `${shape.preset}/${shape.hair}/${shape.outfit}`
+  const key = `${shape.preset}/${shape.hair}/${shape.outfit}${shape.worn ? '/worn' : ''}`
   let g = cache.get(key)
   if (!g) {
     const b = new Body(BODY_FRAMES[shape.preset])
     head(b)
     hair(b, shape.hair)
-    OUTFIT_BUILDERS[shape.outfit](b)
+    const rings = OUTFIT_BUILDERS[shape.outfit](b)
+    if (shape.worn) wear(b, rings)
     g = b.m.build()
     g.name = `character:${key}`
     cache.set(key, g)
