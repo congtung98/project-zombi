@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-6_1",
+  "cx": -6,
+  "cz": 1,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-6_1/objects/env-lot-146adc3eb8-tree-3",
+      "position": { "x": 5.719077, "z": 4.890824 },
+      "height": 6.962961,
+      "canopy": 2.385184,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_1/objects/env-lot-14b7266f78-fence-1",
+      "position": { "x": 1.5, "y": 0.5, "z": 13.3 },
+      "size": [12.8, 1, 0.12],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_1/objects/env-lot-0e2a8d89cf-tree-2",
+      "position": { "x": 21.8, "z": 15.4 },
+      "height": 6.147415,
+      "canopy": 1.429483,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-6_1/objects/env-lot-0e2a8d89cf-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 10.458292, "y": 0, "z": 23.423342 },
+      "yaw": 90
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-6_1/objects/env-lot-11c8013ea7-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 25.573645, "y": 0, "z": 16.618769 },
+      "yaw": 150
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_1/objects/env-lot-11c8013ea7-fence-1",
+      "position": { "x": 31.5, "y": 0.5, "z": 13.3 },
+      "size": [13.8, 1, 0.12],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-6_2/lot-0e2a8d89cf", "ownerChunkId": "c-6_2" },
+    { "id": "c-6_2/lot-11c8013ea7", "ownerChunkId": "c-6_2" }
+  ]
+}

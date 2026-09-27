@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "public/guard-tower",
+  "contentVersion": 1,
+  "name": "Chòi canh",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -4, "minZ": -2, "maxX": 4, "maxZ": 2 },
+  "building": {
+    "height": 3,
+    "storeys": 2,
+    "wallThickness": 0.2,
+    "wallColor": "#a9a59c",
+    "roofColor": "#3f4246",
+    "floorColor": "#8a8680"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "outer-1",
+      "from": { "x": -4, "z": -2 },
+      "to": { "x": 4, "z": -2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-2",
+      "from": { "x": 4, "z": -2 },
+      "to": { "x": 4, "z": 2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-3",
+      "from": { "x": 4, "z": 2 },
+      "to": { "x": -4, "z": 2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-4",
+      "from": { "x": -4, "z": 2 },
+      "to": { "x": -4, "z": -2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-1",
+      "from": { "x": -4, "z": -2 },
+      "to": { "x": 4, "z": -2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-2",
+      "from": { "x": 4, "z": -2 },
+      "to": { "x": 4, "z": 2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-3",
+      "from": { "x": 4, "z": 2 },
+      "to": { "x": -4, "z": 2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-4",
+      "from": { "x": -4, "z": 2 },
+      "to": { "x": -4, "z": -2 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#a9a59c"
+    },
+    {
+      "kind": "stairs",
+      "localId": "stairs-1",
+      "position": { "x": 0, "z": 0 },
+      "quarterTurns": 0,
+      "width": 1,
+      "length": 3
+    },
+    {
+      "kind": "door",
+      "localId": "door-1",
+      "name": "Cửa chính",
+      "position": { "x": -3, "z": 2 },
+      "quarterTurns": 0,
+      "width": 1,
+      "openTowards": -1
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-1",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -2, "z": -2 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-2",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 2.5, "z": -2 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-3",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -2.5, "z": 2 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-4",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 2.5, "z": 2 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-5",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -4, "z": 0 },
+      "quarterTurns": 1,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-6",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 4, "z": 0 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-1",
+      "name": "Tủ trực",
+      "position": { "x": -3.3, "y": 0.5, "z": -1.4 },
+      "size": [0.8, 1, 0.5],
+      "color": "#4f5a4a",
+      "lootTableId": "police-armory",
+      "visual": { "assetId": "furniture/cabinet" }
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "room-1",
+      "name": "Chân chòi",
+      "bounds": { "minX": -4, "minZ": -2, "maxX": 4, "maxZ": 2 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-1",
+        "name": "Đèn chân chòi",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -2.15, "z": 1.7 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-2",
+      "name": "Chòi quan sát",
+      "bounds": { "minX": -4, "minZ": -2, "maxX": 4, "maxZ": 2 },
+      "lamp": {
+        "localId": "lamp-2",
+        "name": "Đèn chòi quan sát",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -3.5, "z": -1.7 }
+      }
+    }
+  ],
+  "catalog": { "group": "public", "tags": ["nha-tu", "choi-canh"] },
+  "source": { "library": "prefab-library", "id": "public/guard-tower", "version": 1, "hash": "cyrb53:14d921c54c3b68" }
+}

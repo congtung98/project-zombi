@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_0",
+  "cx": 3,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c3_0/lot-1bf119fdd3",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 9, "y": 0, "z": 14 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_0/lot-0746b491bd",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 15, "y": 0, "z": 14 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_0/lot-1f58a3d444",
+      "prefabId": "library/tube-house",
+      "position": { "x": 21, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_0/lot-0d5120c291",
+      "prefabId": "library/tube-house",
+      "position": { "x": 27, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_0/lot-0d673926f9",
+      "prefabId": "library/tube-house",
+      "position": { "x": 6.5, "y": 0, "z": 26.5 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-1bf119fdd3-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 10.2, "y": 0, "z": 5.1 },
+      "yaw": 60
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-1bf119fdd3-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 7.152104, "y": 0, "z": 11.183554 },
+      "yaw": 180
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-1bf119fdd3-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 7.158032, "y": 0, "z": 15.124186 },
+      "yaw": 310
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-0746b491bd-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 16.2, "y": 0, "z": 5.1 },
+      "yaw": 220
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-0746b491bd-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 15.693358, "y": 0, "z": 16.31005 },
+      "yaw": 200
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-0746b491bd-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 16.205441, "y": 0, "z": 17.119666 },
+      "yaw": 310
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-1f58a3d444-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 20.788103, "y": 0, "z": 18.328499 },
+      "yaw": 200
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-0d5120c291-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 25.072988, "y": 0, "z": 19.560712 },
+      "yaw": 310
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-0450c00576-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 31.975081, "y": 0, "z": 16.369916 },
+      "yaw": 0
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-0d673926f9-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 1.451207, "y": 0, "z": 28.296029 },
+      "yaw": 280
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_0/objects/env-lot-0d673926f9-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 3.540451, "y": 0, "z": 27.110871 },
+      "yaw": 190
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_0/objects/street-asphalt-0e49c53c-car-2",
+      "position": { "x": 31.75, "y": 0.7, "z": 1.1 },
+      "size": [4, 1.4, 2],
+      "color": "#2f3b34",
+      "visual": { "assetId": "outdoor/car", "facing": 1 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_0/objects/street-sidewalk-1bfd9caf-streetlight-1",
+      "position": { "x": 1.25, "y": 2.1, "z": 2.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_0/objects/street-sidewalk-1bfd9caf-streetlight-2",
+      "position": { "x": 24.05, "y": 2.1, "z": 2.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_-1/roads/asphalt-0e49c53c", "ownerChunkId": "c3_-1" },
+    { "id": "c3_1/lot-0bd93681d0", "ownerChunkId": "c3_1" },
+    { "id": "c4_0/lot-0450c00576", "ownerChunkId": "c4_0" },
+    { "id": "c4_0/objects/env-lot-013e1b3f9e-tree-1", "ownerChunkId": "c4_0" },
+    { "id": "c4_0/roads/sidewalk-1bfd9caf", "ownerChunkId": "c4_0" }
+  ]
+}

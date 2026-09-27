@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-3_-1",
+  "cx": -3,
+  "cz": -1,
+  "instances": [
+    {
+      "instanceId": "c-3_-1/lot-19730cd339",
+      "prefabId": "building/store",
+      "position": { "x": 3.5, "y": 0, "z": 20 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-3_-1/objects/env-lot-1cda359168-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 8.770029, "y": 0, "z": 2.127286 },
+      "yaw": 280
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-3_-1/objects/env-lot-1840f7d066-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 21.5, "y": 0, "z": 0.201727 },
+      "yaw": 250
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-3_-1/objects/env-lot-19730cd339-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 3.809234, "y": 0, "z": 8.776123 },
+      "yaw": 220
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-3_-1/objects/street-sidewalk-1b99d377-streetlight-4",
+      "position": { "x": 19.35, "y": 2.1, "z": 19.85 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-3_-1/objects/street-sidewalk-1f5e9c79-streetlight-2",
+      "position": { "x": 12.65, "y": 2.1, "z": 14.55 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-3_-1/objects/street-sidewalk-1eab57b1-streetlight-1",
+      "position": { "x": 23, "y": 2.1, "z": 27.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-3_-1/objects/police-station-streetlight-1",
+      "position": { "x": 26, "y": 2.1, "z": 18 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-3_-1/roads/sidewalk-1f5e9c79",
+      "position": { "x": 12.1, "z": 6.5 },
+      "size": [1.8, 37.5],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_-1/objects/police-station-parking-1", "ownerChunkId": "c-2_-1" },
+    { "id": "c-2_-1/objects/police-station-steps-1", "ownerChunkId": "c-2_-1" },
+    { "id": "c-2_-1/police-station-police-station-1", "ownerChunkId": "c-2_-1" },
+    { "id": "c-2_-1/roads/sidewalk-1eab57b1", "ownerChunkId": "c-2_-1" },
+    { "id": "c-3_-2/lot-1cda359168", "ownerChunkId": "c-3_-2" },
+    { "id": "c-3_-2/roads/sidewalk-1b99d377", "ownerChunkId": "c-3_-2" },
+    { "id": "c-3_-3/roads/asphalt-1cdc9d51", "ownerChunkId": "c-3_-3" },
+    { "id": "c-3_3/roads/asphalt-19e767c5", "ownerChunkId": "c-3_3" },
+    { "id": "c-4_-1/roads/asphalt-159e42f0", "ownerChunkId": "c-4_-1" },
+    { "id": "c-4_-1/roads/sidewalk-117780ff", "ownerChunkId": "c-4_-1" },
+    { "id": "c-4_-1/zones/block-1cdfda1949", "ownerChunkId": "c-4_-1" }
+  ]
+}

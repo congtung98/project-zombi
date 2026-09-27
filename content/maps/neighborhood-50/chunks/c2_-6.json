@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c2_-6",
+  "cx": 2,
+  "cz": -6,
+  "instances": [
+    {
+      "instanceId": "c2_-6/lot-06092a865e",
+      "prefabId": "house/cottage",
+      "position": { "x": 8, "y": 0, "z": 9.5 },
+      "quarterTurns": 3
+    },
+    {
+      "instanceId": "c2_-6/lot-1a7046e5f5",
+      "prefabId": "building/two-storey",
+      "position": { "x": 8.5, "y": 0, "z": 29 },
+      "quarterTurns": 1
+    },
+    {
+      "instanceId": "c2_-6/lot-0358f550bb",
+      "prefabId": "building/two-storey",
+      "position": { "x": 22.5, "y": 0, "z": 29 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c2_-6/objects/env-lot-0bce75ff7a-tree-1",
+      "position": { "x": 1.9, "z": 1.01841 },
+      "height": 4.918487,
+      "canopy": 1.211596,
+      "trunk": 0.2,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "container",
+      "objectId": "c2_-6/objects/env-lot-0bce75ff7a-bin-1",
+      "position": { "x": 2.2, "y": 0.55, "z": 2.5 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#3f5a3f",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 3 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-tree-1",
+      "position": { "x": 1.9, "z": 12.545064 },
+      "height": 4.886771,
+      "canopy": 1.203139,
+      "trunk": 0.2,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 3.1, "y": 0, "z": 12.7 },
+      "yaw": 120
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 16.51701, "y": 0, "z": 9.964067 },
+      "yaw": 130
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 3.77331, "y": 0, "z": 8.788548 },
+      "yaw": 10
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-fence-1",
+      "position": { "x": 22.7, "y": 0.5, "z": 9.25 },
+      "size": [0.12, 1, 10.3],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "container",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-bin-1",
+      "position": { "x": 2.2, "y": 0.55, "z": 14 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#2f3f5a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-mailbox-1",
+      "position": { "x": 1.5, "y": 0.6, "z": 9.4 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 3 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-6/objects/env-lot-06092a865e-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 14.365881, "y": 0, "z": 11.634831 },
+      "yaw": 90
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-6/objects/env-lot-1a7046e5f5-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 14.138921, "y": 0, "z": 18.200222 },
+      "yaw": 170
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-6/objects/env-lot-0358f550bb-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 20.869408, "y": 0, "z": 20.513736 },
+      "yaw": 260
+    },
+    {
+      "kind": "tree",
+      "objectId": "c2_-6/objects/env-lot-11192f365d-tree-2",
+      "position": { "x": 31.7, "z": 17.4 },
+      "height": 5.708836,
+      "canopy": 1.883535,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c1_-6/roads/sidewalk-1f6b39f1", "ownerChunkId": "c1_-6" },
+    { "id": "c2_-7/lot-0bce75ff7a", "ownerChunkId": "c2_-7" },
+    { "id": "c3_-6/lot-11192f365d", "ownerChunkId": "c3_-6" }
+  ]
+}

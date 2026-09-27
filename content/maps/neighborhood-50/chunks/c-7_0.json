@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-7_0",
+  "cx": -7,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c-7_0/lot-18aaa5560a",
+      "prefabId": "library/tube-house",
+      "position": { "x": 23.5, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-7_0/objects/env-lot-0db212b948-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 10.025514, "y": 0, "z": 9.330867 },
+      "yaw": 150
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-7_0/objects/env-lot-1ddc2fae4d-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 30.155301, "y": 0, "z": 6.88594 },
+      "yaw": 230
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-7_0/objects/env-lot-146adc3eb8-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 4.116187, "y": 0, "z": 25.343518 },
+      "yaw": 120
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-7_0/objects/street-asphalt-159e42f0-car-1",
+      "position": { "x": 11, "y": 0.7, "z": 1.1 },
+      "size": [4, 1.4, 2],
+      "color": "#3b5a7a",
+      "visual": { "assetId": "outdoor/car", "facing": 1 }
+    },
+    {
+      "kind": "container",
+      "objectId": "c-7_0/objects/street-asphalt-159e42f0-car-2",
+      "position": { "x": 20, "y": 0.7, "z": 1.1 },
+      "size": [4, 1.4, 2],
+      "color": "#4f4a44",
+      "name": "Xe bỏ hoang",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/car", "facing": 1 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-7_0/objects/street-asphalt-159e42f0-oil-stain-1",
+      "assetId": "decor/oil-stain",
+      "position": { "x": 19.595897, "y": 0, "z": 1.561358 },
+      "yaw": 60
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-7_0/objects/street-asphalt-159e42f0-tires-1",
+      "assetId": "decor/tires",
+      "position": { "x": 17.2, "y": 0, "z": 1.1 },
+      "yaw": 290
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-7_0/objects/street-sidewalk-1d6dd393-streetlight-1",
+      "position": { "x": 6, "y": 2.1, "z": 2.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-7_0/objects/street-sidewalk-1d6dd393-streetlight-2",
+      "position": { "x": 28.8, "y": 2.1, "z": 2.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-4_-1/roads/asphalt-159e42f0", "ownerChunkId": "c-4_-1" },
+    { "id": "c-5_0/roads/sidewalk-1d6dd393", "ownerChunkId": "c-5_0" },
+    { "id": "c-8_-1/roads/dirt-10dba4f0", "ownerChunkId": "c-8_-1" }
+  ]
+}

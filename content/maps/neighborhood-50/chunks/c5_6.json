@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c5_6",
+  "cx": 5,
+  "cz": 6,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c5_6/objects/env-lot-1fede8ed0b-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 12.17409, "y": 0, "z": 10.70035 },
+      "yaw": 170
+    },
+    {
+      "kind": "tree",
+      "objectId": "c5_6/objects/env-lot-1cdd7f7888-tree-2",
+      "position": { "x": 1.167524, "z": 20.491245 },
+      "height": 6.647209,
+      "canopy": 2.258883,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c5_6/objects/env-lot-1cdd7f7888-tree-3",
+      "position": { "x": 10.93875, "z": 21.003961 },
+      "height": 5.033808,
+      "canopy": 1.613523,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c5_6/objects/env-lot-1cdd7f7888-tree-4",
+      "position": { "x": 20.638904, "z": 20.688296 },
+      "height": 7.705294,
+      "canopy": 2.682118,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c5_6/objects/env-lot-1cdd7f7888-tree-5",
+      "position": { "x": 28.151437, "z": 21.188486 },
+      "height": 9.632951,
+      "canopy": 2.12659,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c5_6/objects/env-lot-1cdd7f7888-tree-16",
+      "position": { "x": 29.414317, "z": 25.964653 },
+      "height": 9.274798,
+      "canopy": 2.05496,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_6/objects/street-sidewalk-0238e6bc-streetlight-2",
+      "position": { "x": 3.6, "y": 2.1, "z": 6.3 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c4_6/objects/env-lot-1cdd7f7888-tree-1", "ownerChunkId": "c4_6" },
+    { "id": "c5_4/roads/asphalt-0440c1e3", "ownerChunkId": "c5_4" },
+    { "id": "c5_5/roads/sidewalk-0238e6bc", "ownerChunkId": "c5_5" },
+    { "id": "c5_7/objects/env-lot-0ce9432bc6-tree-20", "ownerChunkId": "c5_7" },
+    { "id": "c5_7/objects/env-lot-0ce9432bc6-tree-22", "ownerChunkId": "c5_7" },
+    { "id": "c6_6/objects/env-lot-1cdd7f7888-tree-6", "ownerChunkId": "c6_6" }
+  ]
+}

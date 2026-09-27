@@ -138,7 +138,7 @@
     "allowedZones": ["residential", "commercial"],
     "weight": 3,
     "setback": 0,
-    "sideGap": 0,
+    "sideGap": 0.1,
     "roadFacing": true,
     "frontage": [4, 8]
   },

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c2_-4",
+  "cx": 2,
+  "cz": -4,
+  "instances": [
+    {
+      "instanceId": "c2_-4/high-school-block-b-1",
+      "prefabId": "public/school-block",
+      "position": { "x": 12.5, "y": 0, "z": 21.5 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c2_-4/objects/high-school-fence-1",
+      "position": { "x": 2.5, "y": 0.6, "z": 20.5 },
+      "size": [0.15, 1.2, 61.85],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c1_-4/roads/sidewalk-09a5fe3e", "ownerChunkId": "c1_-4" },
+    { "id": "c3_-4/objects/high-school-schoolyard-1", "ownerChunkId": "c3_-4" },
+    { "id": "c3_-5/high-school-block-a-1", "ownerChunkId": "c3_-5" }
+  ]
+}

@@ -14,6 +14,30 @@
   ],
   "objects": [
     {
+      "kind": "prop",
+      "objectId": "c-1_-1/objects/street-sidewalk-1a383c41-streetlight-1",
+      "position": { "x": 7.25, "y": 2.1, "z": 3.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_-1/objects/street-sidewalk-1a383c41-streetlight-2",
+      "position": { "x": 30.05, "y": 2.1, "z": 3.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_-1/objects/street-sidewalk-04f276eb-streetlight-1",
+      "position": { "x": 3.6, "y": 2.1, "z": 9.45 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
       "kind": "decor",
       "objectId": "c-1_-1/objects/safehouse-bush-1",
       "assetId": "decor/bush",
@@ -41,7 +65,22 @@
       "yaw": 70
     }
   ],
-  "roads": [],
+  "roads": [
+    {
+      "roadId": "c-1_-1/roads/old-north-link",
+      "position": { "x": 31, "z": 5.1 },
+      "size": [4, 3.8],
+      "color": "#3a3a3f",
+      "layer": 3
+    },
+    {
+      "roadId": "c-1_-1/roads/old-west-link",
+      "position": { "x": 5.1, "z": 31 },
+      "size": [3.8, 4],
+      "color": "#3a3a3f",
+      "layer": 3
+    }
+  ],
   "zones": [
     {
       "zoneId": "c-1_-1/zones/west",
@@ -72,5 +111,14 @@
     { "spawnId": "c-1_-1/spawns/player-start", "kind": "player", "position": { "x": 19, "z": 19 } },
     { "spawnId": "c-1_-1/spawns/zombie-4", "kind": "zombie", "position": { "x": 30, "z": 12 } }
   ],
-  "externalRefs": [{ "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" }, { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" }]
+  "externalRefs": [
+    { "id": "c-1_-4/roads/asphalt-1c2a7c47", "ownerChunkId": "c-1_-4" },
+    { "id": "c-1_0/roads/asphalt-11ae1805", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_0/roads/sidewalk-04f276eb", "ownerChunkId": "c-1_0" },
+    { "id": "c-4_-1/roads/asphalt-159e42f0", "ownerChunkId": "c-4_-1" },
+    { "id": "c0_-1/roads/asphalt-0f49a36a", "ownerChunkId": "c0_-1" },
+    { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" },
+    { "id": "c0_-1/roads/sidewalk-1a383c41", "ownerChunkId": "c0_-1" }
+  ]
 }

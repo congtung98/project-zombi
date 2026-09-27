@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_-7",
+  "cx": 3,
+  "cz": -7,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c2_-7/objects/env-lot-03a3866f7a-tree-11", "ownerChunkId": "c2_-7" },
+    { "id": "c2_-7/objects/env-lot-03a3866f7a-tree-6", "ownerChunkId": "c2_-7" },
+    { "id": "c3_-6/university-dormitory-1", "ownerChunkId": "c3_-6" },
+    { "id": "c4_-7/university-hall-north-1", "ownerChunkId": "c4_-7" }
+  ]
+}

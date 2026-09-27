@@ -105,11 +105,12 @@ describe('WG3 fitting a prefab on a lot', () => {
     const tube = catalog.prefabs.find((p) => p.entry.prefabId === 'library/tube-house')!
     expect(fitPrefab(lot('S', 5, 16), tube)).not.toBeNull()
     expect(fitPrefab(lot('S', 20, 16), tube)).toBeNull()
-    // Row house: built to both lot lines of a 4 m lot, on the 0.5 m grid in a 4.5 m one.
-    const f = fitPrefab(lot('S', 4, 16), tube)!
-    expect([f.footprint.minX, f.footprint.maxX]).toEqual([0, 4])
-    const g = fitPrefab(lot('S', 4.5, 16), tube)!
-    expect(g.position.x % 0.5).toBe(0)
+    // Row house: 0.1 m off each lot line (the walls of two neighbours would overlap otherwise), so a
+    // 4 m house needs more than a 4 m lot and sits on the 0.5 m grid in a 5 m one.
+    expect(fitPrefab(lot('S', 4, 16), tube)).toBeNull()
+    const f = fitPrefab(lot('S', 5, 16), tube)!
+    expect([f.footprint.minX, f.footprint.maxX]).toEqual([0.5, 4.5])
+    expect(f.position.x % 0.5).toBe(0)
   })
 
   it('leaves parcels without a street alone', () => {

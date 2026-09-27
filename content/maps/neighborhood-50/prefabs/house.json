@@ -287,5 +287,17 @@
       }
     }
   ],
-  "visual": { "variants": ["lived-in", "abandoned"] }
+  "visual": { "variants": ["lived-in", "abandoned"] },
+  "placement": {
+    "category": "house",
+    "allowedZones": ["residential"],
+    "weight": 3,
+    "setback": 3,
+    "sideGap": 1.5,
+    "roadFacing": true,
+    "frontage": [9, 40],
+    "anchors": [{ "name": "mailbox", "position": { "x": -3.2, "z": -4.6 } }]
+  },
+  "catalog": { "group": "residential", "architectureStyle": "american", "tags": ["1-tang", "nha-nho"] },
+  "source": { "library": "prefab-library", "id": "building/house", "version": 1, "hash": "cyrb53:0e5f776c952a6d" }
 }

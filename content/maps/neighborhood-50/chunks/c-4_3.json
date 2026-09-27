@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-4_3",
+  "cx": -4,
+  "cz": 3,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-4_3/objects/env-lot-06fdeaefeb-tree-1",
+      "position": { "x": 4.8, "z": 5.6 },
+      "height": 7.26167,
+      "canopy": 1.652334,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_3/objects/env-lot-06fdeaefeb-fence-1",
+      "position": { "x": 0, "y": 0.5, "z": 7.7 },
+      "size": [12.8, 1, 0.12],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-4_3/objects/env-lot-1b8c075e08-tree-1",
+      "position": { "x": 20.3, "z": 5.6 },
+      "height": 5.522669,
+      "canopy": 1.809067,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_3/objects/env-lot-1b8c075e08-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 20.988073, "y": 0, "z": 3.593895 },
+      "yaw": 270
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_3/objects/env-lot-1b8c075e08-fence-1",
+      "position": { "x": 14.75, "y": 0.5, "z": 7.7 },
+      "size": [14.3, 1, 0.12],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_3/objects/env-lot-1b2e28f25a-fence-1",
+      "position": { "x": 7.7, "y": 0.5, "z": 26 },
+      "size": [0.12, 1, 10.8],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-4_3/objects/pond-lawn-1",
+      "shape": "rect",
+      "size": [24, 18],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 23, "z": 19 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-4_3/objects/pond-bank-1",
+      "shape": "ellipse",
+      "size": [19, 13],
+      "material": "dirt",
+      "color": "#7b6546",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 23, "z": 19 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-4_3/objects/pond-water-1",
+      "shape": "ellipse",
+      "size": [16, 10],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 2,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 23, "z": 19 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-4_3/objects/pond-tree-1",
+      "position": { "x": 13, "z": 12 },
+      "height": 6,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-4_3/objects/pond-tree-2",
+      "position": { "x": 12.5, "z": 26 },
+      "height": 6,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_3/objects/pond-bench-1",
+      "position": { "x": 23, "y": 0.4, "z": 26.8 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_3/objects/pond-bench-2",
+      "position": { "x": 23, "y": 0.4, "z": 11.2 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_3/objects/pond-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 14.4, "y": 0, "z": 20.5 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_3/objects/pond-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 31.8, "y": 0, "z": 18 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_3/objects/pond-bush-3",
+      "assetId": "decor/bush",
+      "position": { "x": 20, "y": 0, "z": 25.2 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_3/objects/pond-bush-4",
+      "assetId": "decor/bush",
+      "position": { "x": 27, "y": 0, "z": 12.8 }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [{ "spawnId": "c-4_3/spawns/zombie-0144749407-1", "kind": "zombie", "position": { "x": 3.3, "z": 3.95 } }],
+  "externalRefs": [
+    { "id": "c-3_3/objects/pond-tree-1", "ownerChunkId": "c-3_3" },
+    { "id": "c-3_3/objects/pond-tree-2", "ownerChunkId": "c-3_3" },
+    { "id": "c-4_2/lot-0612214db8", "ownerChunkId": "c-4_2" },
+    { "id": "c-4_2/lot-06fdeaefeb", "ownerChunkId": "c-4_2" },
+    { "id": "c-4_2/lot-1b8c075e08", "ownerChunkId": "c-4_2" },
+    { "id": "c-4_2/zones/block-0144749407", "ownerChunkId": "c-4_2" },
+    { "id": "c-5_3/lot-1d349b0de8", "ownerChunkId": "c-5_3" }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_6",
+  "cx": 0,
+  "cz": 6,
+  "instances": [
+    {
+      "instanceId": "c0_6/lot-02f2c180cb",
+      "prefabId": "building/house",
+      "position": { "x": 11.5, "y": 0, "z": 0 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c0_6/objects/env-lot-02f2c180cb-mailbox-1",
+      "position": { "x": 6.9, "y": 0.6, "z": 3.2 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 3 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_6/objects/env-lot-1082e8e200-tree-1",
+      "position": { "x": 19.515846, "z": 11.226528 },
+      "height": 5.29419,
+      "canopy": 1.717676,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_6/objects/env-lot-118da2bbe5-tree-1",
+      "position": { "x": 7.797851, "z": 21.222899 },
+      "height": 7.084698,
+      "canopy": 2.433879,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_6/objects/env-lot-118da2bbe5-tree-2",
+      "position": { "x": 26.58291, "z": 21.877598 },
+      "height": 5.36632,
+      "canopy": 1.746528,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_6/objects/env-lot-118da2bbe5-tree-3",
+      "position": { "x": 30.630396, "z": 21.250425 },
+      "height": 9.29428,
+      "canopy": 2.058856,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_6/objects/env-lot-118da2bbe5-tree-16",
+      "position": { "x": 16.365299, "z": 25.311176 },
+      "height": 5.132639,
+      "canopy": 1.653056,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_6/objects/env-lot-118da2bbe5-tree-17",
+      "position": { "x": 21.565541, "z": 25.279884 },
+      "height": 5.333767,
+      "canopy": 1.733507,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_6/objects/env-lot-118da2bbe5-tree-18",
+      "position": { "x": 26.944298, "z": 24.91935 },
+      "height": 6.637403,
+      "canopy": 1.527481,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_6/objects/street-sidewalk-0f3fad37-streetlight-7",
+      "position": { "x": 2.6, "y": 2.1, "z": 13.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_3/roads/asphalt-10a129fa", "ownerChunkId": "c-1_3" },
+    { "id": "c-1_7/roads/dirt-0fc6d360", "ownerChunkId": "c-1_7" },
+    { "id": "c0_4/roads/sidewalk-0f3fad37", "ownerChunkId": "c0_4" },
+    { "id": "c0_7/objects/env-lot-0ce9432bc6-tree-1", "ownerChunkId": "c0_7" },
+    { "id": "c0_7/objects/env-lot-0ce9432bc6-tree-2", "ownerChunkId": "c0_7" },
+    { "id": "c0_7/objects/env-lot-0ce9432bc6-tree-3", "ownerChunkId": "c0_7" },
+    { "id": "c0_7/objects/env-lot-0ce9432bc6-tree-4", "ownerChunkId": "c0_7" }
+  ]
+}

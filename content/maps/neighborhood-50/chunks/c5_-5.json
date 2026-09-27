@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c5_-5",
+  "cx": 5,
+  "cz": -5,
+  "instances": [
+    {
+      "instanceId": "c5_-5/lot-0719829700",
+      "prefabId": "house/garden",
+      "position": { "x": 20, "y": 0, "z": 23.5 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c5_-5/objects/env-lot-0719829700-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 24.2, "y": 0, "z": 18.1 },
+      "yaw": 90
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_-5/objects/env-lot-0719829700-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 16.358614, "y": 0, "z": 27.266479 },
+      "yaw": 250
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_-5/objects/env-lot-0719829700-mailbox-1",
+      "position": { "x": 21.9, "y": 0.6, "z": 15.5 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_-5/objects/env-lot-1fea1b7bb6-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 30.8, "y": 0, "z": 19.1 },
+      "yaw": 350
+    },
+    {
+      "kind": "container",
+      "objectId": "c5_-5/objects/env-lot-1fea1b7bb6-bin-1",
+      "position": { "x": 28, "y": 0.55, "z": 16.2 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#2f3f5a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 2 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_-5/objects/street-asphalt-11017c36-car-2",
+      "position": { "x": 14, "y": 0.7, "z": 8.15 },
+      "size": [4, 1.4, 2],
+      "color": "#7a3b3b",
+      "visual": { "assetId": "outdoor/car", "facing": 1 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_-5/objects/street-sidewalk-155e6f9b-streetlight-6",
+      "position": { "x": 21, "y": 2.1, "z": 6.65 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_-5/objects/street-sidewalk-028251a2-streetlight-2",
+      "position": { "x": 20.05, "y": 2.1, "z": 13.35 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c5_-5/roads/sidewalk-028251a2",
+      "position": { "x": 19.125, "z": 13.9 },
+      "size": [51.75, 1.8],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c4_-5/roads/asphalt-11017c36", "ownerChunkId": "c4_-5" },
+    { "id": "c4_-5/roads/sidewalk-155e6f9b", "ownerChunkId": "c4_-5" },
+    { "id": "c5_-6/university-hall-east-1", "ownerChunkId": "c5_-6" },
+    { "id": "c6_-5/lot-1fea1b7bb6", "ownerChunkId": "c6_-5" }
+  ]
+}

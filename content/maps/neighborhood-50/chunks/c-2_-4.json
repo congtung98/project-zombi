@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-2_-4",
+  "cx": -2,
+  "cz": -4,
+  "instances": [
+    {
+      "instanceId": "c-2_-4/lot-0e31cb6c9d",
+      "prefabId": "house/ranch",
+      "position": { "x": 14, "y": 0, "z": 23 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c-2_-4/lot-1a26ef5a74",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 28.5, "y": 0, "z": 23.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-2_-4/objects/env-lot-1d8773e401-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 0.7, "y": 0, "z": 30.4 },
+      "yaw": 50
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-2_-4/objects/env-lot-0e31cb6c9d-tree-1",
+      "position": { "x": 7.555693, "z": 31.6 },
+      "height": 5.62726,
+      "canopy": 1.400603,
+      "trunk": 0.2,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-2_-4/objects/env-lot-0e31cb6c9d-tree-2",
+      "position": { "x": 14.652783, "z": 31.6 },
+      "height": 5.430437,
+      "canopy": 1.348117,
+      "trunk": 0.2,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-2_-4/objects/env-lot-0e31cb6c9d-tree-3",
+      "position": { "x": 20.05, "z": 0.4 },
+      "height": 6.17147,
+      "canopy": 1.434294,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_-4/objects/env-lot-0e31cb6c9d-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 12.001524, "y": 0, "z": 0.420811 },
+      "yaw": 340
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-2_-4/objects/env-lot-13ba1bbb5e-tree-1",
+      "position": { "x": 24.45, "z": 0.4 },
+      "height": 7.959583,
+      "canopy": 1.791917,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_-4/objects/env-lot-1a26ef5a74-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 29.677443, "y": 0, "z": 21.777407 },
+      "yaw": 130
+    }
+  ],
+  "roads": [],
+  "zones": [
+    {
+      "zoneId": "c-2_-4/zones/block-1fcb7e4272",
+      "kind": "zombiePopulation",
+      "name": "Khu dân cư 2",
+      "shape": "rect",
+      "center": { "x": 23.025, "z": 15.275 },
+      "size": [66.45, 32.55]
+    }
+  ],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_-3/objects/env-lot-0e31cb6c9d-mailbox-1", "ownerChunkId": "c-2_-3" },
+    { "id": "c-2_-3/objects/env-lot-1a26ef5a74-bush-1", "ownerChunkId": "c-2_-3" },
+    { "id": "c-3_-4/lot-1d8773e401", "ownerChunkId": "c-3_-4" }
+  ]
+}

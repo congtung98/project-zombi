@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-6_-2",
+  "cx": -6,
+  "cz": -2,
+  "instances": [
+    {
+      "instanceId": "c-6_-2/lot-00677644f9",
+      "prefabId": "service/bookstore",
+      "position": { "x": 29, "y": 0, "z": 10 },
+      "quarterTurns": 1
+    },
+    {
+      "instanceId": "c-6_-2/lot-166567a147",
+      "prefabId": "house/l-two-storey",
+      "position": { "x": 26, "y": 0, "z": 26 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c-6_-2/objects/env-lot-1383bf5eea-fence-1",
+      "position": { "x": 12.375, "y": 0.5, "z": 1.2 },
+      "size": [16.05, 1, 0.12],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_-2/objects/env-lot-1c6a0c860d-fence-1",
+      "position": { "x": 29, "y": 0.5, "z": 1.2 },
+      "size": [14.8, 1, 0.12],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_-2/objects/env-lot-00677644f9-tree-1",
+      "position": { "x": 6.15, "z": 3.7 },
+      "height": 5.683161,
+      "canopy": 1.873264,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_-2/objects/env-lot-00677644f9-fence-1",
+      "position": { "x": 4.05, "y": 0.5, "z": 9.75 },
+      "size": [0.12, 1, 15.3],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-6_-2/objects/env-lot-00677644f9-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 9.303174, "y": 0, "z": 14.662153 },
+      "yaw": 330
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-6_-2/objects/env-lot-166567a147-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 21.294438, "y": 0, "z": 29.187695 },
+      "yaw": 230
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-6_-2/objects/env-lot-166567a147-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 16.414651, "y": 0, "z": 21.024803 },
+      "yaw": 70
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_-2/objects/env-lot-166567a147-fence-1",
+      "position": { "x": 4.05, "y": 0.5, "z": 26 },
+      "size": [0.12, 1, 14.8],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c-6_-3/objects/env-lot-1383bf5eea-tree-2", "ownerChunkId": "c-6_-3" }]
+}

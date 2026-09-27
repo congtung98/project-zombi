@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c5_5",
+  "cx": 5,
+  "cz": 5,
+  "instances": [
+    {
+      "instanceId": "c5_5/lot-1fede8ed0b",
+      "prefabId": "service/auto-repair",
+      "position": { "x": 16.5, "y": 0, "z": 21.5 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c5_5/objects/env-lot-1fede8ed0b-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 9.3, "y": 0, "z": 14.6 },
+      "yaw": 80
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_5/objects/env-lot-1fede8ed0b-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 23.7, "y": 0, "z": 14.6 },
+      "yaw": 110
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_5/objects/street-sidewalk-07e692aa-streetlight-3",
+      "position": { "x": 3.6, "y": 2.1, "z": 4.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_5/objects/street-sidewalk-07e692aa-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 4.35, "y": 0, "z": 1.252549 },
+      "yaw": 310
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_5/objects/street-sidewalk-0238e6bc-streetlight-1",
+      "position": { "x": 3.6, "y": 2.1, "z": 15.5 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c5_5/roads/dirt-14e893bb",
+      "position": { "x": 25.875, "z": 10 },
+      "size": [58.25, 3],
+      "color": "#8a6a45",
+      "layer": 1
+    },
+    {
+      "roadId": "c5_5/roads/sidewalk-0238e6bc",
+      "position": { "x": 4.35, "z": 30.75 },
+      "size": [2.2, 38.5],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c5_4/lot-1bd9c2eca5", "ownerChunkId": "c5_4" },
+    { "id": "c5_4/roads/asphalt-0440c1e3", "ownerChunkId": "c5_4" },
+    { "id": "c5_4/roads/sidewalk-07e692aa", "ownerChunkId": "c5_4" }
+  ]
+}

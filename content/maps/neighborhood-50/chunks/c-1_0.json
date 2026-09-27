@@ -8,6 +8,30 @@
   "objects": [
     {
       "kind": "prop",
+      "objectId": "c-1_0/objects/street-sidewalk-04f276eb-streetlight-2",
+      "position": { "x": 3.6, "y": 2.1, "z": 0.25 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_0/objects/street-sidewalk-1c08781e-streetlight-1",
+      "position": { "x": 7.25, "y": 2.1, "z": 28.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_0/objects/street-sidewalk-1c08781e-streetlight-2",
+      "position": { "x": 30.05, "y": 2.1, "z": 28.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
       "objectId": "c-1_0/objects/fence-park-n",
       "position": { "x": 17.5, "y": 0.5, "z": 6 },
       "size": [15, 1, 0.15],
@@ -98,7 +122,29 @@
       "yaw": 150
     }
   ],
-  "roads": [{ "roadId": "c-1_0/roads/ns", "position": { "x": 31, "z": 0 }, "size": [4, 50], "color": "#3a3a3f" }],
+  "roads": [
+    {
+      "roadId": "c-1_0/roads/asphalt-11ae1805",
+      "position": { "x": 0, "z": 0 },
+      "size": [6.5, 70.5],
+      "color": "#3a3a3f",
+      "layer": 2
+    },
+    {
+      "roadId": "c-1_0/roads/sidewalk-04f276eb",
+      "position": { "x": 4.35, "z": 0 },
+      "size": [2.2, 53.1],
+      "color": "#a19d94"
+    },
+    { "roadId": "c-1_0/roads/ns", "position": { "x": 31, "z": 0 }, "size": [4, 50], "color": "#3a3a3f" },
+    {
+      "roadId": "c-1_0/roads/old-south-link",
+      "position": { "x": 31, "z": 26.9 },
+      "size": [4, 3.8],
+      "color": "#3a3a3f",
+      "layer": 3
+    }
+  ],
   "zones": [
     {
       "zoneId": "c-1_0/zones/park",
@@ -114,8 +160,13 @@
     { "spawnId": "c-1_0/spawns/zombie-7", "kind": "zombie", "position": { "x": 10, "z": 0 } }
   ],
   "externalRefs": [
+    { "id": "c-1_-1/roads/old-west-link", "ownerChunkId": "c-1_-1" },
     { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },
     { "id": "c-1_-1/zones/west", "ownerChunkId": "c-1_-1" },
-    { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" }
+    { "id": "c-1_3/roads/asphalt-10a129fa", "ownerChunkId": "c-1_3" },
+    { "id": "c-4_-1/roads/asphalt-159e42f0", "ownerChunkId": "c-4_-1" },
+    { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" },
+    { "id": "c0_0/roads/sidewalk-1c08781e", "ownerChunkId": "c0_0" },
+    { "id": "c0_1/roads/asphalt-07faf57d", "ownerChunkId": "c0_1" }
   ]
 }

@@ -580,10 +580,10 @@
   "visual": { "variants": ["intact", "lived-in", "abandoned"] },
   "placement": {
     "category": "house",
-    "allowedZones": ["residential"],
+    "allowedZones": ["residential", "commercial"],
     "weight": 2,
     "setback": 1,
-    "sideGap": 0,
+    "sideGap": 0.1,
     "roadFacing": true,
     "frontage": [4.5, 8]
   },

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c6_5",
+  "cx": 6,
+  "cz": 5,
+  "instances": [
+    {
+      "instanceId": "c6_5/lot-16d508fafe",
+      "prefabId": "apartment/block-4",
+      "position": { "x": 9.5, "y": 0, "z": 30.5 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c6_5/objects/env-lot-19e269c7f9-tree-39",
+      "position": { "x": 26.776496, "z": 3.543803 },
+      "height": 6.564156,
+      "canopy": 2.225662,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_5/objects/env-lot-19e269c7f9-tree-40",
+      "position": { "x": 30.941353, "z": 2.002766 },
+      "height": 9.23212,
+      "canopy": 2.046424,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_5/objects/env-lot-19e269c7f9-tree-42",
+      "position": { "x": 26.685452, "z": 7.924862 },
+      "height": 6.155694,
+      "canopy": 1.431139,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_5/objects/env-lot-19e269c7f9-tree-47",
+      "position": { "x": 30.975192, "z": 12.532403 },
+      "height": 9.202548,
+      "canopy": 2.04051,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_5/objects/env-lot-19e269c7f9-tree-57",
+      "position": { "x": 26.461229, "z": 20.543213 },
+      "height": 7.180775,
+      "canopy": 2.47231,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_5/objects/env-lot-19e269c7f9-tree-58",
+      "position": { "x": 30.401787, "z": 21.115135 },
+      "height": 7.297971,
+      "canopy": 2.519188,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_5/objects/env-lot-19e269c7f9-tree-63",
+      "position": { "x": 25.059341, "z": 30.539615 },
+      "height": 5.302384,
+      "canopy": 1.720954,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c6_5/objects/env-lot-16d508fafe-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 15.7, "y": 0, "z": 14.6 },
+      "yaw": 250
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c5_4/lot-1bd9c2eca5", "ownerChunkId": "c5_4" },
+    { "id": "c5_5/roads/dirt-14e893bb", "ownerChunkId": "c5_5" },
+    { "id": "c6_4/objects/env-lot-19e269c7f9-tree-35", "ownerChunkId": "c6_4" },
+    { "id": "c7_5/objects/env-lot-19e269c7f9-tree-48", "ownerChunkId": "c7_5" }
+  ]
+}

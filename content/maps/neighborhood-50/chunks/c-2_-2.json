@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-2_-2",
+  "cx": -2,
+  "cz": -2,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c-2_-2/objects/env-lot-1074ef050f-fence-1",
+      "position": { "x": 9.25, "y": 0.5, "z": 1.2 },
+      "size": [13.3, 1, 0.12],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_-2/objects/env-lot-046cfd6693-fence-1",
+      "position": { "x": 22.25, "y": 0.5, "z": 1.2 },
+      "size": [10.3, 1, 0.12],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_-2/objects/env-lot-06d8c9941c-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 3.645911, "y": 0, "z": 2.952552 },
+      "yaw": 250
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_-2/objects/env-lot-06d8c9941c-fence-1",
+      "position": { "x": 10.7, "y": 0.5, "z": 7.5 },
+      "size": [0.12, 1, 10.8],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_-2/objects/env-lot-131a12f645-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 25.975727, "y": 0, "z": 4.341923 },
+      "yaw": 120
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_-2/objects/env-lot-131a12f645-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 13.219097, "y": 0, "z": 15.539695 },
+      "yaw": 230
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-2_-2/objects/env-lot-131a12f645-tree-1",
+      "position": { "x": 25.580734, "z": 16.394296 },
+      "height": 5.902679,
+      "canopy": 1.961072,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-2_-2/objects/env-lot-00fceed55f-tree-1",
+      "position": { "x": 8.6, "z": 21.8 },
+      "height": 5.546837,
+      "canopy": 1.818735,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_-2/objects/env-lot-00fceed55f-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 0.754906, "y": 0, "z": 22.050099 },
+      "yaw": 40
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_-2/objects/env-lot-0875802e3c-fence-1",
+      "position": { "x": 29.5, "y": 0.5, "z": 24.3 },
+      "size": [5.8, 1, 0.12],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_-2/objects/street-sidewalk-13e47cde-streetlight-1",
+      "position": { "x": 30.55, "y": 2.1, "z": 28.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [
+    {
+      "zoneId": "c-2_-2/zones/block-1d45986458",
+      "kind": "zombiePopulation",
+      "name": "Khu dân cư 4",
+      "shape": "rect",
+      "center": { "x": 23.025, "z": 1.725 },
+      "size": [66.45, 42.55]
+    }
+  ],
+  "spawns": [{ "spawnId": "c-2_-2/spawns/zombie-1d45986458-1", "kind": "zombie", "position": { "x": 31.3, "z": 5.95 } }],
+  "externalRefs": [
+    { "id": "c-1_-2/roads/sidewalk-13e47cde", "ownerChunkId": "c-1_-2" },
+    { "id": "c-1_0/roads/asphalt-11ae1805", "ownerChunkId": "c-1_0" },
+    { "id": "c-2_-1/police-station-police-station-1", "ownerChunkId": "c-2_-1" },
+    { "id": "c-2_-1/roads/sidewalk-1e215e94", "ownerChunkId": "c-2_-1" },
+    { "id": "c-2_-3/objects/env-lot-046cfd6693-tree-1", "ownerChunkId": "c-2_-3" },
+    { "id": "c-3_-2/lot-00fceed55f", "ownerChunkId": "c-3_-2" },
+    { "id": "c-3_-2/lot-06d8c9941c", "ownerChunkId": "c-3_-2" },
+    { "id": "c-3_-2/objects/env-lot-16bddf762a-fence-1", "ownerChunkId": "c-3_-2" },
+    { "id": "c0_-1/roads/asphalt-0f49a36a", "ownerChunkId": "c0_-1" }
+  ]
+}

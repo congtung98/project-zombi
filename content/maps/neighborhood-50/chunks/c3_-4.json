@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_-4",
+  "cx": 3,
+  "cz": -4,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c3_-4/objects/high-school-schoolyard-1",
+      "shape": "rect",
+      "size": [50, 40],
+      "material": "concrete",
+      "color": "#9c988f",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 13.5, "z": 27.5 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-4/objects/high-school-flagpole-1",
+      "position": { "x": 12.5, "y": 3.5, "z": 9.5 },
+      "size": [0.9, 7, 0.2],
+      "color": "#c9ccd0",
+      "visual": { "assetId": "outdoor/flagpole" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_-3/objects/high-school-court-1", "ownerChunkId": "c3_-3" },
+    { "id": "c3_-5/high-school-block-a-1", "ownerChunkId": "c3_-5" }
+  ]
+}

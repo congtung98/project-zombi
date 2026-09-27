@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-5_-2",
+  "cx": -5,
+  "cz": -2,
+  "instances": [
+    {
+      "instanceId": "c-5_-2/lot-1878f9e370",
+      "prefabId": "building/house",
+      "position": { "x": 22.5, "y": 0, "z": 9.5 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-5_-2/objects/env-lot-1878f9e370-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 18.8, "y": 0, "z": 13.9 },
+      "yaw": 270
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-2/objects/env-lot-1878f9e370-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 23.844555, "y": 0, "z": 13.399963 },
+      "yaw": 0
+    },
+    {
+      "kind": "container",
+      "objectId": "c-5_-2/objects/env-lot-1878f9e370-bin-1",
+      "position": { "x": 16, "y": 0.55, "z": 14.8 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#3f5a3f",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 0 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-2/objects/env-lot-1878f9e370-mailbox-1",
+      "position": { "x": 25.7, "y": 0.6, "z": 14.1 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 0 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-5_-2/objects/env-lot-18f3760f0b-tree-1",
+      "position": { "x": 31.545722, "z": 15.1 },
+      "height": 4.68639,
+      "canopy": 1.149704,
+      "trunk": 0.2,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-2/objects/env-lot-00677644f9-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 3.9, "y": 0, "z": 3.8 },
+      "yaw": 10
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-2/objects/env-lot-00677644f9-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 3.9, "y": 0, "z": 16.2 },
+      "yaw": 90
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-2/objects/env-lot-00677644f9-mailbox-1",
+      "position": { "x": 4.5, "y": 0.6, "z": 15.9 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 1 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-2/objects/env-lot-166567a147-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 0.9, "y": 0, "z": 20.8 },
+      "yaw": 250
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-5_-2/objects/env-lot-004f427c2f-tree-1",
+      "position": { "x": 16.548931, "z": 20.9 },
+      "height": 4.744624,
+      "canopy": 1.165233,
+      "trunk": 0.2,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-2/objects/env-lot-004f427c2f-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 16.15148, "y": 0, "z": 26.750527 },
+      "yaw": 110
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-5_-2/objects/env-lot-03a8fdbb6c-tree-1",
+      "position": { "x": 31.052382, "z": 20.9 },
+      "height": 5.156563,
+      "canopy": 1.275084,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "container",
+      "objectId": "c-5_-2/objects/env-lot-03a8fdbb6c-bin-1",
+      "position": { "x": 30, "y": 0.55, "z": 21.2 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#3f5a3f",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 2 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-2/objects/street-sidewalk-08a26317-streetlight-2",
+      "position": { "x": 6.65, "y": 2.1, "z": 6.25 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-2/objects/street-sidewalk-08a26317-streetlight-3",
+      "position": { "x": 6.65, "y": 2.1, "z": 29.05 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-2/objects/street-sidewalk-0ff63c5a-streetlight-2",
+      "position": { "x": 13.35, "y": 2.1, "z": 6.25 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-2/objects/street-sidewalk-17bb753e-streetlight-1",
+      "position": { "x": 13.35, "y": 2.1, "z": 23.75 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-2/objects/street-sidewalk-17bb753e-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 13.9, "y": 0, "z": 26.298665 },
+      "yaw": 130
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-5_-2/roads/sidewalk-08a26317",
+      "position": { "x": 6.1, "z": 18.35 },
+      "size": [1.8, 77.8],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-4_-1/zones/block-1cdfda1949", "ownerChunkId": "c-4_-1" },
+    { "id": "c-4_-2/lot-03a8fdbb6c", "ownerChunkId": "c-4_-2" },
+    { "id": "c-4_-2/roads/asphalt-0a249c70", "ownerChunkId": "c-4_-2" },
+    { "id": "c-4_-3/zones/block-17cfd2c2ed", "ownerChunkId": "c-4_-3" },
+    { "id": "c-5_-1/roads/sidewalk-17bb753e", "ownerChunkId": "c-5_-1" },
+    { "id": "c-5_-3/objects/street-asphalt-1bf6c578-car-2", "ownerChunkId": "c-5_-3" },
+    { "id": "c-5_-3/roads/sidewalk-0ff63c5a", "ownerChunkId": "c-5_-3" },
+    { "id": "c-5_-4/roads/asphalt-1bf6c578", "ownerChunkId": "c-5_-4" },
+    { "id": "c-6_-2/lot-00677644f9", "ownerChunkId": "c-6_-2" },
+    { "id": "c-6_-2/lot-166567a147", "ownerChunkId": "c-6_-2" },
+    { "id": "c-6_-2/objects/env-lot-1c6a0c860d-fence-1", "ownerChunkId": "c-6_-2" }
+  ]
+}

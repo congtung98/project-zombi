@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_-2",
+  "cx": -1,
+  "cz": -2,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-1_-2/objects/env-lot-1b6a8f805d-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 23.698166, "y": 0, "z": 14.243682 },
+      "yaw": 80
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_-2/objects/street-asphalt-1c2a7c47-car-2",
+      "position": { "x": 28.9, "y": 0.7, "z": 13 },
+      "size": [2, 1.4, 4],
+      "color": "#3b5a7a",
+      "visual": { "assetId": "outdoor/car", "facing": 2 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_-2/objects/street-sidewalk-1886725c-streetlight-2",
+      "position": { "x": 27.4, "y": 2.1, "z": 6.25 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_-2/objects/street-sidewalk-13e47cde-streetlight-2",
+      "position": { "x": 21.35, "y": 2.1, "z": 28.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-1_-2/roads/sidewalk-1886725c",
+      "position": { "x": 26.5, "z": 3 },
+      "size": [2.5, 47.1],
+      "color": "#a19d94"
+    },
+    {
+      "roadId": "c-1_-2/roads/sidewalk-13e47cde",
+      "position": { "x": 11.15, "z": 27.65 },
+      "size": [33.2, 2.2],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [{ "spawnId": "c-1_-2/spawns/zombie-1d45986458-2", "kind": "zombie", "position": { "x": 15.3, "z": 9.95 } }],
+  "externalRefs": [
+    { "id": "c-1_-4/roads/asphalt-1c2a7c47", "ownerChunkId": "c-1_-4" },
+    { "id": "c-1_0/roads/asphalt-11ae1805", "ownerChunkId": "c-1_0" },
+    { "id": "c-2_-2/objects/env-lot-0875802e3c-fence-1", "ownerChunkId": "c-2_-2" },
+    { "id": "c-2_-2/zones/block-1d45986458", "ownerChunkId": "c-2_-2" },
+    { "id": "c0_-1/roads/asphalt-0f49a36a", "ownerChunkId": "c0_-1" }
+  ]
+}

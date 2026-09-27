@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c4_3",
+  "cx": 4,
+  "cz": 3,
+  "instances": [
+    {
+      "instanceId": "c4_3/lot-07aa369105",
+      "prefabId": "library/tube-house",
+      "position": { "x": 6.5, "y": 0, "z": 2 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c4_3/lot-0866b914b3",
+      "prefabId": "library/tube-house",
+      "position": { "x": 12, "y": 0, "z": 2 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c4_3/lot-1439975737",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 23.5, "y": 0, "z": 0 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c4_3/prison-tower-1",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 20, "y": 0, "z": 25.5 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c4_3/objects/env-lot-07aa369105-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 6.785632, "y": 0, "z": 1.720513 },
+      "yaw": 70
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_3/objects/env-lot-0866b914b3-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 10.679732, "y": 0, "z": 7.799495 },
+      "yaw": 260
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_3/objects/env-lot-1439975737-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 22.3, "y": 0, "z": 8.9 },
+      "yaw": 150
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_3/objects/street-sidewalk-0b4f807e-streetlight-3",
+      "position": { "x": 14.85, "y": 2.1, "z": 10.65 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_3/objects/street-sidewalk-00a80873-streetlight-3",
+      "position": { "x": 14.85, "y": 2.1, "z": 17.35 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_3/objects/street-sidewalk-110296eb-streetlight-1",
+      "position": { "x": 28.4, "y": 2.1, "z": 22.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c4_3/roads/asphalt-06572813",
+      "position": { "x": 20.375, "z": 14 },
+      "size": [123.25, 6],
+      "color": "#3a3a3f",
+      "layer": 2
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_2/zones/block-053c228b10", "ownerChunkId": "c3_2" },
+    { "id": "c3_3/objects/prison-wall-1", "ownerChunkId": "c3_3" },
+    { "id": "c3_3/roads/sidewalk-00a80873", "ownerChunkId": "c3_3" },
+    { "id": "c3_3/roads/sidewalk-0b4f807e", "ownerChunkId": "c3_3" },
+    { "id": "c4_2/lot-0ed136c246", "ownerChunkId": "c4_2" },
+    { "id": "c4_2/roads/sidewalk-026f4315", "ownerChunkId": "c4_2" },
+    { "id": "c4_4/objects/prison-wall-1", "ownerChunkId": "c4_4" },
+    { "id": "c4_5/roads/sidewalk-110296eb", "ownerChunkId": "c4_5" },
+    { "id": "c5_4/roads/asphalt-0440c1e3", "ownerChunkId": "c5_4" }
+  ]
+}

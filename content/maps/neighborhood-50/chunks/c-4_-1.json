@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-4_-1",
+  "cx": -4,
+  "cz": -1,
+  "instances": [
+    {
+      "instanceId": "c-4_-1/lot-136ad96c0d",
+      "prefabId": "building/store",
+      "position": { "x": 6.5, "y": 0, "z": 20 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c-4_-1/objects/env-lot-03a8fdbb6c-fence-1",
+      "position": { "x": 3.5, "y": 0.5, "z": 6.2 },
+      "size": [11.8, 1, 0.12],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-1/objects/env-lot-136ad96c0d-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 11.7, "y": 0, "z": 24.9 },
+      "yaw": 260
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-1/objects/env-lot-01fc2ba122-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 17.020403, "y": 0, "z": 21.276317 },
+      "yaw": 130
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-1/objects/env-lot-19730cd339-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 30.3, "y": 0, "z": 24.9 },
+      "yaw": 260
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-1/objects/env-lot-19730cd339-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 29.459902, "y": 0, "z": 17.884581 },
+      "yaw": 160
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_-1/objects/street-sidewalk-117780ff-streetlight-2",
+      "position": { "x": 7.8, "y": 2.1, "z": 27.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_-1/objects/street-sidewalk-117780ff-streetlight-3",
+      "position": { "x": 30.6, "y": 2.1, "z": 27.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-4_-1/roads/asphalt-159e42f0",
+      "position": { "x": 2.625, "z": 31 },
+      "size": [193.25, 6.5],
+      "color": "#3a3a3f",
+      "layer": 2
+    },
+    {
+      "roadId": "c-4_-1/roads/sidewalk-117780ff",
+      "position": { "x": 13, "z": 26.5 },
+      "size": [64, 2.5],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [
+    {
+      "zoneId": "c-4_-1/zones/block-1cdfda1949",
+      "kind": "zombiePopulation",
+      "name": "Khu thương mại 1",
+      "shape": "rect",
+      "center": { "x": 13, "z": 6.5 },
+      "size": [58.4, 35.5]
+    }
+  ],
+  "spawns": [
+    {
+      "spawnId": "c-4_-1/spawns/zombie-1cdfda1949-1",
+      "kind": "zombie",
+      "position": { "x": 17.3, "z": 10.25 }
+    },
+    { "spawnId": "c-4_-1/spawns/zombie-1cdfda1949-2", "kind": "zombie", "position": { "x": 29.3, "z": 2.25 } }
+  ],
+  "externalRefs": [
+    { "id": "c-3_-1/lot-19730cd339", "ownerChunkId": "c-3_-1" },
+    { "id": "c-3_-2/lot-1cda359168", "ownerChunkId": "c-3_-2" },
+    { "id": "c-4_-2/lot-03a8fdbb6c", "ownerChunkId": "c-4_-2" },
+    { "id": "c-4_-2/lot-052697ae3c", "ownerChunkId": "c-4_-2" }
+  ]
+}

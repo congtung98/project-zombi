@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_5",
+  "cx": 1,
+  "cz": 5,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c1_5/objects/lake-lawn-1",
+      "shape": "rect",
+      "size": [44, 30],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 5 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c1_5/objects/lake-path-1",
+      "shape": "rect",
+      "size": [40, 2],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 18 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c1_5/objects/lake-bank-1",
+      "shape": "ellipse",
+      "size": [37, 23],
+      "material": "dirt",
+      "color": "#7b6546",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 5 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c1_5/objects/lake-water-1",
+      "shape": "ellipse",
+      "size": [34, 20],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 2,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 8, "z": 5 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_5/objects/lake-tree-1",
+      "position": { "x": 28, "z": 16 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c1_5/objects/lake-jetty-1",
+      "shape": "rect",
+      "size": [1.6, 4],
+      "material": "dirt",
+      "color": "#7a5f45",
+      "layer": 3,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 13.5 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c1_5/objects/lake-bench-1",
+      "position": { "x": 18, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}
