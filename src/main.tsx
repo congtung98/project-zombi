@@ -8,6 +8,12 @@ import { preloadStartupWorld } from './game/world/worldChoice'
  * game modules, whose runtime singleton is built on it at import.
  */
 async function main(): Promise<void> {
+  // C0 (character plan): dev-only character lab; production builds drop this branch.
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('lab') === 'characters') {
+    const { default: CharacterLab } = await import('./lab/CharacterLab')
+    createRoot(document.getElementById('root')!).render(<CharacterLab />)
+    return
+  }
   await preloadStartupWorld()
   const [{ App }, { runtime }] = await Promise.all([import('./app/App'), import('./game/core/runtime')])
 

@@ -55,7 +55,11 @@ function InputBridge() {
 
 /** Poses every character after the simulation tick (mounted after GameLoop). */
 function CharacterAnimator() {
-  useFrame((_, delta) => runAnimators(delta))
+  useFrame((_, delta) => {
+    const started = performance.now()
+    runAnimators(delta)
+    runtime.perf.gauge('animatorMs', performance.now() - started)
+  })
   return null
 }
 

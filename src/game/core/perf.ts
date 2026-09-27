@@ -42,6 +42,8 @@ export const PERF_GAUGES = [
   'drawCalls',
   'triangles',
   'sceneObjects',
+  /** C0 (character plan): milliseconds spent posing every character this frame (`runAnimators`). */
+  'animatorMs',
 ] as const
 export type PerfGauge = (typeof PERF_GAUGES)[number]
 
@@ -72,6 +74,8 @@ export interface FrameLog {
   cpuMs: number[]
   drawCalls: number[]
   triangles: number[]
+  /** C0: character posing time of the frame (ms). */
+  animatorMs: number[]
 }
 
 /** A frame log never holds more than this (a script that forgets to take it stops growing it). */
@@ -160,17 +164,18 @@ export class PerfMonitor {
       log.cpuMs.push(cpuMs)
       log.drawCalls.push(this.gauges.drawCalls)
       log.triangles.push(this.gauges.triangles)
+      log.animatorMs.push(this.gauges.animatorMs)
     }
   }
 
   /** Start logging every frame (a running log starts over). */
   startFrameLog(): void {
-    this.frameLog = { intervalMs: [], cpuMs: [], drawCalls: [], triangles: [] }
+    this.frameLog = { intervalMs: [], cpuMs: [], drawCalls: [], triangles: [], animatorMs: [] }
   }
 
   /** The frames since `startFrameLog` (empty when none was started); logging stops. */
   takeFrameLog(): FrameLog {
-    const log = this.frameLog ?? { intervalMs: [], cpuMs: [], drawCalls: [], triangles: [] }
+    const log = this.frameLog ?? { intervalMs: [], cpuMs: [], drawCalls: [], triangles: [], animatorMs: [] }
     this.frameLog = null
     return log
   }

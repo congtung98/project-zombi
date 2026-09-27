@@ -1,0 +1,221 @@
+{
+  "label": "c0",
+  "date": "2026-09-27T01:16:41.794Z",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+    "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002504) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "pixelRatio": 1,
+    "machine": {
+      "cpu": "11th Gen Intel(R) Core(TM) i5-11500 @ 2.70GHz",
+      "cores": 12,
+      "os": "win32 10.0.26200"
+    },
+    "browser": {
+      "version": "154.0.8037.57",
+      "headless": true,
+      "gpu": "ANGLE D3D11",
+      "uncapped": true
+    },
+    "settings": {
+      "shadows": "high",
+      "graphics": "medium",
+      "viewport": "1280x800",
+      "dpr": 1,
+      "zoom": 28,
+      "warmupMs": 2500,
+      "sampleMs": 6000
+    }
+  },
+  "densities": [
+    {
+      "zombies": 0,
+      "ai": {},
+      "frameMs": {
+        "n": 2368,
+        "mean": 2.54,
+        "median": 2.2,
+        "p95": 5.2,
+        "max": 12.3
+      },
+      "cpuMs": {
+        "n": 2368,
+        "mean": 1.82,
+        "median": 1.6,
+        "p95": 3.7,
+        "max": 6.4
+      },
+      "animatorMs": {
+        "n": 2368,
+        "mean": 0.01,
+        "median": 0,
+        "p95": 0.1,
+        "max": 0.2
+      },
+      "drawCalls": {
+        "n": 2368,
+        "mean": 64,
+        "median": 64,
+        "p95": 64,
+        "max": 64
+      },
+      "triangles": {
+        "n": 2368,
+        "mean": 20328,
+        "median": 20328,
+        "p95": 20328,
+        "max": 20328
+      },
+      "characters": {
+        "characters": 1,
+        "shown": 1,
+        "meshes": 10,
+        "skinned": 0,
+        "visibleMeshes": 10,
+        "shadowCasters": 4,
+        "materials": 5,
+        "geometries": 1,
+        "triangles": 120
+      },
+      "memory": {
+        "geometries": 34,
+        "textures": 29,
+        "programs": 11
+      }
+    },
+    {
+      "zombies": 10,
+      "ai": {
+        "ATTACK": 8,
+        "WANDER": 2
+      },
+      "frameMs": {
+        "n": 1361,
+        "mean": 4.42,
+        "median": 3.8,
+        "p95": 8.4,
+        "max": 22.5
+      },
+      "cpuMs": {
+        "n": 1361,
+        "mean": 3.53,
+        "median": 3.1,
+        "p95": 6.7,
+        "max": 13.4
+      },
+      "animatorMs": {
+        "n": 1361,
+        "mean": 0.11,
+        "median": 0.1,
+        "p95": 0.2,
+        "max": 0.6
+      },
+      "drawCalls": {
+        "n": 1361,
+        "mean": 204.73,
+        "median": 206,
+        "p95": 206,
+        "max": 206
+      },
+      "triangles": {
+        "n": 1361,
+        "mean": 22016.75,
+        "median": 22032,
+        "p95": 22032,
+        "max": 22032
+      },
+      "characters": {
+        "characters": 11,
+        "shown": 11,
+        "meshes": 112,
+        "skinned": 0,
+        "visibleMeshes": 112,
+        "shadowCasters": 44,
+        "materials": 55,
+        "geometries": 1,
+        "triangles": 1344
+      },
+      "memory": {
+        "geometries": 34,
+        "textures": 29,
+        "programs": 11
+      }
+    },
+    {
+      "zombies": 30,
+      "ai": {
+        "ATTACK": 10,
+        "CHASE": 12,
+        "WANDER": 4,
+        "IDLE": 4
+      },
+      "frameMs": {
+        "n": 899,
+        "mean": 6.7,
+        "median": 6.3,
+        "p95": 10.3,
+        "max": 22.9
+      },
+      "cpuMs": {
+        "n": 899,
+        "mean": 5.74,
+        "median": 5.4,
+        "p95": 8.7,
+        "max": 15.8
+      },
+      "animatorMs": {
+        "n": 899,
+        "mean": 0.24,
+        "median": 0.2,
+        "p95": 0.4,
+        "max": 0.6
+      },
+      "drawCalls": {
+        "n": 899,
+        "mean": 446.64,
+        "median": 454,
+        "p95": 468,
+        "max": 468
+      },
+      "triangles": {
+        "n": 899,
+        "mean": 24919.62,
+        "median": 25008,
+        "p95": 25176,
+        "max": 25176
+      },
+      "characters": {
+        "characters": 31,
+        "shown": 28,
+        "meshes": 321,
+        "skinned": 0,
+        "visibleMeshes": 291,
+        "shadowCasters": 112,
+        "materials": 140,
+        "geometries": 1,
+        "triangles": 3492
+      },
+      "memory": {
+        "geometries": 34,
+        "textures": 29,
+        "programs": 11
+      }
+    }
+  ],
+  "lifecycle": {
+    "cycles": 8,
+    "zombiesPerCycle": 20,
+    "before": {
+      "geometries": 34,
+      "textures": 29,
+      "programs": 11,
+      "heap": 90892435
+    },
+    "after": {
+      "geometries": 34,
+      "textures": 29,
+      "programs": 11,
+      "heap": 106790104
+    }
+  },
+  "errors": []
+}
