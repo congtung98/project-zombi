@@ -20,7 +20,9 @@ import {
 import type { Rect, XZ } from '../map/schema'
 import { dragPrefabHandle, dragRecordHandle, FOOTPRINT_KEY, prefabItemHandles, recordHandles, type Handle, type HandleKey } from '../map/editor/handles'
 import { chunkIdOf, chunkIndex, chunkOrigin } from '../map/transform'
-import { useEditorStore, type PlaceItem } from './editorStore'
+import { sharedLibrary, useEditorStore, type PlaceItem } from './editorStore'
+import { documentGroups, expandToGroups, fullGroups, groupOf } from '../map/editor/groups'
+import { groupRecords, placeCompound, ungroup } from '../map/editor/library'
 
 /**
  * Editor actions shared by the viewport, toolbar and hotkeys. They read the store directly
@@ -56,11 +58,17 @@ export function editElevation(): number {
 function placeCommand(doc: MapDocument, item: PlaceItem, from: XZ, to: XZ | null): CommandResult {
   if (item.kind === 'prefab') return placeInstance(doc, item.prefabId, from, store().placeTurns)
   if (item.kind === 'prefabItem') return placePrefabItem(doc, store().prefabMode ?? '', item.presetId, from, to, store().placeTurns, activeFloor())
+  if (item.kind === 'compound') {
+    // P1: a compound of the shared library, expanded into records and a group (its prefabs imported if needed).
+    const lib = sharedLibrary(doc)
+    return lib ? placeCompound(doc, lib, item.compoundId, from, store().placeTurns) : { ok: false, error: 'Không có thư viện prefab chung' }
+  }
   return placeRecord(doc, item.presetId, from, to)
 }
 
 export function placeLabel(item: PlaceItem): string {
   if (item.kind === 'prefab') return `Đặt ${item.prefabId}`
+  if (item.kind === 'compound') return `Đặt compound ${item.compoundId}`
   if (item.kind === 'prefabItem') return `Đặt ${findPrefabPreset(item.presetId)?.label ?? item.presetId} (prefab)`
   return `Đặt ${findPreset(item.presetId)?.label ?? item.presetId}`
 }
@@ -95,6 +103,37 @@ export function pickAt(g: XZ): string | null {
     return prefab ? (pickPrefabItem(itemsOnFloor(prefabItems(prefab), activeFloor()), g)?.key ?? null) : null
   }
   return pickRecord(resolvedRecords(s.edit.doc), g, (r) => !isEditable(r, s.layers))?.id ?? null
+}
+
+/**
+ * P1: what a click or box selects in world mode: a member of a group selects the whole group, unless
+ * Alt is held (edit one member of a compound). Prefab mode has no groups.
+ */
+export function withGroups(ids: readonly string[], alt: boolean): string[] {
+  const s = store()
+  if (!s.edit || prefabMode() || alt) return [...ids]
+  return expandToGroups(s.edit.doc, ids)
+}
+
+/** Ctrl+G: group the selected records (a plain group; "Lưu thành compound" links it to a compound). */
+export function groupSelection(): void {
+  const s = store()
+  if (!s.edit || prefabMode()) return
+  const n = documentGroups(s.edit.doc).length + 1
+  s.run('Nhóm', (doc, sel) => groupRecords(doc, sel, `Nhóm ${n}`))
+}
+
+/** Ctrl+Shift+G: drop the groups the selection covers; the records stay. */
+export function ungroupSelection(): void {
+  const s = store()
+  if (!s.edit || prefabMode()) return
+  const groups = fullGroups(s.edit.doc, s.edit.selection)
+  const one = groups[0] ?? (s.edit.selection.length === 1 ? groupOf(s.edit.doc, s.edit.selection[0]) : null)
+  if (!one) {
+    s.setStatus('Vùng chọn không phải một nhóm', 'error')
+    return
+  }
+  s.run(`Rã nhóm ${one.name}`, (doc) => ungroup(doc, one.groupId))
 }
 
 /** Selection box (M4, prefab items since M5): keys entirely inside `rect`. */

@@ -1,4 +1,4 @@
-import { BatchedMesh, BoxGeometry, Color, ConeGeometry, CylinderGeometry, DoubleSide, Euler, FrontSide, Matrix4, MeshStandardMaterial, PlaneGeometry, Quaternion, RingGeometry, SphereGeometry, Vector3, type BufferGeometry, type Material } from 'three'
+import { BatchedMesh, BoxGeometry, CircleGeometry, Color, ConeGeometry, CylinderGeometry, DoubleSide, Euler, FrontSide, Matrix4, MeshStandardMaterial, PlaneGeometry, Quaternion, RingGeometry, SphereGeometry, Vector3, type BufferGeometry, type Material } from 'three'
 import type { ResolvedRecord } from '../map/resolve'
 import { outlineRects } from '../map/polygon'
 import { TREE_TRUNK_COLOR, treeProfile } from '../game/world/trees'
@@ -18,6 +18,8 @@ import type { FurnitureLook } from '../game/world/buildings'
 
 const BOX = new BoxGeometry(1, 1, 1)
 const PLANE = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
+/** Prefab library P1: an ellipse surface (unit disc scaled to its size). */
+const DISC = new CircleGeometry(0.5, 32).rotateX(-Math.PI / 2)
 const MARKER = new CylinderGeometry(0.35, 0.35, 1.2, 12)
 const RING = new RingGeometry(0.92, 1, 48).rotateX(-Math.PI / 2)
 /** Zone centre marker (zones are picked at their outline or centre). */
@@ -29,7 +31,7 @@ export /** M9 trees: unit trunk, round crown and pine cone (scaled per tree). */
 const TRUNK = new CylinderGeometry(0.5, 0.5, 1, 8)
 const CROWN = new SphereGeometry(0.5, 9, 6)
 const CONE = new ConeGeometry(0.5, 1, 10)
-export const GEOMETRIES = { box: BOX, plane: PLANE, marker: MARKER, ring: RING, dot: DOT, trunk: TRUNK, crown: CROWN, cone: CONE } as const
+export const GEOMETRIES = { box: BOX, plane: PLANE, disc: DISC, marker: MARKER, ring: RING, dot: DOT, trunk: TRUNK, crown: CROWN, cone: CONE } as const
 type GeometryKey = keyof typeof GEOMETRIES
 /** solid: opaque; glass: window panes; zone: zone outlines (translucent, both sides). */
 export type Pass = 'solid' | 'glass' | 'zone'
@@ -77,6 +79,8 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
     else add('plane', 'solid', b.floorColor, [b.center.x, 0.02, b.center.z], [b.size.w, 1, b.size.d])
   }
   for (const r of p.roads ?? []) add('plane', 'solid', r.color, [r.position.x, roadY(r.layer), r.position.z], [r.size[0], 1, r.size[1]])
+  // Prefab library P1: surfaces half a millimetre over a road of the same layer, like the game.
+  for (const s of p.surfaces ?? []) add(s.shape === 'ellipse' ? 'disc' : 'plane', 'solid', s.color, [s.position.x, roadY(s.layer) + 0.0005, s.position.z], [s.size[0], 1, s.size[1]])
   const trunks = new Set((p.trees ?? []).map((t) => t.id))
   // G5: the record's house variant (its palette and furniture looks) and its walls (automatic facings).
   const house = p.buildings?.[0]?.variant
@@ -96,7 +100,7 @@ export function drawItems(record: ResolvedRecord): DrawItem[] {
     return true
   }
   for (const w of p.walls ?? []) {
-    if (trunks.has(w.id)) continue
+    if (trunks.has(w.id) || w.hidden) continue
     if (w.visual && furnished(w, w.visual, w.color ?? '#8a8580')) continue
     add('box', 'solid', tone(w.color ?? '#8a8580'), [w.position.x, w.position.y, w.position.z], [...w.size])
   }

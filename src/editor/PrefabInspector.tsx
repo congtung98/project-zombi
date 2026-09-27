@@ -5,10 +5,11 @@ import { instancesOf, type AnyRecord, type MapDocument } from '../map/editor/doc
 import { wallRunBoxes } from '../map/resolve'
 import type { PrefabDocument, PrefabObject, QuarterTurns, Rect, RoomObject, XZ } from '../map/schema'
 import { OPTS, useEditorStore } from './editorStore'
-import { DecorFields, FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
+import { DecorFields, FurnitureFields, NumField, ReadField, SurfaceFields, TextField, TreeFields } from './fields'
 import { VARIANT_IDS, VARIANTS } from '../game/rendering/variants'
 import { SURFACES, type SurfaceId } from '../game/rendering/surfaces/catalog'
 import { confirmStateful, deleteSelection, duplicateSelection, rotateSelection } from './interaction'
+import { PrefabLibraryFields } from './LibraryPanel'
 
 /**
  * Inspector of the prefab editor (M5). Every change goes through the prefab commands (one history
@@ -30,6 +31,7 @@ const KIND_LABEL: Record<string, string> = {
   window: 'Cửa sổ',
   room: 'Phòng',
   lamp: 'Đèn + công tắc',
+  surface: 'Mặt nền (sân, lối đi, hồ)',
 }
 
 function Turns({ value, onChange }: { value: number; onChange: (q: QuarterTurns) => void }) {
@@ -176,6 +178,7 @@ function PrefabProps({ doc, prefab }: { doc: MapDocument; prefab: PrefabDocument
         ))}
       </div>
       <p className="hint">Mỗi instance hiện một biến thể (chọn ở Inspector của instance, không chọn thì theo seed ổn định). Biến thể đổi màu, đồ trang trí và kiểu đồ đạc; không đổi va chạm hay loot.</p>
+      <PrefabLibraryFields doc={doc} prefab={prefab} />
       <ReadField label="Pivot" value={`(${prefab.pivot.x}, ${prefab.pivot.z}) — chấm hồng`} />
       <ReadField label="Local ID đã xóa" value={String(prefab.retiredLocalIds?.length ?? 0)} />
       <p className="hint">
@@ -350,6 +353,15 @@ function ObjectFields({ object: o, prefab, patch }: { object: PrefabObject; pref
           Cầu thang leo theo +X của khung (xoay 0°), lên một tầng; đầu dưới mở ở tầng dưới, đầu trên mở ra sàn tầng trên. Kéo hai ô vuông ở chân/đỉnh để đổi độ dài; chỗ bước lên/xuống (0,9 m sau mỗi đầu)
           phải trống.
         </p>
+      </>
+    )
+  }
+  if (o.kind === 'surface') {
+    return (
+      <>
+        <NumField label="X (tâm)" value={o.position.x} onCommit={(x) => patch('Di chuyển', { position: { ...o.position, x } })} />
+        <NumField label="Z (tâm)" value={o.position.z} onCommit={(z) => patch('Di chuyển', { position: { ...o.position, z } })} />
+        <SurfaceFields surface={o} patch={patch} />
       </>
     )
   }

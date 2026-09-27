@@ -180,6 +180,20 @@ npm run map:generate -- --seed 3 --blocks 16x16 --layout varied --world-id big-t
 
   Chi tiết: `docs/world-generator-wg6.md`.
 
+## 6b. Thư viện prefab chung (P1)
+
+- Tab **Prefab → Thư viện chung**: prefab và compound của world `prefab-library`, lọc theo loại, nhóm, phong cách.
+  - **Thêm vào world** chép một bản; world không tự đổi theo thư viện.
+  - Trùng ID với prefab khác: **Nhập với ID mới** (hoặc **Liên kết** nếu giống hệt).
+  - Thư viện có bản mới: **Xem cập nhật…** → xem trước → **Áp dụng**. Bị chặn nếu bản của world đã sửa hoặc mất ID cửa/tủ/cửa sổ/đèn, trừ khi bạn tick đồng ý.
+- **Compound**: click rồi click viewport (R xoay trước). Thành các record thường cộng một nhóm.
+  - Click chọn cả nhóm, **Alt+click** chọn một phần để sửa riêng.
+  - Ctrl+G nhóm vùng chọn, Ctrl+Shift+G rã nhóm.
+  - Inspector nhóm: xoay, nhân bản, xóa, rã nhóm, **Lưu thành compound…**. Trong world `prefab-library`, compound vào thư viện sau khi xuất và map:unpack.
+- **Mặt nền (surface)**: tab Nền có bãi cỏ, sân, lối đi, bãi đỗ, hồ. Inspector chỉnh vật liệu, hình, lớp vẽ, va chạm và điều hướng; nước chắn người chơi và zombie, vẫn nhìn qua được.
+
+  Chi tiết: `docs/prefab-library-p1.md`.
+
 ## 7. Quy tắc cần nhớ
 
 - **ID là vĩnh viễn**:

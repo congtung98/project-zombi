@@ -1,6 +1,7 @@
-import type { RecordCategory, XZ } from '../schema.ts'
+import type { RecordCategory, SurfaceMaterial, SurfaceObject, XZ } from '../schema.ts'
 import { quantize } from '../transform.ts'
 import type { AnyRecord } from './document.ts'
+import { surfaceTemplate } from './surfaces.ts'
 
 /**
  * Placeable records of the world-authoring palette (M4): standalone objects, road/ground surfaces,
@@ -27,7 +28,25 @@ export interface RecordPreset {
   name: string
   drag: DragMode
   template: AnyRecord
+  /** Palette tab listing it when not its category's (surface objects are listed with the ground surfaces). */
+  tab?: PresetCategory
 }
+
+/**
+ * Prefab library P1: ground surface presets of the world palette ("Nền" tab) and the prefab palette:
+ * name, label, material, shape, size [X, Z], draw layer and field overrides.
+ */
+export const SURFACE_PRESETS: readonly [string, string, SurfaceMaterial, SurfaceObject['shape'], [number, number], number, Partial<SurfaceObject>?][] = [
+  ['lawn', 'Bãi cỏ', 'grass', 'rect', [8, 8], 0],
+  ['yard', 'Sân bê tông', 'concrete', 'rect', [8, 8], 0],
+  ['plaza', 'Sân gạch lát', 'tile', 'rect', [6, 6], 0],
+  ['parking', 'Bãi đỗ xe (nhựa)', 'asphalt', 'rect', [12, 8], 0],
+  ['path', 'Lối đi bê tông', 'concrete', 'rect', [1.5, 8], 1],
+  ['dirt', 'Nền đất', 'dirt', 'rect', [6, 6], 0],
+  ['pond', 'Hồ nước (elip)', 'water', 'ellipse', [12, 8], 1],
+  ['pool', 'Mặt nước chữ nhật', 'water', 'rect', [8, 4], 1],
+  ['flowerbed', 'Bồn cỏ (zombie đi vòng)', 'grass', 'ellipse', [3, 3], 1, { navigation: 'blocked' }],
+]
 
 /** Box template with keys in content-file order (kind, name, position, size, color, lootTableId). */
 const box = (kind: 'wall' | 'prop' | 'container', size: [number, number, number], color: string, container?: { name: string; lootTableId?: string }): AnyRecord => ({
@@ -73,6 +92,16 @@ export const RECORD_PRESETS: readonly RecordPreset[] = [
   { id: 'object/tree', category: 'objects', label: 'Cây tán tròn', name: 'tree', drag: 'point', template: TREE_TEMPLATES.round },
   { id: 'object/pine', category: 'objects', label: 'Cây thông', name: 'pine', drag: 'point', template: TREE_TEMPLATES.pine },
   { id: 'object/bin', category: 'objects', label: 'Thùng rỗng (container)', name: 'bin', drag: 'point', template: box('container', [0.8, 1, 0.8], '#4f6b4a', { name: 'Thùng' }) },
+
+  ...SURFACE_PRESETS.map(([name, label, material, shape, size, layer, extra]): RecordPreset => ({
+    id: `ground/${name}`,
+    category: 'objects',
+    tab: 'roads',
+    label,
+    name,
+    drag: 'rect',
+    template: { ...surfaceTemplate(material, shape, size, layer), ...extra, position: { x: 0, z: 0 } },
+  })),
 
   { id: 'surface/asphalt', category: 'roads', label: 'Đường nhựa', name: 'road', drag: 'rect', template: { position: { x: 0, z: 0 }, size: [4, 16], color: '#3a3a3f' } },
   { id: 'surface/sidewalk', category: 'roads', label: 'Vỉa hè', name: 'sidewalk', drag: 'rect', template: { position: { x: 0, z: 0 }, size: [2, 16], color: '#8c8a84' } },

@@ -3,7 +3,7 @@ import { chunkIdOf, chunkIndex } from '../transform.ts'
 import type { ValidationOptions } from '../validate.ts'
 import { resolvedRecords, withExternalRefs, type AnyRecord, type MapDocument } from '../editor/document.ts'
 import { fitPrefab, placeBuildings, prefabCatalog, setParcelPrefab, type PrefabCatalog } from './buildings.ts'
-import { byString, hashText } from './geometry.ts'
+import { byString, canonicalJson, hashText } from './geometry.ts'
 import { checkWorldLayout, LayoutImportError } from './importer.ts'
 import { buildLayoutWorld, type LayoutWorldOptions } from './layoutWorld.ts'
 import { parcelRect } from './parcels.ts'
@@ -40,17 +40,8 @@ const REROLLS = 8
 
 // ---- Hashing ----
 
-/** JSON with object keys sorted (undefined members skipped like `JSON.stringify`). */
-export function canonicalJson(v: unknown): string {
-  if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null'
-  if (Array.isArray(v)) return `[${v.map((x) => (x === undefined ? 'null' : canonicalJson(x))).join(',')}]`
-  const o = v as Record<string, unknown>
-  return `{${Object.keys(o)
-    .filter((k) => o[k] !== undefined)
-    .sort()
-    .map((k) => `${JSON.stringify(k)}:${canonicalJson(o[k])}`)
-    .join(',')}}`
-}
+/** JSON with object keys sorted (moved to `geometry.ts`, shared with the prefab library). */
+export { canonicalJson }
 
 /** Hash of a record as stored in its owner chunk: moving, resizing or editing any field changes it. */
 export function recordHash(chunkId: string, record: object): string {
@@ -526,7 +517,9 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
         if (!overwrite) for (const s of status.records.values()) if (s.parcel && (s.modified === 'edited' || s.modified === 'deleted')) edited.add(s.parcel)
         const keep = (plan0?.parcels ?? []).filter((q) => q.locked || (!overwrite && (q.build?.source === 'manual' || edited.has(q.id))))
         const params = { ...(plan0?.params ?? {}), ...request.params }
-        if (plan0 && canonicalJson(params) === canonicalJson(plan0.params)) {
+        // P1: the architecture style only chooses buildings; it never changes the parcels.
+        const lots = (p: Partial<PlanParams>) => canonicalJson({ ...p, architectureStyle: undefined, styleByZone: undefined })
+        if (plan0 && lots(params) === lots(plan0.params)) {
           // Same plan parameters: the same parcels (a replan would cut the blocks around the kept ones
           // differently); only the buildings of the parcels not kept are decided again.
           const kept = new Set(keep.map((q) => q.id))
@@ -538,6 +531,7 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
               return rest
             }),
           }
+          plan1 = { ...plan1, params: params as PlanParams }
         } else {
           plan1 = planLayout(layout, params, { keep })
           if (plan0?.catalog) plan1 = { ...plan1, catalog: plan0.catalog }

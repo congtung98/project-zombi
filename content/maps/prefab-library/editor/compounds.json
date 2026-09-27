@@ -1,0 +1,28 @@
+{
+  "format": "zombie-outbreak/compound-groups",
+  "version": 1,
+  "groups": [
+    {
+      "groupId": "garden-house-1",
+      "name": "Nhà vườn có ao (mẫu)",
+      "compoundId": "compound/garden-house",
+      "source": {
+        "library": "prefab-library",
+        "id": "compound/garden-house",
+        "version": 1,
+        "hash": "cyrb53:05b060f4b1ba87"
+      },
+      "pivot": { "x": 49, "z": 14 },
+      "quarterTurns": 0,
+      "members": [
+        { "member": "house", "id": "c1_0/house-1", "hash": "cyrb53:1c27a9de2af00f" },
+        { "member": "lawn", "id": "c1_0/objects/lawn-1", "hash": "cyrb53:0d7a7faf15ef68" },
+        { "member": "path", "id": "c1_0/objects/path-1", "hash": "cyrb53:0199b4f349d987" },
+        { "member": "pond", "id": "c1_0/objects/pond-1", "hash": "cyrb53:0073e21d026d6e" },
+        { "member": "fence", "id": "c1_0/objects/fence-1", "hash": "cyrb53:145b8c951587c5" },
+        { "member": "tree", "id": "c1_0/objects/tree-1", "hash": "cyrb53:1adf828ecae823" },
+        { "member": "pine", "id": "c1_0/objects/pine-1", "hash": "cyrb53:017629d3252428" }
+      ]
+    }
+  ]
+}

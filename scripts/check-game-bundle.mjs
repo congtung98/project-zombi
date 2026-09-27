@@ -25,6 +25,9 @@ const MARKERS = [
   ['world generator / layout file', 'zombie-outbreak/world-layout'],
   ['world generator sync (WG4)', 'trùng ID với record đặt tay'],
   ['reference tracing (WG6)', 'zombie-outbreak/layout-reference'],
+  // Prefab library P1: the shared library, compounds and editor groups stay out of the game.
+  ['editor groups (P1)', 'zombie-outbreak/compound-groups'],
+  ['shared prefab library (P1)', 'Thư viện dùng lại local ID'],
 ]
 const files = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(d, e.name)) : [join(d, e.name)]))
 const list = files(dir).filter((f) => /\.(js|html|css)$/.test(f))

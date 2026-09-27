@@ -162,5 +162,6 @@
     "sideGap": 1,
     "roadFacing": true,
     "frontage": [15, 60]
-  }
+  },
+  "catalog": { "group": "commercial", "architectureStyle": "vietnamese", "tags": ["cua-hang", "nha-pho"] }
 }

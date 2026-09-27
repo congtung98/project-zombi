@@ -268,5 +268,6 @@
     "sideGap": 1,
     "roadFacing": true,
     "frontage": [12, 60]
-  }
+  },
+  "catalog": { "group": "commercial", "tags": ["cua-hang", "tap-hoa"] }
 }

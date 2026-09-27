@@ -1,5 +1,7 @@
 import {
+  ARCHITECTURE_STYLES,
   LAND_USE_ZONES,
+  LIBRARY_GROUPS,
   MAP_SCHEMA_VERSION,
   MAX_STOREYS,
   PREFAB_CATEGORIES,
@@ -8,6 +10,7 @@ import {
   RESERVED_INSTANCE_NAMES,
   recordId,
   SURFACE_LAYER_MAX,
+  SURFACE_MATERIALS,
   type ChunkDocument,
   type ChunkEntry,
   type ExternalRef,
@@ -102,6 +105,24 @@ function checkPlacement(c: Checker, v: unknown): void {
       c.xz(a.position, `/placement/anchors/${i}/position`)
     })
   }
+}
+
+/** Prefab library P1: how the shared library lists a prefab or compound. */
+function checkCatalog(c: Checker, v: unknown, p: string): void {
+  if (!c.obj(v, p)) return
+  c.oneOf(v.group, LIBRARY_GROUPS, `${p}/group`)
+  if (v.architectureStyle !== undefined) c.oneOf(v.architectureStyle, ARCHITECTURE_STYLES, `${p}/architectureStyle`)
+  if (v.tags !== undefined && c.arr(v.tags, `${p}/tags`)) v.tags.forEach((t, i) => c.str(t, `${p}/tags/${i}`, SLUG))
+  if (v.description !== undefined) c.str(v.description, `${p}/description`)
+}
+
+/** Prefab library P1: provenance of a world's copy of a library prefab. */
+function checkSource(c: Checker, v: unknown, p: string): void {
+  if (!c.obj(v, p)) return
+  c.str(v.library, `${p}/library`, SLUG)
+  c.str(v.id, `${p}/id`, PREFAB_ID)
+  c.num(v.version, `${p}/version`, { int: true, min: 1 })
+  c.str(v.hash, `${p}/hash`)
 }
 
 class Checker {
@@ -309,6 +330,46 @@ function checkTree(c: Checker, o: Obj, p: string): void {
   c.oneOf(o.style, ['round', 'pine'], `${p}/style`)
 }
 
+/**
+ * Prefab library P1: a surface object (shape, size, material, colour, layer, collision, navigation).
+ * A solid surface must be blocked for navigation (else zombies would walk into what stops the player).
+ */
+function checkSurface(c: Checker, o: Obj, p: string, entityId: string): void {
+  if (o.level !== undefined) c.error('level-not-allowed', `${p}/level`, 'surfaces lie on the ground (no level)', entityId)
+  c.xz(o.position, `${p}/position`)
+  c.size(o.size, `${p}/size`, 2)
+  c.oneOf(o.shape, ['rect', 'ellipse'], `${p}/shape`)
+  c.oneOf(o.material, SURFACE_MATERIALS, `${p}/material`)
+  c.color(o.color, `${p}/color`)
+  if (o.layer !== undefined) c.num(o.layer, `${p}/layer`, { int: true, min: 0, max: SURFACE_LAYER_MAX })
+  const collision = c.oneOf(o.collision, ['none', 'solid'], `${p}/collision`)
+  const navigation = c.oneOf(o.navigation, ['walkable', 'blocked'], `${p}/navigation`)
+  if (collision && navigation && o.collision === 'solid' && o.navigation !== 'blocked') {
+    c.error('surface-solid-walkable', `${p}/navigation`, `surface "${entityId}" is solid but walkable for navigation (zombies would walk into it): set navigation to blocked`, entityId)
+  }
+}
+
+/** Prefab library P1: surfaces of one prefab overlapping on one layer with another colour flicker (they share one height). */
+function checkSurfaceOverlaps(c: Checker, objects: readonly Obj[]): void {
+  const rect = (o: Obj) => {
+    const p = o.position as { x?: unknown; z?: unknown } | undefined
+    const s = o.size as unknown[] | undefined
+    if (typeof p?.x !== 'number' || typeof p.z !== 'number' || !Array.isArray(s) || typeof s[0] !== 'number' || typeof s[1] !== 'number') return null
+    return { minX: p.x - s[0] / 2, maxX: p.x + s[0] / 2, minZ: p.z - s[1] / 2, maxZ: p.z + s[1] / 2 }
+  }
+  const surfaces = objects.map((o, i) => ({ o, i, r: o.kind === 'surface' ? rect(o) : null })).filter((s) => s.r)
+  for (let a = 0; a < surfaces.length; a++) {
+    for (let b = a + 1; b < surfaces.length; b++) {
+      const A = surfaces[a]
+      const B = surfaces[b]
+      if ((A.o.layer ?? 0) !== (B.o.layer ?? 0) || String(A.o.color).toLowerCase() === String(B.o.color).toLowerCase()) continue
+      if (A.r!.minX < B.r!.maxX && B.r!.minX < A.r!.maxX && A.r!.minZ < B.r!.maxZ && B.r!.minZ < A.r!.maxZ) {
+        c.issue('warning', 'surface-overlap', `/objects/${B.i}/layer`, `surface "${String(B.o.localId)}" overlaps "${String(A.o.localId)}" with another colour on the same layer (they share one height and flicker; set a different layer)`)
+      }
+    }
+  }
+}
+
 function checkBox(c: Checker, o: Obj, p: string): void {
   c.xyz(o.position, `${p}/position`)
   c.size(o.size, `${p}/size`, 3)
@@ -455,7 +516,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       const entityId = `${entry.prefabId}:${String(o.localId)}`
       if (o.kind === 'tree') {
         if (o.level !== undefined) c.error('level-not-allowed', `${p}/level`, 'trees stand on the ground (no level)')
-      } else checkLevel(o.level, `${p}/level`)
+      } else if (o.kind !== 'surface') checkLevel(o.level, `${p}/level`)
       switch (o.kind) {
         case 'wall':
           checkBox(c, o, p)
@@ -474,6 +535,9 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
           break
         case 'decor':
           checkDecor(c, o, p, entityId)
+          break
+        case 'surface':
+          checkSurface(c, o, p, entityId)
           break
         case 'door':
           doors++
@@ -549,7 +613,10 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
   if (doc.visual !== undefined && c.obj(doc.visual, '/visual') && doc.visual.variants !== undefined && c.arr(doc.visual.variants, '/visual/variants')) {
     doc.visual.variants.forEach((v, i) => c.oneOf(v, VARIANT_IDS, `/visual/variants/${i}`))
   }
-  if (Array.isArray(doc.objects)) checkDecorPlacement(c, doc.objects as Obj[])
+  if (Array.isArray(doc.objects)) {
+    checkDecorPlacement(c, doc.objects as Obj[])
+    checkSurfaceOverlaps(c, doc.objects as Obj[])
+  }
   if (c.arr(doc.rooms, '/rooms')) {
     if (doc.rooms.length > 0 && !building) c.error('rooms-need-building', '/rooms', 'rooms need building properties (ceiling height)')
     doc.rooms.forEach((r, i) => {
@@ -582,6 +649,8 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
   }
   if (building && doors === 0) c.issue('warning', 'building-no-entrance', '/objects', `building ${entry.prefabId} has no door`)
   if (doc.placement !== undefined) checkPlacement(c, doc.placement)
+  if (doc.catalog !== undefined) checkCatalog(c, doc.catalog, '/catalog')
+  if (doc.source !== undefined) checkSource(c, doc.source, '/source')
   if (doc.retiredLocalIds !== undefined && c.arr(doc.retiredLocalIds, '/retiredLocalIds')) {
     const seen = new Set<string>()
     doc.retiredLocalIds.forEach((id, i) => {
@@ -591,6 +660,63 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
       if (localIds.has(id)) c.error('retired-id-reused', `/retiredLocalIds/${i}`, `local ID "${id}" was deleted from ${entry.prefabId} and cannot be used again`, `${entry.prefabId}:${id}`)
     })
   }
+  return c.issues
+}
+
+/** Object kinds a compound prefab may hold (the chunk object kinds). */
+const COMPOUND_OBJECT_KINDS = ['wall', 'prop', 'container', 'tree', 'decor', 'surface'] as const
+
+/**
+ * Prefab library P1: a compound prefab file (`compounds/<name>.json` of the library world). Its
+ * buildings must be prefabs of `prefabs` when given; its objects are checked like chunk objects.
+ * Editor and library content only: the game never loads compounds.
+ */
+export function validateCompoundDocument(doc: unknown, file: string, opts: ValidationOptions & { prefabs?: ReadonlySet<string> } = {}): ValidationIssue[] {
+  const c = new Checker(file)
+  if (!c.obj(doc, '')) return c.issues
+  if (!c.schemaVersion(doc.schemaVersion)) return c.issues
+  c.str(doc.compoundId, '/compoundId', PREFAB_ID)
+  c.num(doc.contentVersion, '/contentVersion', { int: true, min: 1 })
+  c.str(doc.name, '/name')
+  c.rect(doc.footprint, '/footprint')
+  if (doc.catalog !== undefined) checkCatalog(c, doc.catalog, '/catalog')
+  if (doc.placement !== undefined) checkPlacement(c, doc.placement)
+  const members = new Set<string>()
+  const claim = (m: unknown, path: string) => {
+    if (!c.str(m, path, SLUG)) return
+    if (members.has(m)) c.error('duplicate-id', path, `member "${m}" used twice in ${String(doc.compoundId)}`)
+    members.add(m)
+  }
+  if (c.arr(doc.instances, '/instances')) {
+    doc.instances.forEach((r, i) => {
+      const p = `/instances/${i}`
+      if (!c.obj(r, p)) return
+      claim(r.member, `${p}/member`)
+      if (c.str(r.prefabId, `${p}/prefabId`, PREFAB_ID) && opts.prefabs && !opts.prefabs.has(r.prefabId)) c.error('unknown-prefab', `${p}/prefabId`, `prefab ${r.prefabId} is not in the library`)
+      c.xyz(r.position, `${p}/position`)
+      c.quarter(r.quarterTurns, `${p}/quarterTurns`)
+      if (r.visual !== undefined && c.obj(r.visual, `${p}/visual`) && r.visual.variantId !== undefined) c.oneOf(r.visual.variantId, VARIANT_IDS, `${p}/visual/variantId`)
+    })
+  }
+  if (c.arr(doc.objects, '/objects')) {
+    doc.objects.forEach((r, i) => {
+      const p = `/objects/${i}`
+      if (!c.obj(r, p)) return
+      claim(r.member, `${p}/member`)
+      const id = `${String(doc.compoundId)}:${String(r.member)}`
+      if (!c.oneOf(r.kind, COMPOUND_OBJECT_KINDS, `${p}/kind`)) return
+      if (r.level !== undefined) c.error('level-not-allowed', `${p}/level`, 'compound objects stand on the ground (storeys belong to prefabs)', id)
+      if (r.kind === 'surface') checkSurface(c, { ...r, level: undefined }, p, id)
+      else if (r.kind === 'decor') checkDecor(c, r, p, id)
+      else if (r.kind === 'tree') checkTree(c, r, p)
+      else {
+        checkBox(c, r, p)
+        if (r.kind === 'container') checkContainerFields(c, r, p, opts, id)
+        if (r.kind === 'prop' || r.kind === 'container') checkFurnitureVisual(c, r.visual, `${p}/visual`, id)
+      }
+    })
+  }
+  if (Array.isArray(doc.instances) && Array.isArray(doc.objects) && doc.instances.length + doc.objects.length === 0) c.error('empty-compound', '', `${String(doc.compoundId)} has no members`)
   return c.issues
 }
 
@@ -636,8 +762,13 @@ export function validateChunkDocument(doc: unknown, entry: ChunkEntry, world: Wo
           if (r.visual !== undefined && c.obj(r.visual, `${p}/visual`) && r.visual.variantId !== undefined) c.oneOf(r.visual.variantId, VARIANT_IDS, `${p}/visual/variantId`)
           break
         case 'objects':
-          if (!c.oneOf(r.kind, ['wall', 'prop', 'container', 'tree', 'decor'], `${p}/kind`)) break
+          if (!c.oneOf(r.kind, ['wall', 'prop', 'container', 'tree', 'decor', 'surface'], `${p}/kind`)) break
           if (r.level !== undefined) c.error('level-not-allowed', `${p}/level`, 'objects placed in a chunk stand on the ground (storeys belong to prefabs)', id)
+          if (r.kind === 'surface') {
+            checkSurface(c, { ...r, level: undefined }, p, id)
+            if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
+            break
+          }
           if (r.kind === 'decor') {
             checkDecor(c, r, p, id)
             if (c.obj(r.position, `${p}/position`)) owned(r.position, `${p}/position`, id)
@@ -790,6 +921,19 @@ export function validateContent(docs: WorldDocuments): ValidationIssue[] {
   }
 
   // Surfaces of one layer share one height: differently coloured overlaps flicker (z-fighting) in the game.
+  // Prefab library P1: surface objects too (roads and surfaces of a layer never share a height: a surface lies 0.5 mm higher).
+  const flat = records.flatMap((r) => (r.parts.surfaces ?? []).map((s) => ({ r, s })))
+  for (let i = 0; i < flat.length; i++) {
+    for (let j = i + 1; j < flat.length; j++) {
+      const a = flat[i]
+      const b = flat[j]
+      if (a.r === b.r || a.s.color.toLowerCase() === b.s.color.toLowerCase() || (a.s.layer ?? 0) !== (b.s.layer ?? 0)) continue
+      const ha = [a.s.size[0] / 2, a.s.size[1] / 2]
+      const hb = [b.s.size[0] / 2, b.s.size[1] / 2]
+      const overlaps = Math.abs(a.s.position.x - b.s.position.x) < ha[0] + hb[0] && Math.abs(a.s.position.z - b.s.position.z) < ha[1] + hb[1]
+      if (overlaps) add('warning', 'surface-overlap', `${chunkPath(b.r.ownerChunkId)}#/${b.r.category}/${b.r.order[2]}`, `${b.s.id} overlaps ${a.s.id} with another colour on the same layer (they share one height and flicker; set a different layer)`, b.s.id)
+    }
+  }
   const roads = records.filter((r) => r.parts.roads?.length)
   for (let i = 0; i < roads.length; i++) {
     for (let j = i + 1; j < roads.length; j++) {

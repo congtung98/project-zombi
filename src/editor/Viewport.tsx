@@ -14,7 +14,7 @@ import { ReferenceOverlay } from './ReferenceOverlay'
 import { documentReference, withReference } from '../map/editor/generator'
 import { featureAt, metresPerPixel, moveVertex, referenceTransform } from '../map/layout/reference'
 import { worldToPixel } from './editorStore'
-import { chunkClick, commitPlace, parcelClick, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
+import { chunkClick, commitPlace, parcelClick, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview, withGroups } from './interaction'
 import { PrefabScene } from './PrefabScene'
 import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
 import { ChunkBatch, RecordView } from './RecordView'
@@ -377,7 +377,7 @@ function Controls() {
         return
       }
       if (s.tool === 'place') {
-        if (s.place?.kind === 'prefab') {
+        if (s.place?.kind === 'prefab' || s.place?.kind === 'compound') {
           commitPlace(snapPoint(g))
           updatePlacePreview(g)
           return
@@ -402,11 +402,13 @@ function Controls() {
         drag.current = { kind: 'box', start: g, ids: [], delta: { x: 0, z: 0 }, additive: e.shiftKey }
         return
       }
+      // P1: a member of a group picks the whole group; Alt picks the one member.
+      const picked = withGroups([pickedId], e.altKey)
       if (e.shiftKey) {
-        s.select(selection.includes(pickedId) ? selection.filter((id) => id !== pickedId) : [...selection, pickedId])
+        s.select(selection.includes(pickedId) ? selection.filter((id) => !picked.includes(id)) : [...new Set([...selection, ...picked])])
         return
       }
-      const ids = selection.includes(pickedId) ? selection : [pickedId]
+      const ids = selection.includes(pickedId) ? selection : picked
       if (ids !== selection) s.select(ids)
       drag.current = { kind: 'move', start: g, ids, delta: { x: 0, z: 0 } }
     }
@@ -487,7 +489,7 @@ function Controls() {
           return
         }
         const rect = { minX: d.start.x, minZ: d.start.z, maxX: g.x, maxZ: g.z }
-        const inside = keysInRect(rect)
+        const inside = withGroups(keysInRect(rect), e.altKey)
         s.select(d.additive ? [...new Set([...s.edit.selection, ...inside])] : inside)
         return
       }

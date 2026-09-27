@@ -225,5 +225,6 @@
     "sideGap": 1.5,
     "roadFacing": true,
     "frontage": [9, 40]
-  }
+  },
+  "catalog": { "group": "residential", "tags": ["1-tang", "an-toan"] }
 }

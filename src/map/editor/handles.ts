@@ -136,6 +136,7 @@ export function prefabItemHandles(prefab: PrefabDocument, key: string): Handle[]
     }
     if (o.kind === 'door' || o.kind === 'window' || o.kind === 'decor') return []
     if (o.kind === 'tree') return [{ key: 'radius', at: { x: quantize(o.position.x + o.canopy), z: o.position.z } }]
+    if (o.kind === 'surface') return rectHandles(centred(o.position, o.size[0], o.size[1]))
     return rectHandles(centred(o.position, o.size[0], o.size[2]))
   }
   const room = prefab.rooms.find((r) => r.localId === key)
@@ -190,6 +191,10 @@ export function dragPrefabHandle(doc: MapDocument, prefabId: string, key: string
     }
     if (o.kind === 'tree') return updatePrefabItem(doc, prefabId, key, { canopy: treeCanopy(o, o.position, p) })
     if (o.kind === 'decor') return fail('Đồ trang trí có kích thước cố định theo mẫu')
+    if (o.kind === 'surface') {
+      const r = dragEdge(centred(o.position, o.size[0], o.size[1]), handle, p, MIN_SIZE.box)
+      return updatePrefabItem(doc, prefabId, key, { position: { x: quantize((r.minX + r.maxX) / 2), z: quantize((r.minZ + r.maxZ) / 2) }, size: [quantize(r.maxX - r.minX), quantize(r.maxZ - r.minZ)] })
+    }
     const next = dragEdge(centred(o.position, o.size[0], o.size[2]), handle, p, MIN_SIZE.box)
     const position = { ...o.position, x: quantize((next.minX + next.maxX) / 2), z: quantize((next.minZ + next.maxZ) / 2) }
     return updatePrefabItem(doc, prefabId, key, { position, size: [quantize(next.maxX - next.minX), o.size[1], quantize(next.maxZ - next.minZ)] })

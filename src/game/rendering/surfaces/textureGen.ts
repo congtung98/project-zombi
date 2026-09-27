@@ -270,6 +270,15 @@ export function generatePattern(pattern: SurfacePattern, seed: number, size = TE
       const scratch = noise(size, 64, 2, random)
       return gray(size, (i) => 1 + 0.06 * (n[i] - 0.5) + 0.05 * smooth(0.8, 0.95, scratch[i]))
     }
+    case 'water': {
+      // 6 m tile: broad darker and lighter patches, thin bright ripple crests bent by the noise.
+      const patch = fbm(size, [2, 4], random)
+      const bend = noise(size, 4, 4, random)
+      return tinted(size, (i, _x, y) => {
+        const crest = smooth(0.82, 0.97, 0.5 + 0.5 * Math.sin((y / size) * Math.PI * 2 * 12 + bend[i] * 9))
+        return [0.9 + 0.16 * (patch[i] - 0.5) + 0.12 * crest, 1 - 0.02 * crest, 1, 1 + 0.03 * crest]
+      })
+    }
   }
 }
 

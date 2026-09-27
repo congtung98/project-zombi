@@ -222,5 +222,6 @@
     "sideGap": 1.5,
     "roadFacing": true,
     "frontage": [9, 40]
-  }
+  },
+  "catalog": { "group": "residential", "architectureStyle": "american", "tags": ["2-tang"] }
 }

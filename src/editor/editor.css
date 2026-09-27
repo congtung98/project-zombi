@@ -701,3 +701,31 @@ h4 {
 .ref-points input {
   width: 64px;
 }
+
+/* Prefab library P1 */
+.tabs.sub button {
+  font-size: 12px;
+}
+
+.hint.bad,
+small.bad {
+  color: var(--bad);
+}
+
+.hint.warn,
+small.warn {
+  color: var(--warn);
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.palette li > .row.tight {
+  margin: 2px 0 6px;
+}

@@ -297,5 +297,6 @@
     "roadFacing": true,
     "frontage": [9, 40],
     "anchors": [{ "name": "mailbox", "position": { "x": -3.2, "z": -4.6 } }]
-  }
+  },
+  "catalog": { "group": "residential", "architectureStyle": "american", "tags": ["1-tang", "nha-nho"] }
 }

@@ -1,6 +1,7 @@
 import type { BuildingProps, XZ } from '../schema.ts'
 import { quantize } from '../transform.ts'
-import { MIN_DRAG_SIZE, TREE_TEMPLATES, type DragMode } from './presets.ts'
+import { MIN_DRAG_SIZE, SURFACE_PRESETS, TREE_TEMPLATES, type DragMode } from './presets.ts'
+import { surfaceTemplate } from './surfaces.ts'
 import type { AnyRecord } from './document.ts'
 
 /**
@@ -10,7 +11,7 @@ import type { AnyRecord } from './document.ts'
  * Sizes follow the neighbourhood buildings.
  */
 
-export type PrefabPresetGroup = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms'
+export type PrefabPresetGroup = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms' | 'surfaces'
 
 export interface PrefabPreset {
   id: string
@@ -105,6 +106,16 @@ export const PREFAB_PRESETS: readonly PrefabPreset[] = [
   { id: 'container/shelf', group: 'containers', label: 'Kệ hàng', name: 'shelf', drag: 'point', template: box('container', [2, 1.6, 0.6], '#8a8580', { name: 'Kệ hàng', lootTableId: 'store-shelf' }, 'furniture/shelving') },
   { id: 'container/fridge', group: 'containers', label: 'Tủ lạnh', name: 'fridge', drag: 'point', template: box('container', [0.8, 1.8, 0.8], '#d8dde0', { name: 'Tủ lạnh', lootTableId: 'store-fridge' }, 'furniture/fridge') },
   { id: 'container/empty', group: 'containers', label: 'Tủ trống (không loot)', name: 'cabinet', drag: 'point', template: box('container', [1, 1, 0.6], '#6b5a3a', { name: 'Tủ' }, 'furniture/cabinet') },
+
+  // Prefab library P1: ground surfaces (yards, paths, lawns, ponds), ground storey only.
+  ...SURFACE_PRESETS.map(([name, label, material, shape, size, layer, extra]): PrefabPreset => ({
+    id: `surface/${name}`,
+    group: 'surfaces',
+    label,
+    name,
+    drag: 'rect',
+    template: { ...surfaceTemplate(material, shape, size, layer), ...extra, position: { x: 0, z: 0 } },
+  })),
 
   // G3b: drawn-only decor, one asset each (Y = what it stands on, set in the Inspector).
   ...DECOR_PRESETS.map(([name, assetId, label]): PrefabPreset => ({ id: `decor/${name}`, group: 'decor', label, name, drag: 'point', template: decor(assetId) })),

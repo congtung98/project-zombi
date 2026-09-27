@@ -141,5 +141,6 @@
     "sideGap": 0,
     "roadFacing": true,
     "frontage": [4, 8]
-  }
+  },
+  "catalog": { "group": "residential", "architectureStyle": "vietnamese", "tags": ["1-tang", "nha-ong"] }
 }

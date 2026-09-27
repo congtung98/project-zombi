@@ -36,6 +36,7 @@ export type SurfacePattern =
   | 'foliage'
   | 'fabric'
   | 'metal'
+  | 'water'
 
 export interface SurfaceDef {
   id: SurfaceId
@@ -67,6 +68,7 @@ export const SURFACE_IDS = [
   'foliage',
   'fabric',
   'paintedMetal',
+  'water',
 ] as const
 export type SurfaceId = (typeof SURFACE_IDS)[number]
 
@@ -102,6 +104,8 @@ export const SURFACES: Record<SurfaceId, SurfaceDef> = {
   foliage: def('foliage', 'Tán lá', [2.5, 2.5], 'triplanar', 1, 0.8, 'foliage', 131),
   fabric: def('fabric', 'Vải', [0.8, 0.8], 'local', 1, 0.6, 'fabric', 139),
   paintedMetal: def('paintedMetal', 'Kim loại sơn', [2, 2], 'local', 0.55, 0.6, 'metal', 149),
+  // Prefab library P1: still water of ponds (surface objects); smooth, a slow ripple, no animation.
+  water: def('water', 'Mặt nước', [6, 6], 'world', 0.35, 0.6, 'water', 157),
 }
 
 export const surfaceIndex = (id: SurfaceId): number => SURFACE_IDS.indexOf(id)

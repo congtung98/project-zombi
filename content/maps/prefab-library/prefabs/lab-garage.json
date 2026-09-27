@@ -155,5 +155,6 @@
     "sideGap": 1,
     "roadFacing": true,
     "frontage": [8, 30]
-  }
+  },
+  "catalog": { "group": "industrial", "tags": ["garage"] }
 }

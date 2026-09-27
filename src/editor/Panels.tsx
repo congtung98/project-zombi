@@ -15,6 +15,7 @@ import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction
 import { PrefabThumbnail } from './Thumbnail'
 import { EnvironmentFields, GeneratorPanel } from './GeneratorPanel'
 import { ReferencePanel } from './ReferencePanel'
+import { LibraryPanel } from './LibraryPanel'
 import { PROFILE_LABEL } from '../map/editor/generator'
 import { DEFAULT_ENVIRONMENT } from '../map/layout/environment'
 import type { EnvironmentParams } from '../map/layout/schema'
@@ -35,6 +36,24 @@ const TABS: { id: PaletteTab; label: string }[] = [
 ]
 
 const DRAG_HINT = { point: 'click', line: 'click hoặc kéo (dài)', rect: 'click hoặc kéo (khung)', radius: 'click hoặc kéo (bán kính)' } as const
+
+/** Prefab tab (P1): the world's own prefabs, or the shared library. */
+function PrefabTabs() {
+  const [view, setView] = useState<'world' | 'library'>('world')
+  return (
+    <>
+      <nav className="tabs sub" data-prefab-source>
+        <button className={view === 'world' ? 'active' : ''} onClick={() => setView('world')} data-prefab-source-world>
+          Trong world
+        </button>
+        <button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')} data-prefab-source-library>
+          Thư viện chung
+        </button>
+      </nav>
+      {view === 'world' ? <PrefabList /> : <LibraryPanel />}
+    </>
+  )
+}
 
 function PrefabList() {
   const edit = useEditorStore((s) => s.edit)!
@@ -69,6 +88,11 @@ function PrefabList() {
                   <small>
                     {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m · {uses} instance
                   </small>
+                  {p.source && (
+                    <small data-prefab-source-of={p.prefabId}>
+                      từ thư viện: {p.source.id} v{p.source.version}
+                    </small>
+                  )}
                 </span>
               </button>
               <div className="row tight">
@@ -99,6 +123,7 @@ const PREFAB_TABS: { id: PrefabTab; label: string }[] = [
   { id: 'containers', label: 'Tủ' },
   { id: 'decor', label: 'Trang trí' },
   { id: 'rooms', label: 'Phòng' },
+  { id: 'surfaces', label: 'Nền' },
 ]
 
 const PREFAB_HINTS: Record<PrefabTab, string> = {
@@ -110,6 +135,8 @@ const PREFAB_HINTS: Record<PrefabTab, string> = {
   decor:
     'Đồ trang trí chỉ để nhìn: không va chạm, không nhặt được, không lưu. Đặt lên bàn/kệ: sửa Y ở Inspector. Cụm: đặt một lần nhiều object có ID riêng (R xoay trước khi click). Không che dấu loot của tủ và lối cửa mở (validator cảnh báo).',
   rooms: 'Kéo khung phòng trên đường tâm tường. Phòng có đèn kèm công tắc (ô vàng, kéo để dời). Ánh sáng: cửa sổ và cửa nối các phòng.',
+  surfaces:
+    'Mặt nền phẳng ở tầng trệt: sân, lối đi, bãi cỏ, hồ. Kéo khung để định kích thước. Nước chắn người chơi và zombie (vẫn nhìn qua được); chỗ chồng nhau, lớp vẽ cao hơn nằm trên (Inspector).',
 }
 
 /**
@@ -201,7 +228,7 @@ function PresetList({ category }: { category: PresetCategory }) {
   return (
     <>
       <ul className="palette">
-        {RECORD_PRESETS.filter((p) => p.category === category).map((p) => {
+        {RECORD_PRESETS.filter((p) => (p.tab ?? p.category) === category).map((p) => {
           const active = tool === 'place' && place?.kind === 'record' && place.presetId === p.id
           return (
             <li key={p.id}>
@@ -220,7 +247,12 @@ function PresetList({ category }: { category: PresetCategory }) {
         </p>
       )}
       {category === 'spawns' && <p className="hint">Spawn zombie: nơi zombie xuất hiện lúc đầu và respawn (ngoài nhà). Spawn người chơi: đặt làm điểm xuất phát ở Inspector.</p>}
-      {category === 'roads' && <p className="hint">Mặt nền chỉ để hiển thị (không collider). Hai mặt khác màu chồng nhau sẽ nhấp nháy trong game (cảnh báo surface-overlap).</p>}
+      {category === 'roads' && (
+        <p className="hint">
+          Đường và vỉa hè chỉ để hiển thị (không collider). Sân, bãi cỏ, hồ là object mặt nền: chọn vật liệu, va chạm và điều hướng ở Inspector (nước chắn người chơi và zombie). Hai mặt
+          khác màu cùng lớp chồng nhau sẽ nhấp nháy trong game (cảnh báo surface-overlap).
+        </p>
+      )}
       <p className="hint">R xoay 90° vùng chọn, Esc thoát.</p>
     </>
   )
@@ -332,7 +364,7 @@ export function Palette() {
           </button>
         ))}
       </nav>
-      {tab === 'prefabs' && <PrefabList />}
+      {tab === 'prefabs' && <PrefabTabs />}
       {tab !== 'prefabs' && tab !== 'chunks' && tab !== 'generator' && tab !== 'reference' && <PresetList category={tab} />}
       {tab === 'chunks' && <ChunkPanel />}
       {tab === 'generator' && <GeneratorPanel />}
