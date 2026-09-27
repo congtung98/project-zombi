@@ -13,8 +13,10 @@ import { deleteDraft } from './drafts'
 import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab, type PrefabTab } from './editorStore'
 import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
 import { PrefabThumbnail } from './Thumbnail'
-import { GeneratorPanel } from './GeneratorPanel'
+import { EnvironmentFields, GeneratorPanel } from './GeneratorPanel'
 import { PROFILE_LABEL } from '../map/editor/generator'
+import { DEFAULT_ENVIRONMENT } from '../map/layout/environment'
+import type { EnvironmentParams } from '../map/layout/schema'
 import { PROFILES } from '../map/layout/plan'
 import type { WorldMode } from '../map/layout/schema'
 
@@ -594,6 +596,7 @@ export function NewDialog() {
   const [clip, setClip] = useState('500')
   const [profile, setProfile] = useState('default')
   const [genMode, setGenMode] = useState<WorldMode>('full')
+  const [env, setEnv] = useState<EnvironmentParams>(DEFAULT_ENVIRONMENT)
   const [seed, setSeed] = useState('1')
   const [blocks, setBlocks] = useState('2x2')
   const [layout, setLayout] = useState<Layout>('grid')
@@ -664,6 +667,7 @@ export function NewDialog() {
               <span>Seed</span>
               <input type="number" value={seed} onChange={(e) => setSeed(e.target.value)} data-new-layout-seed />
             </label>
+            {genMode === 'full' && <EnvironmentFields env={env} onChange={setEnv} />}
           </>
         ) : mode === 'blank' ? (
           <p className="hint">2 × 2 chunk 32 m quanh gốc tọa độ, hàng rào, spawn người chơi + 1 spawn zombie; thư viện prefab lấy từ neighborhood-50.</p>
@@ -718,7 +722,7 @@ export function NewDialog() {
               if (mode === 'layout') {
                 if (!geo) return
                 const size = Number(clip)
-                useEditorStore.getState().newLayoutWorld({ worldId, name: name.trim(), text: geo.text, file: geo.name, mode: genMode, seed: Number(seed), profile, clip: size ? { width: size, depth: size } : undefined })
+                useEditorStore.getState().newLayoutWorld({ worldId, name: name.trim(), text: geo.text, file: geo.name, mode: genMode, seed: Number(seed), profile, clip: size ? { width: size, depth: size } : undefined, environment: env })
                 return
               }
               const [bx, bz] = blocks.split('x').map(Number)

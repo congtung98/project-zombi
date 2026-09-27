@@ -28,6 +28,7 @@ export const FURNITURE_IDS = [
   'outdoor/fence',
   'outdoor/bin',
   'outdoor/mailbox',
+  'outdoor/streetlight',
 ] as const
 export type FurnitureId = (typeof FURNITURE_IDS)[number]
 
@@ -66,6 +67,8 @@ export const FURNITURE: Record<FurnitureId, FurnitureInfo> = {
   'outdoor/fence': { label: 'Hàng rào gỗ', deep: false },
   'outdoor/bin': { label: 'Thùng rác có bánh', deep: false },
   'outdoor/mailbox': { label: 'Hộp thư', deep: false },
+  // World generator WG5: a post-top streetlight, decorative (Q8: no light cast), inside its thin post box.
+  'outdoor/streetlight': { label: 'Đèn đường', deep: false },
 }
 
 /**

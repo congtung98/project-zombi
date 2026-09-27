@@ -4,6 +4,7 @@ import { deleteRecords } from './commands'
 import { forkDocument } from './document'
 import { exportPack, parsePack, validateDocument } from './pack'
 import { applyCommand, initialEditState, redo, undo } from './session'
+import { applyPatch, diffDocument, isEmptyPatch } from './docPatch'
 import { generatorBlockReason, layoutWorldFromGeoJson, libraryCatalog, LIBRARY_WORLD } from './generator'
 import { documentLayout, generatorStatus, LAYOUT_FILE, syncGenerated } from '../layout/worldSync'
 import FIXTURE from '../../test/fixtures/layouts/wg1-town.geojson?raw'
@@ -90,5 +91,22 @@ describe('WG4 editor: a world from a GeoJSON reference', () => {
     const copy = forkDocument(back.doc, 'wg4-copy', 'copy')
     expect(documentLayout(copy).layout).toEqual(layout)
     expect(generatorStatus(copy, layout).counts).toEqual(generatorStatus(back.doc, layout).counts)
+  })
+
+  it('WG5 worker path: a copy regenerated, only the changes sent back, applied onto the editor document', () => {
+    // What the worker gets: a structured clone (no shared objects with the editor's document).
+    const copy = structuredClone(doc)
+    const r = syncGenerated(copy, { kind: 'parcels', parcels: [documentLayout(doc).layout!.plan!.parcels.find((q) => q.build && q.build.prefabId !== null)!.id] }, { catalog, validation: OPTS })
+    if (!r.ok) throw new Error(r.error)
+    const patch = structuredClone(diffDocument(copy, r.doc))
+    expect(patch.chunks.length).toBeLessThan(doc.chunks.size / 4)
+    const applied = applyPatch(doc, patch)
+    const direct = syncGenerated(doc, { kind: 'parcels', parcels: [documentLayout(doc).layout!.plan!.parcels.find((q) => q.build && q.build.prefabId !== null)!.id] }, { catalog, validation: OPTS })
+    if (!direct.ok) throw new Error(direct.error)
+    expect(exportPack(applied)).toBe(exportPack(direct.doc))
+    // Unchanged chunks are the editor's own objects: cheap history, nothing re-resolved.
+    const same = [...applied.chunks].filter(([id, c]) => doc.chunks.get(id) === c).length
+    expect(same).toBe(doc.chunks.size - patch.chunks.length)
+    expect(isEmptyPatch(diffDocument(doc, doc))).toBe(true)
   })
 })

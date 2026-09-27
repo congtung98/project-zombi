@@ -163,6 +163,12 @@ npm run map:generate -- --seed 3 --blocks 16x16 --layout varied --world-id big-t
 - **Inspector** của record có dòng *Generator* cho biết trạng thái.
 - World đã có trong `content/maps` coi như đã phát hành: chỉ xem và khóa. Muốn sinh lại thì **Lưu thành…** worldId mới.
 - Lưu nháp, Export, `map:unpack` mang theo `layout/world-layout.json`; game không đọc file đó. Chi tiết: `docs/world-generator-wg4.md`.
+- **Môi trường (WG5)**:
+  - world FULL có cây, bụi, rào sau lô, thùng rác, hộp thư, đèn đường, xe đỗ, xe bỏ hoang và rác;
+  - mục *Môi trường* trong hộp thoại Mới và trong Sinh lại world chỉnh mật độ và bật/tắt từng loại;
+  - việc sinh chạy nền (editor không đứng); nút **Hủy** trong tab Generator dừng mà không đổi gì.
+
+  Chi tiết: `docs/world-generator-wg5.md`.
 
 ## 7. Quy tắc cần nhớ
 

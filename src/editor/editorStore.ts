@@ -17,6 +17,8 @@ import type { PrefabCatalog } from '../map/layout/buildings'
 import type { LayoutIssue } from '../map/layout/schema'
 import { syncGenerated, type SyncReport, type SyncRequest } from '../map/layout/worldSync'
 import { editorWorldFiles } from './layoutFiles'
+import { applyPatch } from '../map/editor/docPatch'
+import { cancelJob, runJob, workersAvailable } from './generatorJobs'
 
 /**
  * Editor state (M3, M4). The document and its history (`EditState`) are the only map data; the rest
@@ -143,6 +145,8 @@ interface EditorStore {
   selectedParcel: string | null
   genPending: GeneratorPending | null
   genReport: GeneratorReport | null
+  /** WG5: generator job running in the worker (the tab shows it with a Hủy button). */
+  genBusy: { label: string; started: number } | null
 
   openDocument(doc: MapDocument, source: string, issues?: ValidationIssue[]): void
   run(label: string, command: (doc: MapDocument, selection: string[]) => CommandResult): boolean
@@ -187,7 +191,15 @@ interface EditorStore {
   /** New world from a GeoJSON reference (Mới → Từ GeoJSON). */
   newLayoutWorld(req: LayoutWorldRequest): boolean
   commitGenerated(label: string, doc: MapDocument, report: GeneratorReport): boolean
+  /** WG5: stop the running generator job (nothing changes). */
+  cancelGenerator(): void
+  /** Result of a generator action (worker or in place): preview it or apply it as one command. */
+  finishGenerated(label: string, base: MapDocument, doc: MapDocument, summary: string, report: SyncReport, ms: number, preview: boolean): boolean
+  /** Result of an import (worker or in place): open the new world. */
+  openLayoutWorld(req: LayoutWorldRequest, doc: MapDocument, issues: LayoutIssue[]): boolean
 }
+
+const LOOT_TABLE_IDS = [...REGISTERED_LOOT_TABLES]
 
 let catalogMemo: { catalog: PrefabCatalog | null } | null = null
 /** Prefab library of the generator (the repo world `prefab-library`), read once. */
@@ -304,9 +316,13 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   selectedParcel: null,
   genPending: null,
   genReport: null,
+  genBusy: null,
 
   openDocument(doc, source, issues) {
+    // A generator job of the previous document never lands on this one.
+    cancelJob()
     set({
+      genBusy: null,
       edit: initialEditState(doc),
       savedDoc: doc,
       baseline: doc,
@@ -620,30 +636,67 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
 
   generate(label, request, opts = {}) {
-    const { edit } = get()
+    const { edit, genBusy } = get()
     if (!edit) return false
+    if (genBusy) {
+      set({ status: { text: `Đang chạy ${genBusy.label}: đợi xong hoặc Hủy`, kind: 'error' } })
+      return false
+    }
     const blocked = request.kind === 'lock' ? null : generatorBlocked(edit.doc)
     if (blocked) {
       set({ status: { text: blocked, kind: 'error' } })
       return false
     }
-    const t0 = performance.now()
-    const r = syncGenerated(edit.doc, request, { catalog: generatorCatalog(), validation: OPTS })
-    if (!r.ok) {
-      set({ status: { text: `${label}: ${r.error}`, kind: 'error' } })
-      return false
+    const base = edit.doc
+    const preview = !!opts.preview
+    // Locks only touch the layout: always in place. Everything else runs in the worker when there is one.
+    if (request.kind === 'lock' || !workersAvailable()) {
+      const t0 = performance.now()
+      const r = syncGenerated(base, request, { catalog: generatorCatalog(), validation: OPTS })
+      if (!r.ok) {
+        set({ status: { text: `${label}: ${r.error}`, kind: 'error' } })
+        return false
+      }
+      return get().finishGenerated(label, base, r.doc, r.summary, r.report, performance.now() - t0, preview)
     }
-    const ms = performance.now() - t0
-    const report: GeneratorReport = { label, summary: r.summary, issues: r.report.issues }
-    if (opts.preview) {
+    set({ genBusy: { label, started: Date.now() }, status: { text: `Đang ${label.toLowerCase()}… (có thể Hủy trong tab Generator)`, kind: 'info' } })
+    void runJob({ kind: 'sync', doc: base, request, catalog: generatorCatalog(), lootTables: LOOT_TABLE_IDS }).then((r) => {
+      if (!get().genBusy) return
+      set({ genBusy: null })
+      if (!r) return
+      if (!r.ok) {
+        set({ status: { text: `${label}: ${r.error}`, kind: 'error' } })
+        return
+      }
+      if (r.kind !== 'sync') return
+      // The worker's patch goes onto the document it was computed from: unchanged chunks keep their identity.
+      get().finishGenerated(label, base, applyPatch(base, r.patch), r.summary, r.report, r.ms, preview)
+    })
+    return true
+  },
+
+  finishGenerated(label, base, doc, summary, report, ms, preview) {
+    const genReport: GeneratorReport = { label, summary, issues: report.issues }
+    if (preview) {
       set({
-        genPending: { base: edit.doc, doc: r.doc, label, summary: r.summary, report: r.report },
-        genReport: report,
-        status: { text: `Xem trước ${label}: ${r.summary} (${ms.toFixed(0)} ms) — Áp dụng hoặc Hủy trong tab Generator`, kind: 'info' },
+        genPending: { base, doc, label, summary, report },
+        genReport,
+        status: { text: `Xem trước ${label}: ${summary} (${ms.toFixed(0)} ms) — Áp dụng hoặc Hủy trong tab Generator`, kind: 'info' },
       })
       return true
     }
-    return get().commitGenerated(label, r.doc, report)
+    if (get().edit?.doc !== base) {
+      set({ genReport, status: { text: `${label}: document đã đổi trong lúc sinh, kết quả bị bỏ (làm lại thao tác)`, kind: 'error' } })
+      return false
+    }
+    return get().commitGenerated(label, doc, genReport)
+  },
+
+  cancelGenerator() {
+    const busy = get().genBusy
+    if (!busy) return
+    cancelJob()
+    set({ genBusy: null, status: { text: `Đã hủy ${busy.label} (document không đổi)`, kind: 'info' } })
   },
 
   applyPending() {
@@ -668,12 +721,29 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
 
   newLayoutWorld(req) {
-    const r = layoutWorldFromGeoJson(req, generatorCatalog(), OPTS)
-    if (!r.ok) {
-      get().reject('Không tạo được world từ GeoJSON', r.error, [])
-      set({ genReport: { label: 'Tạo world từ GeoJSON', summary: r.error, issues: r.issues } })
+    if (get().genBusy) return false
+    const failed = (error: string, issues: LayoutIssue[] = []) => {
+      get().reject('Không tạo được world từ GeoJSON', error, [])
+      set({ genReport: { label: 'Tạo world từ GeoJSON', summary: error, issues } })
       return false
     }
+    if (!workersAvailable()) {
+      const r = layoutWorldFromGeoJson(req, generatorCatalog(), OPTS)
+      return r.ok ? get().openLayoutWorld(req, r.doc, r.issues) : failed(r.error, r.issues)
+    }
+    set({ genBusy: { label: 'Tạo world từ GeoJSON', started: Date.now() }, dialog: null, status: { text: `Đang tạo world từ ${req.file ?? 'GeoJSON'}…`, kind: 'info' } })
+    void runJob({ kind: 'import', request: req, catalog: generatorCatalog(), lootTables: LOOT_TABLE_IDS }).then((r) => {
+      if (!get().genBusy) return
+      set({ genBusy: null })
+      if (!r) return
+      if (!r.ok) return void failed(r.error, r.issues)
+      if (r.kind === 'import') get().openLayoutWorld(req, r.doc, r.issues)
+    })
+    return true
+  },
+
+  openLayoutWorld(req, doc, layoutIssues) {
+    const r = { doc, issues: layoutIssues }
     const issues = validateDocument(r.doc, OPTS)
     if (issues.some((i) => i.severity === 'error')) {
       get().reject('World sinh từ GeoJSON không hợp lệ', issues[0].message, issues)

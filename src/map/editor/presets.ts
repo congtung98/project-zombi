@@ -50,6 +50,8 @@ export const RECORD_PRESETS: readonly RecordPreset[] = [
   { id: 'object/fence', category: 'objects', label: 'Hàng rào gỗ', name: 'fence', drag: 'line', template: box('prop', [4, 1, 0.15], '#7a6a55') },
   { id: 'object/crate', category: 'objects', label: 'Thùng gỗ', name: 'crate', drag: 'point', template: { ...box('prop', [1, 1, 1], '#a67c52'), visual: { assetId: 'furniture/crate' } } },
   { id: 'object/car', category: 'objects', label: 'Xe hỏng', name: 'car', drag: 'point', template: box('prop', [4, 1.4, 2], '#7a3b3b') },
+  // World generator WG5: the decorative streetlight the generator puts on sidewalks (Q8: no light cast).
+  { id: 'object/streetlight', category: 'objects', label: 'Đèn đường', name: 'streetlight', drag: 'point', template: { ...box('prop', [0.3, 4.2, 0.3], '#4a4d51'), visual: { assetId: 'outdoor/streetlight' } } },
   { id: 'object/pillar', category: 'objects', label: 'Cột bê tông', name: 'pillar', drag: 'point', template: box('prop', [1.2, 2, 1.2], '#6f6a63') },
   { id: 'object/block', category: 'objects', label: 'Khối vật cản', name: 'block', drag: 'rect', template: box('prop', [2, 1, 2], '#77706a') },
   {

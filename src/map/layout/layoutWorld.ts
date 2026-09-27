@@ -1,11 +1,12 @@
-import { MAP_SCHEMA_VERSION, RECORD_NAMESPACES, type ChunkDocument, type LandUseZone, type PlayArea, type PrefabDocument, type RoadRecord, type SpawnRecord, type WorldDocument, type XZ } from '../schema.ts'
+import { MAP_SCHEMA_VERSION, RECORD_NAMESPACES, type ChunkDocument, type LandUseZone, type PlayArea, type PrefabDocument, type Rect, type RoadRecord, type SpawnRecord, type WorldDocument, type XZ } from '../schema.ts'
 import { chunkIdOf, chunkIndex, chunkOrigin, chunksOverlapping, quantize } from '../transform.ts'
-import { blockingSolid, checkWorldDocuments, hasErrors, lowSolids, type ValidationOptions } from '../validate.ts'
+import { checkWorldDocuments, hasErrors, lowSolids, SPAWN_CLEARANCE, type ValidationOptions } from '../validate.ts'
 import { documentFiles, resolvedRecords, withExternalRefs, type MapDocument } from '../editor/document.ts'
 import type { PrefabCatalog } from './buildings.ts'
+import { DEFAULT_ENVIRONMENT, environmentItems, type PlacedPrefab } from './environment.ts'
 import { hashSeed, rng } from './parcels.ts'
 import { PLAN_VERSION } from './plan.ts'
-import { rectArea, rectCentre } from './rects.ts'
+import { rectArea, rectCentre, RectIndex } from './rects.ts'
 import type { LayoutPlan, SurfaceKind, WorldLayout, WorldMode } from './schema.ts'
 
 /**
@@ -45,7 +46,11 @@ export interface LayoutWorldOptions {
   mode?: WorldMode
   catalog?: PrefabCatalog
   zombies?: Partial<Record<LandUseZone, number>>
+  /** Check the result like the runtime loader and throw on errors (default true; the editor's merge validates the merged document itself). */
+  validate?: boolean
 }
+
+const grow = (r: Rect, m: number): Rect => ({ minX: r.minX - m, minZ: r.minZ - m, maxX: r.maxX + m, maxZ: r.maxZ + m })
 
 export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: LayoutWorldOptions): MapDocument {
   const net = layout.normalized
@@ -90,6 +95,24 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
     }
   }
 
+  // Environment (full, WG5): trees, planting, fences, bins, mailboxes, streetlights, cars, litter as plain objects.
+  if (mode === 'full') {
+    const lib = new Map(opts.catalog!.prefabs.map((p) => [p.entry.prefabId, p.doc]))
+    const placed = new Map<string, PlacedPrefab>()
+    for (const q of plan.parcels) if (q.build && q.build.prefabId !== null) placed.set(q.id, { doc: lib.get(q.build.prefabId)!, build: q.build })
+    for (const it of environmentItems(plan, placed, plan.environment ?? DEFAULT_ENVIRONMENT)) {
+      const { chunk, local } = owner(it.at)
+      const objectId = `${chunk.chunkId}/${RECORD_NAMESPACES.objects}/${it.name}`
+      if (it.kind === 'tree') chunk.objects.push({ kind: 'tree', objectId, position: local, height: it.height, canopy: it.canopy, trunk: it.trunk, color: it.color, style: it.style } as ChunkDocument['objects'][number])
+      else if (it.kind === 'decor') chunk.objects.push({ kind: 'decor', objectId, assetId: it.assetId, position: { x: local.x, y: 0, z: local.z }, yaw: it.yaw } as ChunkDocument['objects'][number])
+      else {
+        const visual = it.facing === undefined ? { assetId: it.assetId } : { assetId: it.assetId, facing: it.facing }
+        const base = { objectId, position: { x: local.x, y: quantize(it.size[1] / 2), z: local.z }, size: it.size, color: it.color }
+        chunk.objects.push((it.kind === 'container' ? { kind: 'container', ...base, name: it.label ?? 'Thùng', lootTableId: it.loot, visual } : { kind: 'prop', ...base, visual }) as ChunkDocument['objects'][number])
+      }
+    }
+  }
+
   // Player start: the junction nearest the centre of the area (on the carriageway, never on a collider).
   const centre = rectCentre(area)
   const kinds = new Map(layout.network.nodes.map((n) => [n.id, n.kind]))
@@ -130,12 +153,16 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
     playerSpawn: spawn.spawnId,
     generator: { name: LAYOUT_WORLD_GENERATOR, version: PLAN_VERSION, seed: plan.params.seed, params, catalog: mode === 'full' ? opts.catalog!.id : 'none' },
   }
-  const assemble = () => withExternalRefs({ world, prefabs: new Map([...prefabs].map(([id, p]) => [id, p.doc])), chunks: new Map(list.map((c) => [c.chunkId, structuredClone(c)])), extras: new Map() })
+  const prefabDocs = new Map([...prefabs].map(([id, p]) => [id, p.doc]))
+  // Fresh chunk objects each time: the resolver caches by chunk object, and spawns are still to be added.
+  const snapshot = (): MapDocument => ({ world, prefabs: prefabDocs, chunks: new Map(list.map((c) => [c.chunkId, { ...c }])), extras: new Map() })
 
   // Zombie zones and spawns (full): one zone per block, on its largest rectangle, spawns outdoors in it.
   if (mode === 'full') {
-    const solids = lowSolids(resolvedRecords(assemble()))
-    const footprints = plan.parcels.flatMap((q) => (q.build && q.build.prefabId !== null ? [q.build.footprint] : []))
+    // Where a zombie may not stand: building footprints (+0.8 m) and low colliders (+ its radius), indexed.
+    const blocked = new RectIndex()
+    for (const q of plan.parcels) if (q.build && q.build.prefabId !== null) blocked.add(grow(q.build.footprint, 0.8))
+    for (const b of lowSolids(resolvedRecords(snapshot()))) blocked.add(grow({ minX: b.position.x - b.size[0] / 2, minZ: b.position.z - b.size[2] / 2, maxX: b.position.x + b.size[0] / 2, maxZ: b.position.z + b.size[2] / 2 }, SPAWN_CLEARANCE))
     const density = { ...DEFAULT_ZOMBIES, ...opts.zombies }
     const used = new Map<LandUseZone, number>()
     for (const block of plan.blocks) {
@@ -154,8 +181,7 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
       for (let z = inner.minZ + 1.5; z <= inner.maxZ - 1.5; z += 4)
         for (let x = inner.minX + 1.5; x <= inner.maxX - 1.5; x += 4) {
           const p = { x: quantize(x), z: quantize(z) }
-          if (footprints.some((f) => p.x > f.minX - 0.8 && p.x < f.maxX + 0.8 && p.z > f.minZ - 0.8 && p.z < f.maxZ + 0.8)) continue
-          if (blockingSolid(solids, p)) continue
+          if (blocked.overlaps({ minX: p.x - 1e-3, minZ: p.z - 1e-3, maxX: p.x + 1e-3, maxZ: p.z + 1e-3 })) continue
           spots.push(p)
         }
       const random = rng(hashSeed(plan.params.seed, `zombies:${block.id}`))
@@ -167,7 +193,8 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
     }
   }
 
-  const doc = assemble()
+  const doc = withExternalRefs({ world, prefabs: prefabDocs, chunks: new Map(list.map((c) => [c.chunkId, c])), extras: new Map() })
+  if (opts.validate === false) return doc
   const files = new Map(documentFiles(doc))
   const checked = checkWorldDocuments((path) => files.get(path), opts.validation)
   if (hasErrors(checked.issues)) {

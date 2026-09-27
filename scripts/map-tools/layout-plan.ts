@@ -8,6 +8,7 @@
 //        [--mode layout-only|full] [--library content/maps/prefab-library]
 //        [--regen-parcels <lot-id>,…] [--regen-chunks <chunk-id>,…] [--salt <n>]
 //        [--set-prefab <lot-id>=<prefab-id>|none]…
+//        [--env <0..1>] [--no-env] (WG5: environment density of the FULL world; default 0.6)
 //     world: [--pack <world>.mappack.json --world-id <id> [--name "…"]] (the pack holds the layout as
 //        layout/world-layout.json: the editor's Generator tab regenerates it; the game never loads it)
 // Writes the plan (with the buildings) into the layout (in place unless --out). An existing plan is
@@ -26,6 +27,7 @@ import { LayoutImportError, parseWorldLayout, serializeWorldLayout } from '../..
 import type { WorldMode } from '../../src/map/layout/layoutWorld.ts'
 import { createLayoutWorld } from '../../src/map/layout/worldSync.ts'
 import { LayoutPlanError, planLayout, replan } from '../../src/map/layout/plan.ts'
+import { DEFAULT_ENVIRONMENT } from '../../src/map/layout/environment.ts'
 import { layoutPreviewSvg } from '../../src/map/layout/preview.ts'
 import type { LayoutIssue, PlanParams } from '../../src/map/layout/schema.ts'
 import type { PrefabEntry, WorldDocument } from '../../src/map/schema.ts'
@@ -99,6 +101,8 @@ if (mode === 'full') {
     plan = s.plan
   }
   issues.push(...checkBuildings(plan, catalog))
+  // WG5: environment density (kept in the plan so the world regenerates the same).
+  if (flag('no-env') || opt('env') !== undefined) plan = { ...plan, environment: { ...DEFAULT_ENVIRONMENT, ...plan.environment, density: flag('no-env') ? 0 : Number(opt('env')) } }
 }
 const ms = performance.now() - t0
 
@@ -124,7 +128,7 @@ if (pack) {
   const worldId = opt('world-id') ?? layout.layoutId
   const doc = createLayoutWorld(layout, { worldId, name: opt('name') ?? layout.name, mode, catalog: catalog ?? undefined, validation: { lootTables: new Set(Object.keys(LOOT_TABLES)) } })
   writeFileSync(pack, exportPack(doc))
-  const count = (k: 'roads' | 'instances' | 'zones' | 'spawns') => [...doc.chunks.values()].reduce((n, c) => n + c[k].length, 0)
-  console.log(`${pack}: content pack ${mode} (${doc.world.chunks.length} chunk, ${count('roads')} mặt đường, ${count('instances')} công trình, ${count('zones')} zone zombie, ${count('spawns')} spawn) — mở bằng Import… trong editor hoặc npm run map:unpack`)
+  const count = (k: 'roads' | 'instances' | 'objects' | 'zones' | 'spawns') => [...doc.chunks.values()].reduce((n, c) => n + c[k].length, 0)
+  console.log(`${pack}: content pack ${mode} (${doc.world.chunks.length} chunk, ${count('roads')} mặt đường, ${count('instances')} công trình, ${count('objects')} đồ môi trường, ${count('zones')} zone zombie, ${count('spawns')} spawn) — mở bằng Import… trong editor hoặc npm run map:unpack`)
 }
 process.exit(issues.some((i) => i.severity === 'error') ? 1 : 0)

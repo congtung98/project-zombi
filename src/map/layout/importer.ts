@@ -295,6 +295,13 @@ export function checkWorldLayout(data: unknown): LayoutIssue[] {
     }
   }
 
+  // WG5 environment (optional).
+  const env = plan?.environment
+  if (env !== undefined && env !== null) {
+    const flags = ['trees', 'planting', 'fences', 'streetFurniture', 'streetlights', 'vehicles', 'litter'] as const
+    if (!isNum(env.density) || env.density < 0 || env.density > 1 || flags.some((k) => typeof env[k] !== 'boolean')) err('schema', 'plan.environment không hợp lệ (density 0..1 và các cờ true/false)')
+  }
+
   // WG4 provenance (optional): structure only (hashes are compared by the editor, never trusted for content).
   const g = L.generated
   if (g !== null && g !== undefined) {

@@ -3,8 +3,9 @@ import type { ValidationOptions } from '../validate.ts'
 import { placeBuildings, prefabCatalog, type PrefabCatalog } from '../layout/buildings.ts'
 import { importGeoJsonLayout, LayoutImportError } from '../layout/importer.ts'
 import { LayoutPlanError, planLayout } from '../layout/plan.ts'
-import type { LayoutIssue, WorldMode } from '../layout/schema.ts'
+import type { EnvironmentParams, LayoutIssue, WorldMode } from '../layout/schema.ts'
 import { createLayoutWorld, type ParcelState } from '../layout/worldSync.ts'
+import type { ENVIRONMENT_KINDS } from '../layout/environment.ts'
 import type { MapDocument } from './document.ts'
 
 /**
@@ -17,6 +18,23 @@ import type { MapDocument } from './document.ts'
 export const PARCEL_COLORS: Record<ParcelState, string> = { generated: '#6fcf6f', modified: '#ff5fd2', locked: '#4aa8ff', empty: '#b8b8b8', open: '#6b8f5a' }
 
 export const PROFILE_LABEL: Record<string, string> = { default: 'Mặc định (lô rộng)', 'vn-urban': 'Đô thị VN (nhà ống)' }
+
+/** WG5: environment density choices of the editor. */
+export const DENSITY_CHOICES: [number, string][] = [
+  [0, 'Không có'],
+  [0.3, 'Thưa'],
+  [0.6, 'Vừa'],
+  [1, 'Dày'],
+]
+export const ENVIRONMENT_LABEL: Record<(typeof ENVIRONMENT_KINDS)[number], string> = {
+  trees: 'Cây',
+  planting: 'Bụi, cỏ',
+  fences: 'Hàng rào sau',
+  streetFurniture: 'Thùng rác, hộp thư',
+  streetlights: 'Đèn đường',
+  vehicles: 'Xe đỗ, xe bỏ hoang',
+  litter: 'Rác, lốp, vệt dầu',
+}
 
 /** Repo world holding the prefab library (hidden from the game's menu, Q6). */
 export const LIBRARY_WORLD = 'prefab-library'
@@ -55,6 +73,8 @@ export interface LayoutWorldRequest {
   profile: string
   /** Keep only this rectangle (m) around the centre of the data, e.g. 500 × 500. */
   clip?: { width: number; depth: number }
+  /** WG5: environment of a FULL world (default `DEFAULT_ENVIRONMENT`). */
+  environment?: EnvironmentParams
 }
 
 export type LayoutWorldResult = { ok: true; doc: MapDocument; issues: LayoutIssue[] } | { ok: false; error: string; issues: LayoutIssue[] }
@@ -70,6 +90,7 @@ export function layoutWorldFromGeoJson(req: LayoutWorldRequest, catalog: PrefabC
     if (!layout.normalized?.valid) return { ok: false, error: `mạng đường nắn vuông góc có lỗi: ${layout.normalized?.issues.find((i) => i.severity === 'error')?.message ?? 'không có đường'}`, issues }
     if (req.mode === 'full' && !catalog) return { ok: false, error: `không có thư viện prefab (content/maps/${LIBRARY_WORLD})`, issues }
     let plan = planLayout(layout, { seed: req.seed, profile: req.profile })
+    if (req.environment) plan = { ...plan, environment: req.environment }
     issues.push(...plan.issues)
     if (req.mode === 'full') {
       const r = placeBuildings(plan, catalog!)

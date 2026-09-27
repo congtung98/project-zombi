@@ -470,6 +470,19 @@ function mailbox(p: Parts, c: string): void {
   p.box('flag', x1 - 0.03, x1, h - 0.24, h - 0.1, z0 + 0.04, z0 + 0.1, '#b0352a', 'paintedMetal')
 }
 
+/** WG5: a post-top streetlight: base, tapered post, lantern with its glass and cap (decorative, no light). */
+function streetlight(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const post = Math.min(0.12, w * 0.4)
+  const lantern = Math.min(0.55, h * 0.14)
+  p.box('base', x0 + w * 0.15, x1 - w * 0.15, 0, 0.3, z0 + d * 0.15, z1 - d * 0.15, shade(c, -0.1), 'paintedMetal')
+  p.box('post', -post / 2, post / 2, 0.3, h - lantern, -post / 2, post / 2, c, 'paintedMetal')
+  p.box('collar', -post, post, h - lantern - 0.08, h - lantern, -post, post, shade(c, -0.1), 'paintedMetal')
+  p.box('glass', x0 + w * 0.12, x1 - w * 0.12, h - lantern, h - 0.1, z0 + d * 0.12, z1 - d * 0.12, '#efe6c4', 'matte')
+  p.box('cap', x0, x1, h - 0.1, h, z0, z1, shade(c, -0.15), 'paintedMetal')
+}
+
 const BUILDERS: Record<FurnitureId, (p: Parts, color: string, variant: string) => void> = {
   'furniture/bed': bed,
   'furniture/sofa': sofa,
@@ -489,6 +502,7 @@ const BUILDERS: Record<FurnitureId, (p: Parts, color: string, variant: string) =
   'outdoor/fence': fence,
   'outdoor/bin': bin,
   'outdoor/mailbox': mailbox,
+  'outdoor/streetlight': streetlight,
 }
 
 /** The parts of `asset` sized to `dims`, in the asset frame (`clipped`: parts cut back to the box). */

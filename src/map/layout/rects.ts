@@ -14,6 +14,36 @@ export function rectsOverlap(a: Rect, b: Rect, eps = EPS): boolean {
   return a.minX < b.maxX - eps && b.minX < a.maxX - eps && a.minZ < b.maxZ - eps && b.minZ < a.maxZ - eps
 }
 
+/**
+ * WG5: rectangles bucketed on a coarse grid, for "does anything overlap this?" over thousands of
+ * items (environment placement, spawn spots) without scanning them all.
+ */
+export class RectIndex {
+  private readonly cells = new Map<string, Rect[]>()
+  private readonly size: number
+  constructor(size = 8) {
+    this.size = size
+  }
+  private keys(r: Rect): string[] {
+    const s = this.size
+    const out: string[] = []
+    for (let i = Math.floor(r.minX / s); i <= Math.floor(r.maxX / s); i++) for (let j = Math.floor(r.minZ / s); j <= Math.floor(r.maxZ / s); j++) out.push(`${i},${j}`)
+    return out
+  }
+  add(r: Rect): void {
+    for (const k of this.keys(r)) {
+      const list = this.cells.get(k)
+      if (list) list.push(r)
+      else this.cells.set(k, [r])
+    }
+  }
+  /** Some rectangle overlapping `r` (interiors, like `rectsOverlap`). */
+  overlaps(r: Rect): boolean {
+    for (const k of this.keys(r)) for (const x of this.cells.get(k) ?? []) if (rectsOverlap(x, r)) return true
+    return false
+  }
+}
+
 export function intersectRect(a: Rect, b: Rect): Rect | null {
   const r = { minX: Math.max(a.minX, b.minX), minZ: Math.max(a.minZ, b.minZ), maxX: Math.min(a.maxX, b.maxX), maxZ: Math.min(a.maxZ, b.maxZ) }
   return r.maxX - r.minX > EPS && r.maxZ - r.minZ > EPS ? r : null

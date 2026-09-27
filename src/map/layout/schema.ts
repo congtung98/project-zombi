@@ -385,10 +385,30 @@ export interface PlanMetrics {
   parcelArea: number
 }
 
+/** WG5: environment details of FULL worlds (`environment.ts`). */
+export interface EnvironmentParams {
+  /** 0 = none … 1 = dense; scales every kind. */
+  density: number
+  trees: boolean
+  /** Bushes and grass tufts (drawn only). */
+  planting: boolean
+  /** Back fences of residential lots. */
+  fences: boolean
+  /** Wheelie bins and mailboxes. */
+  streetFurniture: boolean
+  streetlights: boolean
+  /** Parked and abandoned cars. */
+  vehicles: boolean
+  /** Papers, cans, tyres, oil stains (drawn only). */
+  litter: boolean
+}
+
 export interface LayoutPlan {
   /** Bump when the output for the same layout and params changes. */
   version: number
   params: PlanParams
+  /** WG5: environment of FULL worlds; absent = the defaults (`DEFAULT_ENVIRONMENT`). */
+  environment?: EnvironmentParams
   /** World rectangle the plan covers (the play area of a generated world). */
   area: Rect
   surfaces: StreetSurface[]

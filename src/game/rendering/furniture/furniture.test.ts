@@ -46,6 +46,7 @@ const SIZES: Record<FurnitureId, [number, number, number][]> = {
   'outdoor/fence': [[15, 1, 0.15], [5.1, 0.8, 0.12], [1, 1, 0.15]],
   'outdoor/bin': [[0.6, 1.1, 0.6]],
   'outdoor/mailbox': [[0.3, 1.2, 0.3]],
+  'outdoor/streetlight': [[0.3, 4.2, 0.3], [0.4, 5, 0.4]],
 }
 
 /** A record without its furniture look. */

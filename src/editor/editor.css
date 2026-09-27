@@ -660,3 +660,30 @@ h4 {
   margin-top: 4px;
   flex-wrap: wrap;
 }
+
+/* WG5: generator job and environment options */
+.gen-busy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: 6px 0;
+}
+
+.gen-env {
+  margin: 4px 0 6px;
+}
+
+.gen-env summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.modal .gen-env .field.check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 6px;
+}

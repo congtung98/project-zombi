@@ -9,7 +9,7 @@ import { buildLayoutWorld, type LayoutWorldOptions } from './layoutWorld.ts'
 import { parcelRect } from './parcels.ts'
 import { LayoutPlanError, planLayout } from './plan.ts'
 import { rectCentre, rectsOverlap } from './rects.ts'
-import type { GeneratedManifest, GeneratedRecord, LayoutIssue, LayoutParcel, LayoutPlan, PlanParams, WorldLayout, WorldMode } from './schema.ts'
+import type { EnvironmentParams, GeneratedManifest, GeneratedRecord, LayoutIssue, LayoutParcel, LayoutPlan, PlanParams, WorldLayout, WorldMode } from './schema.ts'
 
 /**
  * GeneratorSync (world generator WG4): the layout a world was generated from lives in the world
@@ -33,6 +33,8 @@ import type { GeneratedManifest, GeneratedRecord, LayoutIssue, LayoutParcel, Lay
 
 export const LAYOUT_FILE = 'layout/world-layout.json'
 export const SYNC_VERSION = 1
+/** Lots of the building zones never left empty on purpose (explicit parcel regeneration). */
+const NO_VACANCY = { residential: 0, commercial: 0, industrial: 0, public: 0 }
 /** Re-rolls tried for one parcel before reporting that nothing else fits it. */
 const REROLLS = 8
 
@@ -95,11 +97,18 @@ function recordsOf(doc: MapDocument): Map<string, Located> {
   return out
 }
 
-/** Manifest entry of a record the generator wrote (`layoutWorld.ts` ID rules: instances `<chunk>/<parcel>`, zones and zombie spawns by block). */
+/** Building instance IDs are `<chunk>/<parcel>` (no namespace), unlike the parcel's environment objects. */
+const isBuildingId = (id: string) => id.indexOf('/') === id.lastIndexOf('/')
+
+/** Manifest entry of a record the generator wrote (`layoutWorld.ts` ID rules: instances `<chunk>/<parcel>`, environment `…/objects/env-<parcel>-…`, zones and zombie spawns by block). */
 function entryFor(id: string, loc: Located): GeneratedRecord {
   const e: GeneratedRecord = { id, chunk: loc.chunk, hash: recordHash(loc.chunk, loc.record) }
   if (loc.category === 'instances') e.parcel = id.slice(id.indexOf('/') + 1)
-  else if (loc.category === 'zones') e.block = id.slice(id.lastIndexOf('/') + 1)
+  else if (loc.category === 'objects') {
+    // WG5: a lot's environment details belong to the lot (locks and selective regeneration follow it).
+    const m = /\/objects\/env-(lot-[0-9a-f]+)-/.exec(id)
+    if (m) e.parcel = m[1]
+  } else if (loc.category === 'zones') e.block = id.slice(id.lastIndexOf('/') + 1)
   else if (loc.category === 'spawns') {
     const m = /\/zombie-([^/]+)-\d+$/.exec(id)
     if (m) e.block = `block-${m[1]}`
@@ -176,18 +185,21 @@ export function generatorStatus(doc: MapDocument, layout: WorldLayout): Generato
     records.set(id, s)
     counts[s.state]++
   }
+  const touched = new Set<string>()
   for (const [id, e] of entries) {
-    if (e.parcel) instances.set(e.parcel, id)
+    if (e.parcel && isBuildingId(id)) instances.set(e.parcel, id)
     if (records.has(id)) continue
     const s = judge(id, e, undefined)
     records.set(id, s)
     counts.deleted++
   }
+  // A parcel is modified when anything of it (its building, a tree, its fence) was changed by hand.
+  for (const s of records.values()) if (s.parcel && s.modified) touched.add(s.parcel)
   const parcelStates = new Map<string, ParcelState>()
   for (const q of parcels.values()) {
     const inst = instances.get(q.id)
     const s = inst ? records.get(inst) : undefined
-    parcelStates.set(q.id, q.locked ? 'locked' : q.build?.source === 'manual' || s?.modified ? 'modified' : q.kind !== 'lot' ? 'open' : s ? 'generated' : 'empty')
+    parcelStates.set(q.id, q.locked ? 'locked' : q.build?.source === 'manual' || touched.has(q.id) ? 'modified' : q.kind !== 'lot' ? 'open' : s ? 'generated' : 'empty')
   }
   const out = { records, parcels: parcelStates, instances, counts }
   perChunks.set(layout, out)
@@ -235,7 +247,7 @@ export function layoutIssues(layout: WorldLayout): LayoutIssue[] {
 
 export type SyncRequest =
   /** Whole world: replan (new seed, profile, …) keeping locked, hand-chosen and hand-edited parcels, then buildings. */
-  | { kind: 'world'; params?: Partial<PlanParams>; mode?: WorldMode; overwrite?: boolean }
+  | { kind: 'world'; params?: Partial<PlanParams>; mode?: WorldMode; overwrite?: boolean; environment?: EnvironmentParams }
   /** Explicit: new buildings for these parcels (hand edits on them replaced; locked parcels refused). */
   | { kind: 'parcels'; parcels: string[] }
   /** Bulk: new buildings for the parcels of these chunks (hand edits kept unless overwrite; locked never). */
@@ -304,7 +316,14 @@ function merge(doc: MapDocument, layout: WorldLayout, fresh: MapDocument, freshM
   const additions: Located[] = []
   const records: GeneratedRecord[] = []
   const report = { replaced: 0, added: 0, removed: 0, keptModified: [] as string[], keptLocked: [] as string[], conflicts: [] as string[] }
-  const same = (a: Located | undefined, b: Located | undefined) => !!a && !!b && a.chunk === b.chunk && canonicalJson(a.record) === canonicalJson(b.record)
+  // Hashes cover the owner chunk and every field: equal hashes = the same record in the same chunk.
+  const hashes = new Map<string, string>()
+  const hashOf = (id: string, loc: Located) => {
+    let h = hashes.get(id)
+    if (h === undefined) hashes.set(id, (h = recordHash(loc.chunk, loc.record)))
+    return h
+  }
+  const same = (id: string, a: Located | undefined, b: Located | undefined) => !!a && !!b && hashOf(id, a) === next.get(id)!.hash
   const remove = (loc: Located, id: string) => {
     let set = removals.get(loc.chunk)
     if (!set) removals.set(loc.chunk, (set = new Set()))
@@ -319,7 +338,7 @@ function merge(doc: MapDocument, layout: WorldLayout, fresh: MapDocument, freshM
       // A record the generator does not own holds the ID: adopt it when identical, else leave it alone.
       if (c) {
         if (n && inScope) {
-          if (same(c, n)) records.push(next.get(id)!)
+          if (same(id, c, n)) records.push(next.get(id)!)
           else report.conflicts.push(id)
         }
         continue
@@ -329,13 +348,13 @@ function merge(doc: MapDocument, layout: WorldLayout, fresh: MapDocument, freshM
       records.push(o)
       continue
     }
-    const changes = !same(c, n)
+    const changes = !same(id, c, n)
     if (o && isLocked(id, o)) {
       if (changes) report.keptLocked.push(id)
       records.push(o)
       continue
     }
-    const modified = !!o && (!c || recordHash(c.chunk, c.record) !== o.hash)
+    const modified = !!o && (!c || hashOf(id, c) !== o.hash)
     if (modified && !policy.overwrite && !policy.force.has(id)) {
       if (changes) report.keptModified.push(id)
       records.push(o!)
@@ -420,6 +439,8 @@ function merge(doc: MapDocument, layout: WorldLayout, fresh: MapDocument, freshM
   const out: MapDocument = { ...doc, world, prefabs: prefabs.size !== doc.prefabs.size ? prefabs : doc.prefabs, chunks }
   // The player start moves with the plan unless the world's own spawn record is still there.
   if (!recordsOf(out).has(world.playerSpawn) && nu.has(fresh.world.playerSpawn)) world.playerSpawn = fresh.world.playerSpawn
+  // Same world fields: keep the object (the editor's resolve cache is keyed by it: nothing re-resolves needlessly).
+  if (canonicalJson(world) === canonicalJson(doc.world)) out.world = doc.world
   return { doc: withExternalRefs(out), records: records.sort((a, b) => byString(a.id, b.id)), report }
 }
 
@@ -511,7 +532,10 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
         } else {
           plan1 = planLayout(layout, params, { keep })
           if (plan0?.catalog) plan1 = { ...plan1, catalog: plan0.catalog }
+          if (plan0?.environment) plan1 = { ...plan1, environment: plan0.environment }
         }
+        // WG5: environment settings (never change the parcels).
+        if (request.environment) plan1 = { ...plan1, environment: request.environment }
         if (catalog) {
           const r = placeBuildings(plan1, catalog)
           plan1 = r.plan
@@ -556,7 +580,8 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
           // One parcel: re-roll until its building changes (deterministic: the salts come from the manifest).
           do {
             k++
-            r = placeBuildings(plan0, catalog, { parcels: ids, salt: rolls + k })
+            // Asked for by name ("Sinh lại lô"): always a building when one fits (clearing a lot is the prefab choice "none").
+            r = placeBuildings(plan0, catalog, { parcels: ids, salt: rolls + k, vacancy: request.kind === 'parcels' ? NO_VACANCY : undefined })
           } while (request.kind === 'parcels' && ids.length === 1 && k < REROLLS && standing(r.plan).get(ids[0]) === before.get(ids[0]))
           plan1 = r.plan
           nextRolls = rolls + k
@@ -589,7 +614,7 @@ export function syncGenerated(doc: MapDocument, request: SyncRequest, ctx: SyncC
 
   let fresh: MapDocument
   try {
-    fresh = buildLayoutWorld(layout, plan1, { worldId: doc.world.worldId, name: doc.world.name, mode, catalog: catalog ?? undefined, validation: ctx.validation })
+    fresh = buildLayoutWorld(layout, plan1, { worldId: doc.world.worldId, name: doc.world.name, mode, catalog: catalog ?? undefined, validation: ctx.validation, validate: false })
   } catch (e) {
     return fail(e instanceof Error ? e.message : String(e))
   }

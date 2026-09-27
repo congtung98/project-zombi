@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { findRecord, type MapDocument } from '../map/editor/document'
 import { PROFILES } from '../map/layout/plan'
 import { layoutPreviewSvg } from '../map/layout/preview'
@@ -6,7 +6,9 @@ import type { LayoutIssue, LayoutParcel, WorldLayout, WorldMode } from '../map/l
 import { documentLayout, generatorStatus, layoutIssues, parcelChunk, prefabChoices, stateLabel, type GeneratorStatus, type ParcelState } from '../map/layout/worldSync'
 import { generatorBlocked, generatorCatalog, isDirty, useEditorStore, type LayoutView } from './editorStore'
 import { downloadText } from './interaction'
-import { PARCEL_COLORS, PROFILE_LABEL } from '../map/editor/generator'
+import { DENSITY_CHOICES, ENVIRONMENT_LABEL, PARCEL_COLORS, PROFILE_LABEL } from '../map/editor/generator'
+import { DEFAULT_ENVIRONMENT, ENVIRONMENT_KINDS } from '../map/layout/environment'
+import type { EnvironmentParams } from '../map/layout/schema'
 
 /**
  * World generator in the editor (WG4): the Generator tab. Preview of the layout (source roads,
@@ -77,6 +79,7 @@ function WorldRegen({ layout, blocked }: { layout: WorldLayout; blocked: string 
   const [profile, setProfile] = useState(plan?.params.profile ?? 'default')
   const [mode, setMode] = useState<WorldMode>(layout.generated?.mode ?? 'full')
   const [overwrite, setOverwrite] = useState(false)
+  const [env, setEnv] = useState<EnvironmentParams>(plan?.environment ?? DEFAULT_ENVIRONMENT)
   const valid = Number.isInteger(Number(seed))
   const stale = pending && pending.base !== base
   return (
@@ -103,6 +106,7 @@ function WorldRegen({ layout, blocked }: { layout: WorldLayout; blocked: string 
           <option value="layout-only">LAYOUT_ONLY (chỉ đường)</option>
         </select>
       </label>
+      {mode === 'full' && <EnvironmentFields env={env} onChange={setEnv} />}
       <label className="field check">
         <input type="checkbox" checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)} data-gen-overwrite />
         <span>Ghi đè cả object đã sửa tay (không bao giờ đụng object khóa hay đặt tay)</span>
@@ -110,7 +114,7 @@ function WorldRegen({ layout, blocked }: { layout: WorldLayout; blocked: string 
       <button
         disabled={!!blocked || !valid}
         title={blocked ?? 'Tính kết quả và hiện trong viewport; document chỉ đổi khi bấm Áp dụng'}
-        onClick={() => store().generate(`Sinh lại world (seed ${seed})`, { kind: 'world', params: { seed: Number(seed), profile }, mode, overwrite }, { preview: true })}
+        onClick={() => store().generate(`Sinh lại world (seed ${seed})`, { kind: 'world', params: { seed: Number(seed), profile }, mode, overwrite, environment: env }, { preview: true })}
         data-gen-preview
       >
         Xem trước
@@ -235,11 +239,59 @@ function ParcelSection({ layout, status, parcel, blocked, doc }: { layout: World
   )
 }
 
+/** WG5: environment density and kinds (FULL worlds). */
+export function EnvironmentFields({ env, onChange }: { env: EnvironmentParams; onChange: (env: EnvironmentParams) => void }) {
+  return (
+    <details className="gen-env">
+      <summary>Môi trường: {DENSITY_CHOICES.find(([d]) => d === env.density)?.[1] ?? env.density}</summary>
+      <label className="field">
+        <span>Mật độ</span>
+        <select value={env.density} onChange={(e) => onChange({ ...env, density: Number(e.target.value) })} data-gen-env-density>
+          {DENSITY_CHOICES.map(([d, label]) => (
+            <option key={d} value={d}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {ENVIRONMENT_KINDS.map((k) => (
+        <label key={k} className="field check">
+          <input type="checkbox" checked={env[k]} onChange={(e) => onChange({ ...env, [k]: e.target.checked })} data-gen-env={k} />
+          <span>{ENVIRONMENT_LABEL[k]}</span>
+        </label>
+      ))}
+    </details>
+  )
+}
+
+/** WG5: the running worker job, with its time and a Hủy button. */
+function Busy() {
+  const busy = useEditorStore((s) => s.genBusy)
+  const [now, setNow] = useState(0)
+  useEffect(() => {
+    if (!busy) return
+    const t = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(t)
+  }, [busy])
+  if (!busy) return null
+  return (
+    <div className="gen-busy" data-gen-busy>
+      <span>
+        Đang {busy.label.toLowerCase()}… {(Math.max(0, now - busy.started) / 1000).toFixed(1)} s
+      </span>
+      <button onClick={() => store().cancelGenerator()} data-gen-cancel-job>
+        Hủy
+      </button>
+    </div>
+  )
+}
+
 export function GeneratorPanel() {
   const edit = useEditorStore((s) => s.edit)
   const view = useEditorStore((s) => s.layoutView)
   const picked = useEditorStore((s) => s.selectedParcel)
   const report = useEditorStore((s) => s.genReport)
+  const busy = useEditorStore((s) => s.genBusy)
   if (!edit) return null
   const doc = edit.doc
   const { layout, issues } = documentLayout(doc)
@@ -260,14 +312,17 @@ export function GeneratorPanel() {
     )
   }
   const status = generatorStatus(doc, layout)
-  const blocked = generatorBlocked(doc)
+  const published = generatorBlocked(doc)
+  // While a job runs every action waits (the result lands on the document it started from).
+  const blocked = published ?? (busy ? `Đang chạy ${busy.label}` : null)
   const parcel = picked ? layout.plan?.parcels.find((q) => q.id === picked) : undefined
   return (
     <div className="gen">
       <Summary layout={layout} status={status} doc={doc} />
-      {blocked && (
+      <Busy />
+      {published && (
         <p className="error" data-gen-blocked>
-          {blocked}
+          {published}
         </p>
       )}
       <details open className="gen-block">

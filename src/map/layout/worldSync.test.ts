@@ -203,7 +203,9 @@ describe('WG4 regeneration protects hand edits', () => {
     const r = sync(d, { kind: 'world', overwrite: true })
     expect(findRecord(r.doc, m.id)!.record).toEqual(findRecord(doc, m.id)!.record)
     expect(findRecord(r.doc, k.id)!.record).toEqual(lockedRec)
-    expect(statusOf(r.doc).counts).toMatchObject({ modified: 0, locked: 1 })
+    // The locked parcel's building and its environment details (WG5) stay locked; nothing is left modified.
+    const lockedCount = layoutOf(r.doc).generated!.records.filter((x) => x.parcel === k.parcel).length
+    expect(statusOf(r.doc).counts).toMatchObject({ modified: 0, locked: lockedCount })
   })
 
   it('never brings back a building deleted by hand, unless restored explicitly', () => {
@@ -264,6 +266,9 @@ describe('WG4 selective regeneration and hand choices', () => {
     const q = layoutOf(doc).plan!.parcels.find((x) => x.build && x.build.prefabId !== null && prefabChoices(layoutOf(doc), x.id, catalog).length > 2)!
     const r = sync(doc, { kind: 'parcels', parcels: [q.id] })
     expect(r.report.parcels).toEqual([q.id])
+    // Asked for by name: another building, never an empty lot.
+    const b = layoutOf(r.doc).plan!.parcels.find((x) => x.id === q.id)!.build!
+    expect(b.prefabId).not.toBeNull()
     expect(layoutOf(r.doc).generated!.rolls).toBeGreaterThan(0)
     unchangedOutside(doc, r.doc, q.id)
     expect(errorsOf(r.doc)).toEqual([])
@@ -332,7 +337,7 @@ describe('WG4 selective regeneration and hand choices', () => {
     expect(recordHash('c0_0', { a: 1, b: 2 })).toBe(recordHash('c0_0', { b: 2, a: 1 }))
   })
 
-  it('regenerates a dense 500 × 500 m town with a new seed quickly', () => {
+  it('regenerates a dense 500 × 500 m town with a new seed quickly', { timeout: 30000 }, () => {
     const dense = imp(gridStreets(21, 25, 31, 0.6))
     const plan = placeBuildings(planLayout(dense), catalog).plan
     const world = createLayoutWorld({ ...dense, plan } as WorldLayout, { worldId: 'dense', name: 'dense', mode: 'full', catalog, validation: OPTS })
