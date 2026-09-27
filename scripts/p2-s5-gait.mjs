@@ -10,7 +10,8 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   // Uncapped frames (well above the 60 Hz physics step), like a high refresh monitor.
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-frame-rate-limit', '--disable-gpu-vsync'],
+  // GPU=1 (C1): real GPU; since G1 SwiftShader renders the scene at a few FPS, too slow for this check.
+  args: [...(process.env.GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']), '--disable-frame-rate-limit', '--disable-gpu-vsync'],
 })
 const page = await (await browser.newContext({ viewport: { width: 960, height: 600 } })).newPage()
 const errors = []
@@ -33,13 +34,13 @@ try {
     window.__sounds = []
     const play = sfx.play.bind(sfx)
     sfx.play = (name, gain) => { window.__sounds.push(name); play(name, gain) }
-    // Player rig: the 'character' root nearest to the player; hips → hipL is the left leg joint.
+    // Player rig: the 'character' root nearest to the player; hipL is the left leg joint (C1: a bone).
     const roots = []
     window.__scene.traverse((o) => { if (o.name === 'character') roots.push(o) })
     const world = (o) => { o.updateWorldMatrix(true, false); return { x: o.matrixWorld.elements[12], z: o.matrixWorld.elements[14] } }
     const p = r.player.position
     const root = roots.sort((a, b) => Math.hypot(world(a).x - p.x, world(a).z - p.z) - Math.hypot(world(b).x - p.x, world(b).z - p.z))[0]
-    window.__hip = root.children[0].children[0]
+    window.__hip = root.getObjectByName('hipL')
     window.__rec = null
     const tick = (t) => {
       if (window.__rec) window.__rec.push({ t, leg: window.__hip.rotation.x })

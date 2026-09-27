@@ -5,6 +5,8 @@
  *
  * Model space: +Z forward, +Y up, the character's right side is −X. Arms hang along −Y from the
  * shoulder; arm Euler order is YXZ (pitch lifts the arm forward, yaw then sweeps it sideways).
+ * C1 (character plan): elbows, knees and ankles; the pelvis height follows the legs so the feet stay
+ * on the floor when they bend or spread.
  */
 export interface JointAngles {
   x: number
@@ -13,17 +15,32 @@ export interface JointAngles {
 }
 
 export interface Pose {
-  /** Vertical bob of the hips (m). */
+  /** Vertical offset of the pelvis (m): legs bent or spread lower it so the feet stay on the floor. */
   bodyY: number
+  /** Pelvis turn and sideways tilt (weight shift). */
+  hipsYaw: number
+  hipsRoll: number
   /** Whole upper-body lean forward (+) / back (−), radians around X. */
   bodyPitch: number
   torsoTwist: number
+  torsoRoll: number
   headPitch: number
+  headYaw: number
   headRoll: number
   armL: JointAngles
   armR: JointAngles
+  /** Elbow bend (≤ 0: forearm forward/up). */
+  elbowL: number
+  elbowR: number
+  /** Hip pitch (+ = leg back), sideways spread (+ = outward), knee bend (≥ 0: shin back), ankle pitch. */
   legL: number
   legR: number
+  legSplayL: number
+  legSplayR: number
+  kneeL: number
+  kneeR: number
+  ankleL: number
+  ankleR: number
   /** Death fall: rotation of the whole model around the feet (−π/2 = lying on its back). */
   rootPitch: number
 }
@@ -57,12 +74,21 @@ export const WALK_REFERENCE_SPEED = 2
 export const RUN_REFERENCE_SPEED = 7
 /** Right arm pitch that points the arm straight forward. */
 export const ARM_FORWARD = -Math.PI / 2
+/** Thigh and shin lengths (body.ts): used to keep the feet on the floor when the legs bend. */
+export const THIGH = 0.42
+export const SHIN = 0.4
 
 export function createPose(): Pose {
   return {
-    bodyY: 0, bodyPitch: 0, torsoTwist: 0, headPitch: 0, headRoll: 0,
-    armL: { x: 0, y: 0, z: 0 }, armR: { x: 0, y: 0, z: 0 }, legL: 0, legR: 0, rootPitch: 0,
+    bodyY: 0, hipsYaw: 0, hipsRoll: 0, bodyPitch: 0, torsoTwist: 0, torsoRoll: 0, headPitch: 0, headYaw: 0, headRoll: 0,
+    armL: { x: 0, y: 0, z: 0 }, armR: { x: 0, y: 0, z: 0 }, elbowL: 0, elbowR: 0,
+    legL: 0, legR: 0, legSplayL: 0, legSplayR: 0, kneeL: 0, kneeR: 0, ankleL: 0, ankleR: 0, rootPitch: 0,
   }
+}
+
+/** Vertical reach of a leg from the hip joint to the ankle (m). */
+export function legReach(hip: number, knee: number): number {
+  return THIGH * Math.cos(hip) + SHIN * Math.cos(hip + knee)
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
@@ -92,20 +118,41 @@ export function swingPitch(progress: number): number {
   return keyframes(progress, [[0, -0.35], [0.18, ARM_FORWARD], [0.8, ARM_FORWARD], [1, -0.6]])
 }
 
+/** Weapon elbow: cocked in the wind-up, extended through the hit, eased in the follow-through. */
+export function swingElbow(progress: number, hitAt: number): number {
+  const windup = Math.min(0.2, hitAt * 0.5)
+  return keyframes(progress, [[0, -0.3], [windup, -1.0], [hitAt, -0.12], [Math.min(0.85, hitAt + 0.4), -0.4], [1, -0.3]])
+}
+
 export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
   const walk = clamp01(input.speed / WALK_REFERENCE_SPEED)
   const run = clamp01((input.speed - 4) / (RUN_REFERENCE_SPEED - 4))
   const s = Math.sin(input.gaitPhase)
+  const c = Math.cos(input.gaitPhase)
   const breathe = Math.sin(input.time * 2.1)
   const zombie = input.kind === 'zombie'
 
+  // Legs: opposite phases; the knee bends while the leg swings forward (left: cos < 0), a little in
+  // stance; the ankle keeps the foot near level.
   const legAmp = zombie ? 0.38 * walk : 0.5 * walk + 0.25 * run
   out.legL = s * legAmp
   out.legR = -s * legAmp
-  out.bodyY = Math.abs(s) * (zombie ? 0.03 : 0.045) * walk + 0.008 * breathe * (1 - walk)
+  const swingBend = zombie ? 0.45 * walk : 0.6 * walk + 0.55 * run
+  const stanceBend = zombie ? 0.14 : 0.04 + 0.06 * walk
+  out.kneeL = stanceBend + swingBend * Math.max(0, -c)
+  out.kneeR = stanceBend + swingBend * Math.max(0, c)
+  out.ankleL = -(out.legL + out.kneeL) * 0.75
+  out.ankleR = -(out.legR + out.kneeR) * 0.75
+  out.legSplayL = zombie ? 0.05 : 0.025
+  out.legSplayR = out.legSplayL
+  // Pelvis turns with the stride, the chest counters it.
+  out.hipsYaw = (zombie ? 0.05 : 0.09) * s * walk
+  out.hipsRoll = 0
   out.bodyPitch = zombie ? 0.14 + 0.04 * walk : 0.16 * run
-  out.torsoTwist = 0
+  out.torsoTwist = -out.hipsYaw * 0.7
+  out.torsoRoll = 0
   out.headPitch = zombie ? 0.18 : 0
+  out.headYaw = 0
   out.headRoll = zombie ? 0.22 + 0.06 * Math.sin(input.time * 1.3) : 0
   out.rootPitch = 0
 
@@ -118,12 +165,17 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     out.armR.y = 0
     out.armL.z = 0.12
     out.armR.z = -0.12
+    out.elbowL = -0.14
+    out.elbowR = -0.18
     if (input.attack >= 0) {
       // Raise both arms over the head, then slam down forward at progress 1 (the damage frame).
       const a = input.attack
       const pitch = keyframes(a, [[0, -1.25], [0.7, -2.6], [1, -1.35]])
       out.armL.x = pitch
       out.armR.x = pitch
+      const bend = keyframes(a, [[0, -0.15], [0.7, -0.4], [1, -0.05]])
+      out.elbowL = bend
+      out.elbowR = bend
       out.bodyPitch += keyframes(a, [[0, 0], [0.7, -0.12], [1, 0.3]])
     }
   } else {
@@ -134,11 +186,16 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     out.armR.x = input.armed ? -0.35 + s * armAmp * 0.3 : s * armAmp
     out.armR.y = 0
     out.armR.z = -0.06
+    // Elbows: relaxed, bending more as the arm swings forward; runners hold them near 90°.
+    out.elbowL = lerp(-0.14 - 0.4 * Math.max(0, -out.armL.x), -1.3, run)
+    out.elbowR = input.armed ? -0.12 : lerp(-0.14 - 0.4 * Math.max(0, -out.armR.x), -1.3, run)
     if (input.swing >= 0) {
       const p = clamp01(input.swing)
       out.armR.x = swingPitch(p)
       out.armR.y = swingYaw(p, input.hitAt)
+      out.elbowR = swingElbow(p, input.hitAt)
       out.armL.x = -0.4
+      out.elbowL = -0.5
       out.torsoTwist = out.armR.y * 0.3
     }
     if (input.work >= 0 && input.swing < 0) {
@@ -148,13 +205,19 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
       out.armL.y = -0.25
       out.armR.x = -1.05 - 0.35 * tap
       out.armR.y = 0.2
+      out.elbowL = -0.55
+      out.elbowR = -0.6 - 0.2 * tap
       out.bodyPitch += 0.28
       out.headPitch += 0.4
     }
     if (input.shove >= 0) {
       const bump = keyframes(clamp01(input.shove), [[0, 0], [0.3, 1], [1, 0]])
       out.armL.x = lerp(out.armL.x, -1.45, bump)
-      if (input.swing < 0) out.armR.x = lerp(out.armR.x, -1.45, bump)
+      out.elbowL = lerp(out.elbowL, -0.15, bump)
+      if (input.swing < 0) {
+        out.armR.x = lerp(out.armR.x, -1.45, bump)
+        out.elbowR = lerp(out.elbowR, -0.15, bump)
+      }
       out.bodyPitch += 0.18 * bump
     }
   }
@@ -171,10 +234,22 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     out.armR.x = lerp(out.armR.x, -2.6, fall)
     out.armL.y = lerp(out.armL.y, 0, fall)
     out.armR.y = lerp(out.armR.y, 0, fall)
+    out.elbowL = lerp(out.elbowL, -0.25, fall)
+    out.elbowR = lerp(out.elbowR, -0.35, fall)
     out.legL = lerp(out.legL, 0.15, fall)
     out.legR = lerp(out.legR, -0.1, fall)
+    out.kneeL = lerp(out.kneeL, 0.12, fall)
+    out.kneeR = lerp(out.kneeR, 0.3, fall)
+    out.ankleL = lerp(out.ankleL, 0.3, fall)
+    out.ankleR = lerp(out.ankleR, 0.3, fall)
     out.bodyPitch = lerp(out.bodyPitch, 0, fall)
     out.torsoTwist = lerp(out.torsoTwist, 0, fall)
+    out.hipsYaw = lerp(out.hipsYaw, 0, fall)
   }
+
+  // Feet on the floor: the pelvis drops by what the longer leg lost to bending or spreading, plus a
+  // barely visible breath while standing.
+  const reach = Math.max(legReach(out.legL, out.kneeL), legReach(out.legR, out.kneeR))
+  out.bodyY = reach - (THIGH + SHIN) + 0.006 * breathe * (1 - walk)
   return out
 }

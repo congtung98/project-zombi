@@ -1,7 +1,7 @@
 // C0 (character plan): screenshots of the dev character lab (`/?lab=characters`, src/lab/CharacterLab.tsx),
 // the same fixed poses every run, at gameplay zoom (28 px/m) and close up, to compare sprints.
 //   BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_MODULE=file:///.../playwright/index.mjs CHROMIUM_PATH=... \
-//   node scripts/c0-character-lab.mjs [--label=c0] [--out=dir] [--gpu] [--compare=<dir>] [--docs=<dir>]
+//   node scripts/c0-character-lab.mjs [--label=c0] [--out=dir] [--gpu] [--compare=<dir>] [--docs=<dir>] [--only=close-z200,...]
 // Output: <out>/<set>-z<zoom>.png (+ diff shares against --compare; --docs also writes JPEG copies
 // there for the sprint notes). Needs the dev server.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -18,14 +18,17 @@ const out = opt('out', `node_modules/.tmp/character/${label}`)
 const compareDir = opt('compare', null)
 const gpu = args.includes('--gpu')
 const docsDir = opt('docs', null)
-const SHOTS = [
+const ONLY = opt('only', null)?.split(',')
+const ALL_SHOTS = [
   { set: 'lineup', zoom: 28, size: [700, 300] },
   { set: 'lineup', zoom: 100, size: [1300, 520] },
   { set: 'states', zoom: 28, size: [900, 480] },
   { set: 'states', zoom: 80, size: [1600, 1000] },
   { set: 'turn', zoom: 28, size: [900, 480] },
   { set: 'turn', zoom: 80, size: [1600, 1000] },
+  { set: 'close', zoom: 200, size: [1800, 700] },
 ]
+const SHOTS = ONLY ? ALL_SHOTS.filter((s) => ONLY.includes(`${s.set}-z${s.zoom}`)) : ALL_SHOTS
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? 'playwright')
 const browser = await chromium.launch({

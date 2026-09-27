@@ -4,6 +4,7 @@ import { GAME_CONFIG } from '../../core/config'
 import { BODY_PRESETS, HAIR_STYLES, DEFAULT_APPEARANCE } from '../../entities/appearance'
 import { ARM_FORWARD, computePose, createPose, swingYaw, type PoseInput } from './pose'
 import { applyPose, buildCharacter, playerLook, setCharacterGlow, zombieLook } from './rig'
+import { SLOT } from './body'
 import { buildWeaponModel } from './weaponModels'
 import { getItemDef, ITEM_IDS } from '../../entities/items'
 
@@ -33,9 +34,12 @@ describe('procedural rig', () => {
   it('faces +Z and holds the weapon socket in the right hand (−X side)', () => {
     const rig = buildCharacter(playerLook(DEFAULT_APPEARANCE))
     rig.root.updateMatrixWorld(true)
-    const eyes = rig.head.children[1].getWorldPosition(new Vector3())
-    const head = rig.head.getWorldPosition(new Vector3())
-    expect(eyes.z).toBeGreaterThan(head.z)
+    // Eye vertices (palette slot) sit on the front of the head.
+    const paint = rig.mesh.geometry.getAttribute('paint')
+    const pos = rig.mesh.geometry.getAttribute('position')
+    let eyeZ = -1
+    for (let i = 0; i < paint.count; i++) if (paint.getX(i) === SLOT.eyes) eyeZ = Math.max(eyeZ, pos.getZ(i))
+    expect(eyeZ).toBeGreaterThan(0.08)
     const hand = rig.weaponSocket.getWorldPosition(new Vector3())
     expect(hand.x).toBeLessThan(0)
     expect(hand.y).toBeGreaterThan(0.6)
@@ -48,11 +52,12 @@ describe('procedural rig', () => {
     expect(looks.size).toBeGreaterThan(4)
     const player = buildCharacter(playerLook(DEFAULT_APPEARANCE))
     const zombie = buildCharacter(zombieLook('zombie-1'))
-    expect(zombie.materials.shirt).not.toBe(player.materials.shirt)
+    expect(zombie.material).not.toBe(player.material)
     setCharacterGlow(zombie, true, true)
-    expect(zombie.materials.shirt.emissive.getHex()).toBe(0xffffff)
-    expect(player.materials.shirt.emissive.getHex()).toBe(0)
-    expect(player.materials.eyes.emissive.getHex()).toBe(0)
+    expect(zombie.material.emissive.getHex()).toBe(0xffffff)
+    expect(zombie.material.eyeGlow.r).toBeGreaterThan(0)
+    expect(player.material.emissive.getHex()).toBe(0)
+    expect(player.material.eyeGlow.getHex()).toBe(0)
   })
 
   it('weapon models attach along the socket with their grip at the hand for every melee', () => {

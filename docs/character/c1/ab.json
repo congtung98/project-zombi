@@ -1,0 +1,389 @@
+{
+ "note": "Interleaved A/B C0 (7524e86 worktree) vs C1: A1 B1 B2 A2, RTX 3060, Chrome headless D3D11 uncapped, 1280x800 DPR1 Medium",
+ "runs": {
+  "A1": [
+   {
+    "zombies": 0,
+    "frame": {
+     "n": 3303,
+     "mean": 1.82,
+     "median": 1.6,
+     "p95": 3.4,
+     "max": 8.8
+    },
+    "cpu": {
+     "n": 3303,
+     "mean": 1.33,
+     "median": 1.2,
+     "p95": 2.5,
+     "max": 5.7
+    },
+    "anim": {
+     "n": 3303,
+     "mean": 0.01,
+     "median": 0,
+     "p95": 0.1,
+     "max": 0.1
+    },
+    "calls": 64,
+    "tris": 20328
+   },
+   {
+    "zombies": 10,
+    "frame": {
+     "n": 1322,
+     "mean": 4.55,
+     "median": 3.8,
+     "p95": 9,
+     "max": 13.3
+    },
+    "cpu": {
+     "n": 1322,
+     "mean": 3.61,
+     "median": 3.1,
+     "p95": 7.2,
+     "max": 11.2
+    },
+    "anim": {
+     "n": 1322,
+     "mean": 0.13,
+     "median": 0.1,
+     "p95": 0.3,
+     "max": 0.4
+    },
+    "calls": 206,
+    "tris": 22032
+   },
+   {
+    "zombies": 30,
+    "frame": {
+     "n": 740,
+     "mean": 8.12,
+     "median": 7,
+     "p95": 16.4,
+     "max": 26.1
+    },
+    "cpu": {
+     "n": 740,
+     "mean": 6.9,
+     "median": 6,
+     "p95": 13.3,
+     "max": 22.3
+    },
+    "anim": {
+     "n": 740,
+     "mean": 0.24,
+     "median": 0.2,
+     "p95": 0.4,
+     "max": 0.6
+    },
+    "calls": 425,
+    "tris": 24660
+   }
+  ],
+  "A1-lifecycle": {
+   "cycles": 8,
+   "zombiesPerCycle": 20,
+   "before": {
+    "geometries": 35,
+    "textures": 29,
+    "programs": 11,
+    "heap": 101306274
+   },
+   "after": {
+    "geometries": 35,
+    "textures": 29,
+    "programs": 11,
+    "heap": 127457154
+   }
+  },
+  "B1": [
+   {
+    "zombies": 0,
+    "frame": {
+     "n": 3172,
+     "mean": 1.89,
+     "median": 1.7,
+     "p95": 3.6,
+     "max": 12.1
+    },
+    "cpu": {
+     "n": 3172,
+     "mean": 1.38,
+     "median": 1.2,
+     "p95": 2.7,
+     "max": 5.6
+    },
+    "anim": {
+     "n": 3172,
+     "mean": 0.01,
+     "median": 0,
+     "p95": 0.1,
+     "max": 0.2
+    },
+    "calls": 52,
+    "tris": 23160
+   },
+   {
+    "zombies": 10,
+    "frame": {
+     "n": 1885,
+     "mean": 3.19,
+     "median": 2.8,
+     "p95": 6,
+     "max": 13.5
+    },
+    "cpu": {
+     "n": 1885,
+     "mean": 2.37,
+     "median": 2.1,
+     "p95": 4.5,
+     "max": 7.9
+    },
+    "anim": {
+     "n": 1885,
+     "mean": 0.14,
+     "median": 0.1,
+     "p95": 0.3,
+     "max": 0.8
+    },
+    "calls": 72,
+    "tris": 53128
+   },
+   {
+    "zombies": 30,
+    "frame": {
+     "n": 1209,
+     "mean": 4.97,
+     "median": 4.3,
+     "p95": 9.2,
+     "max": 16.8
+    },
+    "cpu": {
+     "n": 1209,
+     "mean": 3.92,
+     "median": 3.4,
+     "p95": 7.4,
+     "max": 12.1
+    },
+    "anim": {
+     "n": 1209,
+     "mean": 0.28,
+     "median": 0.3,
+     "p95": 0.5,
+     "max": 0.8
+    },
+    "calls": 105,
+    "tris": 101620
+   }
+  ],
+  "B1-lifecycle": {
+   "cycles": 8,
+   "zombiesPerCycle": 20,
+   "before": {
+    "geometries": 43,
+    "textures": 30,
+    "programs": 13,
+    "heap": 97987420
+   },
+   "after": {
+    "geometries": 43,
+    "textures": 30,
+    "programs": 13,
+    "heap": 120740221
+   }
+  },
+  "B2": [
+   {
+    "zombies": 0,
+    "frame": {
+     "n": 3538,
+     "mean": 1.7,
+     "median": 1.5,
+     "p95": 3,
+     "max": 9.5
+    },
+    "cpu": {
+     "n": 3538,
+     "mean": 1.24,
+     "median": 1.1,
+     "p95": 2.1,
+     "max": 5.7
+    },
+    "anim": {
+     "n": 3538,
+     "mean": 0.01,
+     "median": 0,
+     "p95": 0.1,
+     "max": 0.2
+    },
+    "calls": 52,
+    "tris": 23160
+   },
+   {
+    "zombies": 10,
+    "frame": {
+     "n": 1904,
+     "mean": 3.16,
+     "median": 2.8,
+     "p95": 5.8,
+     "max": 18.3
+    },
+    "cpu": {
+     "n": 1904,
+     "mean": 2.33,
+     "median": 2,
+     "p95": 4.4,
+     "max": 11.6
+    },
+    "anim": {
+     "n": 1904,
+     "mean": 0.13,
+     "median": 0.1,
+     "p95": 0.3,
+     "max": 0.5
+    },
+    "calls": 72,
+    "tris": 53128
+   },
+   {
+    "zombies": 30,
+    "frame": {
+     "n": 1167,
+     "mean": 5.16,
+     "median": 4.4,
+     "p95": 10,
+     "max": 19.1
+    },
+    "cpu": {
+     "n": 1167,
+     "mean": 4.05,
+     "median": 3.5,
+     "p95": 8,
+     "max": 14.3
+    },
+    "anim": {
+     "n": 1167,
+     "mean": 0.28,
+     "median": 0.3,
+     "p95": 0.5,
+     "max": 0.8
+    },
+    "calls": 105,
+    "tris": 101652
+   }
+  ],
+  "B2-lifecycle": {
+   "cycles": 8,
+   "zombiesPerCycle": 20,
+   "before": {
+    "geometries": 42,
+    "textures": 30,
+    "programs": 13,
+    "heap": 113367733
+   },
+   "after": {
+    "geometries": 42,
+    "textures": 30,
+    "programs": 13,
+    "heap": 120491954
+   }
+  },
+  "A2": [
+   {
+    "zombies": 0,
+    "frame": {
+     "n": 3280,
+     "mean": 1.83,
+     "median": 1.6,
+     "p95": 3.5,
+     "max": 11.5
+    },
+    "cpu": {
+     "n": 3280,
+     "mean": 1.32,
+     "median": 1.2,
+     "p95": 2.5,
+     "max": 5.3
+    },
+    "anim": {
+     "n": 3280,
+     "mean": 0.01,
+     "median": 0,
+     "p95": 0.1,
+     "max": 0.2
+    },
+    "calls": 64,
+    "tris": 20328
+   },
+   {
+    "zombies": 10,
+    "frame": {
+     "n": 1449,
+     "mean": 4.15,
+     "median": 3.6,
+     "p95": 8,
+     "max": 21.8
+    },
+    "cpu": {
+     "n": 1449,
+     "mean": 3.32,
+     "median": 2.9,
+     "p95": 6.4,
+     "max": 17.2
+    },
+    "anim": {
+     "n": 1449,
+     "mean": 0.11,
+     "median": 0.1,
+     "p95": 0.2,
+     "max": 0.4
+    },
+    "calls": 206,
+    "tris": 22032
+   },
+   {
+    "zombies": 30,
+    "frame": {
+     "n": 736,
+     "mean": 8.17,
+     "median": 7.1,
+     "p95": 15.2,
+     "max": 35.5
+    },
+    "cpu": {
+     "n": 736,
+     "mean": 6.97,
+     "median": 6,
+     "p95": 12.9,
+     "max": 28.9
+    },
+    "anim": {
+     "n": 736,
+     "mean": 0.25,
+     "median": 0.2,
+     "p95": 0.5,
+     "max": 0.7
+    },
+    "calls": 452,
+    "tris": 24984
+   }
+  ],
+  "A2-lifecycle": {
+   "cycles": 8,
+   "zombiesPerCycle": 20,
+   "before": {
+    "geometries": 34,
+    "textures": 29,
+    "programs": 11,
+    "heap": 114172250
+   },
+   "after": {
+    "geometries": 34,
+    "textures": 29,
+    "programs": 11,
+    "heap": 119693663
+   }
+  }
+ }
+}

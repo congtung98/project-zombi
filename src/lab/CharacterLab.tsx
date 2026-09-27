@@ -9,9 +9,9 @@ import { buildWeaponModel } from '../game/rendering/character/weaponModels'
 
 /**
  * C0 (character plan): dev-only character lab, `/?lab=characters` on the dev server. Same rig, pose
- * functions, camera angle, zoom (px/m) and day lights as the game, on a 1 m / 25 cm grid, with fixed
+ * functions, camera angle, zoom (px/m) and day lights as the game, on a 1 m grid (25 cm from zoom 60), with fixed
  * pose inputs (no clock), so screenshots are identical run to run and compare before/after a sprint.
- * URL: `set` = lineup | states | turn, `zoom` (px/m, game default 28), `yaw` (rad, facing of the
+ * URL: `set` = lineup | states | turn | close, `zoom` (px/m, game default 28), `yaw` (rad, facing of the
  * states set), `t` (s, idle breathing time). `window.__labReady` is set once the frame is drawn.
  */
 const CAM = GAME_CONFIG.camera
@@ -60,6 +60,17 @@ function states(yaw: number): LabActor[] {
     Z('z attack hit', { attack: 1 }),
     Z('z hurt', { hurt: 1 }),
     Z('z dead', { dead: 1 }),
+  ]
+}
+
+/** Close-up: the player from the front three-quarter, side and back, and two zombies. */
+function close(): LabActor[] {
+  return [
+    { label: 'front', look: player, kind: 'player', pose: {}, facing: Math.PI / 4 },
+    { label: 'side', look: player, kind: 'player', weapon: 'baseball_bat', pose: { armed: true }, facing: -Math.PI / 4 },
+    { label: 'back', look: player, kind: 'player', pose: {}, facing: Math.PI + Math.PI / 4 },
+    { label: 'zombie front', look: zombieLook('zombie-2'), kind: 'zombie', pose: {}, facing: Math.PI / 4 },
+    { label: 'zombie side', look: zombieLook('zombie-3'), kind: 'zombie', pose: { speed: GAME_CONFIG.zombie.speed, gaitPhase: Math.PI / 2 }, facing: -Math.PI / 4 },
   ]
 }
 
@@ -118,9 +129,9 @@ export default function CharacterLab() {
   const zoom = Number(params.get('zoom') ?? CAM.zoomDefault)
   const yaw = Number(params.get('yaw') ?? Math.PI / 2)
   const time = Number(params.get('t') ?? 0)
-  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : lineup(Math.PI / 4)
+  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : set === 'close' ? close() : lineup(Math.PI / 4)
   // Two rows when there are many actors (states: player row behind, zombie row in front).
-  const perRow = set === 'lineup' ? actors.length : 8
+  const perRow = set === 'lineup' || set === 'close' ? actors.length : 8
   const spacing = 1.8
   const placed = actors.map((actor, i) => {
     const row = Math.floor(i / perRow)
@@ -155,7 +166,7 @@ export default function CharacterLab() {
           <planeGeometry args={[40, 40]} />
           <meshStandardMaterial color="#6f6b63" roughness={0.95} />
         </mesh>
-        <gridHelper args={[40, 160, '#7f7a70', '#7f7a70']} position={[0, 0.002, 0]} />
+        {zoom >= 60 && <gridHelper args={[40, 160, '#7f7a70', '#7f7a70']} position={[0, 0.002, 0]} />}
         <gridHelper args={[40, 40, '#403e3a', '#403e3a']} position={[0, 0.003, 0]} />
         {placed.map((p) => (
           <Actor key={p.actor.label} actor={p.actor} x={p.x} z={p.z} time={time} />

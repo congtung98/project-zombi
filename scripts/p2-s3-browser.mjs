@@ -153,7 +153,8 @@ try {
     const swing = await page.evaluate(async () => {
       const rt = window.__runtime
       let rigR = null
-      window.__scene.traverse((o) => { if (o.name === 'weaponSocket' && o.children.length) rigR = o.parent })
+      // C1: the socket sits in the fist (elbow bone); the swing yaw is on the shoulder.
+      window.__scene.traverse((o) => { if (o.name === 'weaponSocket' && o.children.length) { rigR = o.parent; while (rigR && rigR.name !== 'shoulderR') rigR = rigR.parent } })
       rt.input.simulateKey('Mouse0', true)
       const samples = []
       const start = performance.now()
@@ -201,7 +202,7 @@ try {
       z.health = 1
       z.staggerTimer = 0.3
       await new Promise((r) => setTimeout(r, 60))
-      const hurtPitch = rootOf()?.children[0].children[2]?.rotation.x
+      const hurtPitch = rootOf()?.getObjectByName('torso')?.rotation.x
       const { damageZombie } = await import('/src/game/systems/ai.ts')
       damageZombie(z, 5)
       await new Promise((r) => setTimeout(r, 900))

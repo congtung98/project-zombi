@@ -269,7 +269,7 @@ try {
     await page.waitForTimeout(600)
     const pose = await rt(() => {
       let arm = null
-      window.__scene.traverse((o) => { if (o.name === 'weaponSocket' && o.children.length) arm = o.parent })
+      window.__scene.traverse((o) => { if (o.name === 'weaponSocket' && o.children.length) { arm = o.parent; while (arm && arm.name !== 'shoulderR') arm = arm.parent } })
       return { armPitch: +arm.rotation.x.toFixed(2), elapsed: +window.__runtime.action.elapsed.toFixed(2) }
     })
     log('work pose', pose)
