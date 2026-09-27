@@ -55,23 +55,26 @@
     {
       "kind": "prop",
       "member": "hoop",
-      "position": { "x": -3.5, "y": 1.5, "z": 16 },
-      "size": [0.3, 3, 0.3],
-      "color": "#d0d4d8"
+      "position": { "x": -3.2, "y": 1.6, "z": 16 },
+      "size": [1.2, 3.2, 1.2],
+      "color": "#3d4a57",
+      "visual": { "assetId": "outdoor/hoop", "facing": 1 }
     },
     {
       "kind": "prop",
       "member": "hoop-2",
-      "position": { "x": 23.5, "y": 1.5, "z": 16 },
-      "size": [0.3, 3, 0.3],
-      "color": "#d0d4d8"
+      "position": { "x": 23.2, "y": 1.6, "z": 16 },
+      "size": [1.2, 3.2, 1.2],
+      "color": "#3d4a57",
+      "visual": { "assetId": "outdoor/hoop", "facing": 3 }
     },
     {
       "kind": "prop",
       "member": "flagpole",
       "position": { "x": 4, "y": 3.5, "z": -8 },
-      "size": [0.2, 7, 0.2],
-      "color": "#c9ccd0"
+      "size": [0.9, 7, 0.2],
+      "color": "#c9ccd0",
+      "visual": { "assetId": "outdoor/flagpole" }
     },
     {
       "kind": "prop",
@@ -166,16 +169,18 @@
     {
       "kind": "prop",
       "member": "bench",
-      "position": { "x": -18, "y": 0.25, "z": 30 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": -18, "y": 0.4, "z": 30 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "prop",
       "member": "bench-2",
-      "position": { "x": -8, "y": 0.25, "z": 30 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": -8, "y": 0.4, "z": 30 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "container",

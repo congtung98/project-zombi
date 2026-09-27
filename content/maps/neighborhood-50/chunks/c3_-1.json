@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_-1",
+  "cx": 3,
+  "cz": -1,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c3_-1/objects/env-lot-1047dc6f20-tree-1",
+      "position": { "x": 19.582379, "z": 24.1 },
+      "height": 5.020531,
+      "canopy": 1.238808,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-1/objects/street-sidewalk-15ba8270-streetlight-3",
+      "position": { "x": 16.6, "y": 2.1, "z": 27.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-1/objects/hospital-tree-1",
+      "position": { "x": 0, "z": 21 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-1/objects/hospital-tree-2",
+      "position": { "x": 6, "z": 21 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-1/objects/hospital-tree-3",
+      "position": { "x": 12, "z": 21 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-1/objects/hospital-bench-1",
+      "position": { "x": 4, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-1/objects/park-bench-1",
+      "position": { "x": 29, "y": 0.4, "z": 7 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-1/objects/park-bench-2",
+      "position": { "x": 26, "y": 0.4, "z": 5 },
+      "size": [0.6, 0.8, 1.8],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-1/objects/park-tree-1",
+      "position": { "x": 21, "z": 13 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-1/objects/park-tree-2",
+      "position": { "x": 21, "z": 6 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c3_-1/objects/park-flowerbed-1",
+      "shape": "ellipse",
+      "size": [4, 4],
+      "material": "grass",
+      "color": "#6f9a45",
+      "layer": 2,
+      "collision": "none",
+      "navigation": "blocked",
+      "position": { "x": 24, "z": 10 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-1/objects/park-streetlight-1",
+      "position": { "x": 20, "y": 2.1, "z": 0.2 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c3_-1/roads/asphalt-0e49c53c",
+      "position": { "x": 29.375, "z": 31 },
+      "size": [193.25, 6.5],
+      "color": "#3a3a3f",
+      "layer": 2
+    },
+    {
+      "roadId": "c3_-1/roads/sidewalk-15ba8270",
+      "position": { "x": 8.875, "z": 26.5 },
+      "size": [83.75, 2.5],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c2_-1/hospital-hospital-1", "ownerChunkId": "c2_-1" },
+    { "id": "c2_-1/objects/hospital-forecourt-1", "ownerChunkId": "c2_-1" },
+    { "id": "c4_-1/objects/park-lawn-1", "ownerChunkId": "c4_-1" },
+    { "id": "c4_-1/objects/park-path-1", "ownerChunkId": "c4_-1" },
+    { "id": "c4_-1/objects/park-path-2", "ownerChunkId": "c4_-1" }
+  ]
+}

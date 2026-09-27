@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c6_1",
+  "cx": 6,
+  "cz": 1,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c6_1/objects/env-lot-167d259723-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 13.728197, "y": 0, "z": 4.925102 },
+      "yaw": 50
+    },
+    {
+      "kind": "decor",
+      "objectId": "c6_1/objects/env-lot-167d259723-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 23.804575, "y": 0, "z": 4.828012 },
+      "yaw": 170
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_1/objects/env-lot-198db854f0-tree-1",
+      "position": { "x": 3.643389, "z": 25.903317 },
+      "height": 5.194123,
+      "canopy": 1.677649,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_1/objects/env-lot-198db854f0-tree-2",
+      "position": { "x": 9.547121, "z": 26.88851 },
+      "height": 5.051789,
+      "canopy": 1.620716,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_1/objects/env-lot-198db854f0-tree-3",
+      "position": { "x": 31.551969, "z": 25.641703 },
+      "height": 9.628329,
+      "canopy": 2.125666,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c7_1/objects/env-lot-146e0fa8a9-tree-26", "ownerChunkId": "c7_1" },
+    { "id": "c7_1/objects/env-lot-146e0fa8a9-tree-33", "ownerChunkId": "c7_1" }
+  ]
+}

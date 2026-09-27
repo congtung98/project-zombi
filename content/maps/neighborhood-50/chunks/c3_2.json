@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_2",
+  "cx": 3,
+  "cz": 2,
+  "instances": [
+    {
+      "instanceId": "c3_2/lot-098bf6ab98",
+      "prefabId": "house/tube-5x18",
+      "position": { "x": 2.5, "y": 0, "z": 11 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_2/lot-1fe08436f8",
+      "prefabId": "library/tube-house",
+      "position": { "x": 15.5, "y": 0, "z": 8 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_2/lot-16016913da",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 22, "y": 0, "z": 10 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_2/lot-05bc1092c3",
+      "prefabId": "library/tube-house",
+      "position": { "x": 28.5, "y": 0, "z": 8 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-098bf6ab98-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 4.2, "y": 0, "z": 1.1 },
+      "yaw": 30
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-098bf6ab98-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 3.089968, "y": 0, "z": 4.643529 },
+      "yaw": 280
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-1fe08436f8-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 15.151141, "y": 0, "z": 10.324872 },
+      "yaw": 300
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-16016913da-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 23.2, "y": 0, "z": 1.1 },
+      "yaw": 100
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-16016913da-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 21.815315, "y": 0, "z": 20.342538 },
+      "yaw": 140
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-05bc1092c3-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 26.851927, "y": 0, "z": 3.379729 },
+      "yaw": 140
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-17988bd1d0-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 0.890429, "y": 0, "z": 24.240825 },
+      "yaw": 350
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_2/objects/env-lot-1f7301cbd0-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 22.342525, "y": 0, "z": 27.954524 },
+      "yaw": 0
+    }
+  ],
+  "roads": [],
+  "zones": [
+    {
+      "zoneId": "c3_2/zones/block-053c228b10",
+      "kind": "zombiePopulation",
+      "name": "Khu thương mại 2",
+      "shape": "rect",
+      "center": { "x": 29, "z": 31.1 },
+      "size": [57.1, 18.2]
+    }
+  ],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_1/objects/street-sidewalk-0cb05d31-papers-1", "ownerChunkId": "c3_1" },
+    { "id": "c3_1/roads/sidewalk-0cb05d31", "ownerChunkId": "c3_1" },
+    { "id": "c3_3/lot-0fac3b1bb0", "ownerChunkId": "c3_3" },
+    { "id": "c3_3/lot-17988bd1d0", "ownerChunkId": "c3_3" },
+    { "id": "c3_3/lot-1c19fd8531", "ownerChunkId": "c3_3" },
+    { "id": "c3_3/lot-1f7301cbd0", "ownerChunkId": "c3_3" },
+    { "id": "c3_3/lot-1fd851ed4f", "ownerChunkId": "c3_3" }
+  ]
+}

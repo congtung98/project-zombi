@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-5_4",
+  "cx": -5,
+  "cz": 4,
+  "instances": [
+    {
+      "instanceId": "c-5_4/lot-00735e482f",
+      "prefabId": "house/villa",
+      "position": { "x": 6, "y": 0, "z": 6 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-5_4/objects/env-lot-00735e482f-tree-2",
+      "position": { "x": 13.474331, "z": 16.1 },
+      "height": 5.335562,
+      "canopy": 1.322817,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_4/objects/env-lot-00735e482f-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 12.2, "y": 0, "z": 12.9 },
+      "yaw": 350
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-5_4/objects/env-lot-0ab8e773df-tree-1",
+      "position": { "x": 27.253526, "z": 16.1 },
+      "height": 4.502175,
+      "canopy": 1.10058,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_4/objects/env-lot-0ab8e773df-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 26.970051, "y": 0, "z": 10.243495 },
+      "yaw": 210
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-5_4/objects/env-lot-1e4a5b9a02-tree-1",
+      "position": { "x": 3.962558, "z": 27.9 },
+      "height": 4.987405,
+      "canopy": 1.229975,
+      "trunk": 0.2,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_4/objects/env-lot-1e4a5b9a02-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 5.3, "y": 0, "z": 29.1 },
+      "yaw": 110
+    },
+    {
+      "kind": "container",
+      "objectId": "c-5_4/objects/env-lot-1e4a5b9a02-bin-1",
+      "position": { "x": 2.5, "y": 0.55, "z": 28.2 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#4a4a4a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 2 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_4/objects/env-lot-129eb2f31b-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 30.3, "y": 0, "z": 29.1 },
+      "yaw": 310
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_4/objects/street-asphalt-0decb3ec-car-2",
+      "position": { "x": 4, "y": 0.7, "z": 20.15 },
+      "size": [4, 1.4, 2],
+      "color": "#7a3b3b",
+      "visual": { "assetId": "outdoor/car", "facing": 1 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_4/objects/street-sidewalk-0f2991be-streetlight-3",
+      "position": { "x": 16.65, "y": 2.1, "z": 7.05 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_4/objects/street-sidewalk-0b66cabb-streetlight-3",
+      "position": { "x": 23.35, "y": 2.1, "z": 7.05 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_4/objects/street-sidewalk-192ae37e-streetlight-1",
+      "position": { "x": 27, "y": 2.1, "z": 18.65 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_4/objects/street-sidewalk-13f9ece8-streetlight-1",
+      "position": { "x": 27, "y": 2.1, "z": 25.35 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_4/objects/street-sidewalk-010f0535-streetlight-1",
+      "position": { "x": 16.65, "y": 2.1, "z": 30.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_4/objects/street-sidewalk-09c3e44b-streetlight-1",
+      "position": { "x": 23.35, "y": 2.1, "z": 30.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-5_4/roads/asphalt-06270f96",
+      "position": { "x": 20, "z": 10.375 },
+      "size": [6, 123.25],
+      "color": "#3a3a3f",
+      "layer": 2
+    },
+    {
+      "roadId": "c-5_4/roads/sidewalk-00931103",
+      "position": { "x": 1.875, "z": 25.9 },
+      "size": [30.25, 1.8],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-4_4/lot-0ab8e773df", "ownerChunkId": "c-4_4" },
+    { "id": "c-4_4/objects/env-lot-0ab8e773df-fence-1", "ownerChunkId": "c-4_4" },
+    { "id": "c-4_4/roads/asphalt-0decb3ec", "ownerChunkId": "c-4_4" },
+    { "id": "c-4_4/roads/sidewalk-13f9ece8", "ownerChunkId": "c-4_4" },
+    { "id": "c-4_4/roads/sidewalk-192ae37e", "ownerChunkId": "c-4_4" },
+    { "id": "c-4_5/lot-129eb2f31b", "ownerChunkId": "c-4_5" },
+    { "id": "c-5_3/roads/sidewalk-0b66cabb", "ownerChunkId": "c-5_3" },
+    { "id": "c-5_3/roads/sidewalk-0f2991be", "ownerChunkId": "c-5_3" },
+    { "id": "c-5_5/lot-1e4a5b9a02", "ownerChunkId": "c-5_5" },
+    { "id": "c-5_5/roads/sidewalk-010f0535", "ownerChunkId": "c-5_5" },
+    { "id": "c-5_5/roads/sidewalk-09c3e44b", "ownerChunkId": "c-5_5" },
+    { "id": "c-6_4/objects/env-lot-00735e482f-bush-1", "ownerChunkId": "c-6_4" },
+    { "id": "c-6_4/objects/env-lot-00735e482f-tree-1", "ownerChunkId": "c-6_4" },
+    { "id": "c-6_4/roads/sidewalk-068983e5", "ownerChunkId": "c-6_4" }
+  ]
+}

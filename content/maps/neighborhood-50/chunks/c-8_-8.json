@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-8_-8",
+  "cx": -8,
+  "cz": -8,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-37",
+      "position": { "x": 12.736481, "z": 6.576984 },
+      "height": 6.082517,
+      "canopy": 2.033007,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-38",
+      "position": { "x": 25.093109, "z": 7.85816 },
+      "height": 7.356084,
+      "canopy": 1.671217,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-97",
+      "position": { "x": 17.120357, "z": 11.421013 },
+      "height": 9.033925,
+      "canopy": 2.006785,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-98",
+      "position": { "x": 20.67752, "z": 12.546799 },
+      "height": 7.986393,
+      "canopy": 1.797279,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-99",
+      "position": { "x": 25.639644, "z": 11.241184 },
+      "height": 5.379725,
+      "canopy": 1.75189,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-157",
+      "position": { "x": 12.976888, "z": 17.052728 },
+      "height": 6.146059,
+      "canopy": 2.058423,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-158",
+      "position": { "x": 15.939726, "z": 16.322531 },
+      "height": 7.007951,
+      "canopy": 2.40318,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-159",
+      "position": { "x": 21.46908, "z": 16.882518 },
+      "height": 6.934015,
+      "canopy": 2.373606,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-160",
+      "position": { "x": 30.816274, "z": 16.68338 },
+      "height": 5.980059,
+      "canopy": 1.992024,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-227",
+      "position": { "x": 7.87451, "z": 21.653368 },
+      "height": 5.569164,
+      "canopy": 1.827666,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-1681920fa6-tree-228",
+      "position": { "x": 20.574198, "z": 21.562057 },
+      "height": 6.596392,
+      "canopy": 2.238557,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-0069cf649f-tree-2",
+      "position": { "x": 8.323947, "z": 27.721046 },
+      "height": 7.54249,
+      "canopy": 2.616996,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-0069cf649f-tree-3",
+      "position": { "x": 11.55901, "z": 26.15716 },
+      "height": 7.372571,
+      "canopy": 2.549028,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-8/objects/env-lot-0069cf649f-tree-4",
+      "position": { "x": 20.43437, "z": 27.649626 },
+      "height": 7.830254,
+      "canopy": 2.732102,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-7_-8/objects/env-lot-1681920fa6-tree-100", "ownerChunkId": "c-7_-8" },
+    { "id": "c-7_-8/objects/env-lot-1681920fa6-tree-161", "ownerChunkId": "c-7_-8" },
+    { "id": "c0_-8/zones/block-0b52a41770", "ownerChunkId": "c0_-8" }
+  ]
+}

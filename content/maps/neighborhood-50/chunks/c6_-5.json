@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c6_-5",
+  "cx": 6,
+  "cz": -5,
+  "instances": [
+    {
+      "instanceId": "c6_-5/lot-1fea1b7bb6",
+      "prefabId": "house/ranch",
+      "position": { "x": 4, "y": 0, "z": 24.5 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-1bc2e8d87c-tree-84",
+      "position": { "x": 24.305219, "z": 1.321293 },
+      "height": 8.782113,
+      "canopy": 1.956423,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-100f52625d-tree-1",
+      "position": { "x": 15.4227, "z": 8.51316 },
+      "height": 6.6833,
+      "canopy": 1.53666,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-100f52625d-tree-2",
+      "position": { "x": 19.637621, "z": 8.556598 },
+      "height": 9.821532,
+      "canopy": 2.164306,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c6_-5/objects/env-lot-1fea1b7bb6-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 8.488713, "y": 0, "z": 26.884211 },
+      "yaw": 40
+    },
+    {
+      "kind": "prop",
+      "objectId": "c6_-5/objects/env-lot-1fea1b7bb6-mailbox-1",
+      "position": { "x": 7.9, "y": 0.6, "z": 15.5 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-1",
+      "position": { "x": 15.34609, "z": 18.951578 },
+      "height": 7.656549,
+      "canopy": 2.66262,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-2",
+      "position": { "x": 30.178706, "z": 17.963557 },
+      "height": 9.418199,
+      "canopy": 2.08364,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-6",
+      "position": { "x": 15.00429, "z": 22.459549 },
+      "height": 9.99495,
+      "canopy": 2.19899,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-7",
+      "position": { "x": 20.373235, "z": 23.3724 },
+      "height": 5.911964,
+      "canopy": 1.964786,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-8",
+      "position": { "x": 25.610398, "z": 21.664615 },
+      "height": 7.813279,
+      "canopy": 2.725312,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-13",
+      "position": { "x": 16.931382, "z": 26.229525 },
+      "height": 8.664781,
+      "canopy": 1.932956,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-14",
+      "position": { "x": 25.376202, "z": 26.631526 },
+      "height": 7.696689,
+      "canopy": 1.739338,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-22",
+      "position": { "x": 15.796371, "z": 31.494963 },
+      "height": 6.511844,
+      "canopy": 1.502369,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-24",
+      "position": { "x": 24.594926, "z": 31.420064 },
+      "height": 9.891477,
+      "canopy": 2.178295,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_-5/objects/env-lot-10bc6e492f-tree-25",
+      "position": { "x": 30.087833, "z": 30.947752 },
+      "height": 6.439576,
+      "canopy": 1.487915,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c4_-5/roads/asphalt-11017c36", "ownerChunkId": "c4_-5" },
+    { "id": "c4_-5/roads/sidewalk-155e6f9b", "ownerChunkId": "c4_-5" },
+    { "id": "c5_-5/roads/sidewalk-028251a2", "ownerChunkId": "c5_-5" },
+    { "id": "c5_-6/university-hall-east-1", "ownerChunkId": "c5_-6" },
+    { "id": "c6_-4/objects/env-lot-10bc6e492f-tree-23", "ownerChunkId": "c6_-4" },
+    { "id": "c6_-6/lot-0b65e3cfcc", "ownerChunkId": "c6_-6" },
+    { "id": "c6_-6/objects/env-lot-1bc2e8d87c-tree-76", "ownerChunkId": "c6_-6" },
+    { "id": "c7_-5/objects/env-lot-10bc6e492f-tree-15", "ownerChunkId": "c7_-5" },
+    { "id": "c7_-5/objects/env-lot-10bc6e492f-tree-26", "ownerChunkId": "c7_-5" },
+    { "id": "c7_-5/objects/env-lot-10bc6e492f-tree-3", "ownerChunkId": "c7_-5" },
+    { "id": "c7_-5/objects/env-lot-10bc6e492f-tree-9", "ownerChunkId": "c7_-5" }
+  ]
+}

@@ -8,11 +8,12 @@ import { core, corridorBuilding, type RoomSpec } from './p4-public.ts'
 
 const counter = preset('furniture/counter')
 const chair = preset('furniture/chair')
-const benchProp = box('prop', [1.8, 0.5, 0.5], '#6b5a44')
-const tomb = box('prop', [0.7, 0.9, 0.25], '#8e8e8a')
-const bigTomb = box('prop', [1, 1.2, 0.4], '#a4a39d')
+const benchProp = box('prop', [1.8, 0.8, 0.6], '#7a5a3c', { asset: 'outdoor/bench' })
+const tomb = box('prop', [0.7, 0.9, 0.25], '#8e8e8a', { asset: 'outdoor/tombstone' })
+const bigTomb = box('prop', [1, 1.2, 0.4], '#a4a39d', { asset: 'outdoor/tombstone' })
 const bin = box('container', [0.8, 1.1, 0.8], '#3f5f3a', { name: 'Thùng rác', loot: 'scrap-pile', asset: 'outdoor/bin' })
 const lamp = box('prop', [0.3, 4.2, 0.3], '#4a4d51', { asset: 'outdoor/streetlight' })
+const hoop = box('prop', [1.2, 3.2, 1.2], '#3d4a57', { asset: 'outdoor/hoop' })
 
 const cell = (n: number, w = 3.6): RoomSpec => ({ w, name: `Buồng giam ${n}`, kind: 'cell' })
 
@@ -88,7 +89,7 @@ function compounds(prefabs: ReadonlyMap<string, PrefabDocument>): CompoundDocume
   prison.building('landscape/kiosk', { x: 8, z: 21 }, 0, 'gatehouse')
   prison.enclose(rect(-32, -26, 32, 26), 0.5, 4, '#9c978d', 'wall', [['S', 32, 6]])
   prison.surface('dirt', { x: 0, z: 12 }, [40, 14], { base: 'yard' }).surface('asphalt', { x: -8, z: 12 }, [14, 9], { layer: 1, base: 'court' })
-  for (const x of [-14, -2]) prison.box(box('prop', [0.3, 3, 0.3], '#d0d4d8'), { x, z: 12 }, { base: 'hoop' })
+  prison.box(hoop, { x: -14.2, z: 12 }, { base: 'hoop', facing: 1 }).box(hoop, { x: -1.8, z: 12 }, { base: 'hoop', facing: 3 })
   for (const x of [8, 14]) prison.box(benchProp, { x, z: 9 }, { base: 'bench' })
   prison.box(lamp, { x: -4, z: 23 }, { base: 'streetlight' })
 
@@ -112,7 +113,7 @@ function compounds(prefabs: ReadonlyMap<string, PrefabDocument>): CompoundDocume
   const park = new Compound('compound/park', 'Công viên', { group: 'landscape', tags: ['cong-vien'] }, place(['public', 'residential', 'empty'], [30, 60]))
   park.surface('grass', { x: 0, z: 0 }, [30, 30], { base: 'lawn' }).surface('concrete', { x: 0, z: 0 }, [2.5, 30], { layer: 1, base: 'path' }).surface('concrete', { x: 0, z: 0 }, [30, 2.5], { layer: 1, base: 'path' })
   park.surface('dirt', { x: 8, z: 8 }, [9, 7], { layer: 1, base: 'playground', color: '#b59a6a' })
-  park.box(box('prop', [1, 2, 3.2], '#c8412f'), { x: 6, z: 8 }, { base: 'slide' }).box(box('prop', [3, 2.2, 0.3], '#3b6fa8'), { x: 10, z: 6 }, { base: 'swing' }).box(box('prop', [2, 0.4, 2], '#d9c07a'), { x: 10, z: 10 }, { base: 'sandbox' })
+  park.box(box('prop', [1, 2, 3.2], '#c8412f', { asset: 'outdoor/slide' }), { x: 6, z: 8 }, { base: 'slide', facing: 0 }).box(box('prop', [3, 2.2, 1.2], '#3b6fa8', { asset: 'outdoor/swing' }), { x: 10, z: 5.6 }, { base: 'swing', facing: 0 }).box(box('prop', [2, 0.4, 2], '#9a7650', { asset: 'outdoor/sandbox' }), { x: 10, z: 10 }, { base: 'sandbox' })
   park.building('landscape/kiosk', { x: -8, z: -8 }, 0, 'kiosk')
   for (const [x, z] of [[-3, 5], [3, -5], [-6, 3], [6, -3]]) park.box(benchProp, { x, z }, { base: 'bench', turn: Math.abs(x) > Math.abs(z) })
   for (const [x, z] of [[-11, 11], [-11, 4], [11, -11], [4, -11], [-4, -12], [12, -4]]) park.tree({ x, z }, 'round', 6, 2.3)

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-2_5",
+  "cx": -2,
+  "cz": 5,
+  "instances": [
+    {
+      "instanceId": "c-2_5/lot-05c5d50990",
+      "prefabId": "building/safehouse",
+      "position": { "x": 6, "y": 0, "z": 2 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c-2_5/lot-1fff44514f",
+      "prefabId": "house/cottage",
+      "position": { "x": 19, "y": 0, "z": 2 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c-2_5/lot-1401fcdbe5",
+      "prefabId": "house/cottage",
+      "position": { "x": 6, "y": 0, "z": 22.5 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-2_5/objects/env-lot-05c5d50990-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 7.238507, "y": 0, "z": 8.624221 },
+      "yaw": 40
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_5/objects/env-lot-1fff44514f-fence-1",
+      "position": { "x": 19, "y": 0.5, "z": 16.7 },
+      "size": [11.8, 1, 0.12],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_5/objects/env-lot-1401fcdbe5-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 1.1, "y": 0, "z": 25.7 },
+      "yaw": 10
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_5/objects/env-lot-1401fcdbe5-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 16.461073, "y": 0, "z": 20.311542 },
+      "yaw": 140
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_5/objects/env-lot-1401fcdbe5-fence-1",
+      "position": { "x": 20.7, "y": 0.5, "z": 22.25 },
+      "size": [0.12, 1, 9.3],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-2_5/objects/env-lot-1ddaa49d33-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 2.1, "y": 0, "z": 29.8 },
+      "yaw": 280
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_5/lot-011c693304", "ownerChunkId": "c-1_5" },
+    { "id": "c-1_5/objects/env-lot-011c693304-fence-1", "ownerChunkId": "c-1_5" },
+    { "id": "c-2_6/lot-1ddaa49d33", "ownerChunkId": "c-2_6" },
+    { "id": "c-2_6/objects/env-lot-1ddaa49d33-grass-2", "ownerChunkId": "c-2_6" }
+  ]
+}

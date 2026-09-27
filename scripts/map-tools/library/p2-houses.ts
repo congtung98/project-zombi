@@ -155,7 +155,7 @@ function tube(id: string, name: string, w: number, d: number, storeys: number, s
     roofColor: '#7d3b2a',
     floorColor: '#b39473',
     catalog: { group: shop ? 'commercial' : 'residential', architectureStyle: 'vietnamese', tags: shop ? ['nha-pho', 'kinh-doanh', `${storeys}-tang`] : ['nha-ong', `${storeys}-tang`] },
-    placement: shop ? { category: 'shop', allowedZones: ['commercial', 'residential'], weight: 2, setback: 0, sideGap: 0, roadFacing: true, frontage: [w - 0.5, w + 3] } : { category: 'house', allowedZones: ['residential'], weight: 2, setback: 1, sideGap: 0, roadFacing: true, frontage: [w - 0.5, w + 3] },
+    placement: shop ? { category: 'shop', allowedZones: ['commercial', 'residential'], weight: 2, setback: 0, sideGap: 0.1, roadFacing: true, frontage: [w - 0.5, w + 3] } : { category: 'house', allowedZones: ['residential', 'commercial'], weight: 2, setback: 1, sideGap: 0.1, roadFacing: true, frontage: [w - 0.5, w + 3] },
     variants: VARIANTS,
   })
   h.outerWalls()

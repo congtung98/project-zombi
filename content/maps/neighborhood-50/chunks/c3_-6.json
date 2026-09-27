@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_-6",
+  "cx": 3,
+  "cz": -6,
+  "instances": [
+    {
+      "instanceId": "c3_-6/lot-11192f365d",
+      "prefabId": "building/safehouse",
+      "position": { "x": 4, "y": 0, "z": 30 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c3_-6/university-dormitory-1",
+      "prefabId": "public/dormitory",
+      "position": { "x": 20, "y": 0, "z": 10 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c3_-6/objects/env-lot-11192f365d-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 8.959454, "y": 0, "z": 27.33031 },
+      "yaw": 10
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c2_-6/objects/env-lot-11192f365d-tree-2", "ownerChunkId": "c2_-6" }]
+}

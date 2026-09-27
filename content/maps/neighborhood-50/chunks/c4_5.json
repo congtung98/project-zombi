@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c4_5",
+  "cx": 4,
+  "cz": 5,
+  "instances": [
+    {
+      "instanceId": "c4_5/prison-tower-1",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 20, "y": 0, "z": 15.5 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c4_5/objects/street-sidewalk-110296eb-streetlight-3",
+      "position": { "x": 28.4, "y": 2.1, "z": 4.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_5/objects/street-sidewalk-110296eb-streetlight-4",
+      "position": { "x": 28.4, "y": 2.1, "z": 27.2 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "wall",
+      "objectId": "c4_5/objects/prison-wall-1",
+      "position": { "x": 25, "y": 2, "z": 6 },
+      "size": [0.5, 4, 29],
+      "color": "#9c978d"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_5/objects/prison-hoop-1",
+      "position": { "x": 11, "y": 1.6, "z": 2.7 },
+      "size": [1.2, 3.2, 1.2],
+      "color": "#3d4a57",
+      "visual": { "assetId": "outdoor/hoop", "facing": 2 }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c4_5/roads/sidewalk-110296eb",
+      "position": { "x": 27.65, "z": 2.4 },
+      "size": [2.2, 95.2],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_4/prison-block-1", "ownerChunkId": "c3_4" },
+    { "id": "c3_5/objects/prison-wall-1", "ownerChunkId": "c3_5" },
+    { "id": "c4_4/objects/prison-court-1", "ownerChunkId": "c4_4" },
+    { "id": "c4_4/objects/prison-yard-1", "ownerChunkId": "c4_4" },
+    { "id": "c5_4/roads/asphalt-0440c1e3", "ownerChunkId": "c5_4" },
+    { "id": "c5_5/roads/dirt-14e893bb", "ownerChunkId": "c5_5" }
+  ]
+}

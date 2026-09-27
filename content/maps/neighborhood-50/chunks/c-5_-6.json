@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-5_-6",
+  "cx": -5,
+  "cz": -6,
+  "instances": [
+    {
+      "instanceId": "c-5_-6/lot-046a8ac900",
+      "prefabId": "house/garden",
+      "position": { "x": 22.5, "y": 0, "z": 18.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-tree-1",
+      "position": { "x": 17.247856, "z": 26.1 },
+      "height": 5.842384,
+      "canopy": 1.457969,
+      "trunk": 0.2,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-tree-2",
+      "position": { "x": 17.2, "z": 4.4 },
+      "height": 5.728687,
+      "canopy": 1.891475,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 18.3, "y": 0, "z": 23.9 },
+      "yaw": 20
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 26.7, "y": 0, "z": 23.9 },
+      "yaw": 60
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 28.726882, "y": 0, "z": 16.47729 },
+      "yaw": 230
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-fence-1",
+      "position": { "x": 22.5, "y": 0.5, "z": 2.3 },
+      "size": [13.8, 1, 0.12],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "container",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-bin-1",
+      "position": { "x": 16, "y": 0.55, "z": 25.8 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#2f3f5a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 0 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-6/objects/env-lot-046a8ac900-mailbox-1",
+      "position": { "x": 24.4, "y": 0.6, "z": 26.5 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 0 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-6/objects/street-sidewalk-1fd0dddd-streetlight-2",
+      "position": { "x": 6.65, "y": 2.1, "z": 18.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-6/objects/street-sidewalk-164b553f-streetlight-2",
+      "position": { "x": 13.35, "y": 2.1, "z": 18.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-6/objects/street-sidewalk-07137fbc-streetlight-1",
+      "position": { "x": 17, "y": 2.1, "z": 28.65 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-5_-6/objects/cemetery-fence-1",
+      "position": { "x": 0, "y": 0.6, "z": 14 },
+      "size": [0.15, 1.2, 23.85],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-5_-6/roads/sidewalk-1fd0dddd",
+      "position": { "x": 6.1, "z": 9.6 },
+      "size": [1.8, 35.2],
+      "color": "#a19d94"
+    },
+    {
+      "roadId": "c-5_-6/roads/sidewalk-164b553f",
+      "position": { "x": 13.9, "z": 9.6 },
+      "size": [1.8, 35.2],
+      "color": "#a19d94"
+    },
+    {
+      "roadId": "c-5_-6/roads/sidewalk-07137fbc",
+      "position": { "x": 28.125, "z": 28.1 },
+      "size": [30.25, 1.8],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-4_-5/roads/asphalt-1c915161", "ownerChunkId": "c-4_-5" },
+    { "id": "c-5_-4/roads/asphalt-1bf6c578", "ownerChunkId": "c-5_-4" },
+    { "id": "c-6_-6/roads/sidewalk-00d3a819", "ownerChunkId": "c-6_-6" }
+  ]
+}

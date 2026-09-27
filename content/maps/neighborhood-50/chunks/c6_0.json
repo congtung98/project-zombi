@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c6_0",
+  "cx": 6,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c6_0/lot-18207b657d",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 3.5, "y": 0, "z": 14 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c6_0/objects/env-lot-18207b657d-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 4.7, "y": 0, "z": 5.1 },
+      "yaw": 50
+    },
+    {
+      "kind": "decor",
+      "objectId": "c6_0/objects/env-lot-18207b657d-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 2.385426, "y": 0, "z": 21.933684 },
+      "yaw": 220
+    },
+    {
+      "kind": "decor",
+      "objectId": "c6_0/objects/env-lot-167d259723-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 12.803043, "y": 0, "z": 26.612944 },
+      "yaw": 70
+    },
+    {
+      "kind": "prop",
+      "objectId": "c6_0/objects/street-sidewalk-1bfd9caf-streetlight-6",
+      "position": { "x": 19.25, "y": 2.1, "z": 2.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c6_0/objects/street-sidewalk-1bfd9caf-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 2.155135, "y": 0, "z": 3.5 },
+      "yaw": 120
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_-1/roads/asphalt-0e49c53c", "ownerChunkId": "c3_-1" },
+    { "id": "c4_0/roads/sidewalk-1bfd9caf", "ownerChunkId": "c4_0" },
+    { "id": "c7_-1/roads/dirt-0d326009", "ownerChunkId": "c7_-1" },
+    { "id": "c7_0/objects/env-lot-146e0fa8a9-tree-13", "ownerChunkId": "c7_0" },
+    { "id": "c7_0/objects/env-lot-146e0fa8a9-tree-16", "ownerChunkId": "c7_0" },
+    { "id": "c7_0/objects/env-lot-146e0fa8a9-tree-20", "ownerChunkId": "c7_0" },
+    { "id": "c7_0/objects/env-lot-146e0fa8a9-tree-5", "ownerChunkId": "c7_0" },
+    { "id": "c7_0/objects/env-lot-146e0fa8a9-tree-9", "ownerChunkId": "c7_0" }
+  ]
+}

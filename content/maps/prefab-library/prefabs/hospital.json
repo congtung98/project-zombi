@@ -205,19 +205,27 @@
     },
     {
       "kind": "prop",
-      "localId": "bed-1",
-      "position": { "x": -11.2, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-1",
+      "position": { "x": -11.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
-      "localId": "bed-2",
-      "position": { "x": -8.6, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-2",
+      "position": { "x": -10, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-3",
+      "position": { "x": -8.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -271,11 +279,11 @@
     },
     {
       "kind": "prop",
-      "localId": "bed-3",
-      "position": { "x": -0.6, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-4",
+      "position": { "x": -0.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -301,7 +309,7 @@
       "kind": "window",
       "localId": "win-4",
       "name": "Cửa sổ",
-      "position": { "x": -2.5, "z": -12 },
+      "position": { "x": -2, "z": -12 },
       "quarterTurns": 0,
       "width": 1.4,
       "sill": 0.9,
@@ -328,11 +336,11 @@
     },
     {
       "kind": "prop",
-      "localId": "bed-4",
-      "position": { "x": 5.4, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-5",
+      "position": { "x": 5.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -358,7 +366,7 @@
       "kind": "window",
       "localId": "win-5",
       "name": "Cửa sổ",
-      "position": { "x": 3.5, "z": -12 },
+      "position": { "x": 4, "z": -12 },
       "quarterTurns": 0,
       "width": 1.4,
       "sill": 0.9,
@@ -385,11 +393,11 @@
     },
     {
       "kind": "prop",
-      "localId": "bed-5",
-      "position": { "x": 11.4, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-6",
+      "position": { "x": 11.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -415,7 +423,7 @@
       "kind": "window",
       "localId": "win-6",
       "name": "Cửa sổ",
-      "position": { "x": 9.5, "z": -12 },
+      "position": { "x": 10, "z": -12 },
       "quarterTurns": 0,
       "width": 1.4,
       "sill": 0.9,
@@ -526,11 +534,11 @@
     },
     {
       "kind": "prop",
-      "localId": "bed-6",
-      "position": { "x": -7.6, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-7",
+      "position": { "x": -7.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -556,7 +564,7 @@
       "kind": "window",
       "localId": "win-9",
       "name": "Cửa sổ",
-      "position": { "x": -9.5, "z": 12 },
+      "position": { "x": -9, "z": 12 },
       "quarterTurns": 2,
       "width": 1.4,
       "sill": 0.9,
@@ -650,11 +658,11 @@
     },
     {
       "kind": "prop",
-      "localId": "bed-7",
-      "position": { "x": 10.4, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-8",
+      "position": { "x": 10.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -680,7 +688,7 @@
       "kind": "window",
       "localId": "win-13",
       "name": "Cửa sổ",
-      "position": { "x": 8.5, "z": 12 },
+      "position": { "x": 9, "z": 12 },
       "quarterTurns": 2,
       "width": 1.4,
       "sill": 0.9,
@@ -849,20 +857,29 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-8",
-      "position": { "x": -11.2, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-9",
+      "position": { "x": -11.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-9",
-      "position": { "x": -8.6, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-10",
+      "position": { "x": -10, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-11",
+      "position": { "x": -8.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -922,20 +939,20 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-10",
-      "position": { "x": -3.2, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-12",
+      "position": { "x": -3.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-11",
-      "position": { "x": -0.6, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-13",
+      "position": { "x": -2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -947,6 +964,18 @@
       "color": "#e8ecee",
       "lootTableId": "medical-cabinet",
       "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-20",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -0.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
     },
     {
       "kind": "wallRun",
@@ -971,11 +1000,11 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-12",
-      "position": { "x": 5.4, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-14",
+      "position": { "x": 5.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1004,7 +1033,7 @@
       "level": 1,
       "localId": "win-21",
       "name": "Cửa sổ tầng trên",
-      "position": { "x": 3.5, "z": -12 },
+      "position": { "x": 4, "z": -12 },
       "quarterTurns": 0,
       "width": 1.4,
       "sill": 0.9,
@@ -1034,20 +1063,20 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-13",
-      "position": { "x": 8.8, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-15",
+      "position": { "x": 8.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-14",
-      "position": { "x": 11.4, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-16",
+      "position": { "x": 10, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1059,6 +1088,18 @@
       "color": "#e8ecee",
       "lootTableId": "medical-cabinet",
       "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-22",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 11.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
     },
     {
       "kind": "wallRun",
@@ -1102,20 +1143,29 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-15",
-      "position": { "x": -18.2, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-17",
+      "position": { "x": -18.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-16",
-      "position": { "x": -15.6, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-18",
+      "position": { "x": -17, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-19",
+      "position": { "x": -15.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1163,20 +1213,29 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-17",
-      "position": { "x": -10.2, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-20",
+      "position": { "x": -10.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-18",
-      "position": { "x": -7.6, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-21",
+      "position": { "x": -9, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-22",
+      "position": { "x": -7.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1224,20 +1283,29 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-19",
-      "position": { "x": -2.2, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-23",
+      "position": { "x": -2.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-20",
-      "position": { "x": 0.4, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-24",
+      "position": { "x": -1, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-25",
+      "position": { "x": 0.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1285,20 +1353,29 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-21",
-      "position": { "x": 5.8, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-26",
+      "position": { "x": 5.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-22",
-      "position": { "x": 8.4, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-27",
+      "position": { "x": 7, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-28",
+      "position": { "x": 8.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1474,10 +1551,11 @@
     {
       "kind": "prop",
       "level": 2,
-      "localId": "prop-1",
+      "localId": "operating-table-1",
       "position": { "x": -9, "y": 0.45, "z": -6.75 },
       "size": [2, 0.9, 0.9],
-      "color": "#b9c4c9"
+      "color": "#4e8c7a",
+      "visual": { "assetId": "furniture/operating-table" }
     },
     {
       "kind": "container",
@@ -1548,20 +1626,20 @@
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-23",
-      "position": { "x": -3.2, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-29",
+      "position": { "x": -3.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-24",
-      "position": { "x": -0.6, "y": 0.35, "z": -11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-30",
+      "position": { "x": -2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1573,6 +1651,18 @@
       "color": "#e8ecee",
       "lootTableId": "medical-cabinet",
       "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-37",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -0.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
     },
     {
       "kind": "wallRun",
@@ -1597,10 +1687,11 @@
     {
       "kind": "prop",
       "level": 2,
-      "localId": "prop-2",
+      "localId": "operating-table-2",
       "position": { "x": 4, "y": 0.45, "z": -6.75 },
       "size": [2, 0.9, 0.9],
-      "color": "#b9c4c9"
+      "color": "#4e8c7a",
+      "visual": { "assetId": "furniture/operating-table" }
     },
     {
       "kind": "container",
@@ -1732,29 +1823,38 @@
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-25",
-      "position": { "x": -18.2, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-31",
+      "position": { "x": -18.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-26",
-      "position": { "x": -15.6, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-32",
+      "position": { "x": -17, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-27",
-      "position": { "x": -13, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-33",
+      "position": { "x": -15.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-34",
+      "position": { "x": -13.4, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1772,7 +1872,7 @@
       "level": 2,
       "localId": "win-41",
       "name": "Cửa sổ tầng trên",
-      "position": { "x": -11, "z": 12 },
+      "position": { "x": -12, "z": 12 },
       "quarterTurns": 2,
       "width": 1.4,
       "sill": 0.9,
@@ -1950,29 +2050,38 @@
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-28",
-      "position": { "x": 11.8, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-35",
+      "position": { "x": 11.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-29",
-      "position": { "x": 14.4, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-36",
+      "position": { "x": 13, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "prop",
       "level": 2,
-      "localId": "bed-30",
-      "position": { "x": 17, "y": 0.35, "z": 11.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-37",
+      "position": { "x": 14.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-38",
+      "position": { "x": 16.6, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -1990,7 +2099,7 @@
       "level": 2,
       "localId": "win-47",
       "name": "Cửa sổ tầng trên",
-      "position": { "x": 19, "z": 12 },
+      "position": { "x": 18, "z": 12 },
       "quarterTurns": 2,
       "width": 1.4,
       "sill": 0.9,

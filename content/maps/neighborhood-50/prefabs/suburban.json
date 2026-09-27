@@ -1,0 +1,735 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "house/suburban",
+  "contentVersion": 1,
+  "name": "Nhà ngoại ô Mỹ",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -6, "minZ": -5, "maxX": 6, "maxZ": 5 },
+  "building": {
+    "height": 3,
+    "storeys": 2,
+    "wallThickness": 0.2,
+    "wallColor": "#c7d3dc",
+    "roofColor": "#35383d",
+    "floorColor": "#a07d5a"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "outer-1",
+      "from": { "x": -6, "z": -5 },
+      "to": { "x": 6, "z": -5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-2",
+      "from": { "x": 6, "z": -5 },
+      "to": { "x": 6, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-3",
+      "from": { "x": 6, "z": 5 },
+      "to": { "x": -6, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-4",
+      "from": { "x": -6, "z": 5 },
+      "to": { "x": -6, "z": -5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-1",
+      "from": { "x": -6, "z": -5 },
+      "to": { "x": 6, "z": -5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-2",
+      "from": { "x": 6, "z": -5 },
+      "to": { "x": 6, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-3",
+      "from": { "x": 6, "z": 5 },
+      "to": { "x": -6, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-4",
+      "from": { "x": -6, "z": 5 },
+      "to": { "x": -6, "z": -5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "stairs",
+      "localId": "stairs-1",
+      "position": { "x": -0.9, "z": 0.4 },
+      "quarterTurns": 1,
+      "width": 1,
+      "length": 4
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-1",
+      "from": { "x": -1.5, "z": -5 },
+      "to": { "x": -1.5, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-2",
+      "from": { "x": 1.5, "z": -5 },
+      "to": { "x": 1.5, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-3",
+      "from": { "x": 1.5, "z": 0 },
+      "to": { "x": 6, "z": 0 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "door",
+      "localId": "door-5",
+      "name": "Cửa chính",
+      "position": { "x": 0.5, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "localId": "door-1",
+      "name": "Cửa",
+      "position": { "x": 1.5, "z": 3 },
+      "quarterTurns": 1,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "localId": "door-2",
+      "name": "Cửa",
+      "position": { "x": 1.5, "z": -3 },
+      "quarterTurns": 3,
+      "width": 1,
+      "openTowards": -1
+    },
+    {
+      "kind": "window",
+      "localId": "win-2",
+      "name": "Cửa sổ",
+      "position": { "x": -2.4, "z": -5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-3",
+      "name": "Cửa sổ",
+      "position": { "x": 0.4, "z": -5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-5",
+      "name": "Cửa sổ",
+      "position": { "x": 6, "z": 2.5 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-6",
+      "name": "Cửa sổ",
+      "position": { "x": 6, "z": -1 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-4",
+      "from": { "x": -1.5, "z": -5 },
+      "to": { "x": -1.5, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-5",
+      "from": { "x": 1.5, "z": -5 },
+      "to": { "x": 1.5, "z": 5 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-6",
+      "from": { "x": 1.5, "z": 0 },
+      "to": { "x": 6, "z": 0 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-3",
+      "name": "Cửa",
+      "position": { "x": 1.5, "z": 3 },
+      "quarterTurns": 1,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-4",
+      "name": "Cửa",
+      "position": { "x": 1.5, "z": -3 },
+      "quarterTurns": 3,
+      "width": 1,
+      "openTowards": -1
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-8",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -2.4, "z": -5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-9",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 2.4, "z": -5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-10",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 4.8, "z": -5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-11",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 6, "z": 4 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-12",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 6, "z": -1 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "door",
+      "localId": "door-6",
+      "name": "Cửa",
+      "position": { "x": -1.5, "z": -3.5 },
+      "quarterTurns": 3,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "window",
+      "localId": "win-14",
+      "name": "Cửa sổ",
+      "position": { "x": -2.4, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-15",
+      "name": "Cửa sổ",
+      "position": { "x": 2.4, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-16",
+      "name": "Cửa sổ",
+      "position": { "x": 4.8, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-17",
+      "name": "Cửa sổ",
+      "position": { "x": -6, "z": -1 },
+      "quarterTurns": 1,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "prop",
+      "localId": "sofa-1",
+      "position": { "x": -5.42, "y": 0.4, "z": 1 },
+      "size": [0.9, 0.8, 2],
+      "color": "#5a6b7b",
+      "visual": { "assetId": "furniture/sofa" }
+    },
+    {
+      "kind": "prop",
+      "localId": "table-1",
+      "position": { "x": -3.8, "y": 0.4, "z": 1.5 },
+      "size": [1.4, 0.8, 0.9],
+      "color": "#7b5a44",
+      "visual": { "assetId": "furniture/table" }
+    },
+    {
+      "kind": "prop",
+      "localId": "sofa-2",
+      "position": { "x": -3.8, "y": 0.4, "z": 4.445 },
+      "size": [0.85, 0.8, 0.85],
+      "color": "#7a6a58",
+      "visual": { "assetId": "furniture/sofa" }
+    },
+    {
+      "kind": "container",
+      "localId": "bookshelf-1",
+      "name": "Kệ sách",
+      "position": { "x": -4.6, "y": 1, "z": -4.67 },
+      "size": [1.2, 2, 0.4],
+      "color": "#6f5a45",
+      "lootTableId": "house-nightstand",
+      "visual": { "assetId": "furniture/bookshelf" }
+    },
+    {
+      "kind": "prop",
+      "localId": "table-2",
+      "position": { "x": 3.8, "y": 0.4, "z": 2.5 },
+      "size": [1.4, 0.8, 0.9],
+      "color": "#7b5a44",
+      "visual": { "assetId": "furniture/table" }
+    },
+    {
+      "kind": "container",
+      "localId": "counter-1",
+      "name": "Tủ bếp",
+      "position": { "x": 3.1, "y": 0.5, "z": -4.57 },
+      "size": [1.4, 1, 0.6],
+      "color": "#9c7a5a",
+      "lootTableId": "house-kitchen",
+      "visual": { "assetId": "furniture/counter" }
+    },
+    {
+      "kind": "container",
+      "localId": "fridge-1",
+      "name": "Tủ lạnh",
+      "position": { "x": 4.8, "y": 0.9, "z": -4.47 },
+      "size": [0.8, 1.8, 0.8],
+      "color": "#d8dde0",
+      "lootTableId": "house-kitchen",
+      "visual": { "assetId": "furniture/fridge" }
+    },
+    {
+      "kind": "container",
+      "localId": "counter-2",
+      "name": "Tủ bếp",
+      "position": { "x": 5.57, "y": 0.5, "z": -2.5 },
+      "size": [0.6, 1, 1.4],
+      "color": "#9c7a5a",
+      "lootTableId": "house-kitchen",
+      "visual": { "assetId": "furniture/counter" }
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-7",
+      "from": { "x": -6, "z": 0 },
+      "to": { "x": -1.5, "z": 0 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#c7d3dc"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-7",
+      "name": "Cửa",
+      "position": { "x": -1.5, "z": 4 },
+      "quarterTurns": 1,
+      "width": 1,
+      "openTowards": -1
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-8",
+      "name": "Cửa",
+      "position": { "x": -1.5, "z": -4 },
+      "quarterTurns": 3,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-18",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -4.8, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-19",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -2.4, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-20",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 2.4, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-21",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 4.8, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-23",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -6, "z": -1 },
+      "quarterTurns": 1,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "bed-1",
+      "position": { "x": -5.07, "y": 0.3, "z": 2.5 },
+      "size": [1.6, 0.6, 2],
+      "color": "#8c4a5a",
+      "visual": { "assetId": "furniture/bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "wardrobe-1",
+      "name": "Tủ quần áo",
+      "position": { "x": -3.5, "y": 1, "z": 0.43 },
+      "size": [1.4, 2, 0.6],
+      "color": "#6d4c35",
+      "lootTableId": "house-wardrobe",
+      "visual": { "assetId": "furniture/wardrobe" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "bed-2",
+      "position": { "x": -5.37, "y": 0.3, "z": -3 },
+      "size": [1, 0.6, 2],
+      "color": "#8c4a5a",
+      "visual": { "assetId": "furniture/bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "nightstand-1",
+      "name": "Tủ đầu giường",
+      "position": { "x": -4.6, "y": 0.35, "z": -4.62 },
+      "size": [0.5, 0.7, 0.5],
+      "color": "#7b5a44",
+      "lootTableId": "house-nightstand",
+      "visual": { "assetId": "furniture/nightstand" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "bed-3",
+      "position": { "x": 5.37, "y": 0.3, "z": 2 },
+      "size": [1, 0.6, 2],
+      "color": "#8c4a5a",
+      "visual": { "assetId": "furniture/bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "wardrobe-2",
+      "name": "Tủ quần áo",
+      "position": { "x": 2.5, "y": 1, "z": 0.43 },
+      "size": [1.2, 2, 0.6],
+      "color": "#6d4c35",
+      "lootTableId": "house-wardrobe",
+      "visual": { "assetId": "furniture/wardrobe" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "shelving-1",
+      "name": "Tủ thuốc",
+      "position": { "x": 5.67, "y": 0.8, "z": -2.5 },
+      "size": [0.4, 1.6, 1.2],
+      "color": "#8a8580",
+      "lootTableId": "house-wardrobe",
+      "visual": { "assetId": "furniture/shelving" }
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "room-1",
+      "name": "Phòng khách",
+      "bounds": { "minX": -6, "minZ": -5, "maxX": -1.5, "maxZ": 5 },
+      "lamp": {
+        "localId": "lamp-1",
+        "name": "Đèn phòng khách",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -1.8, "z": -2.65 }
+      }
+    },
+    {
+      "localId": "room-2",
+      "name": "Sảnh",
+      "bounds": { "minX": -1.5, "minZ": -5, "maxX": 1.5, "maxZ": 5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-2",
+        "name": "Đèn sảnh",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1.2, "z": 3.85 }
+      }
+    },
+    {
+      "localId": "room-3",
+      "name": "Phòng ăn",
+      "bounds": { "minX": 1.5, "minZ": 0, "maxX": 6, "maxZ": 5 },
+      "lamp": {
+        "localId": "lamp-3",
+        "name": "Đèn phòng ăn",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1.8, "z": 3.85 }
+      }
+    },
+    {
+      "localId": "room-4",
+      "name": "Bếp",
+      "bounds": { "minX": 1.5, "minZ": -5, "maxX": 6, "maxZ": 0 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-4",
+        "name": "Đèn bếp",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1.8, "z": -2.15 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-5",
+      "name": "Hành lang tầng 2",
+      "bounds": { "minX": -1.5, "minZ": -5, "maxX": 1.5, "maxZ": 5 },
+      "lamp": {
+        "localId": "lamp-5",
+        "name": "Đèn hành lang tầng 2",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1.2, "z": 3.85 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-6",
+      "name": "Phòng ngủ chính",
+      "bounds": { "minX": -6, "minZ": 0, "maxX": -1.5, "maxZ": 5 },
+      "lamp": {
+        "localId": "lamp-6",
+        "name": "Đèn phòng ngủ chính",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -1.8, "z": 3.15 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-7",
+      "name": "Phòng ngủ trẻ",
+      "bounds": { "minX": -6, "minZ": -5, "maxX": -1.5, "maxZ": 0 },
+      "lamp": {
+        "localId": "lamp-7",
+        "name": "Đèn phòng ngủ trẻ",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -1.8, "z": -3.15 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-8",
+      "name": "Phòng ngủ khách",
+      "bounds": { "minX": 1.5, "minZ": 0, "maxX": 6, "maxZ": 5 },
+      "lamp": {
+        "localId": "lamp-8",
+        "name": "Đèn phòng ngủ khách",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1.8, "z": 3.85 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-9",
+      "name": "Phòng tắm, giặt",
+      "bounds": { "minX": 1.5, "minZ": -5, "maxX": 6, "maxZ": 0 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-9",
+        "name": "Đèn phòng tắm, giặt",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1.8, "z": -2.15 }
+      }
+    }
+  ],
+  "visual": { "variants": ["intact", "lived-in", "abandoned"] },
+  "placement": {
+    "category": "house",
+    "allowedZones": ["residential"],
+    "weight": 1.5,
+    "setback": 6,
+    "sideGap": 1.5,
+    "roadFacing": true,
+    "frontage": [12, 22]
+  },
+  "catalog": { "group": "residential", "architectureStyle": "american", "tags": ["2-tang", "ngoai-o"] },
+  "source": { "library": "prefab-library", "id": "house/suburban", "version": 1, "hash": "cyrb53:0fd05bd7050d69" }
+}

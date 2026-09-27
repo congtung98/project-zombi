@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_3",
+  "cx": 3,
+  "cz": 3,
+  "instances": [
+    {
+      "instanceId": "c3_3/lot-17988bd1d0",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 3, "y": 0, "z": 0 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c3_3/lot-0fac3b1bb0",
+      "prefabId": "library/tube-house",
+      "position": { "x": 10, "y": 0, "z": 2 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c3_3/lot-1c19fd8531",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 16.5, "y": 0, "z": 0 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c3_3/lot-1f7301cbd0",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 22.5, "y": 0, "z": 0 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c3_3/lot-1fd851ed4f",
+      "prefabId": "library/tube-house",
+      "position": { "x": 29, "y": 0, "z": 2 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c3_3/prison-tower-1",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 10, "y": 0, "z": 25.5 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c3_3/objects/env-lot-17988bd1d0-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 1.20325, "y": 0, "z": 7.521686 },
+      "yaw": 190
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_3/objects/env-lot-0fac3b1bb0-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 10.780646, "y": 0, "z": 4.272468 },
+      "yaw": 290
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_3/objects/env-lot-1c19fd8531-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 15.3, "y": 0, "z": 8.9 },
+      "yaw": 70
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_3/objects/env-lot-1f7301cbd0-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 21.3, "y": 0, "z": 8.9 },
+      "yaw": 40
+    },
+    {
+      "kind": "container",
+      "objectId": "c3_3/objects/street-asphalt-06572813-car-1",
+      "position": { "x": 26.75, "y": 0.7, "z": 15.85 },
+      "size": [4, 1.4, 2],
+      "color": "#6b5a4a",
+      "name": "Xe bỏ hoang",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/car", "facing": 3 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_3/objects/street-asphalt-06572813-oil-stain-1",
+      "assetId": "decor/oil-stain",
+      "position": { "x": 26.696925, "y": 0, "z": 15.80495 },
+      "yaw": 170
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_3/objects/street-asphalt-06572813-tires-1",
+      "assetId": "decor/tires",
+      "position": { "x": 23.95, "y": 0, "z": 15.85 },
+      "yaw": 200
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_3/objects/street-sidewalk-0b4f807e-streetlight-1",
+      "position": { "x": 1.25, "y": 2.1, "z": 10.65 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_3/objects/street-sidewalk-0b4f807e-streetlight-2",
+      "position": { "x": 24.05, "y": 2.1, "z": 10.65 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_3/objects/street-sidewalk-00a80873-streetlight-1",
+      "position": { "x": 1.25, "y": 2.1, "z": 17.35 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_3/objects/street-sidewalk-00a80873-streetlight-2",
+      "position": { "x": 24.05, "y": 2.1, "z": 17.35 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_3/objects/street-sidewalk-00a80873-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 18.650553, "y": 0, "z": 17.9 },
+      "yaw": 20
+    },
+    {
+      "kind": "wall",
+      "objectId": "c3_3/objects/prison-wall-1",
+      "position": { "x": 31, "y": 2, "z": 20.5 },
+      "size": [51.5, 4, 0.5],
+      "color": "#9c978d"
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c3_3/roads/sidewalk-0b4f807e",
+      "position": { "x": 29, "z": 10.1 },
+      "size": [63.5, 1.8],
+      "color": "#a19d94"
+    },
+    {
+      "roadId": "c3_3/roads/sidewalk-00a80873",
+      "position": { "x": 29, "z": 17.9 },
+      "size": [63.5, 1.8],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_2/zones/block-053c228b10", "ownerChunkId": "c3_2" },
+    { "id": "c3_4/objects/prison-wall-1", "ownerChunkId": "c3_4" },
+    { "id": "c4_3/roads/asphalt-06572813", "ownerChunkId": "c4_3" }
+  ]
+}

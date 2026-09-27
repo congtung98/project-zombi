@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-7_-1",
+  "cx": -7,
+  "cz": -1,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-7_-1/objects/env-lot-1283872af4-tree-1",
+      "position": { "x": 8.873482, "z": 5.610881 },
+      "height": 9.737193,
+      "canopy": 2.147439,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-7_-1/objects/env-lot-1283872af4-tree-2",
+      "position": { "x": 13.899643, "z": 5.535868 },
+      "height": 9.846132,
+      "canopy": 2.169226,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-7_-1/objects/env-lot-1283872af4-tree-3",
+      "position": { "x": 23.962535, "z": 5.178244 },
+      "height": 6.079036,
+      "canopy": 2.031614,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-7_-1/objects/env-lot-1283872af4-tree-4",
+      "position": { "x": 13.593123, "z": 10.168444 },
+      "height": 8.483011,
+      "canopy": 1.896602,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-7_-1/objects/env-lot-1283872af4-tree-5",
+      "position": { "x": 9.698696, "z": 14.629283 },
+      "height": 6.369129,
+      "canopy": 2.147651,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-7_-1/objects/env-lot-1283872af4-tree-6",
+      "position": { "x": 26.811016, "z": 13.428606 },
+      "height": 6.980321,
+      "canopy": 2.392128,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-7_-1/objects/env-lot-1283872af4-tree-7",
+      "position": { "x": 13.735601, "z": 18.620653 },
+      "height": 7.308719,
+      "canopy": 1.661744,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-7_-1/objects/street-sidewalk-1186cb41-streetlight-1",
+      "position": { "x": 6, "y": 2.1, "z": 27.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-7_-1/roads/sidewalk-1186cb41",
+      "position": { "x": 17.125, "z": 26.5 },
+      "size": [30.25, 2.5],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-4_-1/roads/asphalt-159e42f0", "ownerChunkId": "c-4_-1" },
+    { "id": "c-8_-1/roads/dirt-10dba4f0", "ownerChunkId": "c-8_-1" }
+  ]
+}

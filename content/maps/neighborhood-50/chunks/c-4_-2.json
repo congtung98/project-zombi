@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-4_-2",
+  "cx": -4,
+  "cz": -2,
+  "instances": [
+    {
+      "instanceId": "c-4_-2/lot-18f3760f0b",
+      "prefabId": "house/cottage",
+      "position": { "x": 5, "y": 0, "z": 9 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c-4_-2/lot-14f9ca2e29",
+      "prefabId": "house/bungalow-l",
+      "position": { "x": 19.5, "y": 0, "z": 7 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c-4_-2/lot-03a8fdbb6c",
+      "prefabId": "building/two-storey",
+      "position": { "x": 3.5, "y": 0, "z": 28 },
+      "quarterTurns": 3
+    },
+    {
+      "instanceId": "c-4_-2/lot-052697ae3c",
+      "prefabId": "house/ranch",
+      "position": { "x": 18.5, "y": 0, "z": 29.5 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-4_-2/objects/env-lot-18f3760f0b-tree-2",
+      "position": { "x": 7.453251, "z": 15.1 },
+      "height": 5.281204,
+      "canopy": 1.308321,
+      "trunk": 0.2,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-18f3760f0b-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 8.2, "y": 0, "z": 13.9 },
+      "yaw": 220
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-18f3760f0b-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 9.432002, "y": 0, "z": 10.438508 },
+      "yaw": 270
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-4_-2/objects/env-lot-14f9ca2e29-tree-1",
+      "position": { "x": 13.808973, "z": 15.1 },
+      "height": 5.180791,
+      "canopy": 1.281544,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-14f9ca2e29-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 14.3, "y": 0, "z": 12.9 },
+      "yaw": 300
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-14f9ca2e29-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 14.021562, "y": 0, "z": 3.310412 },
+      "yaw": 20
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-14f9ca2e29-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 16.928684, "y": 0, "z": 2.921951 },
+      "yaw": 300
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_-2/objects/env-lot-14f9ca2e29-mailbox-1",
+      "position": { "x": 24.9, "y": 0.6, "z": 15.5 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 0 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-0599c09ee8-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 31.8, "y": 0, "z": 13.9 },
+      "yaw": 220
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-03a8fdbb6c-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 6.7, "y": 0, "z": 22.1 },
+      "yaw": 130
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-03a8fdbb6c-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 6.254567, "y": 0, "z": 24.953506 },
+      "yaw": 280
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_-2/objects/env-lot-03a8fdbb6c-mailbox-1",
+      "position": { "x": 5.4, "y": 0.6, "z": 20.5 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-052697ae3c-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 13.3, "y": 0, "z": 24.1 },
+      "yaw": 260
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-052697ae3c-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 23.7, "y": 0, "z": 24.1 },
+      "yaw": 290
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-2/objects/env-lot-052697ae3c-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 20.969764, "y": 0, "z": 26.250339 },
+      "yaw": 340
+    },
+    {
+      "kind": "container",
+      "objectId": "c-4_-2/objects/env-lot-052697ae3c-bin-1",
+      "position": { "x": 11, "y": 0.55, "z": 21.2 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#2f3f5a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 2 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_-2/objects/env-lot-052697ae3c-mailbox-1",
+      "position": { "x": 22.4, "y": 0.6, "z": 20.5 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-4_-2/objects/env-lot-1cda359168-tree-1",
+      "position": { "x": 28.376833, "z": 20.9 },
+      "height": 5.146151,
+      "canopy": 1.272307,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-4_-2/roads/asphalt-0a249c70",
+      "position": { "x": 13, "z": 18 },
+      "size": [70, 3.5],
+      "color": "#3a3a3f",
+      "layer": 2
+    }
+  ],
+  "zones": [],
+  "spawns": [{ "spawnId": "c-4_-2/spawns/zombie-17cfd2c2ed-1", "kind": "zombie", "position": { "x": 5.3, "z": 1.95 } }],
+  "externalRefs": [
+    { "id": "c-3_-2/lot-0599c09ee8", "ownerChunkId": "c-3_-2" },
+    { "id": "c-3_-2/lot-1cda359168", "ownerChunkId": "c-3_-2" },
+    { "id": "c-4_-1/zones/block-1cdfda1949", "ownerChunkId": "c-4_-1" },
+    { "id": "c-4_-3/zones/block-17cfd2c2ed", "ownerChunkId": "c-4_-3" },
+    { "id": "c-5_-2/objects/env-lot-03a8fdbb6c-tree-1", "ownerChunkId": "c-5_-2" },
+    { "id": "c-5_-2/objects/env-lot-18f3760f0b-tree-1", "ownerChunkId": "c-5_-2" }
+  ]
+}

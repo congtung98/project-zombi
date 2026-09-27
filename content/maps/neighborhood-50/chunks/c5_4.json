@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c5_4",
+  "cx": 5,
+  "cz": 4,
+  "instances": [
+    {
+      "instanceId": "c5_4/lot-1bd9c2eca5",
+      "prefabId": "library/warehouse",
+      "position": { "x": 28, "y": 0, "z": 29.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c5_4/objects/env-lot-0da868c6f6-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 8.961381, "y": 0, "z": 3.260186 },
+      "yaw": 280
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_4/objects/env-lot-0da868c6f6-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 22.94065, "y": 0, "z": 7.551896 },
+      "yaw": 350
+    },
+    {
+      "kind": "container",
+      "objectId": "c5_4/objects/street-asphalt-0440c1e3-car-2",
+      "position": { "x": 2.1, "y": 0.7, "z": 28 },
+      "size": [2, 1.4, 4],
+      "color": "#4f4a44",
+      "name": "Xe bỏ hoang",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/car", "facing": 0 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_4/objects/street-asphalt-0440c1e3-oil-stain-2",
+      "assetId": "decor/oil-stain",
+      "position": { "x": 2.453809, "y": 0, "z": 27.755869 },
+      "yaw": 300
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_4/objects/street-asphalt-0440c1e3-tires-2",
+      "assetId": "decor/tires",
+      "position": { "x": 2.1, "y": 0, "z": 25.2 },
+      "yaw": 300
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_4/objects/street-sidewalk-07e692aa-streetlight-2",
+      "position": { "x": 3.6, "y": 2.1, "z": 13.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c5_4/roads/asphalt-0440c1e3",
+      "position": { "x": 0, "z": 5.5 },
+      "size": [6.5, 153],
+      "color": "#3a3a3f",
+      "layer": 2
+    },
+    {
+      "roadId": "c5_4/roads/sidewalk-07e692aa",
+      "position": { "x": 4.35, "z": 13.65 },
+      "size": [2.2, 53.7],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c5_3/lot-0da868c6f6", "ownerChunkId": "c5_3" }]
+}

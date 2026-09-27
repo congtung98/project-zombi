@@ -56,8 +56,9 @@
       "kind": "prop",
       "objectId": "c-3_4/objects/police-station-flagpole-1",
       "position": { "x": 23, "y": 3.5, "z": 16 },
-      "size": [0.2, 7, 0.2],
-      "color": "#c9ccd0"
+      "size": [0.9, 7, 0.2],
+      "color": "#c9ccd0",
+      "visual": { "assetId": "outdoor/flagpole" }
     }
   ],
   "roads": [],

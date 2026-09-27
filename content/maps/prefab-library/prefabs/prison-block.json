@@ -166,8 +166,8 @@
     {
       "kind": "prop",
       "localId": "bed-1",
-      "position": { "x": -7.905, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": -8.505, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -203,8 +203,8 @@
     {
       "kind": "prop",
       "localId": "bed-2",
-      "position": { "x": -4.28, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": -4.88, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -240,8 +240,8 @@
     {
       "kind": "prop",
       "localId": "bed-3",
-      "position": { "x": -0.655, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": -1.255, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -277,8 +277,8 @@
     {
       "kind": "prop",
       "localId": "bed-4",
-      "position": { "x": 2.97, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": 2.37, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -314,8 +314,8 @@
     {
       "kind": "prop",
       "localId": "bed-5",
-      "position": { "x": 6.595, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": 5.995, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -351,8 +351,8 @@
     {
       "kind": "prop",
       "localId": "bed-6",
-      "position": { "x": 10.22, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": 9.62, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -388,8 +388,8 @@
     {
       "kind": "prop",
       "localId": "bed-7",
-      "position": { "x": 13.845, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": 13.245, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -425,8 +425,8 @@
     {
       "kind": "prop",
       "localId": "bed-8",
-      "position": { "x": 17.47, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "position": { "x": 16.87, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -596,11 +596,11 @@
     },
     {
       "kind": "prop",
-      "localId": "bed-9",
-      "position": { "x": 6.4, "y": 0.35, "z": 9.37 },
-      "size": [2, 0.7, 1],
-      "color": "#dfe3e6",
-      "visual": { "assetId": "furniture/bed" }
+      "localId": "hospital-bed-1",
+      "position": { "x": 6.8, "y": 0.4, "z": 8.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
     },
     {
       "kind": "container",
@@ -626,7 +626,7 @@
       "kind": "window",
       "localId": "win-15",
       "name": "Cửa sổ",
-      "position": { "x": 4.5, "z": 10 },
+      "position": { "x": 5, "z": 10 },
       "quarterTurns": 2,
       "width": 1.4,
       "sill": 0.9,
@@ -807,9 +807,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-10",
-      "position": { "x": -7.905, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-9",
+      "position": { "x": -8.505, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -848,9 +848,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-11",
-      "position": { "x": -4.28, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-10",
+      "position": { "x": -4.88, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -889,9 +889,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-12",
-      "position": { "x": -0.655, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-11",
+      "position": { "x": -1.255, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -930,9 +930,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-13",
-      "position": { "x": 2.97, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-12",
+      "position": { "x": 2.37, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -971,9 +971,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-14",
-      "position": { "x": 6.595, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-13",
+      "position": { "x": 5.995, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1012,9 +1012,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-15",
-      "position": { "x": 10.22, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-14",
+      "position": { "x": 9.62, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1053,9 +1053,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-16",
-      "position": { "x": 13.845, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-15",
+      "position": { "x": 13.245, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1094,9 +1094,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-17",
-      "position": { "x": 17.47, "y": 0.25, "z": -5.15 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-16",
+      "position": { "x": 16.87, "y": 0.25, "z": -5.15 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1125,9 +1125,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-18",
-      "position": { "x": -14.93, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-17",
+      "position": { "x": -15.53, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1166,9 +1166,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-19",
-      "position": { "x": -11.33, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-18",
+      "position": { "x": -11.93, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1207,9 +1207,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-20",
-      "position": { "x": -7.73, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-19",
+      "position": { "x": -8.33, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1248,9 +1248,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-21",
-      "position": { "x": -4.13, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-20",
+      "position": { "x": -4.73, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1289,9 +1289,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-22",
-      "position": { "x": -0.53, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-21",
+      "position": { "x": -1.13, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1330,9 +1330,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-23",
-      "position": { "x": 3.07, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-22",
+      "position": { "x": 2.47, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1371,9 +1371,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-24",
-      "position": { "x": 6.67, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-23",
+      "position": { "x": 6.07, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1412,9 +1412,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-25",
-      "position": { "x": 10.27, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-24",
+      "position": { "x": 9.67, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1453,9 +1453,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-26",
-      "position": { "x": 13.87, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-25",
+      "position": { "x": 13.27, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },
@@ -1494,9 +1494,9 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "bed-27",
-      "position": { "x": 17.47, "y": 0.25, "z": 6.35 },
-      "size": [0.8, 0.5, 2],
+      "localId": "bed-26",
+      "position": { "x": 16.87, "y": 0.25, "z": 6.35 },
+      "size": [2, 0.5, 0.9],
       "color": "#6d6f70",
       "visual": { "assetId": "furniture/bed" }
     },

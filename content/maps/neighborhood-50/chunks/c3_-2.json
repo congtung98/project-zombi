@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_-2",
+  "cx": 3,
+  "cz": -2,
+  "instances": [
+    {
+      "instanceId": "c3_-2/lot-0ee2e34428",
+      "prefabId": "building/lab-house",
+      "position": { "x": 9, "y": 0, "z": 7 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_-2/lot-092d731b55",
+      "prefabId": "house/ranch",
+      "position": { "x": 24.5, "y": 0, "z": 9 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c3_-2/park-kiosk-1",
+      "prefabId": "landscape/kiosk",
+      "position": { "x": 24, "y": 0, "z": 26 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "container",
+      "objectId": "c3_-2/objects/env-lot-1516716bb4-bin-1",
+      "position": { "x": 0.5, "y": 0.55, "z": 0.7 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#4a4a4a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 2 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-2/objects/env-lot-0ee2e34428-tree-1",
+      "position": { "x": 3.143001, "z": 0.4 },
+      "height": 5.540822,
+      "canopy": 1.377552,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_-2/objects/env-lot-0ee2e34428-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 8.740797, "y": 0, "z": 11.943698 },
+      "yaw": 310
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-2/objects/env-lot-0ee2e34428-fence-1",
+      "position": { "x": 9, "y": 0.5, "z": 15.7 },
+      "size": [13.8, 1, 0.12],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-2/objects/env-lot-0ee2e34428-mailbox-1",
+      "position": { "x": 12.4, "y": 0.6, "z": 0 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-2/objects/env-lot-092d731b55-tree-1",
+      "position": { "x": 18.158722, "z": 0.4 },
+      "height": 4.535547,
+      "canopy": 1.109479,
+      "trunk": 0.2,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c3_-2/objects/env-lot-092d731b55-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 29.195693, "y": 0, "z": 13.780202 },
+      "yaw": 80
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-2/objects/env-lot-092d731b55-fence-1",
+      "position": { "x": 24.5, "y": 0.5, "z": 15.7 },
+      "size": [14.8, 1, 0.12],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-2/objects/env-lot-092d731b55-mailbox-1",
+      "position": { "x": 28.4, "y": 0.6, "z": 0 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_-2/objects/park-tree-1",
+      "position": { "x": 28, "z": 22 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "container",
+      "objectId": "c3_-2/objects/park-bin-1",
+      "name": "Thùng rác",
+      "position": { "x": 30.2, "y": 0.55, "z": 31 },
+      "size": [0.8, 1.1, 0.8],
+      "color": "#3f5f3a",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_-2/objects/park-streetlight-1",
+      "position": { "x": 30.2, "y": 2.1, "z": 22 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c2_-1/hospital-hospital-1", "ownerChunkId": "c2_-1" },
+    { "id": "c2_-2/objects/env-lot-1516716bb4-tree-3", "ownerChunkId": "c2_-2" },
+    { "id": "c3_-2/zones/block-1aa45cb4bc", "ownerChunkId": "c2_-2" },
+    { "id": "c4_-1/objects/park-lawn-1", "ownerChunkId": "c4_-1" },
+    { "id": "c4_-1/objects/park-path-1", "ownerChunkId": "c4_-1" }
+  ]
+}

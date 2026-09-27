@@ -15,6 +15,22 @@
   "objects": [
     {
       "kind": "prop",
+      "objectId": "c0_0/objects/street-sidewalk-150ae395-streetlight-2",
+      "position": { "x": 28.4, "y": 2.1, "z": 0.25 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_0/objects/street-sidewalk-1c08781e-streetlight-3",
+      "position": { "x": 20.85, "y": 2.1, "z": 28.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
       "objectId": "c0_0/objects/pillar-1",
       "position": { "x": 2, "y": 1, "z": 20 },
       "size": [1.2, 2, 1.2],
@@ -71,7 +87,20 @@
       "yaw": 50
     }
   ],
-  "roads": [],
+  "roads": [
+    {
+      "roadId": "c0_0/roads/sidewalk-150ae395",
+      "position": { "x": 27.65, "z": 0 },
+      "size": [2.2, 53.1],
+      "color": "#a19d94"
+    },
+    {
+      "roadId": "c0_0/roads/sidewalk-1c08781e",
+      "position": { "x": 0, "z": 27.65 },
+      "size": [57.5, 2.2],
+      "color": "#a19d94"
+    }
+  ],
   "zones": [
     {
       "zoneId": "c0_0/zones/east",
@@ -107,6 +136,12 @@
   "externalRefs": [
     { "id": "c-1_-1/zones/cross", "ownerChunkId": "c-1_-1" },
     { "id": "c-1_0/roads/ns", "ownerChunkId": "c-1_0" },
-    { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" }
+    { "id": "c-1_0/roads/old-south-link", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_3/roads/asphalt-10a129fa", "ownerChunkId": "c-1_3" },
+    { "id": "c0_-1/roads/ew", "ownerChunkId": "c0_-1" },
+    { "id": "c0_-1/roads/old-east-link", "ownerChunkId": "c0_-1" },
+    { "id": "c0_1/roads/asphalt-07faf57d", "ownerChunkId": "c0_1" },
+    { "id": "c1_0/roads/asphalt-1e687aba", "ownerChunkId": "c1_0" },
+    { "id": "c3_-1/roads/asphalt-0e49c53c", "ownerChunkId": "c3_-1" }
   ]
 }

@@ -12,7 +12,8 @@ const table = preset('furniture/table')
 const chair = preset('furniture/chair')
 const sofa = preset('furniture/sofa')
 const counter = preset('furniture/counter')
-const bedH = box('prop', [2, 0.7, 1], '#dfe3e6', { asset: 'furniture/bed' })
+// Head against the wall: 1 m along it, 2.1 m into the room (the asset's usual shape).
+const bedH = box('prop', [1, 0.8, 2.1], '#9fc2d0', { asset: 'furniture/hospital-bed' })
 const officeDesk = box('container', [1.4, 0.75, 0.7], '#7b6a58', { name: 'Bàn làm việc', loot: 'office-desk', asset: 'furniture/desk' })
 const filing = box('container', [0.8, 1.4, 0.6], '#8a8f94', { name: 'Tủ hồ sơ', loot: 'office-desk', asset: 'furniture/cabinet' })
 const medCab = box('container', [1, 1.8, 0.5], '#e8ecee', { name: 'Tủ thuốc', loot: 'medical-cabinet', asset: 'furniture/cabinet' })
@@ -21,8 +22,8 @@ const canteen = box('container', [0.8, 1.8, 0.8], '#d8dde0', { name: 'Tủ lạn
 const armory = box('container', [1.6, 2, 0.6], '#4f5a4a', { name: 'Tủ vũ khí', loot: 'police-armory', asset: 'furniture/wardrobe' })
 const locker = box('container', [0.9, 2, 0.5], '#6c7a86', { name: 'Tủ cá nhân', loot: 'locker', asset: 'furniture/wardrobe' })
 const books = box('container', [1.2, 2, 0.4], '#6f5a45', { name: 'Kệ sách', loot: 'bookstore-shelf', asset: 'furniture/bookshelf' })
-const opTable = box('prop', [2, 0.9, 0.9], '#b9c4c9')
-const cellBed = box('prop', [2, 0.5, 0.8], '#6d6f70', { asset: 'furniture/bed' })
+const opTable = box('prop', [2, 0.9, 0.9], '#4e8c7a', { asset: 'furniture/operating-table' })
+const cellBed = box('prop', [0.9, 0.5, 2], '#6d6f70', { asset: 'furniture/bed' })
 
 type Kind = 'lobby' | 'clinic' | 'ward' | 'pharmacy' | 'canteen' | 'surgery' | 'office' | 'meeting' | 'armory' | 'lockers' | 'cell' | 'classroom' | 'lecture' | 'library' | 'store' | 'plain'
 export interface RoomSpec {
@@ -134,11 +135,11 @@ function furnish(h: Building, level: number, r: Rect, side: 'N' | 'S', rs: RoomS
       h.against(level, r, outer, w / 2 + 2.5, counter).against(level, r, far, d / 2, sofa)
       break
     case 'clinic':
-      h.against(level, r, outer, w - 1.6, bedH).against(level, r, far, d / 2, medCab)
+      h.against(level, r, outer, w - 1.2, bedH).against(level, r, far, d / 2, medCab)
       put(officeDesk, -0.5, 0)
       break
     case 'ward':
-      for (let a = 1.8; a + 1 <= w - 0.4; a += 2.6) h.against(level, r, outer, a, bedH)
+      for (let a = 1.2; a + 0.5 <= w - 1.4; a += 1.8) h.against(level, r, outer, a, bedH)
       h.against(level, r, far, d / 2 + 0.5, medCab)
       break
     case 'pharmacy':
@@ -283,6 +284,10 @@ function dormitory(): PrefabDocument {
   return { ...rest, catalog: { group: 'public', tags: ['dai-hoc', 'ky-tuc-xa'] } }
 }
 
+const parkBench = box('prop', [1.8, 0.8, 0.6], '#7a5a3c', { asset: 'outdoor/bench' })
+const hoop = box('prop', [1.2, 3.2, 1.2], '#3d4a57', { asset: 'outdoor/hoop' })
+const flag = box('prop', [0.9, 7, 0.2], '#c9ccd0', { asset: 'outdoor/flagpole' })
+
 const campus = (frontage: [number, number]): PrefabPlacement => ({ category: 'public', allowedZones: ['public'], weight: 1, setback: 2, sideGap: 2, roadFacing: true, frontage })
 
 /** Compounds (hand-placed in P4; footprint and placement kept for the generator later, D6). */
@@ -291,23 +296,23 @@ function compounds(prefabs: ReadonlyMap<string, PrefabDocument>): CompoundDocume
   police.building('public/police-station', { x: 0, z: 0 })
   police.surface('asphalt', { x: 0, z: 15 }, [30, 10], { base: 'parking' }).surface('concrete', { x: -8, z: 10 }, [4, 2], { layer: 1, base: 'steps' })
   police.box(box('prop', [1.9, 1.5, 4.3], '#e8edf2', { asset: 'outdoor/car' }), { x: 4, z: 15 }, { base: 'police-car' }).box(box('prop', [1.9, 1.5, 4.3], '#1f3a66', { asset: 'outdoor/car' }), { x: 8, z: 15 }, { base: 'police-car' })
-  police.box(box('prop', [0.3, 4.2, 0.3], '#4a4d51', { asset: 'outdoor/streetlight' }), { x: -14, z: 14 }, { base: 'streetlight' }).box(box('prop', [0.2, 7, 0.2], '#c9ccd0'), { x: 12, z: 11 }, { base: 'flagpole' })
+  police.box(box('prop', [0.3, 4.2, 0.3], '#4a4d51', { asset: 'outdoor/streetlight' }), { x: -14, z: 14 }, { base: 'streetlight' }).box(flag, { x: 12, z: 11 }, { base: 'flagpole' })
 
   const hosp = new Compound('compound/hospital', 'Bệnh viện có sân trước', { group: 'public', tags: ['benh-vien'] }, campus([44, 80]))
   hosp.building('public/hospital', { x: 0, z: 0 })
   hosp.surface('concrete', { x: 0, z: 18 }, [40, 12], { base: 'forecourt' }).surface('asphalt', { x: -14, z: 18 }, [10, 10], { layer: 1, base: 'ambulance-bay' })
   hosp.box(box('prop', [1.9, 1.8, 4.6], '#f2f2f0', { asset: 'outdoor/car' }), { x: -14, z: 18 }, { base: 'ambulance' })
   for (const x of [6, 12, 18]) hosp.tree({ x, z: 21 }, 'round', 5, 2)
-  for (const x of [4, 10]) hosp.box(box('prop', [1.8, 0.5, 0.5], '#6b5a44'), { x, z: 16 }, { base: 'bench' })
+  for (const x of [4, 10]) hosp.box(parkBench, { x, z: 16 }, { base: 'bench' })
 
   const school = new Compound('compound/high-school', 'Trường cấp ba', { group: 'public', architectureStyle: 'vietnamese', tags: ['truong-hoc', 'cap-3'] }, campus([70, 110]))
   school.building('public/school-block', { x: 4, z: -18 }, 0, 'block-a').building('public/school-block', { x: -28, z: 4 }, 1, 'block-b')
   school.surface('concrete', { x: 5, z: 10 }, [50, 40], { base: 'schoolyard' }).surface('asphalt', { x: 10, z: 16 }, [28, 15], { layer: 1, base: 'court' })
-  for (const x of [-3.5, 23.5]) school.box(box('prop', [0.3, 3, 0.3], '#d0d4d8'), { x, z: 16 }, { base: 'hoop' })
-  school.box(box('prop', [0.2, 7, 0.2], '#c9ccd0'), { x: 4, z: -8 }, { base: 'flagpole' })
+  school.box(hoop, { x: -3.2, z: 16 }, { base: 'hoop', facing: 1 }).box(hoop, { x: 23.2, z: 16 }, { base: 'hoop', facing: 3 })
+  school.box(flag, { x: 4, z: -8 }, { base: 'flagpole' })
   school.enclose(rect(-38, -28, 36, 34), 0.15, 1.2, '#7a6a55', 'prop', [['S', 36, 8]], 'outdoor/fence')
   for (const z of [-20, -8, 4, 16, 28]) school.tree({ x: 33, z }, 'round', 6, 2.2)
-  for (const x of [-18, -8]) school.box(box('prop', [1.8, 0.5, 0.5], '#6b5a44'), { x, z: 30 }, { base: 'bench' })
+  for (const x of [-18, -8]) school.box(parkBench, { x, z: 30 }, { base: 'bench' })
   school.box(box('container', [0.8, 1.1, 0.8], '#3f5f3a', { name: 'Thùng rác', loot: 'scrap-pile', asset: 'outdoor/bin' }), { x: 28, z: -6 }, { base: 'bin' })
 
   const uni = new Compound('compound/university', 'Khuôn viên đại học', { group: 'public', tags: ['dai-hoc'] }, campus([90, 140]))
@@ -321,7 +326,7 @@ function compounds(prefabs: ReadonlyMap<string, PrefabDocument>): CompoundDocume
   for (const [m, x, z, sx, sz, layer] of plaza) uni.surface(m, { x, z }, [sx, sz], { layer, base: m === 'grass' ? 'lawn' : m === 'tile' ? 'plaza' : 'path' })
   uni.surface('water', { x: 2, z: 8 }, [6, 6], { shape: 'ellipse', layer: 2, base: 'fountain' })
   for (const [x, z] of [[-12, 2], [-12, 14], [16, 2], [16, 14], [-18, 24], [22, 24]]) uni.tree({ x, z }, 'round', 6, 2.2)
-  for (const x of [-4, 8]) uni.box(box('prop', [1.8, 0.5, 0.5], '#6b5a44'), { x, z: 16 }, { base: 'bench' })
+  for (const x of [-4, 8]) uni.box(parkBench, { x, z: 16 }, { base: 'bench' })
 
   return [police, hosp, school, uni].map((c) => compoundDoc(c, prefabs))
 }

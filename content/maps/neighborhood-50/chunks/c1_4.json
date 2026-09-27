@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_4",
+  "cx": 1,
+  "cz": 4,
+  "instances": [
+    {
+      "instanceId": "c1_4/lot-13d6d99380",
+      "prefabId": "library/tube-house",
+      "position": { "x": 31, "y": 0, "z": 3 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c1_4/objects/env-lot-1965faade2-tree-3",
+      "position": { "x": 8.419992, "z": 6.245683 },
+      "height": 7.605479,
+      "canopy": 2.642191,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c1_4/objects/env-lot-13d6d99380-grass-2",
+      "assetId": "decor/grass",
+      "position": { "x": 29.308599, "y": 0, "z": 7.601501 },
+      "yaw": 0
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_4/objects/env-lot-14f7c0a79c-tree-1",
+      "position": { "x": 9.724305, "z": 16.331828 },
+      "height": 6.73059,
+      "canopy": 2.292236,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_4/objects/env-lot-1987c9dd69-tree-1",
+      "position": { "x": 29.510471, "z": 14.9 },
+      "height": 5.727197,
+      "canopy": 1.427252,
+      "trunk": 0.2,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c1_4/objects/lake-path-1",
+      "shape": "rect",
+      "size": [40, 2],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 24 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_4/objects/lake-tree-1",
+      "position": { "x": 28, "z": 26 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c1_4/objects/lake-streetlight-1",
+      "position": { "x": 22, "y": 2.1, "z": 25.5 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c1_5/objects/lake-bank-1", "ownerChunkId": "c1_5" },
+    { "id": "c1_5/objects/lake-lawn-1", "ownerChunkId": "c1_5" },
+    { "id": "c1_5/objects/lake-water-1", "ownerChunkId": "c1_5" },
+    { "id": "c2_4/objects/env-lot-1987c9dd69-fence-1", "ownerChunkId": "c2_4" },
+    { "id": "c2_4/roads/asphalt-0c1a6275", "ownerChunkId": "c2_4" }
+  ]
+}

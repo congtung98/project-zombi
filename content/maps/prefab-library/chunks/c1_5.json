@@ -21,9 +21,10 @@
     {
       "kind": "prop",
       "objectId": "c1_5/objects/high-school-hoop-1",
-      "position": { "x": 15.5, "y": 1.5, "z": 8 },
-      "size": [0.3, 3, 0.3],
-      "color": "#d0d4d8"
+      "position": { "x": 15.2, "y": 1.6, "z": 8 },
+      "size": [1.2, 3.2, 1.2],
+      "color": "#3d4a57",
+      "visual": { "assetId": "outdoor/hoop", "facing": 3 }
     },
     {
       "kind": "prop",
