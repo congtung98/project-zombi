@@ -55,7 +55,8 @@ Animation là **hàm thuần** `computePose(PoseInput) → Pose` (`pose.ts`). `a
 | --- | --- | --- |
 | Player di chuyển (vị trí thân, `moveSpeed`, `stridePhase`, `facing`) | `advancePlayerGait` → `gaitPhase`, `speed`, `hipTurn` | Đi/chạy theo tốc độ thật; bị chặn thì dừng; lùi/ngang thì xoay chậu |
 | Player đứng yên | `time` | Thở, dồn trọng lượng |
-| Player vung (`attackTimer / swingDuration`, `hitDelay`) | `swing`, `hitAt` | Lấy đà → chạm đúng `hitAt` → hồi; cầm hai tay khi có vũ khí |
+| Player ở thế chiến đấu (`runtime.combatPosture`, CS1) | `ready` (blend 0,14 s ở view), `aimLead` (ngực dẫn tới ±35° về `stance.aimYaw`) | Gậy nâng hai tay qua vai phải / nắm đấm giơ lên; gối chùng |
+| Player vung (`attackTimer / swingDuration`, `hitDelay`; CS1b: giữ ở `windup` khi còn căn hướng) | `swing`, `hitAt` | Lấy đà (đi ra từ tư thế sẵn sàng) → chạm đúng `hitAt` → hồi (về lại tư thế sẵn sàng); cầm hai tay khi có vũ khí. Hướng thân = `facing` do simulation quay về `attackYaw` |
 | Player đẩy (`pushCooldown`) | `shove` | Hai tay đẩy |
 | Player làm việc (`runtime.action.elapsed`) | `work` | Cúi, gõ |
 | Player bị đánh (`hurtTimer`) | `hurt` (không có hướng) | Ngả ra sau |

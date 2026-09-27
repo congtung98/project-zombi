@@ -293,4 +293,19 @@ describe('CS1b E during a swing', () => {
     expect(rt.openContainerId).toBe('ct-hut')
     expect(rt.stance.requested).toBe(false)
   })
+
+  it('E and a left click in the same frame: the swing wins, E is dropped', () => {
+    const { rt } = setup([], { ...field(), buildings: [hut], walls: generateBuildingWalls(hut), doors: generateDoorPlacements(hut), containers: hut.containers })
+    rt.player.position = { x: 0, y: 0, z: -1.5 }
+    rt.player.facing = Math.PI
+    aim(rt, 0, -3, 2)
+    key(rt, 'Mouse0', true)
+    key(rt, 'KeyE', true)
+    rt.tick(DT)
+    key(rt, 'Mouse0', false)
+    key(rt, 'KeyE', false)
+    expect(rt.player.attackTimer).toBeGreaterThanOrEqual(0)
+    until(rt, () => rt.player.attackTimer < 0)
+    expect(rt.openContainerId).toBeNull()
+  })
 })

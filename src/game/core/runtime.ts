@@ -1025,17 +1025,29 @@ export class GameRuntime {
     // R1: only the interactables around the player (same order as the full list), not the whole map.
     // M11b: and on the player's storey.
     const nearby = this.interactableIndex.queryRadius(player.position.x, player.position.z, INTERACT_RANGE + this.maxInteractRadius).filter((i) => this.withinReachHeight(i))
+    // CS1c: the object under the cursor first (the cursor ray taken at the object's height), then the
+    // nearest one ahead; the current target stays unless another is clearly better.
+    const cursor = this.cursorWorld
+    const cam = GAME_CONFIG.camera.offset
+    const pointerDistance = cursor
+      ? (item: Interactable) => {
+          const k = (item.position.y - cursor.y) / cam.y
+          return Math.hypot(cursor.x + cam.x * k - item.position.x, cursor.z + cam.z * k - item.position.z)
+        }
+      : undefined
     const target = selectInteractable(player.position, player.facing, nearby, (item) => {
       this.perf.count('otherRaycasts')
       return this.isBlocked(from, item.position, [item.id])
-    })
+    }, INTERACT_RANGE, { pointerDistance, current: this.currentInteractable?.id ?? null })
     this.currentInteractable = target
     this.interactPrompt = target ? this.describeInteraction(target) : null
 
     if (target && this.input.wasPressed('interact')) {
       // CS1: no world action in the middle of a swing (never queued either: the press is dropped).
       // From the ready stance, E leaves it first (a held right button must be pressed again).
-      if (player.attackTimer >= 0) {
+      // A left click in the stance this same frame counts as the swing already (consistent order).
+      const swingRequested = this.stance.requested && this.input.wasPressed('attack')
+      if (player.attackTimer >= 0 || swingRequested) {
         this.events.queue('player:interactBlocked', {})
       } else {
         this.cancelStance()

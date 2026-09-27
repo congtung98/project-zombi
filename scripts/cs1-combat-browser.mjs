@@ -216,18 +216,142 @@ try {
   await reset()
   await page.evaluate(() => window.dispatchEvent(new Event('blur')))
   await wait(200)
-  const paused = await page.evaluate(() => ({ stance: window.__runtime.stance.requested, pause: !!document.querySelector('.menu h2, .pause') }))
+  const paused = await page.evaluate(() => ({ stance: window.__runtime.stance.requested, pause: !!document.querySelector('.overlay-dim') }))
   await page.mouse.up({ button: 'right' })
   await page.keyboard.press('Escape')
   await wait(800)
   s = await state()
   log('blur', { paused, swings: s.swings.length, stance: s.stance })
   assert.equal(paused.stance, false)
+  assert.equal(paused.pause, true, 'blur pauses the game')
   assert.equal(s.swings.length, 0)
   assert.equal(s.stance, false)
 
+  // 8) E: the object under the cursor is highlighted; E from the stance leaves it and opens the panel.
+  const closet = await page.evaluate(() => {
+    const rt = window.__runtime
+    const item = rt.interactables.find((i) => i.id === 'c-1_-1/safehouse/closet')
+    const b = rt.map.buildings.find((x) => x.id === 'c-1_-1/safehouse')
+    const dx = b.center.x - item.position.x
+    const dz = b.center.z - item.position.z
+    const len = Math.hypot(dx, dz)
+    const d = item.radius + 0.3
+    const p = { x: item.position.x + (dx / len) * d, y: 0, z: item.position.z + (dz / len) * d }
+    for (const z of [...rt.zombies.values()]) rt.removeZombie(z.id)
+    rt.events.flush()
+    window.__cs1.parked = {}
+    rt.player.position = { ...p }
+    rt.playerBody.setTranslation({ x: p.x, y: rt.config.player.height / 2 + 0.02, z: p.z }, true)
+    rt.player.facing = Math.atan2(-dx, -dz)
+    return item.id
+  })
+  await wait(1500) // the camera catches up
+  /** Screen point of a world position (the live orthographic camera). */
+  const toScreen = (pos) => page.evaluate(async ([pos, rect]) => {
+    const THREE = await import('/node_modules/.vite/deps/three.js')
+    const cam = window.__scene.getObjectByProperty('isOrthographicCamera', true)
+    const v = new THREE.Vector3(pos.x, pos.y, pos.z).project(cam)
+    return { x: rect.x + ((v.x + 1) / 2) * rect.width, y: rect.y + ((1 - v.y) / 2) * rect.height }
+  }, [pos, box])
+  const closetPos = await page.evaluate((id) => window.__runtime.interactables.find((i) => i.id === id).position, closet)
+  const onCloset = await toScreen(closetPos)
+  await page.mouse.move(onCloset.x, onCloset.y)
+  await wait(300)
+  const target = await page.evaluate(() => ({ id: window.__runtime.currentInteractable?.id, prompt: document.querySelector('.hud-prompt')?.textContent }))
+  log('E target', target)
+  assert.equal(target.id, closet)
+  assert.match(target.prompt, /Tủ quần áo/)
+  await shot('cs1-e-highlight')
+  await page.mouse.down({ button: 'right' })
+  await wait(300)
+  assert.equal((await state()).stance, true)
+  await page.keyboard.press('KeyE')
+  await page.locator('.inv-panel-container').waitFor({ timeout: 3000 })
+  s = await state()
+  assert.equal(s.stance, false, 'E leaves the stance')
+  // A click on the panel never reaches the world; the held right button does not bring the stance back.
+  await reset()
+  await page.locator('.inv-panel-container h3').click()
+  await wait(300)
+  s = await state()
+  assert.equal(s.swings.length, 0)
+  assert.equal(s.stance, false)
+  // Esc closes the panel first (no pause); the stance needs a new right press.
+  await page.keyboard.press('Escape')
+  await wait(300)
+  const afterEsc = await page.evaluate(() => ({ panel: !!document.querySelector('.inv-panel-container'), paused: !!document.querySelector('.overlay-dim'), stance: window.__runtime.stance.requested }))
+  log('E → panel → Esc', afterEsc)
+  assert.deepEqual(afterEsc, { panel: false, paused: false, stance: false })
+  await page.mouse.up({ button: 'right' })
+  await page.mouse.down({ button: 'right' })
+  await wait(250)
+  assert.equal((await state()).stance, true)
+
+  // 9) E in the middle of a swing: ignored, never queued.
+  await reset()
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.keyboard.press('KeyE')
+  await wait(700)
+  const midSwing = await page.evaluate(() => ({ panel: !!document.querySelector('.inv-panel-container'), swings: window.__cs1.swings.length }))
+  log('E mid-swing', midSwing)
+  assert.deepEqual(midSwing, { panel: false, swings: 1 })
+  await page.mouse.up({ button: 'right' })
+  await wait(200)
+
+  // 10) Released outside the canvas (captured) and pointercancel: never a stuck stance.
+  await page.mouse.down({ button: 'right' })
+  await wait(200)
+  const actions = await page.locator('.hud-stats').boundingBox()
+  await page.mouse.move(actions.x + 20, actions.y + 20)
+  await page.mouse.up({ button: 'right' })
+  await wait(200)
+  const outside = (await state()).stance
+  await page.mouse.move(onCloset.x, onCloset.y)
+  await page.mouse.down({ button: 'right' })
+  await wait(200)
+  await page.evaluate(() => document.querySelector('canvas').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })))
+  await wait(200)
+  const cancelled = (await state()).stance
+  await page.mouse.up({ button: 'right' })
+  log('release outside / cancel', { outside, cancelled })
+  assert.equal(outside, false)
+  assert.equal(cancelled, false)
+
+  // 11) Toggle mode from the settings: one right click on, one off; the left click swings in it.
+  const setMode = async (label) => {
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Cài đặt', exact: true }).click()
+    await page.locator('[data-combat-stance]').selectOption(label)
+    await page.getByRole('button', { name: 'Quay lại', exact: true }).click()
+    await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click()
+    await wait(300)
+  }
+  await setMode('toggle')
+  await page.mouse.move(onCloset.x + 150, onCloset.y)
+  await reset()
+  await page.mouse.down({ button: 'right' })
+  await page.mouse.up({ button: 'right' })
+  await wait(300)
+  const on = await state()
+  await page.mouse.down()
+  await page.mouse.up()
+  await wait(500)
+  const swung = (await state()).swings.length
+  await page.mouse.down({ button: 'right' })
+  await page.mouse.up({ button: 'right' })
+  await wait(300)
+  const off = await state()
+  log('toggle', { on: on.stance, swung, off: off.stance })
+  assert.equal(on.stance, true)
+  assert.equal(swung, 1)
+  assert.equal(off.stance, false)
+  const hint = await page.locator('.hud-hint').innerText()
+  assert.match(hint, /Bấm chuột phải/)
+  await setMode('hold')
+
   assert.deepEqual(errors, [])
-  console.log(`PASS cs1 combat   plain click no swing, stance crosshair, front ${frontMs} ms, behind ${backMs} ms without snap, flip keeps the swing, spam bounded, release finishes, blur clears`)
+  console.log(`PASS cs1 combat   plain click no swing, stance crosshair, front ${frontMs} ms, behind ${backMs} ms without snap, flip keeps the swing, spam bounded, release finishes, blur clears, E target/highlight/stance exit/panel/Esc, E mid-swing ignored, release outside + pointercancel, toggle mode`)
 } finally {
   await browser.close()
 }

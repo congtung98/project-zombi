@@ -10,6 +10,7 @@ import { ContactShade } from './ContactShadeView'
 import { CameraRig } from './CameraRig'
 import { ContainerView } from './ContainerView'
 import { CursorProbe } from './CursorProbe'
+import { InteractHighlight } from './InteractHighlight'
 import { DoorView } from './DoorView'
 import { GameLoop } from './GameLoop'
 import { Ground } from './Ground'
@@ -165,6 +166,7 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <Lights />
       <CameraRig />
       <CursorProbe />
+      <InteractHighlight />
       <ChunkStreamer />
       <Roads />
       <Drops />
