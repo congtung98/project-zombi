@@ -349,6 +349,26 @@ export const GAME_CONFIG = {
     /** Zombie trúng gậy đứng khựng trong khoảng này. */
     stagger: 0.2,
   },
+  /**
+   * CS1 combat stance (right mouse): starting values to tune in playtest, not measured from PZ.
+   * Heading owner: the simulation turns `player.facing` toward the aim at a limited speed.
+   */
+  combatStance: {
+    /** Body turn speed toward the aim while in stance or aligning a swing (degrees/second). */
+    turnSpeedDeg: 630,
+    /** Walking speed factor while in stance (applied once to the walk speed; running is blocked). */
+    speedFactor: 0.8,
+    /** A cursor closer than this to the player's feet keeps the previous aim (no NaN, no jitter). */
+    aimMinDistance: 0.35,
+    /** Near 180° the turn keeps the side it started on unless the aim moves past this margin (degrees). */
+    turnSideHysteresisDeg: 8,
+    /** A left click this long before the right button still counts once the stance starts (seconds). */
+    simultaneousGrace: 0.08,
+    /** View only: blend of the raised-weapon pose in and out (seconds). */
+    poseBlend: 0.14,
+    /** View only: the chest leads the body toward the aim by at most this much (degrees). */
+    torsoLeadDeg: 35,
+  },
   weapon: {
     /** Condition lost once per swing that hits at least one valid target (never per target). */
     wearPerHit: 1,

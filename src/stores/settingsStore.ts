@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { sfx } from '../game/audio/sfx'
+import type { StanceMode } from '../game/systems/stance'
 
 export type ShadowQuality = 'off' | 'low' | 'high'
 /** G6: graphics quality tier (presentation and render cost only; never what gameplay shows). */
@@ -26,6 +27,8 @@ export interface Settings {
   visionOverlay: boolean
   /** G6: graphics quality tier (`GRAPHICS_PRESETS`). */
   graphics: GraphicsQuality
+  /** CS1: the right button holds the combat stance ('hold') or switches it on/off ('toggle'). */
+  combatStance: StanceMode
 }
 
 interface SettingsState extends Settings {
@@ -43,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showHints: true,
   visionOverlay: true,
   graphics: 'medium',
+  combatStance: 'hold',
 }
 
 function load(): Settings {
@@ -65,6 +69,7 @@ function sanitize(s: Settings): Settings {
     showHints: s.showHints !== false,
     visionOverlay: s.visionOverlay !== false,
     graphics: s.graphics === 'low' || s.graphics === 'medium' || s.graphics === 'high' ? s.graphics : DEFAULT_SETTINGS.graphics,
+    combatStance: s.combatStance === 'toggle' ? 'toggle' : 'hold',
   }
 }
 
@@ -101,5 +106,5 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 }))
 
 function pick(s: SettingsState): Settings {
-  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints, visionOverlay: s.visionOverlay, graphics: s.graphics }
+  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints, visionOverlay: s.visionOverlay, graphics: s.graphics, combatStance: s.combatStance }
 }

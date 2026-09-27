@@ -70,6 +70,8 @@ interface HudSnapshot {
   /** Cooldown gậy còn lại (giây), để HUD báo sẵn sàng. */
   attackCooldown: number
   pushCooldown: number
+  /** CS1: the combat stance is asked for (right button). */
+  stance: boolean
   /** Số ô túi đang dùng / tổng, hiện cạnh phím I. */
   bagUsed: number
   bagSize: number
@@ -119,6 +121,7 @@ export const useHudStore = create<HudState>((set) => ({
   kills: 0,
   attackCooldown: 0,
   pushCooldown: 0,
+  stance: false,
   bagUsed: 0,
   bagSize: 12,
   inventoryOpen: false,
@@ -173,6 +176,7 @@ export const useHudStore = create<HudState>((set) => ({
       kills: p.kills,
       attackCooldown: p.attackCooldown,
       pushCooldown: p.pushCooldown,
+      stance: rt.stance.requested,
       bagUsed: countUsedSlots(p.inventory),
       bagSize: p.inventory.slots.length,
       inventoryOpen: rt.inventoryOpen,

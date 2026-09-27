@@ -27,6 +27,7 @@ export function HUD() {
   const hud = useHudStore()
   const debug = useUiStore((s) => s.debug)
   const showHints = useSettingsStore((s) => s.showHints)
+  const stanceMode = useSettingsStore((s) => s.combatStance)
 
   return (
     <div className="hud">
@@ -49,6 +50,9 @@ export function HUD() {
       </div>
 
       <div className="hud-actions">
+        <span className={hud.stance ? 'active' : ''}>
+          <kbd>Chuột phải</kbd> {stanceMode === 'toggle' ? 'Bật/tắt thế' : 'Giữ: thế'}
+        </span>
         <span className={hud.attackCooldown > 0 ? 'cooling' : ''}>
           <kbd>Chuột trái</kbd> Đánh
         </span>
@@ -94,7 +98,7 @@ export function HUD() {
       )}
 
       {showHints && (
-        <div className="hud-hint">WASD di chuyển · Shift chạy · Chuột trái đánh · Space đẩy · E tương tác · I túi đồ/chế tạo · X hủy thao tác · Esc tạm dừng · F3 debug · F4 tầm nhìn · F6 ánh sáng · F7 hiệu năng</div>
+        <div className="hud-hint">WASD di chuyển · Shift chạy · {stanceMode === 'toggle' ? 'Bấm chuột phải bật/tắt thế ngắm' : 'Giữ chuột phải để ngắm'} · Chuột trái để đánh · Space đẩy · E để tương tác · I túi đồ/chế tạo · X hủy thao tác · Esc tạm dừng · F3 debug · F4 tầm nhìn · F6 ánh sáng · F7 hiệu năng</div>
       )}
 
       {debug && (

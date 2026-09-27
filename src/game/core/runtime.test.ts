@@ -201,6 +201,7 @@ describe('GameRuntime combat', () => {
   const melee = GAME_CONFIG.melee
 
   function swing(rt: GameRuntime) {
+    rt.input.simulateKey('Mouse2', true) // CS1: swings need the combat stance
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     rt.input.simulateKey('Mouse0', false)
@@ -423,14 +424,25 @@ describe('GameRuntime inventory and loot', () => {
     arm(rt)
     rt.toggleInventory()
     expect(rt.uiOpen).toBe(true)
+    rt.input.simulateKey('Mouse2', true)
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
+    expect(rt.stance.requested).toBe(false)
     expect(rt.player.attackTimer).toBeLessThan(0)
     expect(rt.player.stamina).toBe(GAME_CONFIG.player.maxStamina)
     rt.input.simulateKey('Mouse0', false)
 
     rt.toggleInventory()
     expect(rt.uiOpen).toBe(false)
+    // CS1: the right button held through the panel asks again only after a new press.
+    rt.input.simulateKey('Mouse0', true)
+    rt.tick(DT)
+    expect(rt.stance.requested).toBe(false)
+    expect(rt.player.attackTimer).toBeLessThan(0)
+    rt.input.simulateKey('Mouse0', false)
+    rt.input.simulateKey('Mouse2', false)
+    rt.tick(DT)
+    rt.input.simulateKey('Mouse2', true)
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     expect(rt.player.attackTimer).toBeGreaterThanOrEqual(0)

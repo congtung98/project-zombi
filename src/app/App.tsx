@@ -14,6 +14,7 @@ import { useHudStore } from '../stores/hudStore'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
+import { useSettingsStore } from '../stores/settingsStore'
 import { ACTION_CANCEL_TEXT, ACTION_FAILURE_TEXT } from '../components/craftText'
 
 const USE_FAIL_TEXT = {
@@ -43,6 +44,9 @@ function doorGain(id: string): number {
   const d = Math.hypot(door.center.x - runtime.player.position.x, door.center.z - runtime.player.position.z)
   return Math.max(0.15, Math.min(1, 1 - (d - 6) / 30))
 }
+/** CS1: at most one "hold the right button" hint in this time. */
+const STANCE_HINT_INTERVAL_MS = 30000
+let lastStanceHint = -Infinity
 const DoorLab = lazy(() => import('../components/DoorLab'))
 
 /** Zombie list refresh, coalesced: many level changes in one tick cost one store update. */
@@ -65,9 +69,10 @@ export function App() {
     const ui = () => useUiStore.getState()
     const inv = () => useInventoryStore.getState()
     const offs = [
-      // Esc: đóng túi/tủ trước; không có gì mở thì mới tạm dừng.
+      // Esc: đóng túi/tủ trước; rồi rời thế chiến đấu (CS1); không có gì thì mới tạm dừng.
       runtime.input.onAction('pause', () => {
         if (ui().screen === 'playing' && runtime.uiOpen) runtime.closeAllUi()
+        else if (ui().screen === 'playing' && runtime.cancelStance()) return
         else ui().togglePause()
       }),
       runtime.input.onAction('inventory', () => {
@@ -82,6 +87,14 @@ export function App() {
       runtime.events.on('player:unarmed', () =>
         useHudStore.getState().showToast('Tay không: tìm vũ khí trong tủ (E để mở), trang bị trong túi (I). Space để đẩy.', 2200, 'warn'),
       ),
+      // CS1: a left click outside the stance; hinted rarely, never on every click.
+      runtime.events.on('player:attackNeedsStance', () => {
+        const now = performance.now()
+        if (now - lastStanceHint < STANCE_HINT_INTERVAL_MS) return
+        lastStanceHint = now
+        const mode = useSettingsStore.getState().combatStance
+        useHudStore.getState().showToast(mode === 'toggle' ? 'Bấm chuột phải để vào thế chiến đấu, rồi chuột trái để đánh.' : 'Giữ chuột phải để vào thế chiến đấu, rồi chuột trái để đánh.', 2200)
+      }),
       runtime.events.on('item:equipped', (e) =>
         useHudStore.getState().showToast(e.itemId ? `Đang cầm ${getItemDef(e.itemId).name}.` : 'Đã cất vũ khí: tay không.', 1400),
       ),
@@ -159,6 +172,10 @@ export function App() {
       runtime.events.on('item:used', (e) => sfx.play(ITEM_SFX[getItemDef(e.itemId).kind])),
       runtime.events.on('inventory:changed', () => sfx.play('pickup')),
     ]
+
+    // CS1: Hold/Toggle from the settings (switching resets the stance, never leaves it stuck).
+    runtime.setStanceMode(useSettingsStore.getState().combatStance)
+    offs.push(useSettingsStore.subscribe((s) => runtime.setStanceMode(s.combatStance)))
 
     // Trình duyệt chỉ cho phát âm thanh sau tương tác người dùng.
     const unlock = () => sfx.unlock()

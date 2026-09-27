@@ -285,6 +285,8 @@ function runSoak(policy: 'shelter' | 'patrol') {
         spaceHeld = false
       }
       const fighting = nearest !== null && nearest.d < 2.0
+      // CS1: the bot holds the combat stance (right button) while fighting and lets go afterwards.
+      rt.input.simulateKey('Mouse2', fighting)
       if (fighting) {
         rt.cursorWorld = { ...nearest!.pos }
         if (rt.uiOpen) rt.closeAllUi()

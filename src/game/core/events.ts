@@ -21,6 +21,10 @@ export type GameEvents = {
   'player:attacked': { hitIds: EntityId[]; damage: number; weaponId: string | null }
   /** Bấm đánh khi tay không: UI nhắc tìm vũ khí / dùng Space đẩy. */
   'player:unarmed': Record<string, never>
+  /** CS1: a left click outside the combat stance (no swing); the UI hints at the right button, rarely. */
+  'player:attackNeedsStance': Record<string, never>
+  /** CS1: the combat stance started or ended (intent, not the finished pose). */
+  'player:stance': { active: boolean }
   'item:equipped': { id: string | null; itemId: ItemId | null }
   /** Condition đổi sau một đòn trúng; UI chỉ đồng bộ, không phát âm pickup. */
   'weapon:worn': { id: string; itemId: ItemId; condition: number }

@@ -138,4 +138,34 @@ describe('pose', () => {
     // No work (−1) leaves the Phase 2-S3 poses untouched.
     expect(computePose({ ...base, work: -1 })).toEqual(computePose({ ...base }))
   })
+
+  it('CS1 ready stance: weapon raised in both hands, the swing starts from it and still crosses the front at the hit', () => {
+    const idle = computePose({ ...base })
+    const ready = computePose({ ...base, ready: 1 })
+    expect(ready.armR.x).toBeLessThan(idle.armR.x - 0.5)
+    expect(ready.armR.y).toBeLessThan(-0.3)
+    expect(ready.armL.x).toBeLessThan(-0.9)
+    expect(ready.kneeL).toBeGreaterThan(idle.kneeL)
+    // Half blended = in between (no pop).
+    const half = computePose({ ...base, ready: 0.5 })
+    expect(half.armR.x).toBeLessThan(idle.armR.x)
+    expect(half.armR.x).toBeGreaterThan(ready.armR.x)
+    // The swing's first frame is the ready pose, the damage frame is the plain swing, the end returns to it.
+    const start = computePose({ ...base, ready: 1, swing: 0 })
+    expect(start.armR.x).toBeCloseTo(ready.armR.x, 5)
+    expect(start.armR.y).toBeCloseTo(ready.armR.y, 5)
+    const hit = computePose({ ...base, ready: 1, swing: base.hitAt })
+    expect(hit.armR.y).toBeCloseTo(0, 5)
+    expect(hit.armR.x).toBeCloseTo(ARM_FORWARD, 5)
+    expect(computePose({ ...base, ready: 1, swing: 1 }).armR.x).toBeCloseTo(ready.armR.x, 5)
+    // Unarmed: fists up in front of the chest.
+    const fists = computePose({ ...base, armed: false, ready: 1 })
+    expect(fists.elbowR).toBeLessThan(-1.5)
+    expect(fists.elbowL).toBeLessThan(-1.5)
+    // No stance input leaves the C4 poses untouched; the chest lead only twists the chest and head.
+    expect(computePose({ ...base, ready: 0, aimLead: 0 })).toEqual(computePose({ ...base }))
+    const lead = computePose({ ...base, aimLead: 0.4 })
+    expect(lead.torsoTwist - idle.torsoTwist).toBeCloseTo(0.32, 5)
+    expect(lead.hipsYaw).toBeCloseTo(idle.hipsYaw, 9)
+  })
 })

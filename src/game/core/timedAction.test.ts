@@ -47,6 +47,8 @@ function run(rt: GameRuntime, seconds: number) {
 }
 
 function press(rt: GameRuntime, code: string) {
+  // CS1: a left click swings only in the combat stance (right button held).
+  if (code === 'Mouse0') rt.input.simulateKey('Mouse2', true)
   rt.input.simulateKey(code, true)
   rt.tick(DT)
   rt.input.simulateKey(code, false)
@@ -185,6 +187,7 @@ describe('reservation while working', () => {
     const { rt } = setup([['wood_plank', 5], ['duct_tape', 5], ['scrap_metal', 1]])
     const bat = give(rt, 'baseball_bat', 10)
     expect(rt.equipItem(bat.id)).toBe(true)
+    rt.input.simulateKey('Mouse2', true) // CS1: swings need the combat stance
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     rt.input.simulateKey('Mouse0', false)

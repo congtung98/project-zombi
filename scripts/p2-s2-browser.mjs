@@ -84,8 +84,15 @@ async function lootStarterWeapon() {
   const canvas = page.locator('canvas').first()
   const box = await canvas.boundingBox()
   await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2)
+  // CS1: a plain left click outside the combat stance only hints at the right button.
   await page.mouse.down()
   await page.mouse.up()
+  await hasText('Giữ chuột phải để vào thế chiến đấu')
+  await page.mouse.down({ button: 'right' })
+  await page.waitForTimeout(50)
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.mouse.up({ button: 'right' })
   await hasText('Tay không: tìm vũ khí')
   await page.keyboard.down('KeyD')
   try {
@@ -170,8 +177,12 @@ try {
     const hit = async () => {
       await page.waitForFunction(() => window.__runtime.player.attackCooldown <= 0 && window.__runtime.player.stamina > 30, null, { timeout: 10000 })
       const before = await park()
+      // CS1: hold the right button (combat stance), click the left one (a chorded press), let go.
+      await page.mouse.down({ button: 'right' })
+      await page.waitForTimeout(50)
       await page.mouse.down()
       await page.mouse.up()
+      await page.mouse.up({ button: 'right' })
       await page.waitForTimeout(700)
       return page.evaluate((b) => {
         const rt = window.__runtime

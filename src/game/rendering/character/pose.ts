@@ -91,6 +91,13 @@ export interface PoseInput {
    * from behind; π = pushed back, the default when unknown). Tilts the hit reaction.
    */
   hurtDir?: number
+  /**
+   * CS1 (player): combat stance blend 0..1 (view-eased from the simulation's posture): the weapon
+   * raised over the right shoulder in both hands, or fists up unarmed; knees soft.
+   */
+  ready?: number
+  /** CS1 (player): chest lead toward the aim relative to the body (rad, already limited by the view). */
+  aimLead?: number
   /** C4: death fall (default 'back'). */
   fall?: FallKind
   /** C5 (zombies): body posture and gait variant (default 'shambler'). */
@@ -98,6 +105,10 @@ export interface PoseInput {
   /** C5 (zombies): 0 = arms hanging (wandering), 1 = reaching for the player (hunting); default 1. */
   reach?: number
 }
+
+/** CS1 ready poses: [pitch, yaw, elbow] per arm (right yaw − = cocked to the right, + = across the front). */
+const READY_ARMED = { armR: [-1.15, -0.55, -1.05], armL: [-1.09, -0.97, -1.4] } as const
+const READY_UNARMED = { armR: [-1.0, 0.3, -1.75], armL: [-1.0, -0.3, -1.75] } as const
 
 export const WALK_REFERENCE_SPEED = 2
 export const RUN_REFERENCE_SPEED = 7
@@ -308,6 +319,22 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     // Elbows: relaxed, bending more as the arm swings forward; runners hold them near 90°.
     out.elbowL = lerp(-0.14 - 0.4 * Math.max(0, -out.armL.x), -1.3, run)
     out.elbowR = input.armed ? -0.12 : lerp(-0.14 - 0.4 * Math.max(0, -out.armR.x), -1.3, run)
+    // CS1 ready stance: blended in over the walk arms; a swing starts from it and returns to it.
+    const ready = input.work >= 0 ? 0 : smooth(clamp01(input.ready ?? 0))
+    if (ready > 0) {
+      const R = input.armed ? READY_ARMED : READY_UNARMED
+      out.armR.x = lerp(out.armR.x, R.armR[0], ready)
+      out.armR.y = lerp(out.armR.y, R.armR[1], ready)
+      out.elbowR = lerp(out.elbowR, R.armR[2], ready)
+      out.armL.x = lerp(out.armL.x, R.armL[0], ready)
+      out.armL.y = lerp(out.armL.y, R.armL[1], ready)
+      out.elbowL = lerp(out.elbowL, R.armL[2], ready)
+      out.kneeL += 0.1 * ready
+      out.kneeR += 0.1 * ready
+      out.bodyPitch += 0.06 * ready
+    }
+    const readyArmR = [out.armR.x, out.armR.y, out.elbowR] as const
+    const readyArmL = [out.armL.x, out.armL.y, out.elbowL] as const
     if (input.swing >= 0) {
       // C4: the whole upper body swings: the chest winds up with the arm and drives through the hit,
       // the pelvis follows a little, the body leans into the contact, the eyes stay on the target.
@@ -329,7 +356,23 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
         out.armL.x = -0.4
         out.elbowL = -0.5
       }
+      if (ready > 0) {
+        // CS1: leave the ready pose during the wind-up and settle back into it after the follow-through
+        // (the damage frame in between is the plain swing, unchanged).
+        const windupEnd = Math.min(0.2, input.hitAt * 0.5)
+        const hold = ready * Math.max(1 - smooth(clamp01(p / windupEnd)), smooth(clamp01((p - 0.8) / 0.2)))
+        out.armR.x = lerp(out.armR.x, readyArmR[0], hold)
+        out.armR.y = lerp(out.armR.y, readyArmR[1], hold)
+        out.elbowR = lerp(out.elbowR, readyArmR[2], hold)
+        out.armL.x = lerp(out.armL.x, readyArmL[0], hold)
+        out.armL.y = lerp(out.armL.y, readyArmL[1], hold)
+        out.elbowL = lerp(out.elbowL, readyArmL[2], hold)
+      }
     }
+    // CS1: the chest (and a little the head) leads toward the aim while the body turns.
+    const lead = input.aimLead ?? 0
+    out.torsoTwist += lead * 0.8
+    out.headYaw += lead * 0.25
     if (input.work >= 0 && input.swing < 0) {
       // Shared work pose: lean over the job, left hand steadies it, right hand taps ~2.5 times/s.
       const tap = Math.sin(input.work * Math.PI * 5)

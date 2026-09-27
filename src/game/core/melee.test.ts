@@ -27,7 +27,8 @@ function arm(rt: GameRuntime, itemId: ItemId = 'baseball_bat', condition?: numbe
 
 /** Press attack once, run through the hit window, then wait out the weapon cooldown. */
 function swing(rt: GameRuntime) {
-  rt.input.simulateKey('Mouse0', true)
+  rt.input.simulateKey('Mouse2', true) // CS1: swings need the combat stance
+    rt.input.simulateKey('Mouse0', true)
   rt.tick(DT)
   rt.input.simulateKey('Mouse0', false)
   for (let t = 0; t < 2; t += DT) rt.tick(DT)
@@ -117,6 +118,7 @@ describe('P2-S2 melee wear', () => {
   it('uses the equipped weapon stats: the hammer is short and fast, the bat reaches farther', () => {
     const { rt, zombies } = setup([{ x: 2, y: 0, z: 0 }]) // edge at 1.6: bat reach 2.0, hammer 1.3
     const hammer = arm(rt, 'hammer')
+    rt.input.simulateKey('Mouse2', true) // CS1: swings need the combat stance
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     rt.input.simulateKey('Mouse0', false)
@@ -136,6 +138,7 @@ describe('P2-S2 melee wear', () => {
     const a = give(rt, 'baseball_bat', 50)
     const b = give(rt, 'baseball_bat', 70)
     expect(rt.equipItem(a.id)).toBe(true)
+    rt.input.simulateKey('Mouse2', true) // CS1: swings need the combat stance
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     rt.input.simulateKey('Mouse0', false)

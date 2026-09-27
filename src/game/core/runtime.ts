@@ -10,6 +10,7 @@ import { computeCameraBasis, computeMoveDirection, dampAngle, regenStamina, reso
 import { applyKnockback, damageZombie, stepZombie, type ZombieAIContext } from '../systems/ai'
 import { facingTowards, resolveConeHits, startAttack, startPush, tickPlayerCombat, type MeleeTarget } from '../systems/combat'
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
+import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
 import { transferAll, transferSlot, type TransferResult } from '../systems/inventory'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
@@ -82,6 +83,7 @@ export interface LineOfSightQuery {
 }
 
 const FACING_SMOOTHING = 14
+const DEG = Math.PI / 180
 /** Duration of the player's hit-reaction pose (view only). */
 const PLAYER_HURT_TIME = 0.3
 /** Độ cao raycast tầm nhìn zombie (trên chân): nhìn qua được hàng rào/thùng thấp, không qua tường/cửa. */
@@ -156,6 +158,15 @@ export class GameRuntime {
    */
   action: TimedAction | null = null
   private nextActionId = 1
+  /**
+   * CS1 combat stance: right-button intent and the desired aim (runtime only, never saved). The
+   * simulation owns the heading: `player.facing` turns toward `stance.aimYaw` at a limited speed.
+   */
+  readonly stance = createStanceControl()
+  /** The stance request turned on this tick (a left click just before it may still count). */
+  private stanceStarted = false
+  /** Seconds of simulation since the runtime was built (input grace windows). */
+  simTime = 0
   /** P2-S5: radius of the player's footstep noise this tick (0 = silent); zombies inside hear it. */
   playerNoise = 0
   /** P2-S5 horde director: seconds to the next migration attempt and attempt counter (seeds its RNG). */
@@ -311,6 +322,8 @@ export class GameRuntime {
       random: () => this.aiRng(),
     }
 
+    // Blur, pause, pointer cancel, New Game: held buttons are gone, so is every combat intent.
+    this.input.onClear(() => this.resetCombatIntent())
     this.newGame()
   }
 
@@ -556,6 +569,8 @@ export class GameRuntime {
     const perf = this.perf
     const tickStart = perf.begin()
 
+    this.simTime += dt
+    this.stepControls()
     this.stepPlayerMovement(dt)
     this.stepInteraction()
     let t = perf.begin()
@@ -831,6 +846,65 @@ export class GameRuntime {
     }
   }
 
+  /** CS1: combat posture in effect: the stance is asked for, or a swing is still finishing. */
+  get combatPosture(): boolean {
+    return this.player.alive && (this.stance.requested || this.player.attackTimer >= 0)
+  }
+
+  /** Settings: Hold/Toggle. Switching drops any held or latched request (never a stuck stance). */
+  setStanceMode(mode: StanceMode): void {
+    if (this.stance.mode === mode) return
+    setStanceMode(this.stance, mode, this.input.isDown('stance'))
+    this.syncStanceEvent(false)
+  }
+
+  /**
+   * Leave the stance (Esc, E, an opened panel). A swing already running finishes by its own rules;
+   * a held right button asks again only after it is released. Returns whether it was active.
+   */
+  cancelStance(): boolean {
+    const was = this.stance.requested
+    cancelStance(this.stance, this.input.isDown('stance'))
+    this.syncStanceEvent(was)
+    return was
+  }
+
+  /** Input reset (blur, pause, pointer cancel, New Game/load): no stance and no queued click. */
+  private resetCombatIntent(): void {
+    const was = this.stance.requested
+    cancelStance(this.stance, false)
+    this.stanceStarted = false
+    this.syncStanceEvent(was)
+  }
+
+  private syncStanceEvent(was: boolean): void {
+    if (was !== this.stance.requested) this.events.queue('player:stance', { active: this.stance.requested })
+  }
+
+  /**
+   * First step of a tick: the stance request from the right button (not while dead or while a panel
+   * holds the input) and the desired aim from the cursor point. A cursor on the player's feet or off
+   * the canvas keeps the previous aim.
+   */
+  private stepControls(): void {
+    const s = this.stance
+    const was = s.requested
+    updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive && !this.uiOpen)
+    this.stanceStarted = s.requested && !was
+    if (this.stanceStarted && !s.hasAim) s.aimYaw = this.player.facing
+    const aim = aimYawTowards(this.player.position, this.cursorWorld)
+    if (aim !== null) {
+      s.aimYaw = aim
+      s.hasAim = true
+    }
+    // A left click outside the stance that no right press followed within the grace: hint once.
+    if (s.clickOutsideAt > -Infinity && !s.requested && this.simTime - s.clickOutsideAt > GAME_CONFIG.combatStance.simultaneousGrace) {
+      s.clickOutsideAt = -Infinity
+      this.events.queue('player:attackNeedsStance', {})
+    }
+    this.syncStanceEvent(was)
+  }
+
   private stepPlayerMovement(dt: number): void {
     const body = this.playerBody
     const player = this.player
@@ -863,15 +937,26 @@ export class GameRuntime {
     const moving = dir.x !== 0 || dir.z !== 0
     // Walking away interrupts a craft/repair; nothing is consumed (plan §7.1 step 4).
     if (moving && this.action) this.cancelAction('moved')
-    const { speed, running } = resolvePlayerSpeed(player, this.input.isDown('run'), moving, dt)
+    // CS1: the stance (and a swing finishing after it) walks slower and cannot run; the factor is
+    // applied once, to the walking speed (no other movement modifiers exist yet).
+    const posture = this.combatPosture
+    const resolved = resolvePlayerSpeed(player, this.input.isDown('run') && !posture, moving, dt)
+    const running = resolved.running
+    const speed = posture ? resolved.speed * GAME_CONFIG.combatStance.speedFactor : resolved.speed
     // Footsteps (P2-S5): a fixed hearing radius for walking/running; standing still is silent.
     const hearing = GAME_CONFIG.hearing
     this.playerNoise = player.alive && speed > 0 ? (running ? hearing.runRadius : hearing.walkRadius) : 0
     this.advanceFootsteps(this.playerNoise > 0 ? speed : 0, running, dt)
 
-    // Khi đang vung gậy, giữ hướng nhìn về con trỏ; chuyển động không xoay nhân vật.
-    if (moving && player.alive && player.attackTimer < 0) {
-      player.facing = dampAngle(player.facing, Math.atan2(dir.x, dir.z), FACING_SMOOTHING, dt)
+    // Heading (CS1): a swing keeps its direction; in the stance the body turns toward the aim at a
+    // limited speed (strafing/backing off never turns it); otherwise it turns toward the walk.
+    if (player.alive && player.attackTimer < 0) {
+      if (this.stance.requested) {
+        const target = this.stance.hasAim ? this.stance.aimYaw : player.facing
+        player.facing = turnToward(player.facing, target, GAME_CONFIG.combatStance.turnSpeedDeg * DEG * dt, this.stance)
+      } else if (moving) {
+        player.facing = dampAngle(player.facing, Math.atan2(dir.x, dir.z), FACING_SMOOTHING, dt)
+      }
     }
 
     if (body) body.setLinvel({ x: dir.x * speed, y: 0, z: dir.z * speed }, true)
@@ -927,7 +1012,11 @@ export class GameRuntime {
     this.currentInteractable = target
     this.interactPrompt = target ? this.describeInteraction(target) : null
 
-    if (target && this.input.wasPressed('interact')) this.interact(target)
+    if (target && this.input.wasPressed('interact')) {
+      // CS1: E from the ready stance leaves it first (a held right button must be pressed again).
+      this.cancelStance()
+      this.interact(target)
+    }
   }
 
   /** M11b: an interactable at the player's storey (not the floor above or below). */
@@ -1413,9 +1502,20 @@ export class GameRuntime {
   private stepCombat(attacks: PendingAttack[], dt: number): void {
     const player = this.player
     if (player.alive && !this.uiOpen) {
-      // Attacking or shoving interrupts a craft/repair (the swing itself still happens).
-      if (this.action && (this.input.wasPressed('attack') || this.input.wasPressed('push'))) this.cancelAction('attacked')
+      // CS1: a left click swings only in the combat stance (or in the grace just before it started);
+      // outside it the click does nothing in the world (a rare hint points to the right button).
+      const s = this.stance
+      let attack = false
       if (this.input.wasPressed('attack')) {
+        if (s.requested) attack = true
+        else s.clickOutsideAt = this.simTime
+      } else if (this.stanceStarted && this.simTime - s.clickOutsideAt <= GAME_CONFIG.combatStance.simultaneousGrace) {
+        attack = true
+      }
+      if (attack) s.clickOutsideAt = -Infinity
+      // Attacking or shoving interrupts a craft/repair (the swing itself still happens).
+      if (this.action && (attack || this.input.wasPressed('push'))) this.cancelAction('attacked')
+      if (attack) {
         const weapon = equippedWeapon(player.inventory, player.equipment)
         if (!weapon) this.events.queue('player:unarmed', {})
         else if (startAttack(player, meleeStats(weapon.itemId), GAME_CONFIG.player, weapon.id)) {

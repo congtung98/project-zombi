@@ -10,6 +10,7 @@ import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, playerLook, shadowDetail } from './character/rig'
 import { buildWeaponModel, type WeaponModel } from './character/weaponModels'
 import { advancePlayerGait, createPlayerGait } from './character/locomotion'
+import { angleDiff } from '../systems/stance'
 
 const CFG = runtime.config.player
 const MELEE = runtime.config.melee
@@ -18,6 +19,10 @@ const HALF_HEIGHT = (CFG.height - 2 * CFG.radius) / 2
 const SHOVE_TIME = 0.4
 const HURT_TIME = 0.3
 const DEATH_TIME = 0.6
+const STANCE = runtime.config.combatStance
+const TORSO_LEAD = (STANCE.torsoLeadDeg * Math.PI) / 180
+/** Easing of the chest lead (s): it follows the aim smoothly and fades out when the stance ends. */
+const LEAD_TAU = 0.08
 /** Same float as the simulation keeps (`runtime.ts` PLAYER_HOVER): the capsule never rests on a wall top. */
 const HOVER = 0.02
 
@@ -40,6 +45,9 @@ export function PlayerView() {
   const clock = useRef(0)
   const deadTime = useRef(-1)
   const fall = useRef<FallKind | null>(null)
+  // CS1: raised-weapon blend and chest lead, eased here from the simulation's posture and aim.
+  const ready = useRef(0)
+  const lead = useRef(0)
   const spawn = runtime.player.position
 
   useEffect(() => {
@@ -97,6 +105,12 @@ export function PlayerView() {
       fall.current = chooseFall(['back', ...fallOrder('player', null).filter((k) => k !== 'back')], p.facing, (d) =>
         runtime.isBlocked(from, { x: from.x + d.x * FALL_ROOM, y: from.y, z: from.z + d.z * FALL_ROOM }, []))
     }
+    // CS1: the pose follows the stance intent at once but blends over `poseBlend` (never read back).
+    const posture = runtime.combatPosture
+    ready.current = Math.min(1, Math.max(0, ready.current + (posture ? 1 : -1) * (delta / STANCE.poseBlend)))
+    const leadTarget = runtime.stance.requested && p.alive && p.attackTimer < 0 ? Math.max(-TORSO_LEAD, Math.min(TORSO_LEAD, angleDiff(p.facing, runtime.stance.aimYaw))) : 0
+    lead.current += (leadTarget - lead.current) * (1 - Math.exp(-delta / LEAD_TAU))
+
     const shoveElapsed = PUSH.cooldown - p.pushCooldown
     computePose(
       {
@@ -114,6 +128,8 @@ export function PlayerView() {
         fall: fall.current ?? 'back',
         armed: held !== null,
         work: runtime.action && p.alive ? runtime.action.elapsed : -1,
+        ready: ready.current,
+        aimLead: lead.current,
       },
       pose.current,
     )

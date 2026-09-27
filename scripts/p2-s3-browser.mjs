@@ -155,6 +155,7 @@ try {
       let rigR = null
       // C1: the socket sits in the fist (elbow bone); the swing yaw is on the shoulder.
       window.__scene.traverse((o) => { if (o.name === 'weaponSocket' && o.children.length) { rigR = o.parent; while (rigR && rigR.name !== 'shoulderR') rigR = rigR.parent } })
+      rt.input.simulateKey('Mouse2', true) // CS1: swings need the combat stance
       rt.input.simulateKey('Mouse0', true)
       const samples = []
       const start = performance.now()
@@ -163,21 +164,23 @@ try {
         if (rt.player.attackTimer >= 0) samples.push({ t: +rt.player.attackTimer.toFixed(3), yaw: +rigR.rotation.y.toFixed(2) })
       }
       rt.input.simulateKey('Mouse0', false)
+      rt.input.simulateKey('Mouse2', false)
       return samples
     })
     const hitDelay = 0.15
     const near = swing.reduce((best, s) => (Math.abs(s.t - hitDelay) < Math.abs(best.t - hitDelay) ? s : best), swing[0])
     log('swing samples', { frames: swing.length, nearHit: near, first: swing[0], last: swing.at(-1) })
     assert.ok(swing.length >= 2)
-    assert.ok(swing[0].yaw < 0 && swing.at(-1).yaw > 0, 'arm sweeps right → left across the front')
+    // CS1: in the stance the swing starts from and returns to the ready pose (cocked right), so check the sweep.
+    assert.ok(swing[0].yaw < 0 && Math.max(...swing.map((s) => s.yaw)) > 0, 'arm sweeps right → left across the front')
     // Posed after the tick: the arm is (near) straight ahead in the frame closest to the damage frame.
     if (Math.abs(near.t - hitDelay) < 0.03) assert.ok(Math.abs(near.yaw) < 0.45, `arm yaw at hit ${near.yaw}`)
 
     await page.waitForTimeout(1400)
-    await page.evaluate(() => window.__runtime.input.simulateKey('Mouse0', true))
+    await page.evaluate(() => { window.__runtime.input.simulateKey('Mouse2', true); window.__runtime.input.simulateKey('Mouse0', true) })
     await page.waitForTimeout(90)
     await shot('p2s3-swing')
-    await page.evaluate(() => window.__runtime.input.simulateKey('Mouse0', false))
+    await page.evaluate(() => { window.__runtime.input.simulateKey('Mouse0', false); window.__runtime.input.simulateKey('Mouse2', false) })
 
     // 6) Zombie hit reaction, attack and death poses on the live rig; dead zombies deal no damage.
     const zombieStates = await page.evaluate(async () => {

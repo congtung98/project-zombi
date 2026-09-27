@@ -246,8 +246,12 @@ try {
       await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2 + 40)
       await page.waitForTimeout(150)
       await park()
+      // CS1: hold the right button (combat stance), click the left one (a chorded press), let go.
+      await page.mouse.down({ button: 'right' })
+      await page.waitForTimeout(50)
       await page.mouse.down()
       await page.mouse.up()
+      await page.mouse.up({ button: 'right' })
       await page.waitForTimeout(700)
       return rt(() => 50 - window.__runtime.zombies.get('zombie-1').health)
     }
