@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-2_2",
+  "cx": -2,
+  "cz": 2,
+  "instances": [
+    {
+      "instanceId": "c-2_2/auto-repair-1",
+      "prefabId": "service/auto-repair",
+      "position": { "x": 20, "y": 0, "z": 4.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_3/police-station-1", "ownerChunkId": "c-2_3" },
+    { "id": "c-3_2/bookstore-1", "ownerChunkId": "c-3_2" },
+    { "id": "c-3_3/hospital-1", "ownerChunkId": "c-3_3" }
+  ]
+}

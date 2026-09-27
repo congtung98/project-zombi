@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-4_4",
+  "cx": -4,
+  "cz": 4,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c-4_4/objects/police-station-streetlight-1",
+      "position": { "x": 29, "y": 2.1, "z": 19 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-3_4/objects/police-station-parking-1", "ownerChunkId": "c-3_4" },
+    { "id": "c-3_4/police-station-police-station-1", "ownerChunkId": "c-3_4" }
+  ]
+}

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { FACING_LABELS, FURNITURE, FURNITURE_IDS, FURNITURE_VARIANT_LABELS, FURNITURE_VARIANTS, type FurnitureId } from '../game/rendering/furniture/catalog'
 import { DECOR, DECOR_IDS } from '../game/rendering/decor/catalog'
 import { VARIANT_IDS, VARIANTS } from '../game/rendering/variants'
+import { SURFACE_LAYER_MAX, SURFACE_MATERIALS, type SurfaceMaterial, type SurfaceObject } from '../map/schema'
+import { SURFACE_COLLISION_LABEL, SURFACE_DEFAULTS, SURFACE_NAVIGATION_LABEL, surfaceMaterialPatch } from '../map/editor/surfaces'
 
 /**
  * Inspector inputs that commit once (Enter or blur), so typing is not a stream of commands and
@@ -209,6 +211,66 @@ export function TreeFields({ tree, patch }: { tree: { height: number; canopy: nu
       <NumField label="Bán kính thân" value={tree.trunk} step={0.05} min={0.1} onCommit={(trunk) => patch('Đổi thân cây', { trunk: Math.min(1, trunk) })} />
       <TextField label="Màu tán" value={tree.color} pattern={/^#[0-9a-f]{6}$/i} onCommit={(color) => patch('Đổi màu cây', { color })} />
       <p className="hint">Thân cây chặn đường đi và tầm nhìn zombie như một cái cột; tán chỉ để nhìn và mờ đi khi che người chơi.</p>
+    </>
+  )
+}
+
+/** Prefab library P1: a surface's shape, size, material, layer, collision and navigation (world records and prefab items). */
+export function SurfaceFields({ surface: o, patch }: { surface: Pick<SurfaceObject, 'shape' | 'size' | 'material' | 'color' | 'layer' | 'collision' | 'navigation'>; patch: (label: string, fields: Record<string, unknown>) => void }) {
+  return (
+    <>
+      <label className="field">
+        <span>Vật liệu</span>
+        <select value={o.material} onChange={(e) => patch('Đổi vật liệu', surfaceMaterialPatch(o, e.target.value as SurfaceMaterial))} data-surface-material>
+          {SURFACE_MATERIALS.map((m) => (
+            <option key={m} value={m}>
+              {SURFACE_DEFAULTS[m].label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Hình</span>
+        <select value={o.shape} onChange={(e) => patch('Đổi hình', { shape: e.target.value })} data-surface-shape>
+          <option value="rect">Chữ nhật</option>
+          <option value="ellipse">Elip (hồ, bồn cỏ)</option>
+        </select>
+      </label>
+      {o.size.map((v, i) => (
+        <NumField key={i} label={`Kích thước ${'XZ'[i]}`} value={v} min={0.25} onCommit={(n) => patch('Đổi kích thước', { size: o.size.map((s, j) => (j === i ? n : s)) })} />
+      ))}
+      <TextField label="Màu" value={o.color} pattern={/^#[0-9a-f]{6}$/i} onCommit={(color) => patch('Đổi màu', { color })} />
+      <label className="field" title="Chỗ hai mặt nền chồng nhau, lớp cao hơn nằm trên">
+        <span>Lớp vẽ</span>
+        <select value={String(o.layer ?? 0)} onChange={(e) => patch('Đổi lớp vẽ', { layer: Number(e.target.value) || undefined })} data-surface-layer>
+          {Array.from({ length: SURFACE_LAYER_MAX + 1 }, (_, i) => (
+            <option key={i} value={i}>
+              {i === 0 ? '0 (dưới cùng)' : i}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Va chạm</span>
+        <select value={o.collision} onChange={(e) => patch('Đổi va chạm', e.target.value === 'solid' ? { collision: 'solid', navigation: 'blocked' } : { collision: 'none' })} data-surface-collision>
+          {(['none', 'solid'] as const).map((k) => (
+            <option key={k} value={k}>
+              {SURFACE_COLLISION_LABEL[k]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Điều hướng</span>
+        <select value={o.navigation} disabled={o.collision === 'solid'} onChange={(e) => patch('Đổi điều hướng', { navigation: e.target.value })} data-surface-navigation>
+          {(['walkable', 'blocked'] as const).map((k) => (
+            <option key={k} value={k}>
+              {SURFACE_NAVIGATION_LABEL[k]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="hint">Mặt nền phẳng, nằm dưới sàn nhà. Nước mặc định chắn: người chơi không lội vào, zombie đi vòng, vẫn nhìn qua được. Chỗ chồng nhau, lớp cao hơn nằm trên.</p>
     </>
   )
 }

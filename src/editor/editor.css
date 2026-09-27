@@ -701,3 +701,87 @@ h4 {
 .ref-points input {
   width: 64px;
 }
+
+/* Prefab library P1 */
+.tabs.sub button {
+  font-size: 12px;
+}
+
+.hint.bad,
+small.bad {
+  color: var(--bad);
+}
+
+.hint.warn,
+small.warn {
+  color: var(--warn);
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.palette li > .row.tight {
+  margin: 2px 0 6px;
+}
+
+/* P1 follow-up: library filters wrap inside the 230 px palette (no horizontal scroll). */
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.filters select {
+  width: 100%;
+  min-width: 0;
+}
+
+.filters select:last-child {
+  grid-column: 1 / -1;
+}
+
+.panel.left {
+  overflow-x: hidden;
+}
+
+.palette small,
+.palette strong {
+  overflow-wrap: anywhere;
+}
+
+/* Slim scrollbars in the editor's dark theme (standard properties; WebKit fallback). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b545d transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b545d;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #66717b;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

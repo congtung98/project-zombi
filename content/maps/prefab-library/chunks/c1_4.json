@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_4",
+  "cx": 1,
+  "cz": 4,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c1_4/objects/high-school-fence-1",
+      "position": { "x": 28, "y": 0.6, "z": 27 },
+      "size": [0.15, 1.2, 61.85],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_4/objects/high-school-tree-1",
+      "position": { "x": 25, "z": 4 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_4/objects/high-school-tree-2",
+      "position": { "x": 25, "z": 16 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_4/objects/high-school-tree-3",
+      "position": { "x": 25, "z": 28 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "container",
+      "objectId": "c1_4/objects/high-school-bin-1",
+      "name": "Thùng rác",
+      "position": { "x": 20, "y": 0.55, "z": 18 },
+      "size": [0.8, 1.1, 0.8],
+      "color": "#3f5f3a",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c0_4/high-school-block-a-1", "ownerChunkId": "c0_4" },
+    { "id": "c0_5/objects/high-school-schoolyard-1", "ownerChunkId": "c0_5" }
+  ]
+}

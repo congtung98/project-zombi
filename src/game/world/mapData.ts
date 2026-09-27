@@ -36,6 +36,28 @@ export function roadY(road: { layer?: number }): number {
 }
 
 /**
+ * Prefab library P1: a ground surface of a prefab or chunk (schema `SurfaceObject`), drawn only: a
+ * solid one also has its barrier in `walls` (`hidden`), a blocked one its area in `navBlockers`.
+ * `size` is already turned with its instance.
+ */
+export interface SurfaceDef {
+  id: string
+  shape: 'rect' | 'ellipse'
+  position: { x: number; z: number }
+  /** [X, Z] */
+  size: [number, number]
+  /** Surface catalog ID (`concrete`, `grass`, `water` …). */
+  surface: string
+  color: string
+  layer?: number
+}
+
+/** Height of a surface: half a millimetre over a road of the same layer (a yard covers the pavement under it). */
+export function surfaceY(surface: { layer?: number }): number {
+  return roadY(surface) + 0.0005
+}
+
+/**
  * Outdoor area a zombie group wanders in (P2-S5). Every zombie belongs to a zone by the rule of
  * `world/zones.ts` (smallest rectangle containing its spawn, else nearest centre); the horde
  * director moves whole groups between zones.
@@ -89,6 +111,10 @@ export interface MapData {
   floors?: FloorSlab[]
   /** M11b: flights between storeys (their enclosing walls are in `walls`). */
   stairs?: StairPlacement[]
+  /** Prefab library P1: ground surfaces of prefabs and chunks (drawn only). */
+  surfaces?: SurfaceDef[]
+  /** Prefab library P1: ground areas the navigation grid treats as blocked (surfaces with `navigation: 'blocked'`). */
+  navBlockers?: { id: string; rect: Rect }[]
 }
 
 /** Chunk edge of content worlds (world.json `chunkSize`) and the default for hand-made maps. */

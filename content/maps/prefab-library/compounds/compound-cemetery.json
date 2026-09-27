@@ -1,0 +1,765 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/cemetery",
+  "contentVersion": 1,
+  "name": "Nghĩa trang",
+  "footprint": { "minX": -15.075, "minZ": -12.075, "maxX": 15.075, "maxZ": 12.075 },
+  "catalog": { "group": "landscape", "tags": ["nghia-trang"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public", "empty", "farmland"],
+    "weight": 0.5,
+    "setback": 1,
+    "sideGap": 1,
+    "roadFacing": true,
+    "frontage": [32, 60]
+  },
+  "instances": [
+    {
+      "member": "chapel",
+      "prefabId": "landscape/chapel",
+      "position": { "x": 0, "y": 0, "z": -6.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "lawn",
+      "shape": "rect",
+      "size": [30, 24],
+      "material": "grass",
+      "color": "#56733a",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 0 }
+    },
+    {
+      "kind": "surface",
+      "member": "path",
+      "shape": "rect",
+      "size": [2.4, 18],
+      "material": "dirt",
+      "color": "#8a6a45",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 3 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave",
+      "position": { "x": -3.5, "y": 0.45, "z": 1 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -3.5, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-2",
+      "position": { "x": -5.9, "y": 0.45, "z": 1 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-2",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -5.9, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-3",
+      "position": { "x": -8.3, "y": 0.45, "z": 1 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-3",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -8.3, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-4",
+      "position": { "x": -10.7, "y": 0.6, "z": 1 },
+      "size": [1, 1.2, 0.4],
+      "color": "#a4a39d"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-4",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -10.7, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-5",
+      "position": { "x": -3.5, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-5",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -3.5, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-6",
+      "position": { "x": -5.9, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-6",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -5.9, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-7",
+      "position": { "x": -8.3, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-7",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -8.3, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-8",
+      "position": { "x": -10.7, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-8",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -10.7, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-9",
+      "position": { "x": -3.5, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-9",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -3.5, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-10",
+      "position": { "x": -5.9, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-10",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -5.9, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-11",
+      "position": { "x": -8.3, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-11",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -8.3, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-12",
+      "position": { "x": -10.7, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-12",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -10.7, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-13",
+      "position": { "x": -3.5, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-13",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -3.5, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-14",
+      "position": { "x": -5.9, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-14",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -5.9, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-15",
+      "position": { "x": -8.3, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-15",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -8.3, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-16",
+      "position": { "x": -10.7, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-16",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -10.7, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-17",
+      "position": { "x": 3.5, "y": 0.45, "z": 1 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-17",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 3.5, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-18",
+      "position": { "x": 5.9, "y": 0.45, "z": 1 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-18",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 5.9, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-19",
+      "position": { "x": 8.3, "y": 0.45, "z": 1 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-19",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8.3, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-20",
+      "position": { "x": 10.7, "y": 0.6, "z": 1 },
+      "size": [1, 1.2, 0.4],
+      "color": "#a4a39d"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-20",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 10.7, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-21",
+      "position": { "x": 3.5, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-21",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 3.5, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-22",
+      "position": { "x": 5.9, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-22",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 5.9, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-23",
+      "position": { "x": 8.3, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-23",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8.3, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-24",
+      "position": { "x": 10.7, "y": 0.45, "z": 3.4 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-24",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 10.7, "z": 4.4 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-25",
+      "position": { "x": 3.5, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-25",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 3.5, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-26",
+      "position": { "x": 5.9, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-26",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 5.9, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-27",
+      "position": { "x": 8.3, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-27",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8.3, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-28",
+      "position": { "x": 10.7, "y": 0.45, "z": 5.8 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-28",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 10.7, "z": 6.8 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-29",
+      "position": { "x": 3.5, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-29",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 3.5, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-30",
+      "position": { "x": 5.9, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-30",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 5.9, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-31",
+      "position": { "x": 8.3, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-31",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8.3, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "grave-32",
+      "position": { "x": 10.7, "y": 0.45, "z": 8.2 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "member": "plot-32",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 10.7, "z": 9.2 }
+    },
+    {
+      "kind": "prop",
+      "member": "fence",
+      "position": { "x": 0, "y": 0.6, "z": -12 },
+      "size": [30, 1.2, 0.15],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-2",
+      "position": { "x": -8.5, "y": 0.6, "z": 12 },
+      "size": [13, 1.2, 0.15],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-3",
+      "position": { "x": 8.5, "y": 0.6, "z": 12 },
+      "size": [13, 1.2, 0.15],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-4",
+      "position": { "x": -15, "y": 0.6, "z": 0 },
+      "size": [0.15, 1.2, 23.85],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "member": "fence-5",
+      "position": { "x": 15, "y": 0.6, "z": 0 },
+      "size": [0.15, 1.2, 23.85],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "member": "pine",
+      "position": { "x": -12, "z": -9 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "member": "pine-2",
+      "position": { "x": 12, "z": -9 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "member": "pine-3",
+      "position": { "x": -12.5, "z": 9.5 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "member": "pine-4",
+      "position": { "x": 12.5, "z": 9.5 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "member": "pine-5",
+      "position": { "x": -8, "z": -9.5 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "member": "pine-6",
+      "position": { "x": 8, "z": -9.5 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "prop",
+      "member": "bench",
+      "position": { "x": 7, "y": 0.25, "z": -3 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    }
+  ]
+}

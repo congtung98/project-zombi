@@ -52,6 +52,53 @@ export interface LayoutWorldOptions {
 
 const grow = (r: Rect, m: number): Rect => ({ minX: r.minX - m, minZ: r.minZ - m, maxX: r.maxX + m, maxZ: r.maxZ + m })
 
+/** Navigation cell and agent radius of the game (`GAME_CONFIG.nav`). */
+const NAV_CELL = 0.5
+const NAV_RADIUS = 0.4
+
+/**
+ * Cells of the area a body can walk to from `from` (4-connected), obstacles grown by the agent radius
+ * (the navigation grid's rule). Returns a test for points.
+ */
+function reachableGrid(area: Rect, obstacles: readonly Rect[], from: XZ): (p: XZ) => boolean {
+  const x0 = Math.floor(area.minX) - 1
+  const z0 = Math.floor(area.minZ) - 1
+  const cols = Math.ceil((area.maxX + 1 - x0) / NAV_CELL)
+  const rows = Math.ceil((area.maxZ + 1 - z0) / NAV_CELL)
+  const blocked = new Uint8Array(cols * rows)
+  for (const o of obstacles) {
+    const i0 = Math.max(0, Math.ceil((o.minX - NAV_RADIUS - x0) / NAV_CELL - 0.5))
+    const i1 = Math.min(cols - 1, Math.floor((o.maxX + NAV_RADIUS - x0) / NAV_CELL - 0.5))
+    const j0 = Math.max(0, Math.ceil((o.minZ - NAV_RADIUS - z0) / NAV_CELL - 0.5))
+    const j1 = Math.min(rows - 1, Math.floor((o.maxZ + NAV_RADIUS - z0) / NAV_CELL - 0.5))
+    for (let j = j0; j <= j1; j++) blocked.fill(1, j * cols + i0, j * cols + i1 + 1)
+  }
+  const cell = (p: XZ) => {
+    const i = Math.floor((p.x - x0) / NAV_CELL)
+    const j = Math.floor((p.z - z0) / NAV_CELL)
+    return i < 0 || j < 0 || i >= cols || j >= rows ? -1 : j * cols + i
+  }
+  const seen = new Uint8Array(cols * rows)
+  const s = cell(from)
+  if (s >= 0 && !blocked[s]) {
+    const stack = [s]
+    seen[s] = 1
+    while (stack.length) {
+      const k = stack.pop()!
+      const i = k % cols
+      for (const n of [i > 0 ? k - 1 : -1, i < cols - 1 ? k + 1 : -1, k - cols, k + cols]) {
+        if (n < 0 || n >= cols * rows || blocked[n] || seen[n]) continue
+        seen[n] = 1
+        stack.push(n)
+      }
+    }
+  }
+  return (p) => {
+    const k = cell(p)
+    return k >= 0 && seen[k] === 1
+  }
+}
+
 export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: LayoutWorldOptions): MapDocument {
   const net = layout.normalized
   if (!net) throw new Error('layout chưa có mạng đường đã nắn')
@@ -161,8 +208,13 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
   if (mode === 'full') {
     // Where a zombie may not stand: building footprints (+0.8 m) and low colliders (+ its radius), indexed.
     const blocked = new RectIndex()
-    for (const q of plan.parcels) if (q.build && q.build.prefabId !== null) blocked.add(grow(q.build.footprint, 0.8))
-    for (const b of lowSolids(resolvedRecords(snapshot()))) blocked.add(grow({ minX: b.position.x - b.size[0] / 2, minZ: b.position.z - b.size[2] / 2, maxX: b.position.x + b.size[0] / 2, maxZ: b.position.z + b.size[2] / 2 }, SPAWN_CLEARANCE))
+    const solids = lowSolids(resolvedRecords(snapshot())).map((b) => ({ minX: b.position.x - b.size[0] / 2, minZ: b.position.z - b.size[2] / 2, maxX: b.position.x + b.size[0] / 2, maxZ: b.position.z + b.size[2] / 2 }))
+    const footprints = plan.parcels.flatMap((q) => (q.build && q.build.prefabId !== null ? [q.build.footprint] : []))
+    for (const f of footprints) blocked.add(grow(f, 0.8))
+    for (const b of solids) blocked.add(grow(b, SPAWN_CLEARANCE))
+    // P3: a spawn must be connected to the streets (a yard walled in by buildings and fences is not),
+    // like the deep check: a 0.5 m grid, obstacles grown by the agent radius, flooded from the player start.
+    const reached = reachableGrid(area, [...footprints, ...solids], candidates[0].position)
     const density = { ...DEFAULT_ZOMBIES, ...opts.zombies }
     const used = new Map<LandUseZone, number>()
     for (const block of plan.blocks) {
@@ -182,6 +234,7 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
         for (let x = inner.minX + 1.5; x <= inner.maxX - 1.5; x += 4) {
           const p = { x: quantize(x), z: quantize(z) }
           if (blocked.overlaps({ minX: p.x - 1e-3, minZ: p.z - 1e-3, maxX: p.x + 1e-3, maxZ: p.z + 1e-3 })) continue
+          if (!reached(p)) continue
           spots.push(p)
         }
       const random = rng(hashSeed(plan.params.seed, `zombies:${block.id}`))

@@ -1,4 +1,4 @@
-import type { LandUseZone, PlayArea, QuarterTurns, Rect, XZ } from '../schema.ts'
+import type { ArchitectureStyle, LandUseZone, PlayArea, QuarterTurns, Rect, XZ } from '../schema.ts'
 
 /**
  * WorldLayout (world generator WG1): the geographic layout a world is generated from, kept apart
@@ -308,6 +308,14 @@ export interface PlanParams {
   restrictedCell: number
   /** Inset (m) of a parcel's buildable rectangle from its edges. */
   inset: number
+  /**
+   * Prefab library P1 (D7): architecture style the buildings should have (prefab `catalog`); a prefab
+   * of that style weighs `STYLE_WEIGHT.match` times more, a generic one as it is, another style much
+   * less. Absent: no preference (the WG3 weights exactly). Buildings only: the parcels never change.
+   */
+  architectureStyle?: ArchitectureStyle
+  /** Prefab library P1: `architectureStyle` per land-use zone (e.g. American houses, Vietnamese shops). */
+  styleByZone?: Partial<Record<LandUseZone, ArchitectureStyle>>
 }
 
 export interface LayoutBlock {

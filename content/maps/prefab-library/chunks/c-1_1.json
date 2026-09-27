@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_1",
+  "cx": -1,
+  "cz": 1,
+  "instances": [
+    {
+      "instanceId": "c-1_1/longhouse-1",
+      "prefabId": "house/longhouse",
+      "position": { "x": 7, "y": 0, "z": 2.5 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c-1_1/ranch-1",
+      "prefabId": "house/ranch",
+      "position": { "x": 28, "y": 0, "z": 3.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_2/garage-double-1", "ownerChunkId": "c-1_2" },
+    { "id": "c0_2/machine-shop-1", "ownerChunkId": "c0_2" }
+  ]
+}

@@ -14,6 +14,7 @@ import { applyCommand, initialEditState, redo, undo, type EditState } from '../m
 import { listDrafts, readDraft, saveDraft, type DraftRecord } from './drafts'
 import { documentReference, generatorBlockReason, layoutWorldFromGeoJson, libraryCatalog, LIBRARY_WORLD, reimportLayout, tracingGeoJson, withReference, type LayoutWorldRequest } from '../map/editor/generator'
 import type { PrefabCatalog } from '../map/layout/buildings'
+import { documentLibraryIssues, libraryFromDocument, libraryFromFiles, type SharedLibrary } from '../map/editor/library'
 import type { LayoutIssue } from '../map/layout/schema'
 import { documentLayout, syncGenerated, type SyncReport, type SyncRequest } from '../map/layout/worldSync'
 import { editorWorldFiles } from './layoutFiles'
@@ -51,10 +52,10 @@ export interface Playtest {
 }
 
 /** What the place tool puts down: a prefab instance or a palette record (M4). */
-export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record'; presetId: string } | { kind: 'prefabItem'; presetId: string }
+export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record'; presetId: string } | { kind: 'prefabItem'; presetId: string } | { kind: 'compound'; compoundId: string }
 
 /** Palette tabs of the prefab editor (M5). */
-export type PrefabTab = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms'
+export type PrefabTab = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms' | 'surfaces'
 
 export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks' | 'generator' | 'reference'
 
@@ -140,7 +141,9 @@ interface EditorStore {
   preview: Preview | null
   status: Status | null
   cursor: XZ | null
-  dialog: 'open' | 'new' | 'saveAs' | 'newPrefab' | 'duplicatePrefab' | null
+  dialog: 'open' | 'new' | 'saveAs' | 'newPrefab' | 'duplicatePrefab' | 'libraryUpdate' | 'saveCompound' | null
+  /** Prefab library P1: what the update dialog previews (a world prefab copy, or a placed compound group). */
+  libraryUpdate: { kind: 'prefab' | 'compound'; id: string } | null
   showIssues: boolean
   drafts: DraftRecord[]
   focusRequest: number
@@ -177,7 +180,7 @@ interface EditorStore {
   setTool(tool: Tool, place?: PlaceItem | null): void
   rotatePlacement(turns: number): void
   setLayer(id: LayerId, patch: Partial<LayerState>): void
-  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee' | 'prefabTab' | 'prefabView' | 'outlineEdit' | 'showReach' | 'dialogPrefab' | 'playHour'>>): void
+  set(patch: Partial<Pick<EditorStore, 'snapStep' | 'view' | 'cursor' | 'dialog' | 'showIssues' | 'paletteTab' | 'selectedChunk' | 'marquee' | 'prefabTab' | 'prefabView' | 'outlineEdit' | 'showReach' | 'dialogPrefab' | 'playHour' | 'libraryUpdate'>>): void
   /** Play From Here: snapshot the document and open the playtest frame (never touches saves or drafts). */
   startPlaytest(spawn: XZ): boolean
   stopPlaytest(): void
@@ -291,7 +294,26 @@ function editorWarnings(doc: MapDocument, baseline: MapDocument | null): Validat
 }
 
 function issuesFor(doc: MapDocument, baseline: MapDocument | null): ValidationIssue[] {
-  return [...validateDocument(doc, OPTS), ...editorWarnings(doc, baseline)]
+  return [...validateDocument(doc, OPTS), ...editorWarnings(doc, baseline), ...documentLibraryIssues(doc, OPTS)]
+}
+
+let libraryMemo: { library: SharedLibrary | null } | null = null
+const liveLibrary = new WeakMap<object, SharedLibrary>()
+/**
+ * Prefab library P1: the shared library (the repo world `prefab-library`, read once). While the
+ * library world itself is open, its live content (so a compound saved a moment ago is listed).
+ */
+export function sharedLibrary(doc: MapDocument | null = useEditorStore.getState().edit?.doc ?? null): SharedLibrary | null {
+  if (doc && doc.world.worldId === LIBRARY_WORLD) {
+    let lib = liveLibrary.get(doc.extras)
+    if (!lib || lib.prefabs !== doc.prefabs) {
+      lib = libraryFromDocument(doc, OPTS)
+      liveLibrary.set(doc.extras, lib)
+    }
+    return lib
+  }
+  libraryMemo ??= { library: bundledWorldIds().includes(LIBRARY_WORLD) ? libraryFromFiles(editorWorldFiles(LIBRARY_WORLD), OPTS) : null }
+  return libraryMemo.library
 }
 
 /** The repo copy of a world (the published revision), if the world is bundled. */
@@ -350,6 +372,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   outlineEdit: false,
   showReach: true,
   dialogPrefab: null,
+  libraryUpdate: null,
   playHour: 9,
   playtest: null,
   deep: null,
@@ -570,7 +593,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       get().reject(`Không mở được ${worldId}`, r.error, r.issues)
       return false
     }
-    get().openDocument(r.doc, `bundle content/maps/${worldId}`, [...r.issues])
+    get().openDocument(r.doc, `bundle content/maps/${worldId}`, [...r.issues, ...documentLibraryIssues(r.doc, OPTS)])
     return true
   },
 

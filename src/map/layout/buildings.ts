@@ -1,4 +1,4 @@
-import type { PrefabDocument, PrefabEntry, PrefabPlacement, QuarterTurns, Rect, XZ } from '../schema.ts'
+import type { ArchitectureStyle, PrefabDocument, PrefabEntry, PrefabPlacement, QuarterTurns, Rect, XZ } from '../schema.ts'
 import { chunkIdOf, chunkIndex, quantize, rotateRect, rotateXZ } from '../transform.ts'
 import { byString } from './geometry.ts'
 import { hashSeed, parcelRect, rng } from './parcels.ts'
@@ -179,14 +179,27 @@ export function placeBuildings(plan: LayoutPlan, catalog: PrefabCatalog, opts: B
       counts.skippedManual++
       return q
     }
-    return { ...q, build: decide(q, catalog, vacancy, opts.salt ?? 0, counts) }
+    return { ...q, build: decide(q, catalog, vacancy, opts.salt ?? 0, counts, plan.params.styleByZone?.[q.zone] ?? plan.params.architectureStyle) }
   })
   const n = counts
   issues.push({ severity: 'info', code: 'buildings', message: `${n.built} công trình, ${n.vacant} lô bỏ trống, ${n['no-fit']} lô không vừa prefab nào, ${n['no-prefab']} lô không có prefab cho zone${n.skippedLocked ? `, giữ ${n.skippedLocked} lô khóa` : ''}${n.skippedManual ? `, giữ ${n.skippedManual} lô chọn tay` : ''}` })
   return { plan: { ...plan, parcels, catalog: catalog.id }, issues }
 }
 
-function decide(q: LayoutParcel, catalog: PrefabCatalog, vacancy: Record<LandUseZone, number>, salt: number, counts: Record<string, number>): ParcelBuild | null {
+/**
+ * Prefab library P1 (D7): weight factor of a prefab for a wanted architecture style: its own style,
+ * generic, or another one (still possible, so a lot never stays empty only for its style).
+ */
+export const STYLE_WEIGHT = { match: 4, generic: 1, other: 0.25 } as const
+
+/** A prefab's weight on a lot that wants `style` (none: its placement weight). */
+export function styledWeight(p: LibraryPrefab, style: ArchitectureStyle | undefined): number {
+  if (!style) return p.placement.weight
+  const own = p.doc.catalog?.architectureStyle ?? 'generic'
+  return p.placement.weight * (own === style ? STYLE_WEIGHT.match : own === 'generic' ? STYLE_WEIGHT.generic : STYLE_WEIGHT.other)
+}
+
+function decide(q: LayoutParcel, catalog: PrefabCatalog, vacancy: Record<LandUseZone, number>, salt: number, counts: Record<string, number>, style?: ArchitectureStyle): ParcelBuild | null {
   if (q.kind !== 'lot' || !q.access) return null
   const random = rng(hashSeed(q.seed, `build:${salt}`))
   if (random() < vacancy[q.zone]) {
@@ -203,10 +216,10 @@ function decide(q: LayoutParcel, catalog: PrefabCatalog, vacancy: Record<LandUse
     counts['no-fit']++
     return { prefabId: null, reason: 'no-fit', source: 'generated' }
   }
-  let roll = random() * fits.reduce((a, x) => a + x.p.placement.weight, 0)
+  let roll = random() * fits.reduce((a, x) => a + styledWeight(x.p, style), 0)
   let pick = fits[fits.length - 1]
   for (const x of fits) {
-    roll -= x.p.placement.weight
+    roll -= styledWeight(x.p, style)
     if (roll <= 0) {
       pick = x
       break

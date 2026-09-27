@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_1",
+  "cx": 0,
+  "cz": 1,
+  "instances": [
+    {
+      "instanceId": "c0_1/tube-4x16-1",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 12, "y": 0, "z": 7 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c0_1/tube-5x18-1",
+      "prefabId": "house/tube-5x18",
+      "position": { "x": 24.5, "y": 0, "z": 8 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_1/ranch-1", "ownerChunkId": "c-1_1" },
+    { "id": "c0_2/machine-shop-1", "ownerChunkId": "c0_2" }
+  ]
+}

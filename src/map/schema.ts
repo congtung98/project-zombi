@@ -279,7 +279,38 @@ export interface StairsObject extends Levelled {
   length: number
 }
 
-export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject | TreeObject | StairsObject | DecorObject
+/** Prefab library P1: ground materials of a surface object (IDs of the shared surface catalog). */
+export const SURFACE_MATERIALS = ['concrete', 'asphalt', 'grass', 'dirt', 'tile', 'water'] as const
+export type SurfaceMaterial = (typeof SURFACE_MATERIALS)[number]
+
+/** Height (m) of the invisible barrier over a solid surface: a body can't walk in, anyone sees over it. */
+export const SURFACE_BARRIER_HEIGHT = 1
+
+/**
+ * Prefab library P1: a flat ground surface (a yard, a path, a parking lot, a lawn, a pond) in a prefab
+ * or placed in a chunk. `position` is its centre, `size` [X, Z] before rotation (an odd quarter turn
+ * swaps them); `ellipse` fills the ellipse inscribed in that rectangle. Drawn at its `layer` like a
+ * road record, just above a road of the same layer: where surfaces overlap the higher layer lies on
+ * top. `collision: 'solid'` puts an invisible barrier over it (`SURFACE_BARRIER_HEIGHT`: nobody walks
+ * in, everybody sees across); `navigation: 'blocked'` takes it out of the navigation grid (zombies go
+ * around). A solid surface must be blocked for navigation. Ground storey only, no saved state.
+ */
+export interface SurfaceObject {
+  kind: 'surface'
+  localId: string
+  shape: 'rect' | 'ellipse'
+  position: XZ
+  /** [X, Z] */
+  size: [number, number]
+  material: SurfaceMaterial
+  color: string
+  /** 0…`SURFACE_LAYER_MAX`, default 0. */
+  layer?: number
+  collision: 'none' | 'solid'
+  navigation: 'walkable' | 'blocked'
+}
+
+export type PrefabObject = WallObject | PropObject | ContainerObject | DoorObject | WindowObject | WallRunObject | TreeObject | StairsObject | DecorObject | SurfaceObject
 
 export interface LampObject {
   localId: string
@@ -351,6 +382,42 @@ export interface PrefabDocument {
    * The footprint is the collision bound the generator keeps clear.
    */
   placement?: PrefabPlacement
+  /** Prefab library P1: how the shared library lists it (group, architecture style, tags). The game ignores it. */
+  catalog?: LibraryInfo
+  /**
+   * Prefab library P1: where this world's copy came from (copy-on-import). The copy never follows the
+   * library by itself; the editor compares it with the library to offer a previewed update.
+   */
+  source?: LibrarySource
+}
+
+/** Prefab library P1: architecture styles of library entries (the generator prefers the style of an area). */
+export const ARCHITECTURE_STYLES = ['vietnamese', 'american', 'generic'] as const
+export type ArchitectureStyle = (typeof ARCHITECTURE_STYLES)[number]
+
+/** Prefab library P1: groups the shared library is browsed by. */
+export const LIBRARY_GROUPS = ['residential', 'commercial', 'public', 'industrial', 'landscape'] as const
+export type LibraryGroup = (typeof LIBRARY_GROUPS)[number]
+
+/** Prefab library P1: browsing metadata of a library prefab or compound (editor and generator only). */
+export interface LibraryInfo {
+  group: LibraryGroup
+  /** Absent = generic. */
+  architectureStyle?: ArchitectureStyle
+  tags?: string[]
+  description?: string
+}
+
+/**
+ * Prefab library P1: provenance of a world's copy of a library prefab, or of a compound group placed
+ * from the library: the library world, the entry's ID and version there, and the hash of that content
+ * (`cyrb53:` of its canonical JSON without `source`). A copy whose own hash differs was edited in the world.
+ */
+export interface LibrarySource {
+  library: string
+  id: string
+  version: number
+  hash: string
 }
 
 /** Land use a generated world is planned with (world generator; independent from `zombiePopulation` zones). */
@@ -395,8 +462,41 @@ export interface InstanceRecord {
 }
 
 type Standalone<T> = Omit<T, 'localId'> & { objectId: string }
+type Member<T> = Omit<T, 'localId'> & { member: string }
 /** Object placed directly in a chunk. `objectId` = `<identityChunkId>/objects/<name>`. */
-export type StandaloneObject = Standalone<WallObject> | Standalone<PropObject> | Standalone<ContainerObject> | Standalone<TreeObject> | Standalone<DecorObject>
+export type StandaloneObject = Standalone<WallObject> | Standalone<PropObject> | Standalone<ContainerObject> | Standalone<TreeObject> | Standalone<DecorObject> | Standalone<SurfaceObject>
+
+/**
+ * Prefab library P1: a compound prefab (`compounds/<file>.json` of the library world): building prefabs
+ * and the environment around them (surfaces, walls, fences, trees, decor) placed together. Positions
+ * are relative to the compound's pivot (0, 0), unturned. Placed in a world it becomes ordinary
+ * instances and objects (the game never sees a compound) plus an editor group that keeps them together.
+ */
+export interface CompoundDocument {
+  schemaVersion: number
+  compoundId: string
+  contentVersion: number
+  name: string
+  /** Area it covers around the pivot (the lot it needs): the union of its members' bounds. */
+  footprint: Rect
+  catalog?: LibraryInfo
+  /** For the generator later (D6): the same metadata as a prefab's. Placed by hand only in P1–P5. */
+  placement?: PrefabPlacement
+  instances: CompoundInstance[]
+  objects: CompoundObject[]
+}
+
+/** A building of a compound: a library prefab at a position relative to the pivot. */
+export interface CompoundInstance {
+  member: string
+  prefabId: string
+  position: XYZ
+  quarterTurns: QuarterTurns
+  visual?: { variantId?: string }
+}
+
+/** An object of a compound: a chunk object without its ID, named by `member`. */
+export type CompoundObject = Member<WallObject> | Member<PropObject> | Member<ContainerObject> | Member<TreeObject> | Member<DecorObject> | Member<SurfaceObject>
 
 /** Road surface (visual only, no collider). */
 export interface RoadRecord {

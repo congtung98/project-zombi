@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_3",
+  "cx": -1,
+  "cz": 3,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_4/objects/high-school-fence-1", "ownerChunkId": "c-1_4" },
+    { "id": "c-2_3/police-station-1", "ownerChunkId": "c-2_3" },
+    { "id": "c-2_4/hospital-hospital-1", "ownerChunkId": "c-2_4" },
+    { "id": "c0_3/objects/high-school-fence-1", "ownerChunkId": "c0_3" },
+    { "id": "c0_3/school-block-1", "ownerChunkId": "c0_3" }
+  ]
+}

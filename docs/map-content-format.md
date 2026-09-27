@@ -13,6 +13,8 @@ content/maps/<worldId>/
   migrations/content-v<N>.json  M8: chuyển save của nội dung vN sang vN+1 (tập ID có trạng thái của vN + đổi tên)
   layout/world-layout.json   WG4: layout + kế hoạch + manifest của World Generator (chỉ editor đọc; game không nạp, không vào bundle game)
   layout/reference.json      WG6: ảnh tham chiếu (data URL), hiệu chỉnh, nét vẽ tay (chỉ editor đọc)
+  editor/compounds.json      P1: nhóm của compound đã đặt (pivot, xoay, thành phần + hash; chỉ editor đọc)
+  compounds/*.json           P1: compound prefab (chỉ trong world prefab-library; chỉ editor đọc)
 ```
 
 Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite gộp vào bundle, vitest đọc cùng cách). Streaming sau này thay nguồn đọc bằng fetch theo chunk, giữ nguyên hợp đồng `read(path)`.

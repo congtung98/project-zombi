@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_8",
+  "cx": -1,
+  "cz": 8,
+  "instances": [
+    {
+      "instanceId": "c-1_8/kiosk-1",
+      "prefabId": "landscape/kiosk",
+      "position": { "x": 10, "y": 0, "z": 17.5 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c-1_8/prison-tower-1",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 25.5, "y": 0, "z": 20.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_7/university-hall-east-1", "ownerChunkId": "c-1_7" },
+    { "id": "c-1_9/objects/prison-wall-1", "ownerChunkId": "c-1_9" },
+    { "id": "c-2_8/chapel-1", "ownerChunkId": "c-2_8" },
+    { "id": "c0_8/objects/prison-wall-1", "ownerChunkId": "c0_8" }
+  ]
+}

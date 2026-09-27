@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_10",
+  "cx": 1,
+  "cz": 10,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "wall",
+      "objectId": "c1_10/objects/prison-wall-1",
+      "position": { "x": 6, "y": 2, "z": 3.5 },
+      "size": [29, 4, 0.5],
+      "color": "#9c978d"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c1_9/objects/prison-wall-1", "ownerChunkId": "c1_9" },
+    { "id": "c1_9/prison-tower-1", "ownerChunkId": "c1_9" }
+  ]
+}

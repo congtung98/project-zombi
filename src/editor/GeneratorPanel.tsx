@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { ARCHITECTURE_STYLES, type ArchitectureStyle } from '../map/schema'
+import { STYLE_LABEL } from './libraryLabels'
 import { findRecord, type MapDocument } from '../map/editor/document'
 import { PROFILES } from '../map/layout/plan'
 import { layoutPreviewSvg } from '../map/layout/preview'
@@ -77,6 +79,8 @@ function WorldRegen({ layout, blocked }: { layout: WorldLayout; blocked: string 
   const plan = layout.plan
   const [seed, setSeed] = useState(String(plan?.params.seed ?? 1))
   const [profile, setProfile] = useState(plan?.params.profile ?? 'default')
+  // P1 (D7): preferred architecture style of the buildings ('' = none: the library weights as they are).
+  const [style, setStyle] = useState<ArchitectureStyle | ''>(plan?.params.architectureStyle ?? '')
   const [mode, setMode] = useState<WorldMode>(layout.generated?.mode ?? 'full')
   const [overwrite, setOverwrite] = useState(false)
   const [env, setEnv] = useState<EnvironmentParams>(plan?.environment ?? DEFAULT_ENVIRONMENT)
@@ -99,6 +103,17 @@ function WorldRegen({ layout, blocked }: { layout: WorldLayout; blocked: string 
           ))}
         </select>
       </label>
+      <label className="field" title="Công trình cùng phong cách được chọn nhiều hơn (x4), phong cách chung giữ nguyên, phong cách khác ít hơn; lô và đường không đổi">
+        <span>Phong cách</span>
+        <select value={style} onChange={(e) => setStyle(e.target.value as ArchitectureStyle | '')} data-gen-world-style>
+          <option value="">Không ưu tiên</option>
+          {ARCHITECTURE_STYLES.map((s) => (
+            <option key={s} value={s}>
+              {STYLE_LABEL[s]}
+            </option>
+          ))}
+        </select>
+      </label>
       <label className="field">
         <span>Chế độ</span>
         <select value={mode} onChange={(e) => setMode(e.target.value as WorldMode)} data-gen-world-mode>
@@ -114,7 +129,7 @@ function WorldRegen({ layout, blocked }: { layout: WorldLayout; blocked: string 
       <button
         disabled={!!blocked || !valid}
         title={blocked ?? 'Tính kết quả và hiện trong viewport; document chỉ đổi khi bấm Áp dụng'}
-        onClick={() => store().generate(`Sinh lại world (seed ${seed})`, { kind: 'world', params: { seed: Number(seed), profile }, mode, overwrite, environment: env }, { preview: true })}
+        onClick={() => store().generate(`Sinh lại world (seed ${seed})`, { kind: 'world', params: { seed: Number(seed), profile, architectureStyle: style || undefined }, mode, overwrite, environment: env }, { preview: true })}
         data-gen-preview
       >
         Xem trước

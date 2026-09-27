@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c2_3",
+  "cx": 2,
+  "cz": 3,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c1_3/lecture-hall-1", "ownerChunkId": "c1_3" },
+    { "id": "c3_3/dormitory-1", "ownerChunkId": "c3_3" }
+  ]
+}

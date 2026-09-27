@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_7",
+  "cx": -1,
+  "cz": 7,
+  "instances": [
+    {
+      "instanceId": "c-1_7/university-hall-east-1",
+      "prefabId": "public/lecture-hall",
+      "position": { "x": 9, "y": 0, "z": 12 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

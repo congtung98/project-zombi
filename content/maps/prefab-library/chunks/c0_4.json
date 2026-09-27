@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_4",
+  "cx": 0,
+  "cz": 4,
+  "instances": [
+    {
+      "instanceId": "c0_4/high-school-block-a-1",
+      "prefabId": "public/school-block",
+      "position": { "x": 28, "y": 0, "z": 6 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c0_4/objects/high-school-flagpole-1",
+      "position": { "x": 28, "y": 3.5, "z": 16 },
+      "size": [0.2, 7, 0.2],
+      "color": "#c9ccd0"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_4/high-school-block-b-1", "ownerChunkId": "c-1_4" },
+    { "id": "c0_5/objects/high-school-schoolyard-1", "ownerChunkId": "c0_5" }
+  ]
+}

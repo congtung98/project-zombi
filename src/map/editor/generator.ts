@@ -8,6 +8,7 @@ import type { EnvironmentParams, LayoutIssue, WorldLayout, WorldMode } from '../
 import { createLayoutWorld, type ParcelState } from '../layout/worldSync.ts'
 import type { ENVIRONMENT_KINDS } from '../layout/environment.ts'
 import type { MapDocument } from './document.ts'
+import { LIBRARY_WORLD } from './library.ts'
 
 /**
  * World generator in the editor (WG4): the pieces of the Generator tab that do not need React.
@@ -37,8 +38,8 @@ export const ENVIRONMENT_LABEL: Record<(typeof ENVIRONMENT_KINDS)[number], strin
   litter: 'Rác, lốp, vệt dầu',
 }
 
-/** Repo world holding the prefab library (hidden from the game's menu, Q6). */
-export const LIBRARY_WORLD = 'prefab-library'
+/** Repo world holding the prefab library (hidden from the game's menu, Q6; the shared library of P1). */
+export { LIBRARY_WORLD }
 
 /** Placeable prefabs of the library world's files (`world.json` + prefabs), or null when it is missing. */
 export function libraryCatalog(files: ReadonlyMap<string, unknown>): PrefabCatalog | null {

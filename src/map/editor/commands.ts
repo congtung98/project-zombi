@@ -1,7 +1,8 @@
 import { MAP_SCHEMA_VERSION, RECORD_NAMESPACES, RESERVED_INSTANCE_NAMES, recordId, type ChunkDocument, type PlayArea, type QuarterTurns, type RecordCategory, type Rect, type WorldDocument, type XZ } from '../schema.ts'
 import { addQuarterTurns, chunkIdOf, chunkIndex, chunkOrigin, parseRecordId, quantize } from '../transform.ts'
-import { allRecordIds, anchorKey, findRecord, ID_KEY, withExternalRefs, worldAnchor, type AnyRecord, type MapDocument } from './document.ts'
+import { allRecordIds, anchorKey, findRecord, ID_KEY, withExternalRefs, worldAnchor, type AnyRecord, type MapDocument, type RecordLocation } from './document.ts'
 import { findPreset, presetPlacement, type PresetCategory } from './presets.ts'
+import { documentGroups, fullGroups, groupsAfterDuplicate, groupsAfterMove, liveMembers, pruneGroups, turnAbout, turnRecord, withGroups } from './groups.ts'
 
 /**
  * Editing commands (M3, world authoring M4): pure functions document → document. Each returns the new document and
@@ -113,9 +114,20 @@ export function placeInstance(doc: MapDocument, prefabId: string, at: XZ, quarte
  */
 export function moveRecords(doc: MapDocument, selected: readonly string[], delta: XZ): CommandResult {
   const ids = [...new Set(selected)]
+  const r = moveBy(
+    doc,
+    ids.map((id) => ({ id, delta })),
+  )
+  // P1: a whole group moved carries its pivot.
+  return r.ok ? { ...r, doc: groupsAfterMove(r.doc, doc, ids, delta) } : r
+}
+
+/** Move each record by its own delta (no group bookkeeping: `moveRecords` and group turns do it). */
+function moveBy(doc: MapDocument, moves: readonly { id: string; delta: XZ }[]): CommandResult {
+  const ids = moves.map((m) => m.id)
   if (ids.length === 0) return fail('Chưa chọn gì')
   const plans = []
-  for (const id of ids) {
+  for (const { id, delta } of moves) {
     const loc = findRecord(doc, id)
     if (!loc) return fail(`Không tìm thấy ${id}`)
     const a = worldAnchor(doc, loc)
@@ -149,38 +161,44 @@ export function setRecordAnchor(doc: MapDocument, id: string, at: XZ): CommandRe
 /**
  * Turn records by `turns` quarter turns. Instances turn about their pivot; boxes, surfaces and
  * rectangle zones are axis-aligned, so an odd turn swaps their X/Z size about the anchor (their
- * centre). Spawns and circle zones have no orientation; records a turn leaves unchanged are skipped.
+ * centre); decor turns about its base (G3b), a furniture look with a set facing with its box (G3a).
+ * Spawns and circle zones have no orientation; records a turn leaves unchanged are skipped.
+ * P1: a whole group in the selection turns about its pivot: every member turns and moves around it.
  */
 export function rotateRecords(doc: MapDocument, selected: readonly string[], turns: number): CommandResult {
   const ids = [...new Set(selected)]
+  const whole = turns % 4 === 0 ? [] : fullGroups(doc, ids)
   const draft = new Draft(doc)
   let count = 0
-  const odd = (turns & 1) === 1
   for (const id of ids) {
     const loc = findRecord(doc, id)
     if (!loc) continue
-    const r = loc.record
-    let next: AnyRecord | null = null
-    if (loc.category === 'instances') {
-      const q = addQuarterTurns(r.quarterTurns as number, turns)
-      if (q !== r.quarterTurns) next = { ...r, quarterTurns: q }
-    } else if (r.kind === 'decor') {
-      // G3b: decor turns about its base centre.
-      if (turns % 4 !== 0) next = { ...r, yaw: ((((r.yaw as number | undefined) ?? 0) + turns * 90) % 360 + 360) % 360 }
-    } else if (Array.isArray(r.size)) {
-      const s = r.size as number[]
-      const swapped = s.length === 3 ? [s[2], s[1], s[0]] : [s[1], s[0]]
-      if (odd && swapped.some((v, i) => v !== s[i])) next = { ...r, size: swapped }
-      // G3a: a furniture look with a set facing turns with its box.
-      const visual = r.visual as { facing?: number } | undefined
-      if (visual?.facing !== undefined && turns % 4 !== 0) next = { ...(next ?? r), visual: { ...visual, facing: addQuarterTurns(visual.facing, turns) } }
-    }
+    const next = turnRecord(loc.category, loc.record, turns)
     if (!next) continue
     draft.list(loc.chunkId, loc.category)[loc.index] = next
     count++
   }
+  let out = draft.finish()
+  const moves: { id: string; delta: XZ }[] = []
+  for (const g of whole) {
+    for (const m of liveMembers(doc, g)) {
+      const a = worldAnchor(doc, findRecord(doc, m.id)!)
+      const t = turnAbout(a, g.pivot, turns)
+      if (t.x !== a.x || t.z !== a.z) moves.push({ id: m.id, delta: { x: quantize(t.x - a.x), z: quantize(t.z - a.z) } })
+    }
+  }
+  if (moves.length) {
+    const r = moveBy(out, moves)
+    if (!r.ok) return r
+    out = r.doc
+  }
+  if (whole.length) {
+    const turned = new Set(whole.map((g) => g.groupId))
+    out = withGroups(out, documentGroups(out).map((g) => (turned.has(g.groupId) ? { ...g, quarterTurns: addQuarterTurns(g.quarterTurns, turns) } : g)))
+    count += whole.length
+  }
   if (count === 0) return fail('Không có gì để xoay (spawn, zone tròn và khối vuông không đổi khi xoay)')
-  return { ok: true, doc: draft.finish(), selection: [...ids] }
+  return { ok: true, doc: out, selection: [...ids] }
 }
 
 /** Record of a preset with its keys in content-file order (objects: `kind` before the ID). */
@@ -294,7 +312,50 @@ export function deleteRecords(doc: MapDocument, selected: readonly string[]): Co
   const draft = new Draft(doc)
   for (const loc of [...locs].sort((a, b) => b.index - a.index)) draft.list(loc.chunkId, loc.category).splice(loc.index, 1)
   const retiredIds = [...new Set([...(doc.world.retiredIds ?? []), ...ids])].sort()
-  return { ok: true, doc: draft.finish({ ...doc.world, retiredIds }), selection: [] }
+  // P1: deleted members leave their group; an emptied group goes.
+  return { ok: true, doc: pruneGroups(draft.finish({ ...doc.world, retiredIds })), selection: [] }
+}
+
+/** A record to write with `writeRecords`: its anchor in world coordinates. */
+export interface RecordPut {
+  category: RecordCategory
+  record: AnyRecord
+}
+
+/**
+ * Low-level edit (prefab library P1: compounds). Put records by ID, anchors in world coordinates: a
+ * record whose ID exists is replaced (in place, or re-homed to the chunk owning its new anchor with
+ * the same ID); a new ID goes to the owner chunk. `remove` deletes records and retires their IDs.
+ * Callers hand out IDs (`freshId`); an anchor outside every chunk refuses the whole edit.
+ */
+export function writeRecords(doc: MapDocument, puts: readonly RecordPut[], remove: readonly string[] = []): CommandResult {
+  const plans: { put: RecordPut; owner: { chunkId: string; local: XZ }; loc: RecordLocation | null }[] = []
+  for (const put of puts) {
+    const id = recordId(put.category, put.record)
+    const anchor = put.record[anchorKey(put.category)] as XZ
+    const owner = ownerChunk(doc, anchor)
+    if (!owner) return fail(`${id} sẽ nằm ngoài các chunk của world (${anchor.x}, ${anchor.z}) — thêm chunk ở tab Chunk`)
+    const loc = findRecord(doc, id)
+    if (loc && loc.category !== put.category) return fail(`${id} đã là một record loại khác`)
+    plans.push({ put, owner, loc })
+  }
+  const removed = []
+  for (const id of remove) {
+    const loc = findRecord(doc, id)
+    if (!loc) return fail(`Không tìm thấy ${id}`)
+    if (id === doc.world.playerSpawn) return fail(`${id} là điểm xuất phát của người chơi, không xóa được`)
+    removed.push(loc)
+  }
+  const draft = new Draft(doc)
+  const record = (p: (typeof plans)[number]) => withAnchor(p.put.category, p.put.record, p.owner.local)
+  // In-place replacements while indices are valid, then removals (highest index first), then appends.
+  for (const p of plans) if (p.loc && p.loc.chunkId === p.owner.chunkId) draft.list(p.loc.chunkId, p.loc.category)[p.loc.index] = record(p)
+  const gone = [...removed, ...plans.filter((p) => p.loc && p.loc.chunkId !== p.owner.chunkId).map((p) => p.loc!)]
+  for (const loc of gone.sort((a, b) => b.index - a.index)) draft.list(loc.chunkId, loc.category).splice(loc.index, 1)
+  for (const p of plans) if (!p.loc || p.loc.chunkId !== p.owner.chunkId) draft.list(p.owner.chunkId, p.put.category).push(record(p))
+  const retiredIds = remove.length ? [...new Set([...(doc.world.retiredIds ?? []), ...remove])].sort() : doc.world.retiredIds
+  const world = remove.length ? { ...doc.world, retiredIds } : doc.world
+  return { ok: true, doc: pruneGroups(draft.finish(world)), selection: plans.map((p) => recordId(p.put.category, p.put.record)) }
 }
 
 /** Copy records `offset` metres away with new IDs in their new owner chunk. */
@@ -303,6 +364,7 @@ export function duplicateRecords(doc: MapDocument, selected: readonly string[], 
   if (ids.length === 0) return fail('Chưa chọn gì')
   const draft = new Draft(doc)
   const created: string[] = []
+  const mapping = new Map<string, string>()
   const taken = new Set<string>()
   for (const id of ids) {
     const loc = findRecord(doc, id)
@@ -316,8 +378,10 @@ export function duplicateRecords(doc: MapDocument, selected: readonly string[], 
     const copy = withAnchor(loc.category, { ...structuredClone(loc.record), [ID_KEY[loc.category]]: newId }, owner.local)
     draft.list(owner.chunkId, loc.category).push(copy)
     created.push(newId)
+    mapping.set(id, newId)
   }
-  return { ok: true, doc: draft.finish(), selection: created }
+  // P1: a whole group copied gets its own group.
+  return { ok: true, doc: groupsAfterDuplicate(draft.finish(), doc, ids, mapping, offset), selection: created }
 }
 
 /**

@@ -1,0 +1,509 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "service/bank",
+  "contentVersion": 1,
+  "name": "Ngân hàng",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -9, "minZ": -7, "maxX": 9, "maxZ": 7 },
+  "building": {
+    "height": 3.6,
+    "wallThickness": 0.2,
+    "wallColor": "#d8d4cc",
+    "roofColor": "#4a4d52",
+    "floorColor": "#b9b2a6"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "outer-1",
+      "from": { "x": -9, "z": -7 },
+      "to": { "x": 9, "z": -7 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-2",
+      "from": { "x": 9, "z": -7 },
+      "to": { "x": 9, "z": 7 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-3",
+      "from": { "x": 9, "z": 7 },
+      "to": { "x": -9, "z": 7 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-4",
+      "from": { "x": -9, "z": 7 },
+      "to": { "x": -9, "z": -7 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "door",
+      "localId": "door-1",
+      "name": "Cửa chính",
+      "position": { "x": -1, "z": 7 },
+      "quarterTurns": 0,
+      "width": 1.6,
+      "openTowards": -1
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-1",
+      "from": { "x": -9, "z": 1 },
+      "to": { "x": 9, "z": 1 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-2",
+      "from": { "x": -9, "z": -3 },
+      "to": { "x": 9, "z": -3 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-3",
+      "from": { "x": -3, "z": -7 },
+      "to": { "x": -3, "z": -3 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-4",
+      "from": { "x": 3, "z": -7 },
+      "to": { "x": 3, "z": -3 },
+      "height": 3.6,
+      "thickness": 0.2,
+      "color": "#d8d4cc"
+    },
+    {
+      "kind": "door",
+      "localId": "door-2",
+      "name": "Cửa nhân viên",
+      "position": { "x": 6.5, "z": 1 },
+      "quarterTurns": 2,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "localId": "door-3",
+      "name": "Cửa kho tiền",
+      "position": { "x": -6, "z": -3 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "door",
+      "localId": "door-4",
+      "name": "Cửa",
+      "position": { "x": 0, "z": -3 },
+      "quarterTurns": 2,
+      "width": 1,
+      "openTowards": -1
+    },
+    {
+      "kind": "door",
+      "localId": "door-5",
+      "name": "Cửa",
+      "position": { "x": 6, "z": -3 },
+      "quarterTurns": 2,
+      "width": 1,
+      "openTowards": -1
+    },
+    {
+      "kind": "window",
+      "localId": "win-1",
+      "name": "Cửa sổ",
+      "position": { "x": -7.5, "z": 7 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-2",
+      "name": "Cửa sổ",
+      "position": { "x": -4.5, "z": 7 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-3",
+      "name": "Cửa sổ",
+      "position": { "x": 1.5, "z": 7 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-4",
+      "name": "Cửa sổ",
+      "position": { "x": 4.5, "z": 7 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-5",
+      "name": "Cửa sổ",
+      "position": { "x": 7.5, "z": 7 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-6",
+      "name": "Cửa sổ",
+      "position": { "x": -9, "z": 5.5 },
+      "quarterTurns": 1,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-7",
+      "name": "Cửa sổ",
+      "position": { "x": 9, "z": 2.5 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-8",
+      "name": "Cửa sổ",
+      "position": { "x": -9, "z": -1 },
+      "quarterTurns": 1,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-9",
+      "name": "Cửa sổ",
+      "position": { "x": 9, "z": -1 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-10",
+      "name": "Cửa sổ",
+      "position": { "x": 6.5, "z": -7 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "prop",
+      "localId": "cabinet-1",
+      "position": { "x": -6.5, "y": 0.5, "z": 1.43 },
+      "size": [2, 1, 0.6],
+      "color": "#9a8f84",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "localId": "cabinet-2",
+      "position": { "x": -3.5, "y": 0.5, "z": 1.43 },
+      "size": [2, 1, 0.6],
+      "color": "#9a8f84",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "localId": "cabinet-3",
+      "position": { "x": -0.5, "y": 0.5, "z": 1.43 },
+      "size": [2, 1, 0.6],
+      "color": "#9a8f84",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "localId": "cabinet-4",
+      "position": { "x": 2.5, "y": 0.5, "z": 1.43 },
+      "size": [2, 1, 0.6],
+      "color": "#9a8f84",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "localId": "prop-1",
+      "position": { "x": -8.52, "y": 0.95, "z": 4 },
+      "size": [0.7, 1.9, 0.9],
+      "color": "#3f4a52"
+    },
+    {
+      "kind": "prop",
+      "localId": "sofa-1",
+      "position": { "x": 8.42, "y": 0.4, "z": 4.5 },
+      "size": [0.9, 0.8, 2],
+      "color": "#5a6b7b",
+      "visual": { "assetId": "furniture/sofa" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-1",
+      "name": "Bàn làm việc",
+      "position": { "x": -6.5, "y": 0.375, "z": -0.6 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-2",
+      "name": "Bàn làm việc",
+      "position": { "x": -3.5, "y": 0.375, "z": -0.6 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-3",
+      "name": "Bàn làm việc",
+      "position": { "x": -0.5, "y": 0.375, "z": -0.6 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-4",
+      "name": "Bàn làm việc",
+      "position": { "x": 2.5, "y": 0.375, "z": -0.6 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-5",
+      "name": "Tủ hồ sơ",
+      "position": { "x": 7.5, "y": 0.7, "z": -2.57 },
+      "size": [0.8, 1.4, 0.6],
+      "color": "#8a8f94",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-6",
+      "name": "Két sắt",
+      "position": { "x": -7.6, "y": 0.9, "z": -6.52 },
+      "size": [1.6, 1.8, 0.7],
+      "color": "#6e7479",
+      "lootTableId": "bank-vault",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-7",
+      "name": "Két sắt",
+      "position": { "x": -4.4, "y": 0.9, "z": -6.52 },
+      "size": [1.6, 1.8, 0.7],
+      "color": "#6e7479",
+      "lootTableId": "bank-vault",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "shelving-1",
+      "name": "Kệ kho tiền",
+      "position": { "x": -8.57, "y": 0.8, "z": -5 },
+      "size": [0.6, 1.6, 1.6],
+      "color": "#8a8580",
+      "lootTableId": "bank-vault",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-8",
+      "name": "Tủ hồ sơ",
+      "position": { "x": -1.7, "y": 0.7, "z": -6.57 },
+      "size": [0.8, 1.4, 0.6],
+      "color": "#8a8f94",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-9",
+      "name": "Tủ hồ sơ",
+      "position": { "x": 0, "y": 0.7, "z": -6.57 },
+      "size": [0.8, 1.4, 0.6],
+      "color": "#8a8f94",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-10",
+      "name": "Tủ hồ sơ",
+      "position": { "x": 1.7, "y": 0.7, "z": -6.57 },
+      "size": [0.8, 1.4, 0.6],
+      "color": "#8a8f94",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-5",
+      "name": "Bàn làm việc",
+      "position": { "x": 8.52, "y": 0.375, "z": -5 },
+      "size": [0.7, 0.75, 1.4],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "container",
+      "localId": "bookshelf-1",
+      "name": "Kệ tài liệu",
+      "position": { "x": 5, "y": 1, "z": -6.67 },
+      "size": [1.2, 2, 0.4],
+      "color": "#6f5a45",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/bookshelf" }
+    },
+    {
+      "kind": "prop",
+      "localId": "chair-1",
+      "position": { "x": 7.2, "y": 0.45, "z": -3.9 },
+      "size": [0.45, 0.9, 0.45],
+      "color": "#7a5f48",
+      "visual": { "assetId": "furniture/chair" }
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "room-1",
+      "name": "Sảnh giao dịch",
+      "bounds": { "minX": -9, "minZ": 1, "maxX": 9, "maxZ": 7 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-1",
+        "name": "Đèn sảnh giao dịch",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 0.15, "z": 6.7 }
+      }
+    },
+    {
+      "localId": "room-2",
+      "name": "Khu nhân viên",
+      "bounds": { "minX": -9, "minZ": -3, "maxX": 9, "maxZ": 1 },
+      "lamp": {
+        "localId": "lamp-2",
+        "name": "Đèn khu nhân viên",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 7.35, "z": 0.7 }
+      }
+    },
+    {
+      "localId": "room-3",
+      "name": "Kho tiền",
+      "bounds": { "minX": -9, "minZ": -7, "maxX": -3, "maxZ": -3 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-3",
+        "name": "Đèn kho tiền",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -5.05, "z": -3.3 }
+      }
+    },
+    {
+      "localId": "room-4",
+      "name": "Kho hồ sơ",
+      "bounds": { "minX": -3, "minZ": -7, "maxX": 3, "maxZ": -3 },
+      "lamp": {
+        "localId": "lamp-4",
+        "name": "Đèn kho hồ sơ",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 0.85, "z": -3.3 }
+      }
+    },
+    {
+      "localId": "room-5",
+      "name": "Phòng giám đốc",
+      "bounds": { "minX": 3, "minZ": -7, "maxX": 9, "maxZ": -3 },
+      "lamp": {
+        "localId": "lamp-5",
+        "name": "Đèn phòng giám đốc",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 6.85, "z": -3.3 }
+      }
+    }
+  ],
+  "visual": { "variants": ["intact", "lived-in", "abandoned"] },
+  "placement": {
+    "category": "shop",
+    "allowedZones": ["commercial"],
+    "weight": 0.4,
+    "setback": 3,
+    "sideGap": 2,
+    "roadFacing": true,
+    "frontage": [18, 32]
+  },
+  "catalog": { "group": "commercial", "tags": ["ngan-hang", "dich-vu"] }
+}

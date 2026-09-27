@@ -35,8 +35,11 @@ describe('WG3 prefab library (hidden world)', () => {
     const checked = checkWorldDocuments((p) => LIB.get(p), OPTS)
     expect(checked.issues).toEqual([])
     expect(deepCheck(loadWorld((p) => LIB.get(p)).docs).issues).toEqual([])
-    expect(libPrefabs.every((p) => p.doc.placement)).toBe(true)
-    expect(catalog.prefabs).toHaveLength(libPrefabs.length)
+    // Prefab library P4–P5 (owner decision D6): large public buildings and landscape pieces (chapel,
+    // kiosk, guard tower) are placed by hand only, alone or in their compounds.
+    const manual = libPrefabs.filter((p) => !p.doc.placement)
+    expect(manual.every((p) => (p.doc.catalog?.group === 'public' && p.entry.prefabId.startsWith('public/')) || (p.doc.catalog?.group === 'landscape' && p.entry.prefabId.startsWith('landscape/')))).toBe(true)
+    expect(catalog.prefabs).toHaveLength(libPrefabs.length - manual.length)
   })
 
   it('covers every building zone, with the four placeholder prefabs and the existing houses', () => {
@@ -196,7 +199,10 @@ describe('WG3 buildings on the fixture town', () => {
     const vn = placeBuildings(planLayout(big, { profile: 'vn-urban' }), catalog).plan
     const built = builtOf(vn)
     expect(built.length).toBeGreaterThan(200)
-    expect(new Set(built.map((q) => q.build.prefabId))).toEqual(new Set(['library/tube-house']))
+    // Only the narrow houses fit vn-urban lots (P2 added the 4 m and 5 m tube houses and the shophouse).
+    const narrow = new Set(['library/tube-house', 'house/tube-4x16', 'house/tube-5x18', 'house/shophouse'])
+    expect([...new Set(built.map((q) => q.build.prefabId))].filter((id) => !narrow.has(id!))).toEqual([])
+    expect(built.some((q) => q.build.prefabId === 'library/tube-house')).toBe(true)
     expect(checkBuildings(vn, catalog)).toEqual([])
   })
 

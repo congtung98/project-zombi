@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_2",
+  "cx": -1,
+  "cz": 2,
+  "instances": [
+    {
+      "instanceId": "c-1_2/garage-double-1",
+      "prefabId": "service/garage-double",
+      "position": { "x": 9, "y": 0, "z": 2 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_3/police-station-1", "ownerChunkId": "c-2_3" },
+    { "id": "c0_2/machine-shop-1", "ownerChunkId": "c0_2" },
+    { "id": "c0_3/school-block-1", "ownerChunkId": "c0_3" }
+  ]
+}

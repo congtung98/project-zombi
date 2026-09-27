@@ -30,7 +30,7 @@ import { ChunkStreamer } from './ChunkStreamer'
 import { useViewChunks } from './viewChunkStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { PlayerView } from './PlayerView'
-import { Roads } from './Roads'
+import { Roads, Surfaces } from './Roads'
 import { ChunkColliders } from './ChunkColliders'
 import { ZombieBody, ZombieView } from './ZombieView'
 import { cutaway } from './cutaway'
@@ -169,6 +169,7 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       <InteractHighlight />
       <ChunkStreamer />
       <Roads />
+      <Surfaces />
       <Drops />
       <StaticBatches />
       <ContactShade />

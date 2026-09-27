@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-4_2",
+  "cx": -4,
+  "cz": 2,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c-3_2/bank-1", "ownerChunkId": "c-3_2" }, { "id": "c-3_3/hospital-1", "ownerChunkId": "c-3_3" }]
+}

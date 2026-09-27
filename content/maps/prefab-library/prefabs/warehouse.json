@@ -180,5 +180,6 @@
     "sideGap": 2,
     "roadFacing": true,
     "frontage": [24, 80]
-  }
+  },
+  "catalog": { "group": "industrial", "tags": ["kho"] }
 }

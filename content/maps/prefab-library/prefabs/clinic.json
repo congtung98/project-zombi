@@ -187,5 +187,6 @@
     "sideGap": 2,
     "roadFacing": true,
     "frontage": [18, 80]
-  }
+  },
+  "catalog": { "group": "public", "tags": ["y-te"] }
 }

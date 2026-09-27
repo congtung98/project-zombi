@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-3_7",
+  "cx": -3,
+  "cz": 7,
+  "instances": [
+    {
+      "instanceId": "c-3_7/university-dormitory-1",
+      "prefabId": "public/dormitory",
+      "position": { "x": 3, "y": 0, "z": 10 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c-3_7/objects/university-lawn-1",
+      "shape": "rect",
+      "size": [14, 18],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 25, "z": 8 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-3_7/objects/university-tree-1",
+      "position": { "x": 25, "z": 2 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-3_7/objects/university-tree-2",
+      "position": { "x": 25, "z": 14 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-3_7/objects/university-tree-3",
+      "position": { "x": 19, "z": 24 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c-2_7/objects/university-plaza-1", "ownerChunkId": "c-2_7" }]
+}

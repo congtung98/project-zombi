@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c2_9",
+  "cx": 2,
+  "cz": 9,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-1",
+      "position": { "x": 8, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-1",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-2",
+      "position": { "x": 5.6, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-2",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 5.6, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-3",
+      "position": { "x": 3.2, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-3",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 3.2, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-4",
+      "position": { "x": 0.8, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-4",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0.8, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-5",
+      "position": { "x": 8, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-5",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-6",
+      "position": { "x": 5.6, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-6",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 5.6, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-7",
+      "position": { "x": 3.2, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-7",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 3.2, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-8",
+      "position": { "x": 0.8, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-8",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0.8, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-9",
+      "position": { "x": 15, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-9",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 15, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-10",
+      "position": { "x": 17.4, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-10",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 17.4, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-11",
+      "position": { "x": 19.8, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-11",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 19.8, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-12",
+      "position": { "x": 22.2, "y": 0.45, "z": 1.3 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-12",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 22.2, "z": 2.3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-13",
+      "position": { "x": 15, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-13",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 15, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-14",
+      "position": { "x": 17.4, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-14",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 17.4, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-15",
+      "position": { "x": 19.8, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-15",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 19.8, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-grave-16",
+      "position": { "x": 22.2, "y": 0.45, "z": 3.7 },
+      "size": [0.7, 0.9, 0.25],
+      "color": "#8e8e8a"
+    },
+    {
+      "kind": "surface",
+      "objectId": "c2_9/objects/cemetery-plot-16",
+      "shape": "rect",
+      "size": [1, 1.6],
+      "material": "dirt",
+      "color": "#6f5638",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 22.2, "z": 4.7 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-fence-1",
+      "position": { "x": 3, "y": 0.6, "z": 7.5 },
+      "size": [13, 1.2, 0.15],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_9/objects/cemetery-fence-2",
+      "position": { "x": 20, "y": 0.6, "z": 7.5 },
+      "size": [13, 1.2, 0.15],
+      "color": "#5a5550",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c2_9/objects/cemetery-pine-1",
+      "position": { "x": 24, "z": 5 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c1_9/objects/cemetery-pine-1", "ownerChunkId": "c1_9" },
+    { "id": "c2_8/objects/cemetery-fence-2", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-lawn-1", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-path-1", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-13", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-14", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-15", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-16", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-5", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-6", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-7", "ownerChunkId": "c2_8" },
+    { "id": "c2_8/objects/cemetery-plot-8", "ownerChunkId": "c2_8" }
+  ]
+}

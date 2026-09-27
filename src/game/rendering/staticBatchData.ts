@@ -161,6 +161,8 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
   // Tree trunks are walls (collider, nav, sight) but are drawn as trees below.
   const trunks = new Set((map.trees ?? []).map((t) => t.id))
   const props = new Set(map.walls.filter((w) => w.prop).map((w) => w.id))
+  // Prefab library P1: the barriers over solid surfaces collide but are never drawn.
+  const hidden = new Set(map.walls.filter((w) => w.hidden).map((w) => w.id))
   const looks = new Map<string, FurnitureLook>()
   for (const w of map.walls) if (w.visual) looks.set(w.id, w.visual)
   const buildingById = new Map(map.buildings.map((b) => [b.id, b]))
@@ -172,7 +174,7 @@ export function collectStaticItems(map: MapData, colliders: StaticColliderRegist
     return true
   }
   for (const w of colliders.list('wall')) {
-    if (trunks.has(w.id)) continue
+    if (trunks.has(w.id) || hidden.has(w.id)) continue
     const size: [number, number, number] = [round(w.max.x - w.min.x), round(w.max.y - w.min.y), round(w.max.z - w.min.z)]
     const center = new Vector3((w.min.x + w.max.x) / 2, (w.min.y + w.max.y) / 2, (w.min.z + w.max.z) / 2)
     const buildingId = memberOf(w.id, center.x, center.z)
