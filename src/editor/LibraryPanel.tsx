@@ -76,7 +76,7 @@ export function LibraryPanel() {
           : `Thư viện chung ${lib.worldId} v${lib.contentVersion}: "Thêm vào world" chép một bản vào world này (không tự đổi theo thư viện). Có bản mới thì xem trước rồi mới cập nhật.`}
       </p>
       <input className="search" placeholder="Tìm trong thư viện…" value={query} onChange={(e) => setQuery(e.target.value)} data-library-search />
-      <div className="row tight">
+      <div className="filters">
         <select value={kind} onChange={(e) => setKind(e.target.value as Kind)} data-library-kind>
           <option value="all">Tất cả</option>
           <option value="prefab">Công trình</option>
