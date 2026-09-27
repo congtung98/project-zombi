@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "contentVersion": 1,
-  "chunkId": "c-4_8",
-  "cx": -4,
-  "cz": 8,
+  "chunkId": "c0_11",
+  "cx": 0,
+  "cz": 11,
   "instances": [],
   "objects": [],
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": [{ "id": "c-3_8/prison-block-1", "ownerChunkId": "c-3_8" }]
+  "externalRefs": []
 }

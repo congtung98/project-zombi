@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_10",
+  "cx": -1,
+  "cz": 10,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-1_10/objects/lake-tree-1",
+      "position": { "x": 7.5, "z": 16 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-1_10/objects/lake-streetlight-1",
+      "position": { "x": 1.5, "y": 2.1, "z": 15.5 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_9/objects/prison-wall-1", "ownerChunkId": "c-1_9" },
+    { "id": "c-1_9/prison-tower-1", "ownerChunkId": "c-1_9" },
+    { "id": "c-2_10/objects/lake-bank-1", "ownerChunkId": "c-2_10" },
+    { "id": "c-2_10/objects/lake-lawn-1", "ownerChunkId": "c-2_10" },
+    { "id": "c-2_10/objects/lake-path-1", "ownerChunkId": "c-2_10" },
+    { "id": "c-2_10/objects/lake-water-1", "ownerChunkId": "c-2_10" },
+    { "id": "c0_10/objects/prison-wall-1", "ownerChunkId": "c0_10" }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-3_10",
+  "cx": -3,
+  "cz": 10,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c-3_10/objects/pond-lawn-1",
+      "shape": "rect",
+      "size": [24, 18],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8.5, "z": 21 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-3_10/objects/pond-bank-1",
+      "shape": "ellipse",
+      "size": [19, 13],
+      "material": "dirt",
+      "color": "#7b6546",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8.5, "z": 21 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-3_10/objects/pond-water-1",
+      "shape": "ellipse",
+      "size": [16, 10],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 2,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 8.5, "z": 21 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-3_10/objects/pond-tree-1",
+      "position": { "x": 18.5, "z": 14 },
+      "height": 6,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-3_10/objects/pond-tree-2",
+      "position": { "x": 19, "z": 28.5 },
+      "height": 6,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-3_10/objects/pond-bench-1",
+      "position": { "x": 8.5, "y": 0.25, "z": 28.8 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-3_10/objects/pond-bench-2",
+      "position": { "x": 8.5, "y": 0.25, "z": 13.2 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-3_10/objects/pond-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 17.3, "y": 0, "z": 20 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-3_10/objects/pond-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 5.5, "y": 0, "z": 27.2 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-3_10/objects/pond-bush-3",
+      "assetId": "decor/bush",
+      "position": { "x": 12.5, "y": 0, "z": 14.8 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-3_10/objects/lake-tree-1",
+      "position": { "x": 31.5, "z": 16 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_10/objects/lake-lawn-1", "ownerChunkId": "c-2_10" },
+    { "id": "c-2_10/objects/lake-path-1", "ownerChunkId": "c-2_10" },
+    { "id": "c-4_10/objects/pond-bush-1", "ownerChunkId": "c-4_10" },
+    { "id": "c-4_10/objects/pond-tree-1", "ownerChunkId": "c-4_10" }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/lake",
+  "contentVersion": 1,
+  "name": "Hồ lớn",
+  "footprint": { "minX": -22.4, "minZ": -15, "maxX": 22.4, "maxZ": 15 },
+  "catalog": { "group": "landscape", "tags": ["ho-nuoc"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public", "empty", "forest"],
+    "weight": 0.5,
+    "setback": 1,
+    "sideGap": 1,
+    "roadFacing": true,
+    "frontage": [44, 90]
+  },
+  "instances": [],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "lawn",
+      "shape": "rect",
+      "size": [44, 30],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 0 }
+    },
+    {
+      "kind": "surface",
+      "member": "path",
+      "shape": "rect",
+      "size": [40, 2],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": -13 }
+    },
+    {
+      "kind": "surface",
+      "member": "path-2",
+      "shape": "rect",
+      "size": [40, 2],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 13 }
+    },
+    {
+      "kind": "surface",
+      "member": "bank",
+      "shape": "ellipse",
+      "size": [37, 23],
+      "material": "dirt",
+      "color": "#7b6546",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 0 }
+    },
+    {
+      "kind": "surface",
+      "member": "water",
+      "shape": "ellipse",
+      "size": [34, 20],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 2,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 0, "z": 0 }
+    },
+    {
+      "kind": "tree",
+      "member": "tree",
+      "position": { "x": -20, "z": -11 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-2",
+      "position": { "x": -20, "z": 11 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-3",
+      "position": { "x": 20, "z": -11 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-4",
+      "position": { "x": 20, "z": 11 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "surface",
+      "member": "jetty",
+      "shape": "rect",
+      "size": [1.6, 4],
+      "material": "dirt",
+      "color": "#7a5f45",
+      "layer": 3,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 8.5 }
+    },
+    {
+      "kind": "prop",
+      "member": "bench",
+      "position": { "x": -10, "y": 0.25, "z": 11 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "bench-2",
+      "position": { "x": 10, "y": 0.25, "z": 11 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight",
+      "position": { "x": -14, "y": 2.1, "z": -11.5 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight-2",
+      "position": { "x": 14, "y": 2.1, "z": -11.5 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ]
+}

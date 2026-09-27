@@ -115,3 +115,50 @@ Cả năm công trình dựng theo cùng một kiểu (`corridorBuilding` trong 
 - **Kiểm chứng:** 5 prefab và 4 compound qua deep check thật khi đứng riêng (compound kiểm tra cả việc các thành phần không chồng collider lên nhau); world thư viện sạch; `npm test` 932 pass, 13 skip; build và check:bundle sạch.
 - **Chơi thử:** trường cấp ba hiện đúng (2 dãy lớp, sân, sân bóng rổ, rào có cổng, cây).
 - **Test được cập nhật:** test WG3 giờ chấp nhận prefab không có placement, với điều kiện đó là công trình công cộng đặt tay. Test "thêm cả thư viện vào world trống" kiểm tra rằng compound quá lớn so với world bị từ chối trọn vẹn, không đặt dở dang.
+
+## P5 — nhà tù, nghĩa trang, công viên, hồ nước (4 prefab, 5 compound)
+
+| prefabId | Tên | Kích thước | Tầng | Nội dung |
+|---|---|---|---|---|
+| public/prison-block | Khối giam | 36 × 20 | 2 | 34 buồng giam ở hai bên hành lang; phòng quản giáo, nhà ăn, phòng y tế, phòng thay đồ, kho |
+| public/guard-tower | Chòi canh | 8 × 4 | 2 | Cầu thang trong; chòi quan sát có cửa sổ bốn phía, tủ trực |
+| landscape/chapel | Nhà nguyện | 8 × 10 | 1 | Ghế băng, bàn thờ, tủ đồ lễ |
+| landscape/kiosk | Ki-ốt | 4 × 4 | 1 | Quầy bán hàng (`kiosk-counter`) |
+
+| compoundId | Tên | Thành phần |
+|---|---|---|
+| compound/prison | Nhà tù | Tường bao 64 × 52 cao 4 m có cổng phía nam, khối giam, 4 chòi canh quay cửa vào sân, ki-ốt làm nhà gác cổng, sân đất, sân bóng rổ, ghế, đèn |
+| compound/cemetery | Nghĩa trang | 32 ngôi mộ (bia mộ có va chạm, nền mộ bằng đất), lối đi giữa, nhà nguyện, thông, hàng rào có cổng, ghế |
+| compound/park | Công viên | Bãi cỏ, lối đi chữ thập, sân chơi (cầu trượt, xích đu, hố cát), ki-ốt, ghế, cây, thùng rác, đèn, bồn hoa (zombie đi vòng, người chơi bước qua được) |
+| compound/pond | Hồ nước nhỏ | Mặt nước elip 16 × 10 (chặn đi lại) trên bờ đất, bãi cỏ, cây, ghế, bụi |
+| compound/lake | Hồ lớn | Mặt nước elip 34 × 20 trên bờ đất, cầu gỗ vẽ trên mặt nước, lối đi hai bên, cây, ghế, đèn |
+
+- **Placement cho generator (dùng sau này, D6):** mọi compound có `placement` ghi zone phù hợp. Nhà tù: công cộng, công nghiệp. Nghĩa trang: công cộng, đất trống, ruộng. Công viên: công cộng, dân cư, đất trống. Hồ: thêm cả rừng và ruộng.
+- **Hai lưu ý khi làm compound có nước:**
+  - Không để hai mặt nước chồng nhau: tường chắn vô hình của chúng sẽ đè lên nhau, deep check báo `collider-overlap`. Hồ lớn vì vậy dùng một elip.
+  - Cầu gỗ là mặt nền vẽ ở lớp 3, nằm trên mặt nước; không dùng khối có va chạm vì sẽ chồng với tường chắn của nước.
+- **Kiểm chứng:**
+  - 4 prefab và 5 compound qua deep check thật khi đứng riêng.
+  - World thư viện (117 chunk, 37 prefab, 10 compound) `map:check --deep` sạch; mọi world khác cũng sạch.
+  - `npm test` 941 pass, 13 skip; tsc, oxlint, build, build:editor, check:bundle sạch.
+  - Chơi thử: nhà tù, công viên, nghĩa trang, hồ lớn hiện đúng.
+
+## Tổng kết P1–P5
+
+- **Thư viện chung:** 37 building prefab và 10 compound, gồm 10 prefab cũ và compound mẫu của P1.
+  - Nhà ở: 6 nhà 1 tầng, 6 nhà 2–3 tầng, chung cư 4 tầng, cộng các nhà cũ.
+  - Dịch vụ: ngân hàng, nhà sách, gara sửa xe, garage đôi, xưởng cơ khí, tiệm tạp hóa, cửa hàng, nhà kho.
+  - Công cộng: bệnh viện, đồn cảnh sát, trường cấp ba, đại học (giảng đường và ký túc xá), trạm y tế, nhà tù, chòi canh.
+  - Cảnh quan: nhà nguyện, ki-ốt, nghĩa trang, công viên, hai hồ nước.
+- **Theo các quyết định D1–D8:**
+  - D4: không nhà nào vượt 4 tầng.
+  - D5: loot chỉ gồm 15 vật phẩm có sẵn, chia theo 11 bảng loot riêng từng loại địa điểm.
+  - D6: công trình công cộng lớn và mảnh cảnh quan chỉ đặt tay; nhà ở và dịch vụ có `placement` cho generator.
+  - D7: phong cách trộn, ưu tiên Việt Nam.
+- **Hai lỗi của game/generator tìm ra và đã sửa trong lúc làm:**
+  - lưới nav tầng trên của mỗi nhà nhận nhầm cửa của nhà khác có tầng cao gần bằng;
+  - điểm spawn zombie có thể rơi vào sân bị bao kín.
+- **Giới hạn còn lại:**
+  - Nội thất là khối hộp dùng các asset có sẵn: chưa có asset riêng cho giường bệnh, bia mộ, máy móc, cầu trượt (hiện là hộp màu).
+  - Generator chưa đặt compound và chưa gộp lô lớn (D6, để sau).
+  - Nội dung được dựng bằng script một lần. Sửa tiếp trong editor bằng cách mở world `prefab-library`, rồi xuất và chạy `map:unpack`.

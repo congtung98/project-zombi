@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_9",
+  "cx": 0,
+  "cz": 9,
+  "instances": [
+    {
+      "instanceId": "c0_9/prison-gatehouse-1",
+      "prefabId": "landscape/kiosk",
+      "position": { "x": 28.5, "y": 0, "z": 30.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c0_9/objects/prison-yard-1",
+      "shape": "rect",
+      "size": [40, 14],
+      "material": "dirt",
+      "color": "#8a6a45",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 20.5, "z": 21.5 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c0_9/objects/prison-court-1",
+      "shape": "rect",
+      "size": [14, 9],
+      "material": "asphalt",
+      "color": "#3d3d40",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 12.5, "z": 21.5 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_9/objects/prison-hoop-1",
+      "position": { "x": 6.5, "y": 1.5, "z": 21.5 },
+      "size": [0.3, 3, 0.3],
+      "color": "#d0d4d8"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_9/objects/prison-hoop-2",
+      "position": { "x": 18.5, "y": 1.5, "z": 21.5 },
+      "size": [0.3, 3, 0.3],
+      "color": "#d0d4d8"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_9/objects/prison-bench-1",
+      "position": { "x": 28.5, "y": 0.25, "z": 18.5 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c0_8/prison-block-1", "ownerChunkId": "c0_8" }]
+}

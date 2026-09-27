@@ -25,7 +25,7 @@ const opTable = box('prop', [2, 0.9, 0.9], '#b9c4c9')
 const cellBed = box('prop', [2, 0.5, 0.8], '#6d6f70', { asset: 'furniture/bed' })
 
 type Kind = 'lobby' | 'clinic' | 'ward' | 'pharmacy' | 'canteen' | 'surgery' | 'office' | 'meeting' | 'armory' | 'lockers' | 'cell' | 'classroom' | 'lecture' | 'library' | 'store' | 'plain'
-interface RoomSpec {
+export interface RoomSpec {
   w: number
   name: string
   kind: Kind
@@ -34,7 +34,7 @@ interface RoomSpec {
   core?: boolean
 }
 
-interface CorridorSpec {
+export interface CorridorSpec {
   prefabId: string
   name: string
   w: number
@@ -55,7 +55,7 @@ interface CorridorSpec {
  * south with a door onto the corridor, furnished by kind; `core` rooms (7 m, north side) hold a
  * switchback stair, lane A climbing east from even storeys, lane B west from odd ones.
  */
-function corridorBuilding(s: CorridorSpec): PrefabDocument {
+export function corridorBuilding(s: CorridorSpec): PrefabDocument {
   const hx = s.w / 2
   const hz = s.d / 2
   const [zN, zS] = s.corridor
@@ -192,7 +192,7 @@ function furnish(h: Building, level: number, r: Rect, side: 'N' | 'S', rs: RoomS
   }
 }
 
-const core: RoomSpec = { w: 7, name: 'Cầu thang', kind: 'plain', core: true }
+export const core: RoomSpec = { w: 7, name: 'Cầu thang', kind: 'plain', core: true }
 
 /** Bệnh viện, 40 × 24, 3 storeys: two stair cores; emergency, clinics, pharmacy, canteen; wards; surgery. */
 function hospital(): PrefabDocument {

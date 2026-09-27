@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/prison",
+  "contentVersion": 1,
+  "name": "Nhà tù",
+  "footprint": { "minX": -32.25, "minZ": -26.25, "maxX": 32.25, "maxZ": 26.25 },
+  "catalog": { "group": "public", "tags": ["nha-tu"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public", "industrial"],
+    "weight": 0.5,
+    "setback": 1,
+    "sideGap": 1,
+    "roadFacing": true,
+    "frontage": [70, 120]
+  },
+  "instances": [
+    {
+      "member": "block",
+      "prefabId": "public/prison-block",
+      "position": { "x": 0, "y": 0, "z": -10 },
+      "quarterTurns": 0
+    },
+    {
+      "member": "tower",
+      "prefabId": "public/guard-tower",
+      "position": { "x": -27, "y": 0, "z": -21 },
+      "quarterTurns": 0
+    },
+    {
+      "member": "tower-2",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 27, "y": 0, "z": -21 },
+      "quarterTurns": 0
+    },
+    {
+      "member": "tower-3",
+      "prefabId": "public/guard-tower",
+      "position": { "x": -27, "y": 0, "z": 21 },
+      "quarterTurns": 2
+    },
+    {
+      "member": "tower-4",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 27, "y": 0, "z": 21 },
+      "quarterTurns": 2
+    },
+    {
+      "member": "gatehouse",
+      "prefabId": "landscape/kiosk",
+      "position": { "x": 8, "y": 0, "z": 21 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "wall",
+      "member": "wall",
+      "position": { "x": 0, "y": 2, "z": -26 },
+      "size": [64, 4, 0.5],
+      "color": "#9c978d"
+    },
+    {
+      "kind": "wall",
+      "member": "wall-2",
+      "position": { "x": -17.5, "y": 2, "z": 26 },
+      "size": [29, 4, 0.5],
+      "color": "#9c978d"
+    },
+    {
+      "kind": "wall",
+      "member": "wall-3",
+      "position": { "x": 17.5, "y": 2, "z": 26 },
+      "size": [29, 4, 0.5],
+      "color": "#9c978d"
+    },
+    {
+      "kind": "wall",
+      "member": "wall-4",
+      "position": { "x": -32, "y": 2, "z": 0 },
+      "size": [0.5, 4, 51.5],
+      "color": "#9c978d"
+    },
+    {
+      "kind": "wall",
+      "member": "wall-5",
+      "position": { "x": 32, "y": 2, "z": 0 },
+      "size": [0.5, 4, 51.5],
+      "color": "#9c978d"
+    },
+    {
+      "kind": "surface",
+      "member": "yard",
+      "shape": "rect",
+      "size": [40, 14],
+      "material": "dirt",
+      "color": "#8a6a45",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 12 }
+    },
+    {
+      "kind": "surface",
+      "member": "court",
+      "shape": "rect",
+      "size": [14, 9],
+      "material": "asphalt",
+      "color": "#3d3d40",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -8, "z": 12 }
+    },
+    {
+      "kind": "prop",
+      "member": "hoop",
+      "position": { "x": -14, "y": 1.5, "z": 12 },
+      "size": [0.3, 3, 0.3],
+      "color": "#d0d4d8"
+    },
+    {
+      "kind": "prop",
+      "member": "hoop-2",
+      "position": { "x": -2, "y": 1.5, "z": 12 },
+      "size": [0.3, 3, 0.3],
+      "color": "#d0d4d8"
+    },
+    {
+      "kind": "prop",
+      "member": "bench",
+      "position": { "x": 8, "y": 0.25, "z": 9 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "bench-2",
+      "position": { "x": 14, "y": 0.25, "z": 9 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight",
+      "position": { "x": -4, "y": 2.1, "z": 23 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ]
+}

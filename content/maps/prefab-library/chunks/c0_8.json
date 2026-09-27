@@ -4,8 +4,23 @@
   "chunkId": "c0_8",
   "cx": 0,
   "cz": 8,
-  "instances": [],
-  "objects": [],
+  "instances": [
+    {
+      "instanceId": "c0_8/prison-block-1",
+      "prefabId": "public/prison-block",
+      "position": { "x": 20.5, "y": 0, "z": 31.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "wall",
+      "objectId": "c0_8/objects/prison-wall-1",
+      "position": { "x": 20.5, "y": 2, "z": 15.5 },
+      "size": [64, 4, 0.5],
+      "color": "#9c978d"
+    }
+  ],
   "roads": [],
   "zones": [],
   "spawns": [],

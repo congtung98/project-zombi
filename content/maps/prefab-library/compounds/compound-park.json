@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/park",
+  "contentVersion": 1,
+  "name": "Công viên",
+  "footprint": { "minX": -15, "minZ": -15, "maxX": 15, "maxZ": 15 },
+  "catalog": { "group": "landscape", "tags": ["cong-vien"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public", "residential", "empty"],
+    "weight": 0.5,
+    "setback": 1,
+    "sideGap": 1,
+    "roadFacing": true,
+    "frontage": [30, 60]
+  },
+  "instances": [
+    {
+      "member": "kiosk",
+      "prefabId": "landscape/kiosk",
+      "position": { "x": -8, "y": 0, "z": -8 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "lawn",
+      "shape": "rect",
+      "size": [30, 30],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 0 }
+    },
+    {
+      "kind": "surface",
+      "member": "path",
+      "shape": "rect",
+      "size": [2.5, 30],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 0 }
+    },
+    {
+      "kind": "surface",
+      "member": "path-2",
+      "shape": "rect",
+      "size": [30, 2.5],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 0 }
+    },
+    {
+      "kind": "surface",
+      "member": "playground",
+      "shape": "rect",
+      "size": [9, 7],
+      "material": "dirt",
+      "color": "#b59a6a",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 8 }
+    },
+    {
+      "kind": "prop",
+      "member": "slide",
+      "position": { "x": 6, "y": 1, "z": 8 },
+      "size": [1, 2, 3.2],
+      "color": "#c8412f"
+    },
+    {
+      "kind": "prop",
+      "member": "swing",
+      "position": { "x": 10, "y": 1.1, "z": 6 },
+      "size": [3, 2.2, 0.3],
+      "color": "#3b6fa8"
+    },
+    {
+      "kind": "prop",
+      "member": "sandbox",
+      "position": { "x": 10, "y": 0.2, "z": 10 },
+      "size": [2, 0.4, 2],
+      "color": "#d9c07a"
+    },
+    {
+      "kind": "prop",
+      "member": "bench",
+      "position": { "x": -3, "y": 0.25, "z": 5 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "bench-2",
+      "position": { "x": 3, "y": 0.25, "z": -5 },
+      "size": [1.8, 0.5, 0.5],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "bench-3",
+      "position": { "x": -6, "y": 0.25, "z": 3 },
+      "size": [0.5, 0.5, 1.8],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "prop",
+      "member": "bench-4",
+      "position": { "x": 6, "y": 0.25, "z": -3 },
+      "size": [0.5, 0.5, 1.8],
+      "color": "#6b5a44"
+    },
+    {
+      "kind": "tree",
+      "member": "tree",
+      "position": { "x": -11, "z": 11 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-2",
+      "position": { "x": -11, "z": 4 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-3",
+      "position": { "x": 11, "z": -11 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-4",
+      "position": { "x": 4, "z": -11 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-5",
+      "position": { "x": -4, "z": -12 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-6",
+      "position": { "x": 12, "z": -4 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "surface",
+      "member": "flowerbed",
+      "shape": "ellipse",
+      "size": [4, 4],
+      "material": "grass",
+      "color": "#6f9a45",
+      "layer": 2,
+      "collision": "none",
+      "navigation": "blocked",
+      "position": { "x": -8, "z": 8 }
+    },
+    {
+      "kind": "container",
+      "member": "bin",
+      "name": "Thùng rác",
+      "position": { "x": 1.8, "y": 0.55, "z": 3 },
+      "size": [0.8, 1.1, 0.8],
+      "color": "#3f5f3a",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin" }
+    },
+    {
+      "kind": "container",
+      "member": "bin-2",
+      "name": "Thùng rác",
+      "position": { "x": -1.8, "y": 0.55, "z": -3 },
+      "size": [0.8, 1.1, 0.8],
+      "color": "#3f5f3a",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin" }
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight",
+      "position": { "x": 1.8, "y": 2.1, "z": 12 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight-2",
+      "position": { "x": -1.8, "y": 2.1, "z": -12 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight-3",
+      "position": { "x": 12, "y": 2.1, "z": 1.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight-4",
+      "position": { "x": -12, "y": 2.1, "z": -1.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_9",
+  "cx": -1,
+  "cz": 9,
+  "instances": [
+    {
+      "instanceId": "c-1_9/prison-tower-1",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 25.5, "y": 0, "z": 30.5 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "wall",
+      "objectId": "c-1_9/objects/prison-wall-1",
+      "position": { "x": 20.5, "y": 2, "z": 9.5 },
+      "size": [0.5, 4, 51.5],
+      "color": "#9c978d"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

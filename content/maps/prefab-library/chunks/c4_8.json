@@ -9,5 +9,8 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": []
+  "externalRefs": [
+    { "id": "c3_8/objects/park-lawn-1", "ownerChunkId": "c3_8" },
+    { "id": "c3_8/objects/park-path-2", "ownerChunkId": "c3_8" }
+  ]
 }
