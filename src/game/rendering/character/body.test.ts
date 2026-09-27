@@ -176,7 +176,7 @@ describe('C1 skinned body', () => {
     rig.elbowL.getWorldPosition(joint)
     let checked = 0
     for (let i = 0; i < w.count; i++) {
-      if (idx.getX(i) === BONES.indexOf('shoulderL') && idx.getY(i) === elbowL && w.getY(i) === 0.5) {
+      if (idx.getX(i) === BONES.indexOf('shoulderL') && idx.getY(i) === elbowL && Math.abs(w.getY(i) - 0.5) < 0.01) {
         rig.mesh.getVertexPosition(i, v)
         // Blended ring around the elbow: within the arm's radius of the joint, whatever the bend.
         expect(v.distanceTo(joint)).toBeLessThan(0.07)
@@ -217,5 +217,38 @@ describe('C1 skinned body', () => {
     expect(geometryDisposed).toBe(0)
     expect(other.mesh.geometry).toBe(rig.mesh.geometry)
     other.dispose()
+  })
+})
+
+describe('C6 character material in the game', () => {
+  it('keeps the indoor room light and interior mask (chains the prototype patch) and its own palette', async () => {
+    const { hasIndoorShading, installIndoorShading } = await import('../indoorShading')
+    const { ShaderLib, UniformsUtils } = await import('three')
+    installIndoorShading()
+    const rig = buildCharacter(zombieLook('zombie-1'))
+    expect(hasIndoorShading(rig.material)).toBe(true)
+    const shader = { uniforms: UniformsUtils.clone(ShaderLib.physical.uniforms), vertexShader: ShaderLib.physical.vertexShader, fragmentShader: ShaderLib.physical.fragmentShader }
+    rig.material.onBeforeCompile(shader as never)
+    expect(shader.fragmentShader).toContain('uRoomShade')
+    expect(shader.fragmentShader).toContain('uVisMap')
+    expect(shader.fragmentShader).toContain('diffuseColor.rgb *= vPaint')
+    expect(shader.vertexShader).toContain('vIndoorWorld')
+    expect(rig.material.customProgramCacheKey()).toMatch(/indoor-lighting/)
+    rig.dispose()
+  })
+})
+
+describe('C6 crowd lifecycle', () => {
+  it('any number of zombies uses a bounded set of shared shapes; per-character resources are freed', () => {
+    const rigs = Array.from({ length: 500 }, (_, i) => buildCharacter(zombieLook(`crowd-${i}`)))
+    const shapes = new Set(rigs.map((r) => r.mesh.geometry))
+    expect(shapes.size).toBeLessThanOrEqual(BODY_PRESETS.length * HAIR_STYLES.length * OUTFIT_STYLES.length * 2)
+    expect(bodyGeometryCount()).toBeLessThanOrEqual(BODY_PRESETS.length * HAIR_STYLES.length * OUTFIT_STYLES.length * 3)
+    let freed = 0
+    for (const r of rigs) {
+      r.material.addEventListener('dispose', () => freed++)
+      r.dispose()
+    }
+    expect(freed).toBe(500)
   })
 })

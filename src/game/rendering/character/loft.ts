@@ -1,5 +1,4 @@
-import { BufferGeometry, Float32BufferAttribute, Uint16BufferAttribute } from 'three'
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { BufferGeometry, Float32BufferAttribute, Uint8BufferAttribute } from 'three'
 
 /**
  * C1 (character plan): low-poly shapes for the character mesh, built as lofts: a run of cross
@@ -69,16 +68,20 @@ const norm = (a: V3): V3 => {
   return [a[0] / l, a[1] / l, a[2] / l]
 }
 
-/** Accumulates lofts into one non-indexed skinned geometry. */
+/**
+ * Accumulates lofts into one indexed skinned geometry: smooth lofts share one vertex per ring point,
+ * flat facets and caps get their own (C6: built directly indexed, no vertex welding pass).
+ */
 export class MeshBuilder {
   private readonly position: number[] = []
   private readonly normal: number[] = []
   private readonly skinIndex: number[] = []
   private readonly skinWeight: number[] = []
   private readonly paint: number[] = []
+  private readonly index: number[] = []
 
   get triangles(): number {
-    return this.position.length / 9
+    return this.index.length / 3
   }
 
   loft(spec: LoftSpec): void {
@@ -90,39 +93,49 @@ export class MeshBuilder {
     const centres = rings.map((r) => ringCentre(r, axis, origin))
     const weights = rings.map((r) => r.blend ?? null)
 
-    // Side triangles, each oriented away from the loft axis.
-    const tris: { v: [V3, V3, V3]; ring: [number, number, number] }[] = []
+    // Side triangles, each oriented away from the loft axis. Vertices are named by ring × point
+    // (`k * n + i`) so smooth normals add up per ring point without hashing positions (C6: fast).
+    const tris: { v: [V3, V3, V3]; id: [number, number, number] }[] = []
     for (let k = 0; k + 1 < rings.length; k++) {
       const mid: V3 = [(centres[k][0] + centres[k + 1][0]) / 2, (centres[k][1] + centres[k + 1][1]) / 2, (centres[k][2] + centres[k + 1][2]) / 2]
       for (let i = 0; i < n; i++) {
         const j = (i + 1) % n
-        const quad: [V3, number][] = [[pts[k][i], k], [pts[k][j], k], [pts[k + 1][j], k + 1], [pts[k + 1][i], k + 1]]
+        const quad: [V3, number][] = [[pts[k][i], k * n + i], [pts[k][j], k * n + j], [pts[k + 1][j], (k + 1) * n + j], [pts[k + 1][i], (k + 1) * n + i]]
         for (const [a, b, c] of [[0, 1, 2], [0, 2, 3]] as const) {
           let t: [[V3, number], [V3, number], [V3, number]] = [quad[a], quad[b], quad[c]]
           const nrm = cross(sub(t[1][0], t[0][0]), sub(t[2][0], t[0][0]))
           const centroid: V3 = [(t[0][0][0] + t[1][0][0] + t[2][0][0]) / 3, (t[0][0][1] + t[1][0][1] + t[2][0][1]) / 3, (t[0][0][2] + t[1][0][2] + t[2][0][2]) / 3]
           if (Math.hypot(...nrm) < 1e-10) continue
           if (dot(nrm, sub(centroid, mid)) < 0) t = [t[0], t[2], t[1]]
-          tris.push({ v: [t[0][0], t[1][0], t[2][0]], ring: [t[0][1], t[1][1], t[2][1]] })
+          tris.push({ v: [t[0][0], t[1][0], t[2][0]], id: [t[0][1], t[1][1], t[2][1]] })
         }
       }
     }
 
-    // Smooth: vertex normal = average of the face normals of that ring point (keyed by position).
-    const smoothNormals = new Map<string, V3>()
-    const key = (p: V3) => `${p[0].toFixed(5)},${p[1].toFixed(5)},${p[2].toFixed(5)}`
-    if (spec.smooth) {
+    // Smooth: vertex normal = average of the face normals around that ring point.
+    const acc = spec.smooth ? new Float64Array(rings.length * n * 3) : null
+    if (acc) {
       for (const t of tris) {
         const f = cross(sub(t.v[1], t.v[0]), sub(t.v[2], t.v[0]))
-        for (const p of t.v) {
-          const s = smoothNormals.get(key(p)) ?? [0, 0, 0]
-          smoothNormals.set(key(p), [s[0] + f[0], s[1] + f[1], s[2] + f[2]])
+        for (const id of t.id) {
+          acc[id * 3] += f[0]
+          acc[id * 3 + 1] += f[1]
+          acc[id * 3 + 2] += f[2]
         }
       }
     }
+    const shared = acc ? new Int32Array(rings.length * n).fill(-1) : null
     for (const t of tris) {
-      const flat = norm(cross(sub(t.v[1], t.v[0]), sub(t.v[2], t.v[0])))
-      for (let q = 0; q < 3; q++) this.vertex(t.v[q], spec.smooth ? norm(smoothNormals.get(key(t.v[q]))!) : flat, spec, weights[t.ring[q]])
+      const flat = acc ? null : norm(cross(sub(t.v[1], t.v[0]), sub(t.v[2], t.v[0])))
+      for (let q = 0; q < 3; q++) {
+        const id = t.id[q]
+        if (shared) {
+          if (shared[id] < 0) shared[id] = this.vertex(t.v[q], norm([acc![id * 3], acc![id * 3 + 1], acc![id * 3 + 2]]), spec, weights[Math.floor(id / n)])
+          this.index.push(shared[id])
+        } else {
+          this.index.push(this.vertex(t.v[q], flat!, spec, weights[Math.floor(id / n)]))
+        }
+      }
     }
 
     // Caps: flat fans facing out along the axis.
@@ -132,13 +145,14 @@ export class MeshBuilder {
       const other = end === 0 ? 1 : rings.length - 2
       const out = norm(sub(centres[end], centres[other]))
       const c = centres[end]
+      const centre = this.vertex(c, out, spec, weights[end])
+      const rim = pts[end].map((p) => this.vertex(p, out, spec, weights[end]))
       for (let i = 0; i < n; i++) {
-        let a = pts[end][i]
-        let b = pts[end][(i + 1) % n]
-        const f = cross(sub(a, c), sub(b, c))
+        const j = (i + 1) % n
+        const f = cross(sub(pts[end][i], c), sub(pts[end][j], c))
         if (Math.hypot(...f) < 1e-10) continue
-        if (dot(f, out) < 0) [a, b] = [b, a]
-        for (const p of [c, a, b]) this.vertex(p, out, spec, weights[end])
+        if (dot(f, out) < 0) this.index.push(centre, rim[j], rim[i])
+        else this.index.push(centre, rim[i], rim[j])
       }
     }
   }
@@ -154,31 +168,34 @@ export class MeshBuilder {
     })
   }
 
-  private vertex(p: V3, n: V3, spec: LoftSpec, blend: Ring['blend'] | null): void {
+  private vertex(p: V3, n: V3, spec: LoftSpec, blend: Ring['blend'] | null): number {
+    const index = this.position.length / 3
     this.position.push(p[0], p[1], p[2])
     this.normal.push(n[0], n[1], n[2])
+    // Weights stored as bytes (normalised): the two always sum to exactly 255.
     if (blend && blend[1] > 0) {
+      const w = Math.round(blend[1] * 255)
       this.skinIndex.push(spec.bone, blend[0], 0, 0)
-      this.skinWeight.push(1 - blend[1], blend[1], 0, 0)
+      this.skinWeight.push(255 - w, w, 0, 0)
     } else {
       this.skinIndex.push(spec.bone, 0, 0, 0)
-      this.skinWeight.push(1, 0, 0, 0)
+      this.skinWeight.push(255, 0, 0, 0)
     }
     this.paint.push(spec.slot)
+    return index
   }
 
   build(): BufferGeometry {
     const g = new BufferGeometry()
     g.setAttribute('position', new Float32BufferAttribute(this.position, 3))
     g.setAttribute('normal', new Float32BufferAttribute(this.normal, 3))
-    g.setAttribute('skinIndex', new Uint16BufferAttribute(this.skinIndex, 4))
-    g.setAttribute('skinWeight', new Float32BufferAttribute(this.skinWeight, 4))
-    g.setAttribute('paint', new Float32BufferAttribute(this.paint, 1))
-    // Indexed: vertices shared by smooth surfaces are stored once (C5: about half the memory).
-    const indexed = mergeVertices(g)
-    g.dispose()
-    indexed.computeBoundingBox()
-    indexed.computeBoundingSphere()
-    return indexed
+    // C6: bone indices, weights and palette slots as bytes (a third less memory per vertex).
+    g.setAttribute('skinIndex', new Uint8BufferAttribute(this.skinIndex, 4))
+    g.setAttribute('skinWeight', new Uint8BufferAttribute(this.skinWeight, 4, true))
+    g.setAttribute('paint', new Uint8BufferAttribute(this.paint, 1))
+    g.setIndex(this.index)
+    g.computeBoundingBox()
+    g.computeBoundingSphere()
+    return g
   }
 }
