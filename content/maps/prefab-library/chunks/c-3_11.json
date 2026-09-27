@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-3_11",
+  "cx": -3,
+  "cz": 11,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-3_11/objects/lake-tree-1",
+      "position": { "x": 31.5, "z": 6 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_10/objects/lake-lawn-1", "ownerChunkId": "c-2_10" },
+    { "id": "c-2_11/objects/lake-path-1", "ownerChunkId": "c-2_11" }
+  ]
+}

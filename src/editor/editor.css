@@ -533,3 +533,255 @@ h4 {
   font-size: 11px;
   padding: 2px 6px;
 }
+
+/* WG4: Generator tab */
+.gen {
+  font-size: 13px;
+}
+
+.gen p {
+  margin: 4px 0;
+}
+
+.gen-block {
+  border-top: 1px solid var(--line);
+  padding: 6px 0;
+}
+
+.gen-block summary {
+  cursor: pointer;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.gen .field {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.gen .field.check,
+.gen-record .field.check {
+  grid-template-columns: 18px 1fr;
+}
+
+.gen .field.check span {
+  color: var(--text);
+}
+
+.gen .row {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.gen-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.gen-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+
+.gen-counts .generated,
+.gen-record .generated {
+  color: #6fcf6f;
+}
+
+.gen-counts .modified,
+.gen-record .modified {
+  color: #ff5fd2;
+}
+
+.gen-counts .locked,
+.gen-record .locked {
+  color: #4aa8ff;
+}
+
+.gen-record .manual {
+  color: var(--muted);
+}
+
+.gen-pending {
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 6px;
+  margin-top: 6px;
+}
+
+.gen-pending.stale {
+  border-color: var(--bad);
+}
+
+.gen-issues {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.gen-issues button {
+  all: unset;
+  display: block;
+  font-size: 12px;
+  padding: 1px 0;
+  cursor: pointer;
+}
+
+.gen-issues button:disabled {
+  cursor: default;
+}
+
+.gen-issues li.error b {
+  color: var(--bad);
+}
+
+.gen-issues li.warning b {
+  color: var(--warn);
+}
+
+.gen-record {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: 4px 0 8px;
+}
+
+.gen-record .row {
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+/* WG5: generator job and environment options */
+.gen-busy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: 6px 0;
+}
+
+.gen-env {
+  margin: 4px 0 6px;
+}
+
+.gen-env summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.modal .gen-env .field.check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 6px;
+}
+
+/* WG6: Bản vẽ tab */
+.ref-modes button.active {
+  outline: 2px solid var(--accent);
+}
+
+.ref-points {
+  width: 100%;
+  font-size: 12px;
+}
+
+.ref-points input {
+  width: 64px;
+}
+
+/* Prefab library P1 */
+.tabs.sub button {
+  font-size: 12px;
+}
+
+.hint.bad,
+small.bad {
+  color: var(--bad);
+}
+
+.hint.warn,
+small.warn {
+  color: var(--warn);
+}
+
+button.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.palette li > .row.tight {
+  margin: 2px 0 6px;
+}
+
+/* P1 follow-up: library filters wrap inside the 230 px palette (no horizontal scroll). */
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.filters select {
+  width: 100%;
+  min-width: 0;
+}
+
+.filters select:last-child {
+  grid-column: 1 / -1;
+}
+
+.panel.left {
+  overflow-x: hidden;
+}
+
+.palette small,
+.palette strong {
+  overflow-wrap: anywhere;
+}
+
+/* Slim scrollbars in the editor's dark theme (standard properties; WebKit fallback). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4b545d transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b545d;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #66717b;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

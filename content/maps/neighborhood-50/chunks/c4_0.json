@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c4_0",
+  "cx": 4,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c4_0/lot-0450c00576",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 1, "y": 0, "z": 14 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c4_0/lot-1a4a48db93",
+      "prefabId": "library/tube-house",
+      "position": { "x": 7.5, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c4_0/lot-1ec3f6fb4a",
+      "prefabId": "library/tube-house",
+      "position": { "x": 14, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c4_0/lot-16aa0e7758",
+      "prefabId": "house/tube-4x16",
+      "position": { "x": 20, "y": 0, "z": 14 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c4_0/lot-1904a963f7",
+      "prefabId": "library/tube-house",
+      "position": { "x": 26, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-0450c00576-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 2.2, "y": 0, "z": 5.1 },
+      "yaw": 160
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-0450c00576-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 0.763769, "y": 0, "z": 10.379247 },
+      "yaw": 40
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-1a4a48db93-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 7.734511, "y": 0, "z": 8.692807 },
+      "yaw": 300
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-1a4a48db93-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 8.404007, "y": 0, "z": 8.212712 },
+      "yaw": 0
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-1ec3f6fb4a-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 13.963289, "y": 0, "z": 13.016767 },
+      "yaw": 120
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-1ec3f6fb4a-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 11.574363, "y": 0, "z": 18.815216 },
+      "yaw": 40
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-16aa0e7758-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 21.2, "y": 0, "z": 5.1 },
+      "yaw": 100
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-1904a963f7-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 23.778395, "y": 0, "z": 9.040505 },
+      "yaw": 240
+    },
+    {
+      "kind": "tree",
+      "objectId": "c4_0/objects/env-lot-013e1b3f9e-tree-1",
+      "position": { "x": 0.197806, "z": 25.067339 },
+      "height": 6.677992,
+      "canopy": 2.271197,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_0/objects/env-lot-013e1b3f9e-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 11.382757, "y": 0, "z": 25.747486 },
+      "yaw": 20
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_0/objects/street-sidewalk-1bfd9caf-streetlight-3",
+      "position": { "x": 14.85, "y": 2.1, "z": 2.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c4_0/roads/sidewalk-1bfd9caf",
+      "position": { "x": 29.625, "z": 3.5 },
+      "size": [128.75, 2.5],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_-1/roads/asphalt-0e49c53c", "ownerChunkId": "c3_-1" },
+    { "id": "c3_0/objects/env-lot-0450c00576-grass-2", "ownerChunkId": "c3_0" },
+    { "id": "c3_0/objects/street-asphalt-0e49c53c-car-2", "ownerChunkId": "c3_0" },
+    { "id": "c4_-3/roads/asphalt-100567bc", "ownerChunkId": "c4_-3" },
+    { "id": "c5_0/lot-13454b2167", "ownerChunkId": "c5_0" }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-4_-6",
+  "cx": -4,
+  "cz": -6,
+  "instances": [
+    {
+      "instanceId": "c-4_-6/lot-16baa5b046",
+      "prefabId": "building/two-storey",
+      "position": { "x": 23, "y": 0, "z": 19 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-4_-6/objects/env-lot-16baa5b046-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 19.8, "y": 0, "z": 24.9 },
+      "yaw": 340
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-6/objects/env-lot-16baa5b046-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 26.2, "y": 0, "z": 24.9 },
+      "yaw": 0
+    },
+    {
+      "kind": "container",
+      "objectId": "c-4_-6/objects/env-lot-16baa5b046-bin-1",
+      "position": { "x": 16, "y": 0.55, "z": 25.8 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#3f5a3f",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 0 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_-6/objects/env-lot-16baa5b046-mailbox-1",
+      "position": { "x": 24.9, "y": 0.6, "z": 26.5 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 0 }
+    },
+    {
+      "kind": "container",
+      "objectId": "c-4_-6/objects/street-asphalt-1c915161-car-1",
+      "position": { "x": 27, "y": 0.7, "z": 30.15 },
+      "size": [4, 1.4, 2],
+      "color": "#5a4f47",
+      "name": "Xe bỏ hoang",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/car", "facing": 3 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-6/objects/street-asphalt-1c915161-oil-stain-1",
+      "assetId": "decor/oil-stain",
+      "position": { "x": 26.512427, "y": 0, "z": 30.004864 },
+      "yaw": 60
+    },
+    {
+      "kind": "decor",
+      "objectId": "c-4_-6/objects/street-asphalt-1c915161-tires-1",
+      "assetId": "decor/tires",
+      "position": { "x": 24.2, "y": 0, "z": 30.15 },
+      "yaw": 50
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-4_-6/objects/street-sidewalk-03b62807-streetlight-1",
+      "position": { "x": 18.75, "y": 2.1, "z": 28.65 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c-4_-6/roads/asphalt-13e50e85",
+      "position": { "x": 13, "z": 18.5 },
+      "size": [3.5, 33],
+      "color": "#3a3a3f",
+      "layer": 2
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_-6/roads/sidewalk-03b62807", "ownerChunkId": "c-2_-6" },
+    { "id": "c-4_-5/roads/asphalt-1c915161", "ownerChunkId": "c-4_-5" },
+    { "id": "c-5_-6/roads/sidewalk-07137fbc", "ownerChunkId": "c-5_-6" }
+  ]
+}

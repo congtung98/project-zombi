@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/hospital",
+  "contentVersion": 1,
+  "name": "Bệnh viện có sân trước",
+  "footprint": { "minX": -20, "minZ": -12, "maxX": 20, "maxZ": 24 },
+  "catalog": { "group": "public", "tags": ["benh-vien"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public"],
+    "weight": 1,
+    "setback": 2,
+    "sideGap": 2,
+    "roadFacing": true,
+    "frontage": [44, 80]
+  },
+  "instances": [
+    {
+      "member": "hospital",
+      "prefabId": "public/hospital",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "forecourt",
+      "shape": "rect",
+      "size": [40, 12],
+      "material": "concrete",
+      "color": "#9c988f",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 18 }
+    },
+    {
+      "kind": "surface",
+      "member": "ambulance-bay",
+      "shape": "rect",
+      "size": [10, 10],
+      "material": "asphalt",
+      "color": "#3d3d40",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -14, "z": 18 }
+    },
+    {
+      "kind": "prop",
+      "member": "ambulance",
+      "position": { "x": -14, "y": 0.9, "z": 18 },
+      "size": [1.9, 1.8, 4.6],
+      "color": "#f2f2f0",
+      "visual": { "assetId": "outdoor/car" }
+    },
+    {
+      "kind": "tree",
+      "member": "tree",
+      "position": { "x": 6, "z": 21 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-2",
+      "position": { "x": 12, "z": 21 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-3",
+      "position": { "x": 18, "z": 21 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "member": "bench",
+      "position": { "x": 4, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "member": "bench-2",
+      "position": { "x": 10, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    }
+  ]
+}

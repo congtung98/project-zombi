@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_1",
+  "cx": 3,
+  "cz": 1,
+  "instances": [
+    {
+      "instanceId": "c3_1/l-two-storey-1",
+      "prefabId": "house/l-two-storey",
+      "position": { "x": 0, "y": 0, "z": 5 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c3_1/block-1",
+      "prefabId": "apartment/block-4",
+      "position": { "x": 29, "y": 0, "z": 6 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

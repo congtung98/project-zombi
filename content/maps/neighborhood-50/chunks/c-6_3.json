@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-6_3",
+  "cx": -6,
+  "cz": 3,
+  "instances": [
+    {
+      "instanceId": "c-6_3/garden-house-house-1",
+      "prefabId": "building/house-2",
+      "position": { "x": 21, "y": 0, "z": 17 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "prop",
+      "objectId": "c-6_3/objects/env-lot-11f1c6172d-fence-1",
+      "position": { "x": 7.5, "y": 0.5, "z": 5.7 },
+      "size": [16.8, 1, 0.12],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_3/objects/env-lot-061e8b29d0-tree-2",
+      "position": { "x": 28.3, "z": 3.6 },
+      "height": 5.239712,
+      "canopy": 1.695885,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_3/objects/env-lot-061e8b29d0-fence-1",
+      "position": { "x": 23.5, "y": 0.5, "z": 5.7 },
+      "size": [12.8, 1, 0.12],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_3/objects/env-lot-186264093e-tree-9",
+      "position": { "x": 2.627045, "z": 8.584497 },
+      "height": 6.311468,
+      "canopy": 1.462294,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_3/objects/env-lot-186264093e-tree-26",
+      "position": { "x": 1.520943, "z": 21.850569 },
+      "height": 8.521943,
+      "canopy": 1.904389,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_3/objects/env-lot-186264093e-tree-36",
+      "position": { "x": 2.589573, "z": 27.625218 },
+      "height": 9.64171,
+      "canopy": 2.128342,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_3/objects/env-lot-025d38e03e-fence-1",
+      "position": { "x": 5.75, "y": 0.5, "z": 30.3 },
+      "size": [14.3, 1, 0.12],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-6_3/objects/garden-house-lawn-1",
+      "shape": "rect",
+      "size": [20, 14],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 21, "z": 19 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-6_3/objects/garden-house-path-1",
+      "shape": "rect",
+      "size": [1.5, 4],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 19, "z": 11.5 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-6_3/objects/garden-house-pond-1",
+      "shape": "ellipse",
+      "size": [8, 4.5],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 1,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 27, "z": 23.5 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-6_3/objects/garden-house-fence-1",
+      "position": { "x": 21, "y": 0.5, "z": 26 },
+      "size": [20, 1, 0.15],
+      "color": "#7a6a55"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_3/objects/garden-house-tree-1",
+      "position": { "x": 13, "z": 23 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-6_3/objects/garden-house-pine-1",
+      "position": { "x": 14, "z": 15 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-5_3/objects/env-lot-11d46f072d-fence-1", "ownerChunkId": "c-5_3" },
+    { "id": "c-5_4/lot-00735e482f", "ownerChunkId": "c-5_4" },
+    { "id": "c-6_2/lot-11f1c6172d", "ownerChunkId": "c-6_2" },
+    { "id": "c-6_4/objects/env-lot-025d38e03e-tree-1", "ownerChunkId": "c-6_4" },
+    { "id": "c-6_4/objects/env-lot-10af9b8ca9-grass-1", "ownerChunkId": "c-6_4" },
+    { "id": "c-6_4/objects/env-lot-10af9b8ca9-tree-2", "ownerChunkId": "c-6_4" },
+    { "id": "c-7_3/objects/env-lot-186264093e-tree-8", "ownerChunkId": "c-7_3" }
+  ]
+}

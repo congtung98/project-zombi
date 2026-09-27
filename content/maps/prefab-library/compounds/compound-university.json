@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/university",
+  "contentVersion": 1,
+  "name": "Khuôn viên đại học",
+  "footprint": { "minX": -41, "minZ": -30, "maxX": 44, "maxZ": 36 },
+  "catalog": { "group": "public", "tags": ["dai-hoc"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public"],
+    "weight": 1,
+    "setback": 2,
+    "sideGap": 2,
+    "roadFacing": true,
+    "frontage": [90, 140]
+  },
+  "instances": [
+    {
+      "member": "hall-north",
+      "prefabId": "public/lecture-hall",
+      "position": { "x": 0, "y": 0, "z": -22 },
+      "quarterTurns": 0
+    },
+    {
+      "member": "hall-east",
+      "prefabId": "public/lecture-hall",
+      "position": { "x": 36, "y": 0, "z": 12 },
+      "quarterTurns": 3
+    },
+    {
+      "member": "dormitory",
+      "prefabId": "public/dormitory",
+      "position": { "x": -34, "y": 0, "z": 10 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "plaza",
+      "shape": "rect",
+      "size": [48, 26],
+      "material": "tile",
+      "color": "#b3a38b",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 2, "z": 8 }
+    },
+    {
+      "kind": "surface",
+      "member": "lawn",
+      "shape": "rect",
+      "size": [14, 18],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -12, "z": 8 }
+    },
+    {
+      "kind": "surface",
+      "member": "lawn-2",
+      "shape": "rect",
+      "size": [14, 18],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 16, "z": 8 }
+    },
+    {
+      "kind": "surface",
+      "member": "path",
+      "shape": "rect",
+      "size": [4, 26],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 2, "z": 8 }
+    },
+    {
+      "kind": "surface",
+      "member": "fountain",
+      "shape": "ellipse",
+      "size": [6, 6],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 2,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 2, "z": 8 }
+    },
+    {
+      "kind": "tree",
+      "member": "tree",
+      "position": { "x": -12, "z": 2 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-2",
+      "position": { "x": -12, "z": 14 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-3",
+      "position": { "x": 16, "z": 2 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-4",
+      "position": { "x": 16, "z": 14 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-5",
+      "position": { "x": -18, "z": 24 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "tree-6",
+      "position": { "x": 22, "z": 24 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "member": "bench",
+      "position": { "x": -4, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "member": "bench-2",
+      "position": { "x": 8, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    }
+  ]
+}

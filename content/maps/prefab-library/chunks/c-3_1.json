@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-3_1",
+  "cx": -3,
+  "cz": 1,
+  "instances": [
+    {
+      "instanceId": "c-3_1/cottage-1",
+      "prefabId": "house/cottage",
+      "position": { "x": 14, "y": 0, "z": 3 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_1/bungalow-l-1", "ownerChunkId": "c-2_1" },
+    { "id": "c-3_2/bank-1", "ownerChunkId": "c-3_2" },
+    { "id": "c-3_2/bookstore-1", "ownerChunkId": "c-3_2" },
+    { "id": "c-4_1/cap4-1", "ownerChunkId": "c-4_1" }
+  ]
+}

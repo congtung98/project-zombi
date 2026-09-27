@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_0",
+  "cx": 0,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c0_0/warehouse-1",
+      "prefabId": "library/warehouse",
+      "position": { "x": 3, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c0_0/tube-house-1",
+      "prefabId": "library/tube-house",
+      "position": { "x": 24, "y": 0, "z": 12 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [{ "spawnId": "c0_0/spawns/player-start", "kind": "player", "position": { "x": 2, "z": 0 } }],
+  "externalRefs": [
+    { "id": "c-1_0/roads/pavement-s", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_1/ranch-1", "ownerChunkId": "c-1_1" },
+    { "id": "c0_1/tube-4x16-1", "ownerChunkId": "c0_1" },
+    { "id": "c0_1/tube-5x18-1", "ownerChunkId": "c0_1" }
+  ]
+}

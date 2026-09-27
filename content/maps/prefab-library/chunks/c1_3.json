@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_3",
+  "cx": 1,
+  "cz": 3,
+  "instances": [
+    {
+      "instanceId": "c1_3/lecture-hall-1",
+      "prefabId": "public/lecture-hall",
+      "position": { "x": 26, "y": 0, "z": 4 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c0_3/objects/high-school-fence-1", "ownerChunkId": "c0_3" },
+    { "id": "c0_4/high-school-block-a-1", "ownerChunkId": "c0_4" },
+    { "id": "c1_4/objects/high-school-fence-1", "ownerChunkId": "c1_4" }
+  ]
+}

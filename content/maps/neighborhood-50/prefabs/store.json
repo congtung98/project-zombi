@@ -259,5 +259,16 @@
       }
     }
   ],
-  "visual": { "variants": ["abandoned"] }
+  "visual": { "variants": ["abandoned"] },
+  "placement": {
+    "category": "shop",
+    "allowedZones": ["commercial"],
+    "weight": 3,
+    "setback": 1,
+    "sideGap": 1,
+    "roadFacing": true,
+    "frontage": [12, 60]
+  },
+  "catalog": { "group": "commercial", "tags": ["cua-hang", "tap-hoa"] },
+  "source": { "library": "prefab-library", "id": "building/store", "version": 1, "hash": "cyrb53:0513667f5528ad" }
 }

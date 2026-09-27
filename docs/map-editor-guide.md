@@ -148,6 +148,52 @@ npm run map:generate -- --seed 3 --blocks 16x16 --layout varied --world-id big-t
 - World sinh ra là nội dung bình thường: sửa tay, chơi thử, export như trên.
 - Generator **không ghi đè** world đã sửa tay (kể cả khi có `--force`). Muốn sinh lại thì dùng `--world-id`/`--out` khác.
 
+### World từ bản đồ thật (World Generator, WG4)
+
+- **Mới** → Kiểu *Từ GeoJSON (World Generator)* → chọn file GeoJSON (overpass-turbo, QGIS, vẽ tay; đọc tại máy) → cắt vùng, chế độ FULL / LAYOUT_ONLY, kiểu lô, seed → **Tạo**. Editor mở world mới ở tab **Generator**.
+- **Tab Generator**:
+  - tick các lớp phủ (đường gốc, mạng đã nắn, lô, khối, vùng cấm);
+  - màu viền lô: xanh lá sinh tự động, hồng sửa tay, xanh dương khóa, xám lô trống;
+  - click một lô: **Sinh lại lô**, **Khóa lô**, **Thay prefab** (chỉ prefab vừa lô), **Khôi phục bản sinh**, **Sinh lại chunk**;
+  - **Sinh lại world**: đổi seed, kiểu lô hoặc chế độ → **Xem trước** → **Áp dụng** / **Hủy**.
+- **Phần sửa tay được giữ**:
+  - di chuyển, xoay hay xóa một object do generator sinh ra thì nó thành "sửa tay"; lần sinh lại sau giữ nguyên, trừ khi tick "Ghi đè";
+  - object khóa và object tự đặt không bao giờ bị đụng;
+  - mọi bước hoàn tác được bằng Ctrl+Z.
+- **Inspector** của record có dòng *Generator* cho biết trạng thái.
+- World đã có trong `content/maps` coi như đã phát hành: chỉ xem và khóa. Muốn sinh lại thì **Lưu thành…** worldId mới.
+- Lưu nháp, Export, `map:unpack` mang theo `layout/world-layout.json`; game không đọc file đó. Chi tiết: `docs/world-generator-wg4.md`.
+- **Môi trường (WG5)**:
+  - world FULL có cây, bụi, rào sau lô, thùng rác, hộp thư, đèn đường, xe đỗ, xe bỏ hoang và rác;
+  - mục *Môi trường* trong hộp thoại Mới và trong Sinh lại world chỉnh mật độ và bật/tắt từng loại;
+  - việc sinh chạy nền (editor không đứng); nút **Hủy** trong tab Generator dừng mà không đổi gì.
+
+  Chi tiết: `docs/world-generator-wg5.md`.
+- **Bản vẽ (WG6)**:
+  - tab **Bản vẽ** → Nhập ảnh… (bản đồ bạn có quyền dùng) → **Đo tỷ lệ** (click hai đầu một khoảng đã biết, nhập mét) hoặc thêm **Điểm hiệu chỉnh**;
+  - vẽ **Đường**: click từng điểm, Enter để xong; bắt vào đường khác thì thành giao lộ, đường cắt nhau tự thành giao lộ;
+  - **Giao lộ** gộp các đầu đường suýt chạm; **Vùng đất** và **Vùng cấm** khép bằng Enter;
+  - **Chọn** để sửa thuộc tính, kéo đỉnh, Delete để xóa;
+  - **Tạo world từ bản vẽ**: world mới mang theo ảnh và nét vẽ;
+  - sau đó sửa nét vẽ rồi **Cập nhật world từ bản vẽ**: xem trước, Áp dụng; phần sửa tay và lô khóa được giữ;
+  - world sinh từ GeoJSON cập nhật bằng **Cập nhật từ GeoJSON…** ở tab Generator.
+
+  Chi tiết: `docs/world-generator-wg6.md`.
+
+## 6b. Thư viện prefab chung (P1)
+
+- Tab **Prefab → Thư viện chung**: prefab và compound của world `prefab-library`, lọc theo loại, nhóm, phong cách.
+  - **Thêm vào world** chép một bản; world không tự đổi theo thư viện.
+  - Trùng ID với prefab khác: **Nhập với ID mới** (hoặc **Liên kết** nếu giống hệt).
+  - Thư viện có bản mới: **Xem cập nhật…** → xem trước → **Áp dụng**. Bị chặn nếu bản của world đã sửa hoặc mất ID cửa/tủ/cửa sổ/đèn, trừ khi bạn tick đồng ý.
+- **Compound**: click rồi click viewport (R xoay trước). Thành các record thường cộng một nhóm.
+  - Click chọn cả nhóm, **Alt+click** chọn một phần để sửa riêng.
+  - Ctrl+G nhóm vùng chọn, Ctrl+Shift+G rã nhóm.
+  - Inspector nhóm: xoay, nhân bản, xóa, rã nhóm, **Lưu thành compound…**. Trong world `prefab-library`, compound vào thư viện sau khi xuất và map:unpack.
+- **Mặt nền (surface)**: tab Nền có bãi cỏ, sân, lối đi, bãi đỗ, hồ. Inspector chỉnh vật liệu, hình, lớp vẽ, va chạm và điều hướng; nước chắn người chơi và zombie, vẫn nhìn qua được.
+
+  Chi tiết: `docs/prefab-library-p1.md`.
+
 ## 7. Quy tắc cần nhớ
 
 - **ID là vĩnh viễn**:

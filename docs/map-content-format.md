@@ -11,6 +11,10 @@ content/maps/<worldId>/
   chunks/c<cx>_<cz>.json     layout của một chunk (tọa độ cục bộ chunk)
   migrations/                dữ liệu cho save cũ (map đóng băng + bảng ID cũ → ID ổn định)
   migrations/content-v<N>.json  M8: chuyển save của nội dung vN sang vN+1 (tập ID có trạng thái của vN + đổi tên)
+  layout/world-layout.json   WG4: layout + kế hoạch + manifest của World Generator (chỉ editor đọc; game không nạp, không vào bundle game)
+  layout/reference.json      WG6: ảnh tham chiếu (data URL), hiệu chỉnh, nét vẽ tay (chỉ editor đọc)
+  editor/compounds.json      P1: nhóm của compound đã đặt (pivot, xoay, thành phần + hash; chỉ editor đọc)
+  compounds/*.json           P1: compound prefab (chỉ trong world prefab-library; chỉ editor đọc)
 ```
 
 Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite gộp vào bundle, vitest đọc cùng cách). Streaming sau này thay nguồn đọc bằng fetch theo chunk, giữ nguyên hợp đồng `read(path)`.
@@ -102,6 +106,8 @@ Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite g�
 
 Room: `localId, name, level?` (M11b: tầng, mặc định 0), `bounds`, `outline? [{x,z}]` (M11a: phòng chữ L/T/U; `bounds` = khung bao; ánh sáng và phép thử trong phòng theo outline; đèn mặc định ở tâm mảnh chữ nhật lớn nhất), `lamp? { localId, name, intensity 0..1, color, requiresElectricity, switchAt {x,z}, at? {x,z} }` (`at`: vị trí đèn trên trần, mặc định tâm phòng; M7 sửa được trong editor, ánh sáng vẫn tính theo cả phòng). Trần nhà = `building.height`.
 
+`placement?` (world generator WG3, chỉ generator đọc; game bỏ qua): `{ category: house|shop|industrial|public|outbuilding, allowedZones: [residential|commercial|industrial|public|forest|farmland|empty], weight > 0, setback ≥ 0, sideGap ≥ 0, roadFacing, entrance? {x,z}, frontage? [min,max], anchors? [{ name, position }] }` — footprint là khung va chạm; thư viện prefab của generator là world ẩn `content/maps/prefab-library` (docs/world-generator-wg3.md).
+
 `retiredLocalIds?` (M5, sắp xếp): local ID đã xóa/đổi tên trong prefab editor; không cấp lại, dùng lại là lỗi `retired-id-reused`.
 
 **Chunk**: `schemaVersion, contentVersion, chunkId, cx, cz`, `instances [{ instanceId, prefabId, position {x,y,z}, quarterTurns, visual? { variantId } }]`, `objects` (wall/prop/container/tree/decor, có `objectId`), `roads [{ roadId, position, size [x,z], color, layer? 0..4 }]` (M7: `layer` là thứ tự vẽ, lớp cao nằm trên chỗ chồng nhau, mỗi lớp cao hơn 1 mm và luôn dưới sàn nhà; mặc định 0, không ghi), `zones [{ zoneId, kind: "zombiePopulation", name, shape: "circle", center, radius } | { …, shape: "rect", center, size [x,z] }]`, `spawns [{ spawnId, kind: "player"|"zombie", position }]`, `externalRefs`.
@@ -147,4 +153,9 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - `npm run map:unpack -- <pack.json> [--out <dir>] [--force] [--world-id <id> [--name <tên>]]`: ghi content pack của editor vào `content/maps/<worldId>/` sau khi validate; cần `--force` để ghi đè; file dữ liệu không đổi thì không ghi lại; file thừa trên đĩa chỉ được báo. `--world-id` ghi pack thành world mới (`forkDocument` trong `src/map/editor/document.ts`, như nút Lưu thành… của editor): `worldId`/tên mới, `contentVersion` 1, bỏ `migrations/…` và `generator` của world gốc, chunk/prefab/ID giữ nguyên. `npm run map:pack -- <world-dir> [out.json]` làm chiều ngược lại.
 - Content pack (`<worldId>.mappack.json`): `{ format: "zombie-outbreak/map-pack", formatVersion: 1, worldId, files: { <đường dẫn tương đối>: <JSON> } }`, thứ tự ổn định, không chứa trạng thái editor. Chi tiết editor: `docs/map-editor-m3.md` … `docs/map-editor-m6.md`, hướng dẫn `docs/map-editor-guide.md`.
 - `npm run map:generate -- --seed <n> --blocks <X>x<Z> [--world-id …] [--out …] [--pack …] [--force] [--dry]` (M6): generator thị trấn tất định `src/map/tools/generator.ts`; không ghi đè world đã sửa tay. `npm run map:check -- --deep`: thêm kiểm tra sâu. Hướng dẫn: `docs/map-editor-guide.md`.
+- `npm run layout:import -- <file.geojson> --id <layout-id> [--out …] [--svg …]` (world generator WG1): GeoJSON → WorldLayout (`zombie-outbreak/world-layout`, file riêng, game không nạp) với mạng đường nắn lưới 0°/90°; xem `docs/world-generator-wg1.md`.
+- `npm run layout:plan -- <file>.layout.json [--svg …] [--pack … --world-id …]` (WG2): mặt đường/vỉa hè/khối/lô vào lớp `plan` của layout; `--pack` xuất world chỉ layout (mặt đường là `RoadRecord` thường, màu nhựa/đất/bê tông, lớp 2/1/0); xem `docs/world-generator-wg2.md`.
+- `layout:plan --mode full` (WG3): thêm nhà từ `content/maps/prefab-library` lên lô, zone và spawn zombie; `--regen-parcels`/`--regen-chunks`/`--set-prefab`; `node scripts/map-tools/prefab-library.ts [--force]` khởi tạo thư viện.
+- WG5: `layout:plan --env 0..1 | --no-env` (mật độ môi trường, lưu ở `plan.environment`). Object môi trường là object chunk thường (`tree`, `decor`, `prop`/`container` với `visual.assetId` `outdoor/*`, gồm `outdoor/streetlight` mới), ID `…/objects/env-<lô>-…` hoặc `…/objects/street-<mặt đường>-…`; xem `docs/world-generator-wg5.md`.
+- WG4: `--pack` kèm `layout/world-layout.json` (layout + manifest hash của mọi record đã sinh), để tab Generator của editor sinh lại mà vẫn giữ phần sửa tay; xem `docs/world-generator-wg4.md`.
 - `src/map/tools/tileWorld.ts`: generator ghép ô N × N rồi phân lại vào lưới chunk; map stress `?stress=N` (chỉ dev) dùng nó. Bundle production không chứa generator và importer.

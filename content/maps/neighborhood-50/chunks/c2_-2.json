@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c2_-2",
+  "cx": 2,
+  "cz": -2,
+  "instances": [
+    {
+      "instanceId": "c2_-2/lot-073c7f11d0",
+      "prefabId": "house/longhouse",
+      "position": { "x": 9.5, "y": 0, "z": 7 },
+      "quarterTurns": 2
+    },
+    {
+      "instanceId": "c2_-2/lot-1516716bb4",
+      "prefabId": "building/house",
+      "position": { "x": 25.5, "y": 0, "z": 6 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c2_-2/objects/env-lot-073c7f11d0-tree-1",
+      "position": { "x": 3.476393, "z": 0.4 },
+      "height": 5.55868,
+      "canopy": 1.382315,
+      "trunk": 0.2,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-2/objects/env-lot-073c7f11d0-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 3.3, "y": 0, "z": 2.6 },
+      "yaw": 80
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-2/objects/env-lot-073c7f11d0-bush-2",
+      "assetId": "decor/bush",
+      "position": { "x": 15.7, "y": 0, "z": 2.6 },
+      "yaw": 150
+    },
+    {
+      "kind": "decor",
+      "objectId": "c2_-2/objects/env-lot-073c7f11d0-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 13.345802, "y": 0, "z": 2.666363 },
+      "yaw": 120
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_-2/objects/env-lot-073c7f11d0-fence-1",
+      "position": { "x": 9.25, "y": 0.5, "z": 15.7 },
+      "size": [15.3, 1, 0.12],
+      "color": "#6b5a44",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "container",
+      "objectId": "c2_-2/objects/env-lot-073c7f11d0-bin-1",
+      "position": { "x": 2, "y": 0.55, "z": 0.7 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#4a4a4a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 2 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_-2/objects/env-lot-073c7f11d0-mailbox-1",
+      "position": { "x": 11.4, "y": 0.6, "z": 0 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c2_-2/objects/env-lot-1516716bb4-tree-1",
+      "position": { "x": 19.579334, "z": 0.4 },
+      "height": 5.614472,
+      "canopy": 1.397193,
+      "trunk": 0.2,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c2_-2/objects/env-lot-1516716bb4-tree-2",
+      "position": { "x": 26.090022, "z": 0.4 },
+      "height": 5.758486,
+      "canopy": 1.435596,
+      "trunk": 0.2,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c2_-2/objects/env-lot-1516716bb4-tree-3",
+      "position": { "x": 31.3, "z": 13.6 },
+      "height": 5.900446,
+      "canopy": 1.960178,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c2_-2/objects/env-lot-1516716bb4-mailbox-1",
+      "position": { "x": 22.3, "y": 0.6, "z": 1.4 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 2 }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c2_-2/objects/env-lot-15608d0039-tree-1",
+      "position": { "x": 1.9, "z": 19.631445 },
+      "height": 5.228792,
+      "canopy": 1.294344,
+      "trunk": 0.2,
+      "color": "#5b7f3a",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [
+    {
+      "zoneId": "c3_-2/zones/block-1aa45cb4bc",
+      "kind": "zombiePopulation",
+      "name": "Khu dân cư 6",
+      "shape": "rect",
+      "center": { "x": 18.675, "z": 7.725 },
+      "size": [77.75, 14.55]
+    }
+  ],
+  "spawns": [{ "spawnId": "c2_-2/spawns/zombie-1aa45cb4bc-1", "kind": "zombie", "position": { "x": 7.3, "z": 1.95 } }],
+  "externalRefs": [
+    { "id": "c0_-2/zones/block-01bfcf9441", "ownerChunkId": "c1_-2" },
+    { "id": "c1_-2/roads/sidewalk-0f3501fe", "ownerChunkId": "c1_-2" },
+    { "id": "c2_-1/hospital-hospital-1", "ownerChunkId": "c2_-1" }
+  ]
+}

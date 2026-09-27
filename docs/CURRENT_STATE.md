@@ -1,14 +1,152 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-27**, **hoàn thành Combat CS1** (`docs/Combat_Stance_Input_Sprint_Plan.md`; chi tiết docs/combat-cs1a.md, docs/combat-cs1b.md, bàn giao **docs/combat-cs1c.md**): giữ chuột phải = thế chiến đấu (Hold/Toggle), chuột trái chỉ đánh trong thế, đòn quay người rồi mới vung theo hướng đã chốt, đệm một click, E ưu tiên vật dưới con trỏ có vòng highlight. Trước đó: kế hoạch nhân vật/zombie C0–C6 (sổ tay **docs/character-handbook.md**), đồ họa G0–G6 (sổ tay **docs/graphics-handbook.md**).
+> Cập nhật: **2026-09-27**, **world mặc định thành Thị trấn Ngã Tư** (16 × 16 chunk, chi tiết **docs/town-neighborhood-50.md**): khu 50 m cũ giữ nguyên ở giữa, quanh là đường vành đai, đại lộ, ngõ cụt, đủ prefab và compound của thư viện, rìa là rừng; content v2 có migration; thêm 11 asset nội thất. Trước đó **Prefab library P1–P5 hoàn tất** trên nhánh `feature/prefab-library`, đã merge vào `feature/world-generator` (nội dung P2–P5 ở **docs/prefab-library-p2-p5.md**): 37 prefab và 10 compound trong thư viện chung, gồm nhà ở, dịch vụ, bệnh viện, đồn cảnh sát, trường cấp ba, đại học, nhà tù, nghĩa trang, công viên, hồ nước; bộ dựng có kiểm tra tiếp cận theo quy tắc deep check; sửa lỗi nav tầng trên giữa nhiều nhà và lỗi spawn zombie bị kẹt. Trước đó **Prefab library P1** (chi tiết **docs/prefab-library-p1.md**): thư viện chung trong editor (world `prefab-library`), nhập bản sao có nguồn/phiên bản/hash, cập nhật có xem trước và chặn khi mất ID có trạng thái, object `surface` (cỏ, bê tông, nhựa, đất, gạch lát, nước chặn đi lại), compound prefab thành record thường cộng nhóm trong editor, phong cách kiến trúc cho generator. P2–P5 (nội dung) chưa làm. Trước đó **World generator WG6 — sprint cuối** trên nhánh `feature/world-generator` (chi tiết và tổng kết WG1–WG6 ở **docs/world-generator-wg6.md**): tab Bản vẽ (ảnh tham chiếu, hiệu chỉnh, đo tỷ lệ, vẽ đường/giao lộ/vùng), trích xuất thay thế được về cùng WorldLayout, cập nhật world từ bản vẽ hoặc GeoJSON đã sửa với khung ghim. Trước đó **WG5** (chi tiết **docs/world-generator-wg5.md**): môi trường cho world FULL (cây, bụi, rào, thùng rác, hộp thư, đèn đường, xe đỗ/bỏ hoang, rác) theo quy tắc không chắn cửa/lối/đường, Web Worker + Hủy trong editor, gộp mặt đường trong game, test save/load. Trước đó **WG4** (`docs/writing-block.md`; chi tiết **docs/world-generator-wg4.md**, trước đó wg1–wg3): tab Generator trong Map Editor (tạo world từ GeoJSON, lớp phủ layout, chọn lô, khóa, thay prefab, sinh lại lô/chunk/world có xem trước, undo), layout lưu cùng world trong `layout/world-layout.json` với manifest hash (generated/modified/locked/manual), world đã phát hành chỉ xem (Q3). Trước đó: **hoàn thành Combat CS1** (`docs/Combat_Stance_Input_Sprint_Plan.md`; chi tiết docs/combat-cs1a.md, docs/combat-cs1b.md, bàn giao **docs/combat-cs1c.md**): giữ chuột phải = thế chiến đấu (Hold/Toggle), chuột trái chỉ đánh trong thế, đòn quay người rồi mới vung theo hướng đã chốt, đệm một click, E ưu tiên vật dưới con trỏ có vòng highlight. Trước đó: kế hoạch nhân vật/zombie C0–C6 (sổ tay **docs/character-handbook.md**), đồ họa G0–G6 (sổ tay **docs/graphics-handbook.md**).
+> **Prefab library P1 → P5 (chủ dự án quyết định 2026-09-27, D1–D8 trong docs/prefab-library-p1.md §0):** mỗi sprint có tiêu chí nghiệm thu, build, test, kiểm tra hồi quy, commit và **push lên nhánh `feature/prefab-library`, không merge vào master**; không làm nội dung P2–P5 trước khi P1 chạy và đã kiểm thử.
+> **World generator WG1 → WG6 (chủ dự án quyết định 2026-09-27, Q1–Q9 trong docs/world-generator-wg1.md §0):** mỗi sprint có tiêu chí nghiệm thu + test, build/test sạch rồi commit và **push lên nhánh `feature/world-generator`, không merge vào master**; làm một sprint mỗi yêu cầu, dừng báo cáo; không làm sprint sau khi còn hồi quy nghiêm trọng.
 > **Đợt chạy combat CS1a → CS1c (chủ dự án cho phép 2026-09-27):** mỗi sprint xong thì tự commit + push lên master rồi làm tiếp, dùng khuyến nghị của agent khi cần quyết định.
 > **Đợt chạy nhân vật C0 → C6 (chủ dự án cho phép 2026-09-27):** mỗi sprint xong thì tự commit + push lên master rồi làm tiếp sprint sau, dùng khuyến nghị của agent khi cần quyết định. Ghi chú từng sprint: docs/character-c0.md …
 > **Đợt chạy qua đêm G3b → G6 (chủ dự án cho phép 2026-09-27):** mỗi sprint xong thì tự commit + push lên master rồi làm tiếp sprint sau, tự quyết theo khuyến nghị khi cần chỉnh; chủ dự án kiểm tra vào sáng hôm sau. Ngoài đợt này vẫn giữ quy tắc người dùng tự commit. Lộ trình đồ họa đã chốt: G0 → G1 vật liệu/texture → G2 module kiến trúc → G3a đồ đạc / G3b cụm trang trí + biến thể → G4 ánh sáng/tiếp xúc/cảnh quan → G5/G6 editor, hiệu năng, quality tier, rollout. Làm **từng sprint**, dừng sau mỗi sprint để người dùng kiểm tra và commit.
 > Quyết định đồ họa của chủ dự án (áp dụng G1–G6): texture tự sinh bằng code, sinh một lần và cache, seed ổn định, registry thay được bằng file sau này; UV thế giới chỉ cho đường/đất/mặt lớn, đồ đạc/cửa/module xoay dùng UV cục bộ cùng tỷ lệ vật lý; trường `visual` tùy chọn, gọn (`variantId`, `materialSetId`), không đổi ID/collider/loot/save; mục tiêu 60 FPS ở Medium trên máy hiện tại; mọi số đo ghi rõ môi trường, median/p95.
-> Đọc file này, **docs/Combat_Stance_Input_Sprint_Plan.md**, **docs/combat-cs1a.md**, **docs/combat-cs1b.md**, **docs/combat-cs1c.md**, **docs/Character_Zombie_Model_Animation_Plan.md**, **docs/character-c0.md**, **docs/character-c1.md**, **docs/character-c2.md**, **docs/character-c3.md**, **docs/character-c4.md**, **docs/character-c5.md**, **docs/character-c6.md**, **docs/character-handbook.md**, **docs/Graphics_Improvement_Implementation_Plan.md**, **docs/graphics-g0.md**, **docs/graphics-g1.md**, **docs/graphics-g2.md**, **docs/graphics-g3a.md**, **docs/graphics-g3b.md**, **docs/graphics-g4.md**, **docs/graphics-g5.md**, **docs/graphics-g6.md**, **docs/graphics-handbook.md**, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-m11c2.md**, **docs/map-editor-guide.md**.
+> Đọc file này, **docs/town-neighborhood-50.md**, **docs/prefab-library-p1.md**, **docs/prefab-library-p2-p5.md**, **docs/writing-block.md**, **docs/world-generator-wg1.md**, **docs/world-generator-wg2.md**, **docs/world-generator-wg3.md**, **docs/world-generator-wg4.md**, **docs/world-generator-wg5.md**, **docs/world-generator-wg6.md**, **docs/Combat_Stance_Input_Sprint_Plan.md**, **docs/combat-cs1a.md**, **docs/combat-cs1b.md**, **docs/combat-cs1c.md**, **docs/Character_Zombie_Model_Animation_Plan.md**, **docs/character-c0.md**, **docs/character-c1.md**, **docs/character-c2.md**, **docs/character-c3.md**, **docs/character-c4.md**, **docs/character-c5.md**, **docs/character-c6.md**, **docs/character-handbook.md**, **docs/Graphics_Improvement_Implementation_Plan.md**, **docs/graphics-g0.md**, **docs/graphics-g1.md**, **docs/graphics-g2.md**, **docs/graphics-g3a.md**, **docs/graphics-g3b.md**, **docs/graphics-g4.md**, **docs/graphics-g5.md**, **docs/graphics-g6.md**, **docs/graphics-handbook.md**, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-m11c2.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0-CS1c. Combat CS1c — tương tác E, nghiệm thu, bàn giao (mới nhất — chi tiết docs/combat-cs1c.md)
+## 0-T. Thị trấn Ngã Tư — world mặc định 16 × 16 chunk (mới nhất — chi tiết docs/town-neighborhood-50.md)
+
+- **Script:** `scripts/map-tools/town-build.ts` chạy trên world 50 m gốc. Script viết bản đồ đường, phân khu và vị trí compound dưới dạng GeoJSON, sau đó chạy generator WG (lô, nhà, môi trường, rừng). Kết quả là 16 × 16 chunk, vùng chơi ±254 m, content v2 (`migrations/content-v1.json`).
+- **Nội dung:** 38 prefab (đủ 37 prefab thư viện), 310 instance, 10 compound đặt ở vị trí riêng, 173 đoạn đường, 2073 cây; validate 0 cảnh báo, `map:check --deep` OK.
+- **Asset:** 11 asset nội thất mới (bệnh viện, xưởng, ngân hàng, nghĩa trang, công viên, sân trường).
+- **Thay đổi đi kèm:** nhà ống và shophouse có `sideGap` 0.1 m, để tường hai nhà liền kề không chồng nhau.
+- **Giới hạn:** world mặc định đóng gói sẵn, chunk `index` khoảng 1.3 MB, dựng world mất khoảng 0.25 s lúc khởi động.
+
+## 0-P5. Prefab library P2–P5 — nội dung thư viện chung (chi tiết docs/prefab-library-p2-p5.md)
+
+- **Công cụ:** `scripts/map-tools/library/` gồm `builder.ts` (bộ dựng prefab/compound), `access.ts` (quy tắc deep check chạy trong Node), `debug.ts` và `why.ts` (sơ đồ lưới nav, vật cản), các file thiết kế `p2-houses.ts` … `p5-landscape.ts`. Trình chạy: `node scripts/map-tools/library-build.ts <p2|p3|p4|p5>`.
+- **Nội dung:** P2 có 13 nhà; P3 có 5 công trình dịch vụ; P4 có 5 công trình công cộng và 4 compound; P5 có 4 prefab và 5 compound. 11 bảng loot theo địa điểm (`lootTables.ts`, chỉ dùng item có sẵn).
+- **Sửa lỗi:**
+  - `navLayers.ts`: lưới tầng của mỗi nhà chỉ nhận cửa và cửa sổ của chính nhà đó (`buildingId`);
+  - `layoutWorld.ts`: điểm spawn zombie phải nối được với điểm xuất phát của người chơi.
+- **Test:** `libraryContent.test.ts` chạy deep check thật cho từng prefab và compound khi đứng riêng, cộng một test hồi quy nav nhiều nhà.
+- **Kiểm chứng:** `npm test` 941 pass, 13 skip; build, check:bundle, map:check --deep sạch.
+
+## 0-P1. Prefab library P1 — thư viện chung, surface, compound (chi tiết docs/prefab-library-p1.md)
+
+- **Schema**: `SurfaceObject` (prefab, chunk, compound), `PrefabDocument.catalog` / `source`, `CompoundDocument`; runtime `MapData.surfaces`, `navBlockers`, `WallDef.hidden` (tường chắn vô hình của surface solid).
+- **Module**: `src/map/editor/library.ts` (thư viện, hash, trạng thái, nhập, liên kết, kế hoạch cập nhật prefab/compound, đặt và lưu compound), `groups.ts` (nhóm trong `editor/compounds.json`, xoay/dời/nhân bản/xóa cả nhóm), `surfaces.ts`; `commands.ts` biết về nhóm, thêm `writeRecords`.
+- **Editor**: tab Prefab → Thư viện chung (`LibraryPanel.tsx`), hộp thoại cập nhật và lưu compound, Inspector nhóm, Alt+click, Ctrl+G / Ctrl+Shift+G, preset surface ở tab Nền (world và prefab), ô Phong cách ở tab Generator.
+- **Game**: `Surfaces` trong Scene (gộp theo ô, vật liệu, màu), texture `water`; `compounds/` và `editor/` không vào bundle game.
+- **Kiểm chứng**: 24 test mới, `npm test` 892 pass (+13 skip); tsc, oxlint, build, build:editor, check:bundle, map:check --deep sạch; trình duyệt: thư viện, nhập, đặt compound, nhóm, chơi thử.
+- **Tiếp theo**: P2–P5 (đã làm, xem mục 0-P5).
+
+## 0-WG6. World generator WG6 — ảnh tham chiếu và vẽ tay, sprint cuối (chi tiết docs/world-generator-wg6.md)
+
+- **`src/map/layout/reference.ts`**:
+  - dữ liệu `layout/reference.json`: ảnh dạng data URL tối đa 16 MB, hiệu chỉnh, nét vẽ theo pixel;
+  - `referenceTransform` (mặc định / 1 điểm / đồng dạng / affine), `measureScale`;
+  - `addRoad` tự tạo giao lộ khi cắt nhau, `snapRoadPoint`, `markJunction`, `moveVertex`, `featureAt`;
+  - `LayoutExtractor` + `HAND_TRACING` → GeoJSON mét cục bộ → importer WG1.
+- **Cập nhật world từ reference**:
+  - `OrthogonalParams.offset` (khung ghim), `reimportLayout`, `syncGenerated({ kind: 'layout' })`;
+  - lô khóa, lô chọn tay, lô sửa tay được giữ nếu còn vừa; xem trước rồi Áp dụng; Q3 chặn world đã phát hành.
+- **Editor**:
+  - tab Bản vẽ (`ReferencePanel.tsx`, `ReferenceOverlay.tsx`, công cụ `trace`, phím Enter/Esc/Backspace/Delete, kéo đỉnh);
+  - "Cập nhật từ GeoJSON…" trong tab Generator;
+  - `check:bundle` có marker `layout-reference`.
+- **Kiểm chứng**: 11 test mới, `npm test` 868 pass (+13 skip); tsc, oxlint, build, build:editor, check:bundle, map:check sạch; trình duyệt: ảnh canvas → đo 0,400 m/px → vẽ → tạo world (116 nhà, Validate 0/0, ảnh khớp đường) → vẽ thêm → cập nhật → unpack → deep check sạch.
+- **Giới hạn**: dải đất ngoài là một khối (thêm đường chạm vào sẽ chia lại cả dải); nét 1 px; nút hơn 4 nhánh bị từ chối (Q1).
+- **World generator WG1–WG6 hoàn tất** trên nhánh `feature/world-generator` (chưa merge vào master theo Q9).
+
+## 0-WG5. World generator WG5 — môi trường, lưu trữ, hiệu năng (đã commit 081c632 — chi tiết docs/world-generator-wg5.md)
+
+- **Môi trường** `src/map/layout/environment.ts`:
+  - tạo cây, bụi, cỏ, rào sau lô, thùng rác (container), hộp thư (điểm neo `mailbox`), đèn đường (asset mới `outdoor/streetlight`), xe đỗ và xe bỏ hoang (container), giấy, lon, lốp, vệt dầu;
+  - không chắn cửa, lối vào hay nhà; xe luôn chừa một làn 3,5 m; mọi thứ nằm trong vùng chơi;
+  - `plan.environment` (mật độ + 7 cờ); `checkEnvironment`;
+  - đồ của lô thuộc lô trong manifest.
+- **Hiệu năng**:
+  - `generatorWorker.ts` / `generatorJobs.ts` (Hủy = terminate), bản vá `docPatch.ts`;
+  - `RectIndex`; sinh world dày nhanh hơn khoảng 3–6 lần;
+  - `roadBatches.ts`: mặt đường gộp theo ô 128 m × màu.
+- **Lưu trữ**: `persistence.test.ts` (save/load trên world sinh ra; dữ liệu generator không vào save; save cũ của world đã sinh lại bị từ chối).
+- **CLI**: `layout:plan --env 0..1 | --no-env`. **Editor**: mục Môi trường trong Mới/Sinh lại world, preset "Đèn đường".
+- **Kiểm chứng**: `npm test` 857 pass (+13 skip); tsc, oxlint, build, build:editor, check:bundle, map:check --deep sạch; trình duyệt: worker không chặn UI, Hủy, sinh lại, chơi được (26 zombie, 225 draw call khi nhìn gần).
+- **Giới hạn**: đèn không phát sáng; xe thẳng trục; chỉ rào sau; worker chưa báo phần trăm.
+- **Tiếp theo**: WG6 (đã làm, xem mục 0-WG6).
+
+## 0-WG4. World generator WG4 — tích hợp Map Editor (đã commit 2f8da0e — chi tiết docs/world-generator-wg4.md)
+
+- **Layout cùng world**: file extra `layout/world-layout.json` (layout + plan + manifest `generated`), đi theo undo/nháp/export/Lưu thành…/`map:unpack`. Game không nạp: glob game bỏ `content/maps/*/layout/**`, editor đọc qua `src/editor/layoutFiles.ts`. `layout:plan --pack` cũng ghi file này.
+- **`src/map/layout/worldSync.ts`**:
+  - `createLayoutWorld`, `documentLayout`, `generatorStatus` (generated / modified: edited, deleted, chosen / locked / manual; trạng thái lô);
+  - `syncGenerated` (world, parcels, chunks, prefab, revert, lock): trộn kết quả mới, giữ record sửa tay trừ khi ghi đè, không bao giờ đụng record khóa hay đặt tay, báo xung đột ID, `manual-overlap`;
+  - cùng tham số thì giữ nguyên lô.
+- **Editor**:
+  - `src/map/editor/generator.ts`: thư viện, quy tắc Q3, tạo world từ GeoJSON;
+  - store: công cụ `parcel`, `layoutView`, `selectedParcel`, `genPending` (xem trước → Áp dụng/Hủy), `generate`;
+  - `GeneratorPanel.tsx`, `LayoutOverlay.tsx`, mục Generator trong Inspector, Mới → Từ GeoJSON.
+- **Q3**: world trong `content/maps` chỉ xem và khóa; Lưu thành… để sinh lại.
+- **Kiểm chứng**:
+  - 31 test mới, `npm test` 841 pass (+13 skip); tsc, oxlint, build, build:editor, check:bundle (marker generator mới), map:check sạch;
+  - trình duyệt: tạo → chọn lô → khóa → thay prefab → sinh lại lô → kéo nhà → seed 7 xem trước/áp dụng → undo → export → unpack → chơi (26 zombie) → mở lại bị chặn Q3.
+- **Giới hạn**: sinh lại chạy main thread (WG5 Worker); chưa nhập lại GeoJSON vào world có sẵn; không có script Playwright riêng (máy thiếu gói Node).
+- **Tiếp theo**: WG5 môi trường + lưu trữ/hiệu năng + gộp mặt đường, đợi yêu cầu.
+
+## 0-WG3. World generator WG3 — thư viện prefab, placement, công trình, FULL (đã commit afc6348 — chi tiết docs/world-generator-wg3.md)
+
+- **Prefab**: trường tùy chọn `placement` (category, allowedZones, weight, setback, sideGap, roadFacing, entrance?, frontage?, anchors?) trong `schema.ts`; validator `checkPlacement`; `updatePrefab` nhận `placement`; `LAND_USE_ZONES` chuyển về schema map.
+- **Thư viện** `content/maps/prefab-library` (`listed: false`, showroom 6 × 2 chunk):
+  - 6 nhà có sẵn + 4 prefab tạm dựng bằng lệnh prefab của editor (tiệm góc phố, nhà kho, trạm y tế, nhà ống 4 × 14);
+  - script khởi tạo `scripts/map-tools/prefab-library.ts` (sau đó sửa trong editor).
+- **Đặt nhà** `src/map/layout/buildings.ts`:
+  - lô → prefab hợp zone/frontage → xoay cửa ra đường → vừa khoảng lùi, không co giãn → pivot trên lưới 0,5 m (mép lô thu vào lưới) → chọn theo weight;
+  - tỉ lệ bỏ trống theo zone; `parcel.build` (`source` generated/manual);
+  - `placeBuildings` (chọn lọc theo lô/chunk, lô khóa không đụng); `setParcelPrefab`; `checkBuildings`;
+  - `replan` giữ lô khóa và công trình chọn tay.
+- **World FULL** (`layoutWorld.ts`): instance `<chunk>/<lot-id>`, prefab dùng, zone zombie mỗi khối, spawn ngoài trời.
+- **CLI**: `layout:plan --mode full [--regen-parcels …] [--regen-chunks …] [--salt n] [--set-prefab lot=prefab|none] [--library …]`.
+- **Sửa lỗi** `analysis.ts`: `zone-unreachable` so component NavWorld với NavGrid, báo sai trong world có cầu thang.
+- **Kiểm chứng**:
+  - 22 test mới, `npm test` 810 pass (+10 skip); tsc, oxlint, build, build:editor, check:bundle, map:check --deep sạch;
+  - kiểm tra sâu world FULL: mọi cửa/tủ/spawn tới được;
+  - trình duyệt: game (92 nhà) và editor 0 lỗi/cảnh báo.
+- **Giới hạn**: chưa có môi trường (WG5); thư viện nhỏ; zone chỉ trên nhánh lớn nhất của khối; chưa có UI (WG4).
+- **Tiếp theo**: WG4 tích hợp editor (xem kế hoạch/lô, khóa, thay prefab, sinh lại, generated/modified/locked), đợi yêu cầu.
+
+## 0-WG2. World generator WG2 — mặt đường, vỉa hè, khối, lô (đã commit 0165f12 — chi tiết docs/world-generator-wg2.md)
+
+- **Planner thuần** `src/map/layout/`:
+  - `streets.ts`: mặt nhựa mỗi phố một dải liền qua giao lộ, chỉ chồng ở ô giao lộ cùng mặt/lớp; vỉa hè theo phía tag, kín góc, trừ mặt đường; đường đất lớp dưới;
+  - `parcels.ts`: vùng cấm raster 2 m, khối = đất trống trên lưới nén `rects.ts`, tách theo mặt tiền, dãy lô bắc/nam + cột đông/tây, lô bên trong;
+  - `plan.ts`: profile `default`/`vn-urban` + ghi đè zone, hẻm service 3,5 m vào khối sâu, `replan` giữ lô khóa / chỉ chia lại khối chọn, `checkPlan`;
+  - `layoutWorld.ts`: world chỉ layout (`RoadRecord` + hàng rào + spawn ở giao lộ, validator sạch).
+- **Định dạng**: WorldLayout thêm `plan?` (`surfaces`, `accessRoads`, `blocks`, `parcels` có id/đa giác/zone/kind/access/buildable/seed/locked, `metrics`, `issues`); validator layout kiểm `plan`.
+- **CLI**: `npm run layout:plan -- <file>.layout.json [--svg …] [--pack … --world-id …] [--seed] [--profile] [--blocks …] [--reset]`.
+- **Kiểm chứng**:
+  - 25 test mới, `npm test` 788 pass (+10 skip); tsc, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - lưới 500 m: kế hoạch 0,17–0,22 s;
+  - trình duyệt: game và editor mở world fixture (0 lỗi/cảnh báo), vạch giữa + bó vỉa đúng.
+- **Giới hạn**: ~4 record vỉa hè/khối (game vẽ mỗi record một mesh, gộp batch ở WG5); cầu phẳng; lô chữ nhật; chưa có nhà/zone zombie (WG3), chưa có UI (WG4).
+- **Tiếp theo**: WG3 thư viện prefab (world ẩn) + metadata placement + đặt prefab, chế độ LAYOUT_ONLY/FULL, đợi yêu cầu.
+
+## 0-WG1. World generator WG1 — WorldLayout từ GeoJSON, tọa độ, nắn lưới (đã commit 36a37c4 — chi tiết docs/world-generator-wg1.md)
+
+- **Module thuần** `src/map/layout/` (không Three.js, không đổi game/editor/schema map/save):
+  - `coordinates.ts` (WorldCoordinateTransformer: WGS84 → mặt phẳng tiếp xúc, X đông / Z nam; Web Mercator; khung nắn; ảnh → world similarity/affine; world → chunk editor);
+  - `geojson.ts` (phân loại tag OSM + `worldgen:*`, cắt vùng, ID ổn định);
+  - `network.ts` (node/cạnh, nối chỗ hở ≤ 1 m có cảnh báo, giao cắt không node giữ nguyên);
+  - `orthogonalize.ts` (xoay theo hướng chủ đạo, Douglas–Peucker, bậc thang cho đoạn chéo, cổng hướng tại node, nhóm ràng buộc union–find, lưới);
+  - `importer.ts` (pipeline, `renormalize`, đọc/ghi/kiểm tra file); `chunks.ts` (sở hữu chunk); `preview.ts` (SVG).
+- **Định dạng** `zombie-outbreak/world-layout` v1:
+  - lớp gốc (`roads`, `network`, `zones`, `restricted`, `buildings`, `parcels`) không bao giờ bị sửa;
+  - lớp `normalized` (method `orthogonal`, cùng ID) có số đo và `valid`. Gộp node, giao lộ sai, chồng đường, nút > 4 nhánh là lỗi.
+- **CLI** `npm run layout:import -- <file.geojson> --id … [--out …] [--svg …] [--clip 500x500] [--grid 1] …`.
+- **Kiểm chứng**:
+  - 67 test mới, `npm test` 763 pass (+10 skip); `tsc -b`, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - lưới 500 m (840 cạnh) 23 ms;
+  - preview fixture đã xem bằng Chrome.
+- **Giới hạn**: đường chéo/cong thành bậc thang; đường đôi OSM chưa gộp; vùng đất chưa nắn; chưa có UI (WG4) và vẽ tay trên ảnh (WG6).
+- **Tiếp theo**: WG2 mạng đường → mặt đường/vỉa hè/giao lộ dạng record hiện có + chia lô, đợi yêu cầu.
+
+## 0-CS1c. Combat CS1c — tương tác E, nghiệm thu, bàn giao (đã commit e9e682c — chi tiết docs/combat-cs1c.md)
 
 - **E**: `selectInteractable` ưu tiên vật dưới con trỏ (tia camera lấy ở độ cao vật, trong tầm, không sau tường), nếu không thì gần nhất phía trước; giữ mục tiêu hiện tại trừ khi vật khác tốt hơn ≥ 0,25 (hai tủ cạnh nhau không nhấp nháy). E cùng frame với click đánh: đòn thắng.
 - **Highlight**: `rendering/InteractHighlight.tsx` — vòng vàng nhấp nháy dưới đúng vật của prompt.

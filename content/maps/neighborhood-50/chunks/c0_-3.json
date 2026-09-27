@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_-3",
+  "cx": 0,
+  "cz": -3,
+  "instances": [
+    {
+      "instanceId": "c0_-3/lot-1065374295",
+      "prefabId": "library/tube-house",
+      "position": { "x": 14.5, "y": 0, "z": 13.5 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c0_-3/lot-1168a81996",
+      "prefabId": "library/tube-house",
+      "position": { "x": 27, "y": 0, "z": 13.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c0_-3/objects/env-lot-0ea523e40e-tree-1",
+      "position": { "x": 31.894703, "z": 19.6 },
+      "height": 5.705283,
+      "canopy": 1.421409,
+      "trunk": 0.2,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "container",
+      "objectId": "c0_-3/objects/env-lot-0ea523e40e-bin-1",
+      "position": { "x": 31, "y": 0.55, "z": 19.3 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#2f3f5a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 0 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-3/objects/env-lot-1065374295-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 13.572537, "y": 0, "z": 8.039992 },
+      "yaw": 10
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-3/objects/env-lot-1065374295-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 14.472385, "y": 0, "z": 17.556317 },
+      "yaw": 110
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-3/objects/env-lot-1bd9cb1929-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 21.31476, "y": 0, "z": 9.76857 },
+      "yaw": 50
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_-3/objects/street-asphalt-0f98c1d2-car-1",
+      "position": { "x": 22.75, "y": 0.7, "z": 23.9 },
+      "size": [4, 1.4, 2],
+      "color": "#2f3b34",
+      "visual": { "assetId": "outdoor/car", "facing": 1 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_-3/objects/street-sidewalk-11b248e1-streetlight-7",
+      "position": { "x": 2.6, "y": 2.1, "z": 14.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_-3/objects/street-sidewalk-1cc78b71-streetlight-1",
+      "position": { "x": 6.25, "y": 2.1, "z": 22.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_-3/objects/street-sidewalk-1cc78b71-streetlight-2",
+      "position": { "x": 29.05, "y": 2.1, "z": 22.4 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_-3/objects/street-sidewalk-066a0252-streetlight-1",
+      "position": { "x": 6.25, "y": 2.1, "z": 29.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_-3/objects/street-sidewalk-066a0252-streetlight-2",
+      "position": { "x": 29.05, "y": 2.1, "z": 29.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_-3/objects/street-sidewalk-066a0252-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 8.641149, "y": 0, "z": 30.35 },
+      "yaw": 160
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c0_-3/roads/sidewalk-1cc78b71",
+      "position": { "x": 29.625, "z": 21.65 },
+      "size": [54.75, 2.2],
+      "color": "#a19d94"
+    },
+    {
+      "roadId": "c0_-3/roads/sidewalk-066a0252",
+      "position": { "x": 29.625, "z": 30.35 },
+      "size": [54.75, 2.2],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_-4/roads/asphalt-1c2a7c47", "ownerChunkId": "c-1_-4" },
+    { "id": "c-4_-3/roads/asphalt-0a8d5057", "ownerChunkId": "c-4_-3" },
+    { "id": "c0_-2/lot-041e7c923c", "ownerChunkId": "c0_-2" },
+    { "id": "c0_-2/lot-0ba8471ad2", "ownerChunkId": "c0_-2" },
+    { "id": "c0_-2/lot-15b62757da", "ownerChunkId": "c0_-2" },
+    { "id": "c0_-2/roads/sidewalk-1504c402", "ownerChunkId": "c0_-2" },
+    { "id": "c0_-4/lot-0e91a12421", "ownerChunkId": "c0_-4" },
+    { "id": "c0_-5/roads/sidewalk-11b248e1", "ownerChunkId": "c0_-5" },
+    { "id": "c1_-2/lot-059936a900", "ownerChunkId": "c1_-2" },
+    { "id": "c3_-3/roads/asphalt-0f98c1d2", "ownerChunkId": "c3_-3" }
+  ]
+}

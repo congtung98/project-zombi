@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-5_1",
+  "cx": -5,
+  "cz": 1,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c-5_1/objects/env-lot-146adc3eb8-grass-3",
+      "assetId": "decor/grass",
+      "position": { "x": 7.888316, "y": 0, "z": 5.486297 },
+      "yaw": 40
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-5_1/objects/env-lot-1e005b1fff-tree-1",
+      "position": { "x": 20.3, "z": 15.4 },
+      "height": 6.042771,
+      "canopy": 2.017108,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-5_2/lot-14cd1014e7", "ownerChunkId": "c-5_2" },
+    { "id": "c-5_2/lot-1e005b1fff", "ownerChunkId": "c-5_2" },
+    { "id": "c-6_1/objects/env-lot-11c8013ea7-fence-1", "ownerChunkId": "c-6_1" },
+    { "id": "c-6_2/lot-11c8013ea7", "ownerChunkId": "c-6_2" }
+  ]
+}

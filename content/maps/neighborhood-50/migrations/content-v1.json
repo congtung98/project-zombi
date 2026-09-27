@@ -1,0 +1,44 @@
+{
+  "format": "zombie-outbreak/content-migration",
+  "fromVersion": 1,
+  "toVersion": 2,
+  "ids": {
+    "doors": ["c-1_-1/safehouse/door", "c0_-1/store/door", "c0_0/house/door", "c0_0/house/door-bedroom"],
+    "containers": [
+      { "id": "c-1_-1/safehouse/cabinet", "position": { "x": -17, "z": -17.4 } },
+      { "id": "c-1_-1/safehouse/closet", "position": { "x": -10.5, "z": -15.5 } },
+      { "id": "c-1_-1/safehouse/toolbox", "position": { "x": -17.5, "z": -13 } },
+      { "id": "c-1_0/objects/park-toolbox", "position": { "x": -21.5, "z": 12.5 } },
+      { "id": "c0_-1/store/fridge", "position": { "x": 18.3, "z": -11 } },
+      { "id": "c0_-1/store/hardware", "position": { "x": 18.45, "z": -14.3 } },
+      { "id": "c0_-1/store/shelf-1", "position": { "x": 9, "z": -16.4 } },
+      { "id": "c0_-1/store/shelf-2", "position": { "x": 13, "z": -16.4 } },
+      { "id": "c0_-1/store/shelf-3", "position": { "x": 17, "z": -16.4 } },
+      { "id": "c0_-1/store/tools", "position": { "x": 7.5, "z": -12.5 } },
+      { "id": "c0_0/house/kitchen", "position": { "x": 9.6, "z": 14.9 } },
+      { "id": "c0_0/house/nightstand", "position": { "x": 17.05, "z": 12 } },
+      { "id": "c0_0/house/wardrobe", "position": { "x": 16.5, "z": 14.9 } },
+      { "id": "c0_0/objects/house-scrap", "position": { "x": 20.5, "z": 12 } }
+    ],
+    "windows": [
+      "c-1_-1/safehouse/win-e",
+      "c-1_-1/safehouse/win-n",
+      "c0_-1/store/win-s1",
+      "c0_-1/store/win-s2",
+      "c0_0/house/win-n",
+      "c0_0/house/win-w"
+    ],
+    "lamps": ["c-1_-1/safehouse/lamp", "c0_-1/store/lamp", "c0_0/house/lamp-bedroom", "c0_0/house/lamp-living"],
+    "zones": [
+      "c-1_-1/zones/cross",
+      "c-1_-1/zones/north",
+      "c-1_-1/zones/west",
+      "c-1_0/zones/park",
+      "c0_-1/zones/store",
+      "c0_0/zones/east",
+      "c0_0/zones/south",
+      "c0_0/zones/yard"
+    ]
+  },
+  "renamed": {}
+}

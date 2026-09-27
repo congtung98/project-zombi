@@ -1,5 +1,6 @@
 import { addChunk, deleteRecords, duplicateRecords, moveRecords, placeInstance, placeRecord, removeChunk, rotateRecords, type CommandResult } from '../map/editor/commands'
-import { instancesOf, resolvedRecords, type MapDocument } from '../map/editor/document'
+import { findRecord, instancesOf, resolvedRecords, type MapDocument } from '../map/editor/document'
+import { documentLayout, generatorStatus, parcelAt } from '../map/layout/worldSync'
 import { isEditable } from '../map/editor/layers'
 import { pickRecord, recordsInRect, snap } from '../map/editor/picking'
 import { findPreset } from '../map/editor/presets'
@@ -19,7 +20,9 @@ import {
 import type { Rect, XZ } from '../map/schema'
 import { dragPrefabHandle, dragRecordHandle, FOOTPRINT_KEY, prefabItemHandles, recordHandles, type Handle, type HandleKey } from '../map/editor/handles'
 import { chunkIdOf, chunkIndex, chunkOrigin } from '../map/transform'
-import { useEditorStore, type PlaceItem } from './editorStore'
+import { sharedLibrary, useEditorStore, type PlaceItem } from './editorStore'
+import { documentGroups, expandToGroups, fullGroups, groupOf } from '../map/editor/groups'
+import { groupRecords, placeCompound, ungroup } from '../map/editor/library'
 
 /**
  * Editor actions shared by the viewport, toolbar and hotkeys. They read the store directly
@@ -55,11 +58,17 @@ export function editElevation(): number {
 function placeCommand(doc: MapDocument, item: PlaceItem, from: XZ, to: XZ | null): CommandResult {
   if (item.kind === 'prefab') return placeInstance(doc, item.prefabId, from, store().placeTurns)
   if (item.kind === 'prefabItem') return placePrefabItem(doc, store().prefabMode ?? '', item.presetId, from, to, store().placeTurns, activeFloor())
+  if (item.kind === 'compound') {
+    // P1: a compound of the shared library, expanded into records and a group (its prefabs imported if needed).
+    const lib = sharedLibrary(doc)
+    return lib ? placeCompound(doc, lib, item.compoundId, from, store().placeTurns) : { ok: false, error: 'Không có thư viện prefab chung' }
+  }
   return placeRecord(doc, item.presetId, from, to)
 }
 
 export function placeLabel(item: PlaceItem): string {
   if (item.kind === 'prefab') return `Đặt ${item.prefabId}`
+  if (item.kind === 'compound') return `Đặt compound ${item.compoundId}`
   if (item.kind === 'prefabItem') return `Đặt ${findPrefabPreset(item.presetId)?.label ?? item.presetId} (prefab)`
   return `Đặt ${findPreset(item.presetId)?.label ?? item.presetId}`
 }
@@ -94,6 +103,37 @@ export function pickAt(g: XZ): string | null {
     return prefab ? (pickPrefabItem(itemsOnFloor(prefabItems(prefab), activeFloor()), g)?.key ?? null) : null
   }
   return pickRecord(resolvedRecords(s.edit.doc), g, (r) => !isEditable(r, s.layers))?.id ?? null
+}
+
+/**
+ * P1: what a click or box selects in world mode: a member of a group selects the whole group, unless
+ * Alt is held (edit one member of a compound). Prefab mode has no groups.
+ */
+export function withGroups(ids: readonly string[], alt: boolean): string[] {
+  const s = store()
+  if (!s.edit || prefabMode() || alt) return [...ids]
+  return expandToGroups(s.edit.doc, ids)
+}
+
+/** Ctrl+G: group the selected records (a plain group; "Lưu thành compound" links it to a compound). */
+export function groupSelection(): void {
+  const s = store()
+  if (!s.edit || prefabMode()) return
+  const n = documentGroups(s.edit.doc).length + 1
+  s.run('Nhóm', (doc, sel) => groupRecords(doc, sel, `Nhóm ${n}`))
+}
+
+/** Ctrl+Shift+G: drop the groups the selection covers; the records stay. */
+export function ungroupSelection(): void {
+  const s = store()
+  if (!s.edit || prefabMode()) return
+  const groups = fullGroups(s.edit.doc, s.edit.selection)
+  const one = groups[0] ?? (s.edit.selection.length === 1 ? groupOf(s.edit.doc, s.edit.selection[0]) : null)
+  if (!one) {
+    s.setStatus('Vùng chọn không phải một nhóm', 'error')
+    return
+  }
+  s.run(`Rã nhóm ${one.name}`, (doc) => ungroup(doc, one.groupId))
 }
 
 /** Selection box (M4, prefab items since M5): keys entirely inside `rect`. */
@@ -262,15 +302,41 @@ export function selectAll(): void {
   else s.select(resolvedRecords(s.edit.doc).filter((r) => isEditable(r, s.layers)).map((r) => r.id))
 }
 
+/**
+ * WG4 parcel tool (Generator tab): pick the parcel under the point; its building, if it still
+ * exists, becomes the selection so the Inspector shows it. Empty ground clears both.
+ */
+export function parcelClick(p: XZ): void {
+  const s = store()
+  if (!s.edit) return
+  const layout = documentLayout(s.edit.doc).layout
+  if (!layout?.plan) {
+    s.setStatus('World này không có kế hoạch lô (không sinh từ layout)', 'error')
+    return
+  }
+  const q = parcelAt(layout, p)
+  if (!q) {
+    s.selectParcel(null)
+    s.select([])
+    return
+  }
+  const inst = generatorStatus(s.edit.doc, layout).instances.get(q.id)
+  s.selectParcel(q.id)
+  s.select(inst && findRecord(s.edit.doc, inst) ? [inst] : [])
+}
+
 export function cancel(): void {
   const s = store()
-  if (s.tool !== 'select') s.setTool('select')
+  if (s.tool === 'parcel' && s.selectedParcel) {
+    s.selectParcel(null)
+    s.select([])
+  } else if (s.tool !== 'select') s.setTool('select')
   else if (s.preview) s.setPreview(null)
   else s.select([])
 }
 
-export function downloadText(name: string, text: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+export function downloadText(name: string, text: string, type = 'application/json'): void {
+  const url = URL.createObjectURL(new Blob([text], { type }))
   const a = document.createElement('a')
   a.href = url
   a.download = name

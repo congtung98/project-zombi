@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_8",
+  "cx": 3,
+  "cz": 8,
+  "instances": [
+    {
+      "instanceId": "c3_8/park-kiosk-1",
+      "prefabId": "landscape/kiosk",
+      "position": { "x": 9.5, "y": 0, "z": 22.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c3_8/objects/park-lawn-1",
+      "shape": "rect",
+      "size": [30, 30],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 17.5, "z": 30.5 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c3_8/objects/park-path-1",
+      "shape": "rect",
+      "size": [2.5, 30],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 17.5, "z": 30.5 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c3_8/objects/park-path-2",
+      "shape": "rect",
+      "size": [30, 2.5],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 17.5, "z": 30.5 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_8/objects/park-bench-1",
+      "position": { "x": 20.5, "y": 0.4, "z": 25.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_8/objects/park-bench-2",
+      "position": { "x": 23.5, "y": 0.4, "z": 27.5 },
+      "size": [0.6, 0.8, 1.8],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_8/objects/park-tree-1",
+      "position": { "x": 28.5, "z": 19.5 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_8/objects/park-tree-2",
+      "position": { "x": 21.5, "z": 19.5 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_8/objects/park-tree-3",
+      "position": { "x": 13.5, "z": 18.5 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c3_8/objects/park-tree-4",
+      "position": { "x": 29.5, "z": 26.5 },
+      "height": 6,
+      "canopy": 2.3,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "container",
+      "objectId": "c3_8/objects/park-bin-1",
+      "name": "Thùng rác",
+      "position": { "x": 15.7, "y": 0.55, "z": 27.5 },
+      "size": [0.8, 1.1, 0.8],
+      "color": "#3f5f3a",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_8/objects/park-streetlight-1",
+      "position": { "x": 15.7, "y": 2.1, "z": 18.5 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c3_8/objects/park-streetlight-2",
+      "position": { "x": 5.5, "y": 2.1, "z": 28.7 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

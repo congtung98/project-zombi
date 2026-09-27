@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "library/warehouse",
+  "contentVersion": 1,
+  "name": "Nhà kho",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -11, "minZ": -7, "maxX": 11, "maxZ": 7 },
+  "building": {
+    "height": 3,
+    "wallThickness": 0.3,
+    "wallColor": "#c4a484",
+    "roofColor": "#7a3f2f",
+    "floorColor": "#8a7560"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "wall-n",
+      "from": { "x": -11, "z": -7 },
+      "to": { "x": 11, "z": -7 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-s",
+      "from": { "x": -11, "z": 7 },
+      "to": { "x": 11, "z": 7 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-w",
+      "from": { "x": -11, "z": -7 },
+      "to": { "x": -11, "z": 7 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-e",
+      "from": { "x": 11, "z": -7 },
+      "to": { "x": 11, "z": 7 },
+      "height": 3,
+      "thickness": 0.3,
+      "color": "#c4a484"
+    },
+    {
+      "kind": "door",
+      "localId": "door",
+      "name": "Cửa Nhà kho",
+      "position": { "x": 0, "z": 7 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "localId": "door-1",
+      "name": "Cửa",
+      "position": { "x": 6, "z": 7 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "openTowards": 1
+    },
+    {
+      "kind": "container",
+      "localId": "shelf-1",
+      "name": "Kệ vật tư",
+      "position": { "x": -8, "y": 0.8, "z": -6.3 },
+      "size": [2, 1.6, 0.6],
+      "color": "#8a8580",
+      "lootTableId": "hardware-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "container",
+      "localId": "shelf-2",
+      "name": "Kệ đồ nghề",
+      "position": { "x": -4, "y": 0.8, "z": -6.3 },
+      "size": [2, 1.6, 0.6],
+      "color": "#8a8580",
+      "lootTableId": "tool-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "container",
+      "localId": "shelf-3",
+      "name": "Kệ vật tư",
+      "position": { "x": 0, "y": 0.8, "z": -6.3 },
+      "size": [2, 1.6, 0.6],
+      "color": "#8a8580",
+      "lootTableId": "hardware-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "prop",
+      "localId": "workbench-1",
+      "position": { "x": 6, "y": 0.45, "z": -5.5 },
+      "size": [2, 0.9, 0.8],
+      "color": "#8a6b4a",
+      "visual": { "assetId": "furniture/workbench" }
+    },
+    {
+      "kind": "container",
+      "localId": "tool-rack-1",
+      "name": "Kệ đồ nghề",
+      "position": { "x": 7.9, "y": 0.9, "z": -5.35 },
+      "size": [1.4, 1.8, 0.5],
+      "color": "#5d6166",
+      "lootTableId": "tool-shelf",
+      "visual": { "assetId": "furniture/shelving", "variantId": "tools" }
+    },
+    {
+      "kind": "decor",
+      "localId": "toolbox-1",
+      "assetId": "decor/toolbox",
+      "position": { "x": 5.45, "y": 0.8, "z": -5.55 },
+      "yaw": 6
+    },
+    {
+      "kind": "decor",
+      "localId": "jerrycan-1",
+      "assetId": "decor/jerrycan",
+      "position": { "x": 4.65, "y": 0, "z": -4.6 },
+      "yaw": 15
+    },
+    {
+      "kind": "decor",
+      "localId": "jerrycan-2",
+      "assetId": "decor/jerrycan",
+      "position": { "x": 5, "y": 0, "z": -4.3 },
+      "yaw": 340,
+      "color": "#3f5a3a"
+    },
+    {
+      "kind": "decor",
+      "localId": "stain-1",
+      "assetId": "decor/oil-stain",
+      "position": { "x": 6.2, "y": 0, "z": -3.9 },
+      "yaw": 20
+    },
+    {
+      "kind": "decor",
+      "localId": "carton-1",
+      "assetId": "decor/carton",
+      "position": { "x": -8, "y": 0, "z": 2 }
+    },
+    {
+      "kind": "decor",
+      "localId": "carton-2",
+      "assetId": "decor/carton",
+      "position": { "x": -7.4, "y": 0, "z": 2.6 }
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "room-1",
+      "name": "Phòng chính",
+      "bounds": { "minX": -11, "minZ": -7, "maxX": 11, "maxZ": 7 },
+      "lamp": {
+        "localId": "lamp-1",
+        "name": "Đèn phòng chính",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 1, "z": 6.75 }
+      }
+    }
+  ],
+  "placement": {
+    "category": "industrial",
+    "allowedZones": ["industrial"],
+    "weight": 2,
+    "setback": 4,
+    "sideGap": 2,
+    "roadFacing": true,
+    "frontage": [24, 80]
+  },
+  "catalog": { "group": "industrial", "tags": ["kho"] }
+}

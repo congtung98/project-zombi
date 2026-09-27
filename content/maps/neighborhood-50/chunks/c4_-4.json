@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c4_-4",
+  "cx": 4,
+  "cz": -4,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c4_-4/objects/env-lot-1054210b14-tree-1",
+      "position": { "x": 15.6, "z": 3.911326 },
+      "height": 4.685075,
+      "canopy": 1.149353,
+      "trunk": 0.2,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/env-lot-0209bdd45e-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 29.6, "y": 0, "z": 14.7 },
+      "yaw": 60
+    },
+    {
+      "kind": "container",
+      "objectId": "c4_-4/objects/env-lot-0209bdd45e-bin-1",
+      "position": { "x": 28.7, "y": 0.55, "z": 6 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#3f5a3f",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_-4/objects/env-lot-0209bdd45e-mailbox-1",
+      "position": { "x": 28, "y": 0.6, "z": 14.4 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 3 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/env-lot-0209bdd45e-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 29.122864, "y": 0, "z": 9.082961 },
+      "yaw": 160
+    },
+    {
+      "kind": "tree",
+      "objectId": "c4_-4/objects/env-lot-1c6d2c1dd8-tree-1",
+      "position": { "x": 15.6, "z": 19.142295 },
+      "height": 4.785356,
+      "canopy": 1.176095,
+      "trunk": 0.2,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/env-lot-1c6d2c1dd8-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 16.493895, "y": 0, "z": 18.724096 },
+      "yaw": 10
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/env-lot-1442f4fad0-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 29.6, "y": 0, "z": 28.2 },
+      "yaw": 300
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/env-lot-1442f4fad0-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 30.400065, "y": 0, "z": 25.576037 },
+      "yaw": 260
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_-4/objects/env-lot-1442f4fad0-mailbox-1",
+      "position": { "x": 28, "y": 0.6, "z": 23.4 },
+      "size": [0.3, 1.2, 0.3],
+      "color": "#3d4f66",
+      "visual": { "assetId": "outdoor/mailbox", "facing": 3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_-4/objects/street-asphalt-100567bc-car-1",
+      "position": { "x": 24.1, "y": 0.7, "z": 2 },
+      "size": [2, 1.4, 4],
+      "color": "#8a8a86",
+      "visual": { "assetId": "outdoor/car", "facing": 0 }
+    },
+    {
+      "kind": "container",
+      "objectId": "c4_-4/objects/street-asphalt-100567bc-car-2",
+      "position": { "x": 19.9, "y": 0.7, "z": 29 },
+      "size": [2, 1.4, 4],
+      "color": "#4f4a44",
+      "name": "Xe bỏ hoang",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/car", "facing": 0 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/street-asphalt-100567bc-oil-stain-1",
+      "assetId": "decor/oil-stain",
+      "position": { "x": 19.836488, "y": 0, "z": 28.759085 },
+      "yaw": 10
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/street-asphalt-100567bc-tires-1",
+      "assetId": "decor/tires",
+      "position": { "x": 19.9, "y": 0, "z": 26.2 },
+      "yaw": 160
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_-4/objects/street-sidewalk-1548019f-streetlight-2",
+      "position": { "x": 18.4, "y": 2.1, "z": 9.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_-4/objects/street-sidewalk-0b47c8cf-streetlight-2",
+      "position": { "x": 25.6, "y": 2.1, "z": 9.6 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c4_-4/objects/street-sidewalk-0b47c8cf-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 26.35, "y": 0, "z": 5.291742 },
+      "yaw": 200
+    },
+    {
+      "kind": "prop",
+      "objectId": "c4_-4/objects/high-school-fence-1",
+      "position": { "x": 12.5, "y": 0.6, "z": 20.5 },
+      "size": [0.15, 1.2, 61.85],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c4_-4/objects/high-school-tree-1",
+      "position": { "x": 9.5, "z": 9.5 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c4_-4/objects/high-school-tree-2",
+      "position": { "x": 9.5, "z": 21.5 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "container",
+      "objectId": "c4_-4/objects/high-school-bin-1",
+      "name": "Thùng rác",
+      "position": { "x": 4.5, "y": 0.55, "z": 11.5 },
+      "size": [0.8, 1.1, 0.8],
+      "color": "#3f5f3a",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin" }
+    }
+  ],
+  "roads": [
+    {
+      "roadId": "c4_-4/roads/sidewalk-1548019f",
+      "position": { "x": 17.65, "z": 17.675 },
+      "size": [2.2, 69.75],
+      "color": "#a19d94"
+    },
+    {
+      "roadId": "c4_-4/roads/sidewalk-0b47c8cf",
+      "position": { "x": 26.35, "z": 17.675 },
+      "size": [2.2, 69.75],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c3_-3/objects/high-school-court-1", "ownerChunkId": "c3_-3" },
+    { "id": "c3_-4/objects/high-school-schoolyard-1", "ownerChunkId": "c3_-4" },
+    { "id": "c3_-5/high-school-block-a-1", "ownerChunkId": "c3_-5" },
+    { "id": "c4_-3/objects/env-lot-1a6646cc0b-tree-1", "ownerChunkId": "c4_-3" },
+    { "id": "c4_-3/objects/high-school-tree-1", "ownerChunkId": "c4_-3" },
+    { "id": "c4_-3/roads/asphalt-100567bc", "ownerChunkId": "c4_-3" },
+    { "id": "c5_-4/lot-0209bdd45e", "ownerChunkId": "c5_-4" },
+    { "id": "c5_-4/lot-1442f4fad0", "ownerChunkId": "c5_-4" },
+    { "id": "c5_-4/objects/env-lot-052725ae46-fence-1", "ownerChunkId": "c5_-4" }
+  ]
+}

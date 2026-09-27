@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c4_9",
+  "cx": 4,
+  "cz": 9,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c3_8/objects/park-lawn-1", "ownerChunkId": "c3_8" }]
+}

@@ -14,6 +14,8 @@ export interface WallDef {
   color?: string
   /** M11c-1A: furniture (a prefab `prop`), not a wall: the cutaway never cuts it down. */
   prop?: boolean
+  /** Prefab library P1: the invisible barrier over a solid surface (water): collides and blocks navigation, never drawn. */
+  hidden?: boolean
   /** G3a (graphics, presentation only): furniture asset drawn in the box, facing in world turns. */
   visual?: FurnitureLook
 }

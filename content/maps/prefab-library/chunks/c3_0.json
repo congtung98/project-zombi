@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_0",
+  "cx": 3,
+  "cz": 0,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c3_1/block-1", "ownerChunkId": "c3_1" }, { "id": "c3_1/l-two-storey-1", "ownerChunkId": "c3_1" }]
+}

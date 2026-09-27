@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "landscape/chapel",
+  "contentVersion": 1,
+  "name": "Nhà nguyện",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -4, "minZ": -5, "maxX": 4, "maxZ": 5 },
+  "building": {
+    "height": 4,
+    "wallThickness": 0.2,
+    "wallColor": "#e2ddd2",
+    "roofColor": "#5a3e33",
+    "floorColor": "#9d8f7d"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "outer-1",
+      "from": { "x": -4, "z": -5 },
+      "to": { "x": 4, "z": -5 },
+      "height": 4,
+      "thickness": 0.2,
+      "color": "#e2ddd2"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-2",
+      "from": { "x": 4, "z": -5 },
+      "to": { "x": 4, "z": 5 },
+      "height": 4,
+      "thickness": 0.2,
+      "color": "#e2ddd2"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-3",
+      "from": { "x": 4, "z": 5 },
+      "to": { "x": -4, "z": 5 },
+      "height": 4,
+      "thickness": 0.2,
+      "color": "#e2ddd2"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-4",
+      "from": { "x": -4, "z": 5 },
+      "to": { "x": -4, "z": -5 },
+      "height": 4,
+      "thickness": 0.2,
+      "color": "#e2ddd2"
+    },
+    {
+      "kind": "door",
+      "localId": "door-1",
+      "name": "Cửa chính",
+      "position": { "x": 0, "z": 5 },
+      "quarterTurns": 2,
+      "width": 1.6,
+      "openTowards": 1
+    },
+    {
+      "kind": "window",
+      "localId": "win-1",
+      "name": "Cửa sổ",
+      "position": { "x": -4, "z": -2.333333 },
+      "quarterTurns": 1,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-2",
+      "name": "Cửa sổ",
+      "position": { "x": -4, "z": 0 },
+      "quarterTurns": 1,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-3",
+      "name": "Cửa sổ",
+      "position": { "x": -4, "z": 3.333333 },
+      "quarterTurns": 1,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-4",
+      "name": "Cửa sổ",
+      "position": { "x": 4, "z": -3.333333 },
+      "quarterTurns": 3,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-5",
+      "name": "Cửa sổ",
+      "position": { "x": 4, "z": 0 },
+      "quarterTurns": 3,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-6",
+      "name": "Cửa sổ",
+      "position": { "x": 4, "z": 2.833333 },
+      "quarterTurns": 3,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "prop",
+      "localId": "cabinet-1",
+      "position": { "x": 0, "y": 0.55, "z": -4.47 },
+      "size": [2, 1.1, 0.8],
+      "color": "#6b2e22",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "localId": "bench-1",
+      "position": { "x": -2, "y": 0.4, "z": -1.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "localId": "bench-2",
+      "position": { "x": 2, "y": 0.4, "z": -1.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "localId": "bench-3",
+      "position": { "x": -2, "y": 0.4, "z": 0.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "localId": "bench-4",
+      "position": { "x": 2, "y": 0.4, "z": 0.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "localId": "bench-5",
+      "position": { "x": -2, "y": 0.4, "z": 2.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "localId": "bench-6",
+      "position": { "x": 2, "y": 0.4, "z": 2.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-2",
+      "name": "Tủ đồ lễ",
+      "position": { "x": -3.62, "y": 0.5, "z": -3.8 },
+      "size": [0.5, 1, 0.8],
+      "color": "#6f5a45",
+      "lootTableId": "house-nightstand",
+      "visual": { "assetId": "furniture/cabinet" }
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "room-1",
+      "name": "Gian nguyện",
+      "bounds": { "minX": -4, "minZ": -5, "maxX": 4, "maxZ": 5 },
+      "lamp": {
+        "localId": "lamp-1",
+        "name": "Đèn gian nguyện",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -1.15, "z": 4.7 }
+      }
+    }
+  ],
+  "catalog": { "group": "landscape", "tags": ["nghia-trang", "nha-nguyen"] }
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_-1",
+  "cx": -1,
+  "cz": -1,
+  "instances": [
+    {
+      "instanceId": "c-1_-1/corner-shop-1",
+      "prefabId": "library/corner-shop",
+      "position": { "x": 31, "y": 0, "z": 22 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [
+    {
+      "roadId": "c-1_-1/roads/pavement-n",
+      "position": { "x": 16, "z": 28.1 },
+      "size": [184, 1.8],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" },
+    { "id": "c-2_-1/lab-garage-1", "ownerChunkId": "c-2_-1" }
+  ]
+}

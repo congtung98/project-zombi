@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c6_4",
+  "cx": 6,
+  "cz": 4,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c6_4/objects/env-lot-19e269c7f9-tree-15",
+      "position": { "x": 31.439725, "z": 2.739683 },
+      "height": 6.745296,
+      "canopy": 1.549059,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_4/objects/env-lot-19e269c7f9-tree-18",
+      "position": { "x": 29.809457, "z": 7.695317 },
+      "height": 7.999563,
+      "canopy": 2.799825,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_4/objects/env-lot-19e269c7f9-tree-28",
+      "position": { "x": 26.94779, "z": 21.236752 },
+      "height": 9.748098,
+      "canopy": 2.14962,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_4/objects/env-lot-19e269c7f9-tree-31",
+      "position": { "x": 26.161581, "z": 26.93729 },
+      "height": 7.646595,
+      "canopy": 1.729319,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c6_4/objects/env-lot-19e269c7f9-tree-35",
+      "position": { "x": 25.465179, "z": 30.618211 },
+      "height": 5.600198,
+      "canopy": 1.840079,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c6_4/objects/env-lot-1bd9c2eca5-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 13.027294, "y": 0, "z": 24.435256 },
+      "yaw": 230
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c5_3/lot-0da868c6f6", "ownerChunkId": "c5_3" },
+    { "id": "c5_4/lot-1bd9c2eca5", "ownerChunkId": "c5_4" },
+    { "id": "c6_3/objects/env-lot-19e269c7f9-tree-10", "ownerChunkId": "c6_3" },
+    { "id": "c6_3/objects/env-lot-19e269c7f9-tree-9", "ownerChunkId": "c6_3" },
+    { "id": "c6_5/objects/env-lot-19e269c7f9-tree-40", "ownerChunkId": "c6_5" }
+  ]
+}

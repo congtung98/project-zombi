@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_5",
+  "cx": 0,
+  "cz": 5,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c0_5/objects/high-school-schoolyard-1",
+      "shape": "rect",
+      "size": [50, 40],
+      "material": "concrete",
+      "color": "#9c988f",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 29, "z": 2 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/high-school-hoop-1",
+      "position": { "x": 20.8, "y": 1.6, "z": 8 },
+      "size": [1.2, 3.2, 1.2],
+      "color": "#3d4a57",
+      "visual": { "assetId": "outdoor/hoop", "facing": 1 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/high-school-fence-1",
+      "position": { "x": 2, "y": 0.6, "z": 26 },
+      "size": [32, 1.2, 0.15],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/high-school-bench-1",
+      "position": { "x": 6, "y": 0.4, "z": 22 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/high-school-bench-2",
+      "position": { "x": 16, "y": 0.4, "z": 22 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_4/high-school-block-b-1", "ownerChunkId": "c-1_4" },
+    { "id": "c1_5/objects/high-school-court-1", "ownerChunkId": "c1_5" },
+    { "id": "c1_5/objects/high-school-fence-1", "ownerChunkId": "c1_5" }
+  ]
+}

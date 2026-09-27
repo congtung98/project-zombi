@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c5_-7",
+  "cx": 5,
+  "cz": -7,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c4_-6/objects/university-plaza-1", "ownerChunkId": "c4_-6" },
+    { "id": "c4_-7/university-hall-north-1", "ownerChunkId": "c4_-7" },
+    { "id": "c5_-6/objects/university-lawn-1", "ownerChunkId": "c5_-6" },
+    { "id": "c5_-6/objects/university-tree-1", "ownerChunkId": "c5_-6" },
+    { "id": "c5_-6/university-hall-east-1", "ownerChunkId": "c5_-6" }
+  ]
+}

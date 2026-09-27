@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_0",
+  "cx": 1,
+  "cz": 0,
+  "instances": [
+    {
+      "instanceId": "c1_0/house-1",
+      "prefabId": "building/house",
+      "position": { "x": 18, "y": 0, "z": 12 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c1_0/objects/lawn-1",
+      "shape": "rect",
+      "size": [20, 14],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 18, "z": 14 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c1_0/objects/path-1",
+      "shape": "rect",
+      "size": [1.5, 4],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 16, "z": 6.5 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c1_0/objects/pond-1",
+      "shape": "ellipse",
+      "size": [8, 4.5],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 1,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 24, "z": 18.5 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c1_0/objects/fence-1",
+      "position": { "x": 18, "y": 0.5, "z": 21 },
+      "size": [20, 1, 0.15],
+      "color": "#7a6a55"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_0/objects/tree-1",
+      "position": { "x": 10, "z": 18 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_0/objects/pine-1",
+      "position": { "x": 11, "z": 10 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_0/roads/pavement-s", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" },
+    { "id": "c1_1/shophouse-1", "ownerChunkId": "c1_1" },
+    { "id": "c1_1/villa-1", "ownerChunkId": "c1_1" }
+  ]
+}

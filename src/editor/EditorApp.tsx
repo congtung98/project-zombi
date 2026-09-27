@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { DEFAULT_WORLD, isDirty, useEditorStore } from './editorStore'
-import { cancel, deleteSelection, duplicateSelection, nudge, rotateSelection, selectAll } from './interaction'
+import { cancel, deleteSelection, duplicateSelection, groupSelection, nudge, rotateSelection, selectAll, ungroupSelection } from './interaction'
 import { Inspector } from './Inspector'
 import { DuplicatePrefabDialog, IssuesPanel, NewDialog, NewPrefabDialog, OpenDialog, Palette, SaveAsDialog, StatusBar, TopBar } from './Panels'
 import { Viewport } from './Viewport'
 import { PlaytestOverlay } from './Playtest'
+import { LibraryUpdateDialog, SaveCompoundDialog } from './LibraryPanel'
 
 /** Hotkeys act on the editor only; typing in an input/select/textarea is never intercepted. */
 function isTyping(e: KeyboardEvent): boolean {
@@ -24,6 +25,12 @@ function onKey(e: KeyboardEvent): void {
   const mod = e.ctrlKey || e.metaKey
   const key = e.key.toLowerCase()
   const handled = () => e.preventDefault()
+  // WG6: tracing keys (Enter finishes, Esc cancels, Backspace/Delete drop the last point or the selected feature).
+  if (s.tool === 'trace' && !mod) {
+    if (e.key === 'Enter') return handled(), s.traceFinish()
+    if (e.key === 'Escape') return handled(), s.traceCancel()
+    if (e.key === 'Backspace' || e.key === 'Delete') return handled(), s.traceBackspace()
+  }
   if (mod && key === 'z' && !e.shiftKey) return handled(), s.undo()
   if (mod && (key === 'y' || (key === 'z' && e.shiftKey))) return handled(), s.redo()
   if (mod && key === 's' && e.shiftKey) {
@@ -34,6 +41,8 @@ function onKey(e: KeyboardEvent): void {
   if (mod && key === 's') return handled(), void s.saveDraft()
   if (mod && key === 'd') return handled(), duplicateSelection()
   if (mod && key === 'a') return handled(), selectAll()
+  // P1: group / ungroup the selection (world mode).
+  if (mod && key === 'g') return handled(), e.shiftKey ? ungroupSelection() : groupSelection()
   if (mod) return
   switch (e.key) {
     case 'Delete':
@@ -104,6 +113,8 @@ export function EditorApp() {
       <SaveAsDialog />
       <NewPrefabDialog />
       <DuplicatePrefabDialog />
+      <LibraryUpdateDialog />
+      <SaveCompoundDialog />
       <PlaytestOverlay />
       <input
         ref={file}

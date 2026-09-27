@@ -1,0 +1,2619 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "public/hospital",
+  "contentVersion": 1,
+  "name": "Bệnh viện",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -20, "minZ": -12, "maxX": 20, "maxZ": 12 },
+  "building": {
+    "height": 3.5,
+    "storeys": 3,
+    "wallThickness": 0.2,
+    "wallColor": "#eef0ee",
+    "roofColor": "#56606a",
+    "floorColor": "#c9cfd1"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "outer-1",
+      "from": { "x": -20, "z": -12 },
+      "to": { "x": 20, "z": -12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-2",
+      "from": { "x": 20, "z": -12 },
+      "to": { "x": 20, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-3",
+      "from": { "x": 20, "z": 12 },
+      "to": { "x": -20, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "outer-4",
+      "from": { "x": -20, "z": 12 },
+      "to": { "x": -20, "z": -12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-1",
+      "from": { "x": -20, "z": -12 },
+      "to": { "x": 20, "z": -12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-2",
+      "from": { "x": 20, "z": -12 },
+      "to": { "x": 20, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-3",
+      "from": { "x": 20, "z": 12 },
+      "to": { "x": -20, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "outer-2-4",
+      "from": { "x": -20, "z": 12 },
+      "to": { "x": -20, "z": -12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "outer-3-1",
+      "from": { "x": -20, "z": -12 },
+      "to": { "x": 20, "z": -12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "outer-3-2",
+      "from": { "x": 20, "z": -12 },
+      "to": { "x": 20, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "outer-3-3",
+      "from": { "x": 20, "z": 12 },
+      "to": { "x": -20, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "outer-3-4",
+      "from": { "x": -20, "z": 12 },
+      "to": { "x": -20, "z": -12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-1",
+      "from": { "x": -20, "z": -1.5 },
+      "to": { "x": 20, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-2",
+      "from": { "x": -20, "z": 1.5 },
+      "to": { "x": 20, "z": 1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "window",
+      "localId": "win-1",
+      "name": "Cửa sổ",
+      "position": { "x": 20, "z": 0 },
+      "quarterTurns": 3,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "stairs",
+      "localId": "stairs-1",
+      "position": { "x": -16.5, "z": -2.6 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "length": 4
+    },
+    {
+      "kind": "door",
+      "localId": "door-33",
+      "name": "Cửa chính",
+      "position": { "x": 0, "z": 12 },
+      "quarterTurns": 2,
+      "width": 2,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "localId": "door-1",
+      "name": "Cửa cầu thang",
+      "position": { "x": -19.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-3",
+      "from": { "x": -13, "z": -12 },
+      "to": { "x": -13, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-2",
+      "name": "Cửa",
+      "position": { "x": -11.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-1",
+      "position": { "x": -11.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-2",
+      "position": { "x": -10, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-3",
+      "position": { "x": -8.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-1",
+      "name": "Tủ thuốc",
+      "position": { "x": -5.38, "y": 0.9, "z": -6.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-2",
+      "name": "Cửa sổ",
+      "position": { "x": -14, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-3",
+      "name": "Cửa sổ",
+      "position": { "x": -6.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-4",
+      "from": { "x": -5, "z": -12 },
+      "to": { "x": -5, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-3",
+      "name": "Cửa",
+      "position": { "x": -3.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-4",
+      "position": { "x": -0.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-2",
+      "name": "Tủ thuốc",
+      "position": { "x": 0.62, "y": 0.9, "z": -6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-1",
+      "name": "Bàn làm việc",
+      "position": { "x": -2.5, "y": 0.375, "z": -6.75 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-4",
+      "name": "Cửa sổ",
+      "position": { "x": -2, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-5",
+      "from": { "x": 1, "z": -12 },
+      "to": { "x": 1, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-4",
+      "name": "Cửa",
+      "position": { "x": 2.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-5",
+      "position": { "x": 5.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-3",
+      "name": "Tủ thuốc",
+      "position": { "x": 6.62, "y": 0.9, "z": -6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-2",
+      "name": "Bàn làm việc",
+      "position": { "x": 3.5, "y": 0.375, "z": -6.75 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-5",
+      "name": "Cửa sổ",
+      "position": { "x": 4, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-6",
+      "from": { "x": 7, "z": -12 },
+      "to": { "x": 7, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-5",
+      "name": "Cửa",
+      "position": { "x": 8.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-6",
+      "position": { "x": 11.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-4",
+      "name": "Tủ thuốc",
+      "position": { "x": 12.62, "y": 0.9, "z": -6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-3",
+      "name": "Bàn làm việc",
+      "position": { "x": 9.5, "y": 0.375, "z": -6.75 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-6",
+      "name": "Cửa sổ",
+      "position": { "x": 10, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-7",
+      "from": { "x": 13, "z": -12 },
+      "to": { "x": 13, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "stairs",
+      "localId": "stairs-2",
+      "position": { "x": 16.5, "z": -2.6 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "length": 4
+    },
+    {
+      "kind": "door",
+      "localId": "door-6",
+      "name": "Cửa cầu thang",
+      "position": { "x": 13.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "localId": "door-7",
+      "name": "Cửa",
+      "position": { "x": -18.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "container",
+      "localId": "shelving-1",
+      "name": "Kệ thuốc",
+      "position": { "x": -18.4, "y": 0.9, "z": 11.62 },
+      "size": [2, 1.8, 0.5],
+      "color": "#e1e6e8",
+      "lootTableId": "pharmacy-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "container",
+      "localId": "shelving-2",
+      "name": "Kệ thuốc",
+      "position": { "x": -16, "y": 0.9, "z": 11.62 },
+      "size": [2, 1.8, 0.5],
+      "color": "#e1e6e8",
+      "lootTableId": "pharmacy-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "container",
+      "localId": "shelving-3",
+      "name": "Kệ thuốc",
+      "position": { "x": -12.38, "y": 0.9, "z": 6.75 },
+      "size": [0.5, 1.8, 2],
+      "color": "#e1e6e8",
+      "lootTableId": "pharmacy-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "prop",
+      "localId": "cabinet-5",
+      "position": { "x": -16, "y": 0.5, "z": 6.75 },
+      "size": [2, 1, 0.6],
+      "color": "#9a8f84",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-8",
+      "name": "Cửa sổ",
+      "position": { "x": -14, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-8",
+      "from": { "x": -12, "z": 1.5 },
+      "to": { "x": -12, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-8",
+      "name": "Cửa",
+      "position": { "x": -10.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-7",
+      "position": { "x": -7.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-6",
+      "name": "Tủ thuốc",
+      "position": { "x": -6.38, "y": 0.9, "z": 6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-4",
+      "name": "Bàn làm việc",
+      "position": { "x": -9.5, "y": 0.375, "z": 6.75 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-9",
+      "name": "Cửa sổ",
+      "position": { "x": -9, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-9",
+      "from": { "x": -6, "z": 1.5 },
+      "to": { "x": -6, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-9",
+      "name": "Cửa",
+      "position": { "x": 4.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "localId": "cabinet-7",
+      "position": { "x": 2.5, "y": 0.5, "z": 11.57 },
+      "size": [2, 1, 0.6],
+      "color": "#9a8f84",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "localId": "sofa-1",
+      "position": { "x": -5.42, "y": 0.4, "z": 6.75 },
+      "size": [0.9, 0.8, 2],
+      "color": "#5a6b7b",
+      "visual": { "assetId": "furniture/sofa" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-10",
+      "name": "Cửa sổ",
+      "position": { "x": -4, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-11",
+      "name": "Cửa sổ",
+      "position": { "x": -2, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-12",
+      "name": "Cửa sổ",
+      "position": { "x": 4.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-10",
+      "from": { "x": 6, "z": 1.5 },
+      "to": { "x": 6, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-10",
+      "name": "Cửa",
+      "position": { "x": 7.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "localId": "hospital-bed-8",
+      "position": { "x": 10.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "localId": "cabinet-8",
+      "name": "Tủ thuốc",
+      "position": { "x": 11.62, "y": 0.9, "z": 6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "localId": "desk-5",
+      "name": "Bàn làm việc",
+      "position": { "x": 8.5, "y": 0.375, "z": 6.75 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-13",
+      "name": "Cửa sổ",
+      "position": { "x": 9, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-11",
+      "from": { "x": 12, "z": 1.5 },
+      "to": { "x": 12, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "localId": "door-11",
+      "name": "Cửa",
+      "position": { "x": 13.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "localId": "table-1",
+      "position": { "x": 14, "y": 0.4, "z": 6.75 },
+      "size": [1.4, 0.8, 0.9],
+      "color": "#7b5a44",
+      "visual": { "assetId": "furniture/table" }
+    },
+    {
+      "kind": "prop",
+      "localId": "table-2",
+      "position": { "x": 18, "y": 0.4, "z": 6.75 },
+      "size": [1.4, 0.8, 0.9],
+      "color": "#7b5a44",
+      "visual": { "assetId": "furniture/table" }
+    },
+    {
+      "kind": "container",
+      "localId": "fridge-1",
+      "name": "Tủ lạnh căng tin",
+      "position": { "x": 18.8, "y": 0.9, "z": 11.47 },
+      "size": [0.8, 1.8, 0.8],
+      "color": "#d8dde0",
+      "lootTableId": "canteen-fridge",
+      "visual": { "assetId": "furniture/fridge" }
+    },
+    {
+      "kind": "container",
+      "localId": "fridge-2",
+      "name": "Tủ lạnh căng tin",
+      "position": { "x": 17.6, "y": 0.9, "z": 11.47 },
+      "size": [0.8, 1.8, 0.8],
+      "color": "#d8dde0",
+      "lootTableId": "canteen-fridge",
+      "visual": { "assetId": "furniture/fridge" }
+    },
+    {
+      "kind": "window",
+      "localId": "win-14",
+      "name": "Cửa sổ",
+      "position": { "x": 14, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "localId": "win-15",
+      "name": "Cửa sổ",
+      "position": { "x": 16, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-12",
+      "from": { "x": -20, "z": -1.5 },
+      "to": { "x": 20, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-13",
+      "from": { "x": -20, "z": 1.5 },
+      "to": { "x": 20, "z": 1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-16",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -20, "z": 0 },
+      "quarterTurns": 1,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-17",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 20, "z": 0 },
+      "quarterTurns": 3,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "stairs",
+      "level": 1,
+      "localId": "stairs-3",
+      "position": { "x": -16.5, "z": -4 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "length": 4
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-12",
+      "name": "Cửa cầu thang",
+      "position": { "x": -13.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-14",
+      "from": { "x": -13, "z": -12 },
+      "to": { "x": -13, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-13",
+      "name": "Cửa",
+      "position": { "x": -11.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-9",
+      "position": { "x": -11.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-10",
+      "position": { "x": -10, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-11",
+      "position": { "x": -8.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-9",
+      "name": "Tủ thuốc",
+      "position": { "x": -5.38, "y": 0.9, "z": -6.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-18",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -14, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-19",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -6.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-15",
+      "from": { "x": -5, "z": -12 },
+      "to": { "x": -5, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-14",
+      "name": "Cửa",
+      "position": { "x": -3.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-12",
+      "position": { "x": -3.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-13",
+      "position": { "x": -2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-10",
+      "name": "Tủ thuốc",
+      "position": { "x": 0.62, "y": 0.9, "z": -6.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-20",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -0.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-16",
+      "from": { "x": 1, "z": -12 },
+      "to": { "x": 1, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-15",
+      "name": "Cửa",
+      "position": { "x": 2.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-14",
+      "position": { "x": 5.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-11",
+      "name": "Tủ thuốc",
+      "position": { "x": 6.62, "y": 0.9, "z": -6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "desk-6",
+      "name": "Bàn làm việc",
+      "position": { "x": 3.5, "y": 0.375, "z": -6.75 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-21",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 4, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-17",
+      "from": { "x": 7, "z": -12 },
+      "to": { "x": 7, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-16",
+      "name": "Cửa",
+      "position": { "x": 8.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-15",
+      "position": { "x": 8.2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-16",
+      "position": { "x": 10, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-12",
+      "name": "Tủ thuốc",
+      "position": { "x": 12.62, "y": 0.9, "z": -6.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-22",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 11.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-18",
+      "from": { "x": 13, "z": -12 },
+      "to": { "x": 13, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "stairs",
+      "level": 1,
+      "localId": "stairs-4",
+      "position": { "x": 16.5, "z": -4 },
+      "quarterTurns": 2,
+      "width": 1.2,
+      "length": 4
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-17",
+      "name": "Cửa cầu thang",
+      "position": { "x": 19.5, "z": -1.5 },
+      "quarterTurns": 2,
+      "width": 1,
+      "openTowards": -1
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-18",
+      "name": "Cửa",
+      "position": { "x": -18.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-17",
+      "position": { "x": -18.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-18",
+      "position": { "x": -17, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-19",
+      "position": { "x": -15.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-13",
+      "name": "Tủ thuốc",
+      "position": { "x": -12.38, "y": 0.9, "z": 7.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-24",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -13.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-19",
+      "from": { "x": -12, "z": 1.5 },
+      "to": { "x": -12, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-19",
+      "name": "Cửa",
+      "position": { "x": -10.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-20",
+      "position": { "x": -10.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-21",
+      "position": { "x": -9, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-22",
+      "position": { "x": -7.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-14",
+      "name": "Tủ thuốc",
+      "position": { "x": -4.38, "y": 0.9, "z": 7.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-26",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -5.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-20",
+      "from": { "x": -4, "z": 1.5 },
+      "to": { "x": -4, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-20",
+      "name": "Cửa",
+      "position": { "x": -2.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-23",
+      "position": { "x": -2.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-24",
+      "position": { "x": -1, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-25",
+      "position": { "x": 0.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-15",
+      "name": "Tủ thuốc",
+      "position": { "x": 3.62, "y": 0.9, "z": 7.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-28",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 2.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-21",
+      "from": { "x": 4, "z": 1.5 },
+      "to": { "x": 4, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-21",
+      "name": "Cửa",
+      "position": { "x": 5.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-26",
+      "position": { "x": 5.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-27",
+      "position": { "x": 7, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "hospital-bed-28",
+      "position": { "x": 8.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "cabinet-16",
+      "name": "Tủ thuốc",
+      "position": { "x": 11.62, "y": 0.9, "z": 7.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-30",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 10.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 1,
+      "localId": "wall-22",
+      "from": { "x": 12, "z": 1.5 },
+      "to": { "x": 12, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 1,
+      "localId": "door-22",
+      "name": "Cửa",
+      "position": { "x": 13.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "shelving-4",
+      "name": "Kệ thuốc",
+      "position": { "x": 13.6, "y": 0.9, "z": 11.62 },
+      "size": [2, 1.8, 0.5],
+      "color": "#e1e6e8",
+      "lootTableId": "pharmacy-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "shelving-5",
+      "name": "Kệ thuốc",
+      "position": { "x": 16, "y": 0.9, "z": 11.62 },
+      "size": [2, 1.8, 0.5],
+      "color": "#e1e6e8",
+      "lootTableId": "pharmacy-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "container",
+      "level": 1,
+      "localId": "shelving-6",
+      "name": "Kệ thuốc",
+      "position": { "x": 19.62, "y": 0.9, "z": 6.75 },
+      "size": [0.5, 1.8, 2],
+      "color": "#e1e6e8",
+      "lootTableId": "pharmacy-shelf",
+      "visual": { "assetId": "furniture/shelving" }
+    },
+    {
+      "kind": "prop",
+      "level": 1,
+      "localId": "cabinet-17",
+      "position": { "x": 16, "y": 0.5, "z": 6.75 },
+      "size": [2, 1, 0.6],
+      "color": "#9a8f84",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 1,
+      "localId": "win-32",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 18, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-23",
+      "from": { "x": -20, "z": -1.5 },
+      "to": { "x": 20, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-24",
+      "from": { "x": -20, "z": 1.5 },
+      "to": { "x": 20, "z": 1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-33",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -20, "z": 0 },
+      "quarterTurns": 1,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-34",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 20, "z": 0 },
+      "quarterTurns": 3,
+      "width": 1,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-23",
+      "name": "Cửa cầu thang",
+      "position": { "x": -19.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-25",
+      "from": { "x": -13, "z": -12 },
+      "to": { "x": -13, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-24",
+      "name": "Cửa",
+      "position": { "x": -11.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "operating-table-1",
+      "position": { "x": -9, "y": 0.45, "z": -6.75 },
+      "size": [2, 0.9, 0.9],
+      "color": "#4e8c7a",
+      "visual": { "assetId": "furniture/operating-table" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-18",
+      "name": "Tủ thuốc",
+      "position": { "x": -11.8, "y": 0.9, "z": -11.62 },
+      "size": [1, 1.8, 0.5],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-19",
+      "name": "Tủ thuốc",
+      "position": { "x": -5.38, "y": 0.9, "z": -6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-35",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -10.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-36",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -7, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-26",
+      "from": { "x": -5, "z": -12 },
+      "to": { "x": -5, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-25",
+      "name": "Cửa",
+      "position": { "x": -3.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-29",
+      "position": { "x": -3.8, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-30",
+      "position": { "x": -2, "y": 0.4, "z": -10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-20",
+      "name": "Tủ thuốc",
+      "position": { "x": 0.62, "y": 0.9, "z": -6.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-37",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -0.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-27",
+      "from": { "x": 1, "z": -12 },
+      "to": { "x": 1, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-26",
+      "name": "Cửa",
+      "position": { "x": 2.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "operating-table-2",
+      "position": { "x": 4, "y": 0.45, "z": -6.75 },
+      "size": [2, 0.9, 0.9],
+      "color": "#4e8c7a",
+      "visual": { "assetId": "furniture/operating-table" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-21",
+      "name": "Tủ thuốc",
+      "position": { "x": 2.2, "y": 0.9, "z": -11.62 },
+      "size": [1, 1.8, 0.5],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-22",
+      "name": "Tủ thuốc",
+      "position": { "x": 6.62, "y": 0.9, "z": -6.75 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-38",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 4, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-28",
+      "from": { "x": 7, "z": -12 },
+      "to": { "x": 7, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-27",
+      "name": "Cửa",
+      "position": { "x": 8.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": -1
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "desk-7",
+      "name": "Bàn làm việc",
+      "position": { "x": 10, "y": 0.375, "z": -11.52 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-23",
+      "name": "Tủ hồ sơ",
+      "position": { "x": 12.57, "y": 0.7, "z": -6.75 },
+      "size": [0.6, 1.4, 0.8],
+      "color": "#8a8f94",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "chair-1",
+      "position": { "x": 10, "y": 0.45, "z": -6.95 },
+      "size": [0.45, 0.9, 0.45],
+      "color": "#7a5f48",
+      "visual": { "assetId": "furniture/chair" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-39",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 11.5, "z": -12 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-29",
+      "from": { "x": 13, "z": -12 },
+      "to": { "x": 13, "z": -1.5 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-28",
+      "name": "Cửa cầu thang",
+      "position": { "x": 13.5, "z": -1.5 },
+      "quarterTurns": 0,
+      "width": 1,
+      "openTowards": 1
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-29",
+      "name": "Cửa",
+      "position": { "x": -18.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-31",
+      "position": { "x": -18.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-32",
+      "position": { "x": -17, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-33",
+      "position": { "x": -15.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-34",
+      "position": { "x": -13.4, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-24",
+      "name": "Tủ thuốc",
+      "position": { "x": -10.38, "y": 0.9, "z": 7.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-41",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -12, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-30",
+      "from": { "x": -10, "z": 1.5 },
+      "to": { "x": -10, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-30",
+      "name": "Cửa",
+      "position": { "x": -8.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "desk-8",
+      "name": "Bàn làm việc",
+      "position": { "x": -5, "y": 0.375, "z": 11.52 },
+      "size": [1.4, 0.75, 0.7],
+      "color": "#7b6a58",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/desk" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-25",
+      "name": "Tủ hồ sơ",
+      "position": { "x": -0.43, "y": 0.7, "z": 6.75 },
+      "size": [0.6, 1.4, 0.8],
+      "color": "#8a8f94",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "chair-2",
+      "position": { "x": -5, "y": 0.45, "z": 6.95 },
+      "size": [0.45, 0.9, 0.45],
+      "color": "#7a5f48",
+      "visual": { "assetId": "furniture/chair" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-42",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -7.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-43",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": -2.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-31",
+      "from": { "x": 0, "z": 1.5 },
+      "to": { "x": 0, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-31",
+      "name": "Cửa",
+      "position": { "x": 1.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "table-3",
+      "position": { "x": 4.2, "y": 0.4, "z": 6.75 },
+      "size": [1.4, 0.8, 0.9],
+      "color": "#7b5a44",
+      "visual": { "assetId": "furniture/table" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "table-4",
+      "position": { "x": 5.8, "y": 0.4, "z": 6.75 },
+      "size": [1.4, 0.8, 0.9],
+      "color": "#7b5a44",
+      "visual": { "assetId": "furniture/table" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-26",
+      "name": "Tủ hồ sơ",
+      "position": { "x": 9.57, "y": 0.7, "z": 6.75 },
+      "size": [0.6, 1.4, 0.8],
+      "color": "#8a8f94",
+      "lootTableId": "office-desk",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-44",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 2.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-45",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 7.5, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "wallRun",
+      "level": 2,
+      "localId": "wall-32",
+      "from": { "x": 10, "z": 1.5 },
+      "to": { "x": 10, "z": 12 },
+      "height": 3.5,
+      "thickness": 0.2,
+      "color": "#eef0ee"
+    },
+    {
+      "kind": "door",
+      "level": 2,
+      "localId": "door-32",
+      "name": "Cửa",
+      "position": { "x": 11.5, "z": 1.5 },
+      "quarterTurns": 0,
+      "width": 1.2,
+      "openTowards": 1
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-35",
+      "position": { "x": 11.2, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-36",
+      "position": { "x": 13, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-37",
+      "position": { "x": 14.8, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "prop",
+      "level": 2,
+      "localId": "hospital-bed-38",
+      "position": { "x": 16.6, "y": 0.4, "z": 10.82 },
+      "size": [1, 0.8, 2.1],
+      "color": "#9fc2d0",
+      "visual": { "assetId": "furniture/hospital-bed" }
+    },
+    {
+      "kind": "container",
+      "level": 2,
+      "localId": "cabinet-27",
+      "name": "Tủ thuốc",
+      "position": { "x": 19.62, "y": 0.9, "z": 7.25 },
+      "size": [0.5, 1.8, 1],
+      "color": "#e8ecee",
+      "lootTableId": "medical-cabinet",
+      "visual": { "assetId": "furniture/cabinet" }
+    },
+    {
+      "kind": "window",
+      "level": 2,
+      "localId": "win-47",
+      "name": "Cửa sổ tầng trên",
+      "position": { "x": 18, "z": 12 },
+      "quarterTurns": 2,
+      "width": 1.4,
+      "sill": 0.9,
+      "head": 2.1,
+      "thickness": 0.2
+    },
+    {
+      "kind": "door",
+      "localId": "door-34",
+      "name": "Cửa phụ",
+      "position": { "x": -20, "z": 0 },
+      "quarterTurns": 1,
+      "width": 1.4,
+      "openTowards": -1
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "room-1",
+      "name": "Hành lang tầng 1",
+      "bounds": { "minX": -20, "minZ": -1.5, "maxX": 20, "maxZ": 1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-1",
+        "name": "Đèn hành lang tầng 1",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -18.65, "z": -1.2 }
+      }
+    },
+    {
+      "localId": "room-2",
+      "name": "Cầu thang 1",
+      "bounds": { "minX": -20, "minZ": -12, "maxX": -13, "maxZ": -1.5 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-2",
+        "name": "Đèn cầu thang 1",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -13.4, "z": -6 }
+      }
+    },
+    {
+      "localId": "room-3",
+      "name": "Cấp cứu",
+      "bounds": { "minX": -13, "minZ": -12, "maxX": -5, "maxZ": -1.5 },
+      "lamp": {
+        "localId": "lamp-3",
+        "name": "Đèn cấp cứu",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -10.55, "z": -1.8 }
+      }
+    },
+    {
+      "localId": "room-4",
+      "name": "Phòng khám 1",
+      "bounds": { "minX": -5, "minZ": -12, "maxX": 1, "maxZ": -1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-4",
+        "name": "Đèn phòng khám 1",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -2.55, "z": -1.8 }
+      }
+    },
+    {
+      "localId": "room-5",
+      "name": "Phòng khám 2",
+      "bounds": { "minX": 1, "minZ": -12, "maxX": 7, "maxZ": -1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-5",
+        "name": "Đèn phòng khám 2",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 3.45, "z": -1.8 }
+      }
+    },
+    {
+      "localId": "room-6",
+      "name": "Phòng khám 3",
+      "bounds": { "minX": 7, "minZ": -12, "maxX": 13, "maxZ": -1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-6",
+        "name": "Đèn phòng khám 3",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 9.45, "z": -1.8 }
+      }
+    },
+    {
+      "localId": "room-7",
+      "name": "Cầu thang 1",
+      "bounds": { "minX": 13, "minZ": -12, "maxX": 20, "maxZ": -1.5 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-7",
+        "name": "Đèn cầu thang 1",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 19.6, "z": -6 }
+      }
+    },
+    {
+      "localId": "room-8",
+      "name": "Nhà thuốc",
+      "bounds": { "minX": -20, "minZ": 1.5, "maxX": -12, "maxZ": 12 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-8",
+        "name": "Đèn nhà thuốc",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -17.55, "z": 1.8 }
+      }
+    },
+    {
+      "localId": "room-9",
+      "name": "Phòng khám 4",
+      "bounds": { "minX": -12, "minZ": 1.5, "maxX": -6, "maxZ": 12 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-9",
+        "name": "Đèn phòng khám 4",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -9.55, "z": 1.8 }
+      }
+    },
+    {
+      "localId": "room-10",
+      "name": "Sảnh tiếp đón",
+      "bounds": { "minX": -6, "minZ": 1.5, "maxX": 6, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-10",
+        "name": "Đèn sảnh tiếp đón",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 5.45, "z": 1.8 }
+      }
+    },
+    {
+      "localId": "room-11",
+      "name": "Phòng khám 5",
+      "bounds": { "minX": 6, "minZ": 1.5, "maxX": 12, "maxZ": 12 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-11",
+        "name": "Đèn phòng khám 5",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 8.45, "z": 1.8 }
+      }
+    },
+    {
+      "localId": "room-12",
+      "name": "Căng tin",
+      "bounds": { "minX": 12, "minZ": 1.5, "maxX": 20, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-12",
+        "name": "Đèn căng tin",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 14.45, "z": 1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-13",
+      "name": "Hành lang tầng 2",
+      "bounds": { "minX": -20, "minZ": -1.5, "maxX": 20, "maxZ": 1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-13",
+        "name": "Đèn hành lang tầng 2",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -12.65, "z": -1.2 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-14",
+      "name": "Cầu thang 2",
+      "bounds": { "minX": -20, "minZ": -12, "maxX": -13, "maxZ": -1.5 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-14",
+        "name": "Đèn cầu thang 2",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -13.4, "z": -6 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-15",
+      "name": "Phòng bệnh 1",
+      "bounds": { "minX": -13, "minZ": -12, "maxX": -5, "maxZ": -1.5 },
+      "lamp": {
+        "localId": "lamp-15",
+        "name": "Đèn phòng bệnh 1",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -10.55, "z": -1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-16",
+      "name": "Phòng bệnh 2",
+      "bounds": { "minX": -5, "minZ": -12, "maxX": 1, "maxZ": -1.5 },
+      "lamp": {
+        "localId": "lamp-16",
+        "name": "Đèn phòng bệnh 2",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -2.55, "z": -1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-17",
+      "name": "Trạm y tá",
+      "bounds": { "minX": 1, "minZ": -12, "maxX": 7, "maxZ": -1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-17",
+        "name": "Đèn trạm y tá",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 3.45, "z": -1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-18",
+      "name": "Phòng bệnh 3",
+      "bounds": { "minX": 7, "minZ": -12, "maxX": 13, "maxZ": -1.5 },
+      "lamp": {
+        "localId": "lamp-18",
+        "name": "Đèn phòng bệnh 3",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 9.45, "z": -1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-19",
+      "name": "Cầu thang 2",
+      "bounds": { "minX": 13, "minZ": -12, "maxX": 20, "maxZ": -1.5 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-19",
+        "name": "Đèn cầu thang 2",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 19.6, "z": -6 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-20",
+      "name": "Phòng bệnh 4",
+      "bounds": { "minX": -20, "minZ": 1.5, "maxX": -12, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-20",
+        "name": "Đèn phòng bệnh 4",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -17.55, "z": 1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-21",
+      "name": "Phòng bệnh 5",
+      "bounds": { "minX": -12, "minZ": 1.5, "maxX": -4, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-21",
+        "name": "Đèn phòng bệnh 5",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -9.55, "z": 1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-22",
+      "name": "Phòng bệnh 6",
+      "bounds": { "minX": -4, "minZ": 1.5, "maxX": 4, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-22",
+        "name": "Đèn phòng bệnh 6",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -1.55, "z": 1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-23",
+      "name": "Phòng bệnh 7",
+      "bounds": { "minX": 4, "minZ": 1.5, "maxX": 12, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-23",
+        "name": "Đèn phòng bệnh 7",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 6.45, "z": 1.8 }
+      }
+    },
+    {
+      "level": 1,
+      "localId": "room-24",
+      "name": "Kho thuốc",
+      "bounds": { "minX": 12, "minZ": 1.5, "maxX": 20, "maxZ": 12 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-24",
+        "name": "Đèn kho thuốc",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 14.45, "z": 1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-25",
+      "name": "Hành lang tầng 3",
+      "bounds": { "minX": -20, "minZ": -1.5, "maxX": 20, "maxZ": 1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-25",
+        "name": "Đèn hành lang tầng 3",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -18.65, "z": -1.2 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-26",
+      "name": "Cầu thang 3",
+      "bounds": { "minX": -20, "minZ": -12, "maxX": -13, "maxZ": -1.5 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-26",
+        "name": "Đèn cầu thang 3",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -13.4, "z": -6 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-27",
+      "name": "Phòng mổ 1",
+      "bounds": { "minX": -13, "minZ": -12, "maxX": -5, "maxZ": -1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-27",
+        "name": "Đèn phòng mổ 1",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -10.55, "z": -1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-28",
+      "name": "Phòng hồi sức",
+      "bounds": { "minX": -5, "minZ": -12, "maxX": 1, "maxZ": -1.5 },
+      "lamp": {
+        "localId": "lamp-28",
+        "name": "Đèn phòng hồi sức",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -2.55, "z": -1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-29",
+      "name": "Phòng mổ 2",
+      "bounds": { "minX": 1, "minZ": -12, "maxX": 7, "maxZ": -1.5 },
+      "visual": { "floor": "tile" },
+      "lamp": {
+        "localId": "lamp-29",
+        "name": "Đèn phòng mổ 2",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 3.45, "z": -1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-30",
+      "name": "Phòng bác sĩ",
+      "bounds": { "minX": 7, "minZ": -12, "maxX": 13, "maxZ": -1.5 },
+      "lamp": {
+        "localId": "lamp-30",
+        "name": "Đèn phòng bác sĩ",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 9.45, "z": -1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-31",
+      "name": "Cầu thang 3",
+      "bounds": { "minX": 13, "minZ": -12, "maxX": 20, "maxZ": -1.5 },
+      "visual": { "floor": "concrete" },
+      "lamp": {
+        "localId": "lamp-31",
+        "name": "Đèn cầu thang 3",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 19.6, "z": -6 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-32",
+      "name": "Phòng bệnh 8",
+      "bounds": { "minX": -20, "minZ": 1.5, "maxX": -10, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-32",
+        "name": "Đèn phòng bệnh 8",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -17.55, "z": 1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-33",
+      "name": "Phòng giám đốc",
+      "bounds": { "minX": -10, "minZ": 1.5, "maxX": 0, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-33",
+        "name": "Đèn phòng giám đốc",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": -7.55, "z": 1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-34",
+      "name": "Phòng họp",
+      "bounds": { "minX": 0, "minZ": 1.5, "maxX": 10, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-34",
+        "name": "Đèn phòng họp",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 2.45, "z": 1.8 }
+      }
+    },
+    {
+      "level": 2,
+      "localId": "room-35",
+      "name": "Phòng bệnh 9",
+      "bounds": { "minX": 10, "minZ": 1.5, "maxX": 20, "maxZ": 12 },
+      "lamp": {
+        "localId": "lamp-35",
+        "name": "Đèn phòng bệnh 9",
+        "intensity": 0.8,
+        "color": "#ffd9a0",
+        "requiresElectricity": true,
+        "switchAt": { "x": 12.45, "z": 1.8 }
+      }
+    }
+  ],
+  "catalog": { "group": "public", "tags": ["benh-vien", "y-te"] }
+}

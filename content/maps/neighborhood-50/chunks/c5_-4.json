@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c5_-4",
+  "cx": 5,
+  "cz": -4,
+  "instances": [
+    {
+      "instanceId": "c5_-4/lot-0209bdd45e",
+      "prefabId": "building/safehouse",
+      "position": { "x": 2.5, "y": 0, "z": 11.5 },
+      "quarterTurns": 3
+    },
+    {
+      "instanceId": "c5_-4/lot-1442f4fad0",
+      "prefabId": "service/garage-double",
+      "position": { "x": 2, "y": 0, "z": 24 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c5_-4/objects/env-lot-16af511420-tree-2",
+      "position": { "x": 10.3, "z": 2.6 },
+      "height": 5.248019,
+      "canopy": 1.699208,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_-4/objects/env-lot-0719829700-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 16.509817, "y": 0, "z": 2.635076 },
+      "yaw": 170
+    },
+    {
+      "kind": "tree",
+      "objectId": "c5_-4/objects/env-lot-0209bdd45e-tree-1",
+      "position": { "x": 15.1, "z": 15.3 },
+      "height": 5.990746,
+      "canopy": 1.996299,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c5_-4/objects/env-lot-0209bdd45e-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 13.38544, "y": 0, "z": 8.638856 },
+      "yaw": 120
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_-4/objects/env-lot-0209bdd45e-fence-1",
+      "position": { "x": 17.2, "y": 0.5, "z": 11.25 },
+      "size": [0.12, 1, 11.3],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_-4/objects/env-lot-1442f4fad0-fence-1",
+      "position": { "x": 17.2, "y": 0.5, "z": 24 },
+      "size": [0.12, 1, 11.8],
+      "color": "#d8d2c4",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c5_-4/objects/env-lot-052725ae46-fence-1",
+      "position": { "x": 4.25, "y": 0.5, "z": 30.8 },
+      "size": [16.3, 1, 0.12],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c5_-3/objects/env-lot-052725ae46-tree-1", "ownerChunkId": "c5_-3" },
+    { "id": "c5_-3/objects/env-lot-15b6c7bdcd-tree-1", "ownerChunkId": "c5_-3" },
+    { "id": "c6_-4/objects/env-lot-185800a21c-fence-1", "ownerChunkId": "c6_-4" },
+    { "id": "c6_-4/objects/env-lot-1fea1b7bb6-fence-1", "ownerChunkId": "c6_-4" }
+  ]
+}

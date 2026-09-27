@@ -10,7 +10,7 @@ import {
   type WallDef,
   type WindowPlacement,
 } from '../game/world/buildings.ts'
-import type { MapData, RoadDef, ZoneDef } from '../game/world/mapData.ts'
+import type { MapData, RoadDef, SurfaceDef, ZoneDef } from '../game/world/mapData.ts'
 import { trunkWall, type TreeDef } from '../game/world/trees.ts'
 import { STAIR_RAIL, subtractRects, type FloorSlab, type StairPlacement } from '../game/world/floors.ts'
 import {
@@ -27,11 +27,13 @@ import {
   type Rect,
   type StairsObject,
   type StandaloneObject,
+  type SurfaceObject,
   type TreeObject,
   type WallRunObject,
   type WindowObject,
   type WorldDocument,
   type XZ,
+  SURFACE_BARRIER_HEIGHT,
 } from './schema.ts'
 import { addQuarterTurns, chunkOrigin, playAreaRect, quantize, quarterAngle, rotateRect, rotateSize, rotateXZ, unionRect } from './transform.ts'
 import { outlineCentre, outlineRects } from './polygon.ts'
@@ -61,6 +63,10 @@ export interface MapParts {
   stairs: StairPlacement[]
   /** G3b: drawn-only decor. */
   decor: DecorDef[]
+  /** Prefab library P1: ground surfaces (drawn; solid ones also have hidden barrier walls). */
+  surfaces: SurfaceDef[]
+  /** Prefab library P1: areas out of the navigation grid (surfaces blocked for navigation). */
+  navBlockers: { id: string; rect: Rect }[]
 }
 
 export interface ResolvedRecord {
@@ -88,7 +94,64 @@ function boxRect(position: XZ, size: readonly number[]): Rect {
 }
 
 function emptyParts(): MapParts {
-  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [], trees: [], floors: [], stairs: [], decor: [] }
+  return { buildings: [], walls: [], doors: [], windows: [], containers: [], rooms: [], roads: [], zones: [], zombieSpawns: [], playerSpawns: [], trees: [], floors: [], stairs: [], decor: [], surfaces: [], navBlockers: [] }
+}
+
+/** Width (m) of the strips an ellipse is blocked with: the navigation grid's cell. */
+const ELLIPSE_STRIP = 0.5
+
+/**
+ * Prefab library P1: rectangles covering a surface for its barrier and navigation. A rectangle is
+ * itself; an ellipse is cut into strips `ELLIPSE_STRIP` wide across its longer axis, each as long as
+ * the ellipse's widest chord inside the strip (the strips cover the whole ellipse, a little more).
+ */
+export function surfaceBlockRects(shape: SurfaceObject['shape'], center: XZ, size: readonly [number, number]): Rect[] {
+  const hx = size[0] / 2
+  const hz = size[1] / 2
+  if (shape === 'rect') return [{ minX: quantize(center.x - hx), minZ: quantize(center.z - hz), maxX: quantize(center.x + hx), maxZ: quantize(center.z + hz) }]
+  // Strips run along the longer axis `a` (half length ha), stacked across `b` (half width hb).
+  const alongX = hx >= hz
+  const ha = alongX ? hx : hz
+  const hb = alongX ? hz : hx
+  const n = Math.max(1, Math.ceil((2 * hb) / ELLIPSE_STRIP))
+  const w = (2 * hb) / n
+  const out: Rect[] = []
+  for (let i = 0; i < n; i++) {
+    const b0 = -hb + i * w
+    const b1 = b0 + w
+    // Widest chord in the strip: at the strip edge nearest the centre (0 when the strip straddles it).
+    const near = b0 <= 0 && b1 >= 0 ? 0 : Math.min(Math.abs(b0), Math.abs(b1))
+    const half = ha * Math.sqrt(Math.max(0, 1 - (near / hb) ** 2))
+    if (half <= 0) continue
+    out.push(
+      alongX
+        ? { minX: quantize(center.x - half), minZ: quantize(center.z + b0), maxX: quantize(center.x + half), maxZ: quantize(center.z + b1) }
+        : { minX: quantize(center.x + b0), minZ: quantize(center.z - half), maxX: quantize(center.x + b1), maxZ: quantize(center.z + half) },
+    )
+  }
+  return out
+}
+
+/**
+ * Prefab library P1: a surface at world point `at` with its world `size`: the drawn surface, the
+ * hidden barrier pieces of a solid one (`<id>#solid-<n>`, derived: no saved state) and the navigation
+ * areas of a blocked one.
+ */
+function placeSurface(id: string, o: Omit<SurfaceObject, 'localId'>, at: XZ, size: [number, number]): Pick<MapParts, 'surfaces' | 'walls' | 'navBlockers'> & { bounds: Rect } {
+  const surface: SurfaceDef = { id, shape: o.shape, position: { x: at.x, z: at.z }, size, surface: o.material, color: o.color, ...(o.layer ? { layer: o.layer } : {}) }
+  const rects = o.collision === 'solid' || o.navigation === 'blocked' ? surfaceBlockRects(o.shape, at, size) : []
+  const h = SURFACE_BARRIER_HEIGHT
+  const walls: WallDef[] =
+    o.collision === 'solid'
+      ? rects.map((r, i) => ({
+          id: `${id}#solid-${i}`,
+          position: { x: quantize((r.minX + r.maxX) / 2), y: h / 2, z: quantize((r.minZ + r.maxZ) / 2) },
+          size: [quantize(r.maxX - r.minX), h, quantize(r.maxZ - r.minZ)],
+          hidden: true,
+        }))
+      : []
+  const navBlockers = o.navigation === 'blocked' && o.collision !== 'solid' ? rects.map((rect, i) => ({ id: `${id}#nav-${i}`, rect })) : []
+  return { surfaces: [surface], walls, navBlockers, bounds: boxRect(at, size) }
 }
 
 /** An opening (door or window) cut into a wall run, as an interval along the run. */
@@ -294,6 +357,14 @@ export function resolveInstance(inst: InstanceRecord, prefab: PrefabDocument, or
         bounds = unionRect(bounds, t.bounds)
         break
       }
+      case 'surface': {
+        const s = placeSurface(id(o.localId), o, point(o.position), rotateSize(o.size, q))
+        parts.surfaces.push(...s.surfaces)
+        parts.walls.push(...s.walls)
+        parts.navBlockers.push(...s.navBlockers)
+        bounds = unionRect(bounds, s.bounds)
+        break
+      }
       case 'decor': {
         // Only in the variants it belongs to (none listed: always).
         if (o.variants && !(variant && o.variants.includes(variant))) break
@@ -429,6 +500,10 @@ function resolveStandalone(o: StandaloneObject, origin: XZ): { parts: Partial<Ma
     const t = placeTree(o.objectId, o, { x: quantize(origin.x + o.position.x), z: quantize(origin.z + o.position.z) })
     return { parts: { trees: [t.tree], walls: [t.trunk] }, bounds: t.bounds }
   }
+  if (o.kind === 'surface') {
+    const { bounds, ...parts } = placeSurface(o.objectId, o, { x: quantize(origin.x + o.position.x), z: quantize(origin.z + o.position.z) }, [...o.size])
+    return { parts, bounds }
+  }
   if (o.kind === 'decor') {
     const at = { x: quantize(origin.x + o.position.x), z: quantize(origin.z + o.position.z) }
     const bounds = boxRect(at, decorFootprint(o.assetId, o.yaw))
@@ -558,5 +633,7 @@ export function assembleMapData(world: WorldDocument, records: Iterable<Resolved
     ...(maxActive !== undefined ? { maxActiveZombies: maxActive } : {}),
     ...(all.floors.length ? { floors: all.floors } : {}),
     ...(all.stairs.length ? { stairs: all.stairs } : {}),
+    ...(all.surfaces.length ? { surfaces: all.surfaces } : {}),
+    ...(all.navBlockers.length ? { navBlockers: all.navBlockers } : {}),
   }
 }

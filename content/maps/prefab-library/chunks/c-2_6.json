@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-2_6",
+  "cx": -2,
+  "cz": 6,
+  "instances": [
+    {
+      "instanceId": "c-2_6/university-hall-north-1",
+      "prefabId": "public/lecture-hall",
+      "position": { "x": 5, "y": 0, "z": 10 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_7/university-hall-east-1", "ownerChunkId": "c-1_7" },
+    { "id": "c-2_7/objects/university-lawn-1", "ownerChunkId": "c-2_7" },
+    { "id": "c-2_7/objects/university-path-1", "ownerChunkId": "c-2_7" },
+    { "id": "c-2_7/objects/university-plaza-1", "ownerChunkId": "c-2_7" },
+    { "id": "c-2_7/objects/university-tree-1", "ownerChunkId": "c-2_7" }
+  ]
+}

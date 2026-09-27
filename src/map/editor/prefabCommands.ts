@@ -1,4 +1,4 @@
-import { MAP_SCHEMA_VERSION, MAX_STOREYS, type PrefabDocument, type PrefabObject, type QuarterTurns, type Rect, type RoomObject, type StairsObject, type WallRunObject, type XZ } from '../schema.ts'
+import { ARCHITECTURE_STYLES, LAND_USE_ZONES, LIBRARY_GROUPS, MAP_SCHEMA_VERSION, MAX_STOREYS, PREFAB_CATEGORIES, type LibraryInfo, type PrefabDocument, type PrefabPlacement, type PrefabObject, type QuarterTurns, type Rect, type RoomObject, type StairsObject, type WallRunObject, type XZ } from '../schema.ts'
 import { resolveInstance, stairRect, type ResolvedRecord } from '../resolve.ts'
 import { addQuarterTurns, PREFAB_ID, quantize, rotateXZ, SLUG } from '../transform.ts'
 import type { CommandResult } from './commands.ts'
@@ -83,6 +83,8 @@ export function objectRect(o: PrefabObject): Rect {
       const [w, d] = decorFootprint(o.assetId, o.yaw)
       return rectAround(o.position, w, d)
     }
+    case 'surface':
+      return rectAround(o.position, o.size[0], o.size[1])
     default:
       return rectAround(o.position, o.size[0], o.size[2])
   }
@@ -201,7 +203,7 @@ export interface NewPrefabOptions {
   shape?: 'rect' | 'L' | 'twoStorey'
 }
 
-function uniquePrefabPath(doc: MapDocument, prefabId: string): string {
+export function uniquePrefabPath(doc: MapDocument, prefabId: string): string {
   const base = prefabId.split('/').pop()!
   const used = new Set([...doc.world.prefabs.map((e) => e.path), ...doc.world.chunks.map((e) => e.path), ...doc.extras.keys()])
   for (let n = 1; ; n++) {
@@ -363,6 +365,28 @@ export interface PrefabPatch {
   building?: Partial<NonNullable<PrefabDocument['building']>>
   /** G3b: house variants offered; [] or null = none. */
   variants?: string[] | null
+  /** World generator WG3: placement metadata; null = removed (the generator never places this prefab). */
+  placement?: PrefabPlacement | null
+  /** Prefab library P1: how the shared library lists it; null = removed. */
+  catalog?: LibraryInfo | null
+}
+
+/** Why library browsing metadata is unusable, or null (prefab library P1). */
+export function catalogProblem(c: LibraryInfo): string | null {
+  if (!LIBRARY_GROUPS.includes(c.group)) return `nhóm "${c.group}" không hỗ trợ`
+  if (c.architectureStyle !== undefined && !ARCHITECTURE_STYLES.includes(c.architectureStyle)) return `phong cách "${c.architectureStyle}" không hỗ trợ`
+  if (c.tags && c.tags.some((t) => !SLUG.test(t))) return 'tag phải là slug (chữ thường, số, gạch nối)'
+  return null
+}
+
+/** Why placement metadata is unusable, or null. */
+export function placementProblem(p: PrefabPlacement): string | null {
+  if (!PREFAB_CATEGORIES.includes(p.category)) return `loại "${p.category}" không hỗ trợ`
+  if (!p.allowedZones.length || p.allowedZones.some((z) => !LAND_USE_ZONES.includes(z))) return 'cần ít nhất một zone hợp lệ'
+  if (!(Number.isFinite(p.weight) && p.weight > 0)) return 'trọng số phải > 0'
+  if (!(p.setback >= 0 && p.sideGap >= 0)) return 'khoảng lùi và khoảng hở phải ≥ 0'
+  if (p.frontage && !(p.frontage.length === 2 && p.frontage[0] > 0 && p.frontage[0] <= p.frontage[1])) return 'mặt tiền phải là [min, max], 0 < min ≤ max'
+  return null
 }
 
 /** Prefab properties. `contentVersion` also updates the manifest pin, so they never disagree. */
@@ -400,6 +424,19 @@ export function updatePrefab(doc: MapDocument, prefabId: string, patch: PrefabPa
     if (left.length) return fail(`Còn ${left.length} mục ở tầng ${storeys + 1} trở lên (${left.slice(0, 3).join(', ')}${left.length > 3 ? ' …' : ''}): xóa hoặc chuyển tầng trước`)
     if (storeys === 1) delete b.storeys
     next.building = b
+  }
+  if (patch.placement === null) delete next.placement
+  else if (patch.placement) {
+    const problem = placementProblem(patch.placement)
+    if (problem) return fail(`Placement không hợp lệ: ${problem}`)
+    next.placement = { ...patch.placement, allowedZones: LAND_USE_ZONES.filter((z) => patch.placement!.allowedZones.includes(z)) }
+  }
+  if (patch.catalog === null) delete next.catalog
+  else if (patch.catalog) {
+    const problem = catalogProblem(patch.catalog)
+    if (problem) return fail(`Thông tin thư viện không hợp lệ: ${problem}`)
+    const c = patch.catalog
+    next.catalog = { group: c.group, ...(c.architectureStyle ? { architectureStyle: c.architectureStyle } : {}), ...(c.tags?.length ? { tags: [...new Set(c.tags)].sort() } : {}), ...(c.description?.trim() ? { description: c.description.trim() } : {}) }
   }
   if (patch.variants !== undefined) {
     const list = [...new Set(patch.variants ?? [])].filter(isVariantId)
@@ -539,6 +576,7 @@ export function placePrefabItem(doc: MapDocument, prefabId: string, presetId: st
   key = freshLocalId(prefab, preset.name)
   let object: AnyRecord
   if (t.kind === 'tree' && floor > 0) return fail('Cây chỉ trồng ở tầng trệt')
+  if (t.kind === 'surface' && floor > 0) return fail('Mặt nền chỉ ở tầng trệt')
   if (t.kind === 'stairs') {
     if (!prefab.building || storeys < 2) return fail('Cầu thang cần công trình từ 2 tầng (Inspector prefab → Số tầng)')
     if (floor > storeys - 2) return fail('Tầng trên cùng: không còn tầng nào để cầu thang lên tới')
@@ -559,7 +597,7 @@ export function placePrefabItem(doc: MapDocument, prefabId: string, presetId: st
   } else {
     const { at, fields } = presetPlacement({ drag: preset.drag, template: t } as RecordPreset, from, to)
     const { kind, ...rest } = { ...structuredClone(t), ...fields }
-    object = { kind, ...(kind === 'tree' ? {} : levelField(floor)), localId: key, ...rest, position: { ...(rest.position as AnyRecord), x: at.x, z: at.z } }
+    object = { kind, ...(kind === 'tree' || kind === 'surface' ? {} : levelField(floor)), localId: key, ...rest, position: { ...(rest.position as AnyRecord), x: at.x, z: at.z } }
   }
   next.objects.push(object as unknown as PrefabObject)
   return { ok: true, doc: withPrefab(doc, next), selection: [key] }
@@ -614,7 +652,7 @@ function clusterObject(template: AnyRecord, localId: string, at: XZ, q: number, 
     else delete out.yaw
   } else if (Array.isArray(out.size) && q & 1) {
     const s = out.size as number[]
-    out.size = [s[2], s[1], s[0]]
+    out.size = s.length === 2 ? [s[1], s[0]] : [s[2], s[1], s[0]]
   }
   const visual = out.visual as { facing?: number } | undefined
   if (visual?.facing !== undefined) out.visual = { ...visual, facing: addQuarterTurns(visual.facing, q) }
@@ -649,6 +687,11 @@ export function rotatePrefabItems(doc: MapDocument, prefabId: string, keys: read
       if (turns % 4 === 0) return o
       count++
       return { ...o, yaw: (((o.yaw ?? 0) + turns * 90) % 360 + 360) % 360 }
+    }
+    if (o.kind === 'surface') {
+      if (!odd || o.size[0] === o.size[1]) return o
+      count++
+      return { ...o, size: [o.size[1], o.size[0]] as [number, number] }
     }
     const facing = (o.kind === 'prop' || o.kind === 'container') && o.visual?.facing !== undefined && turns % 4 !== 0 ? { visual: { ...o.visual, facing: addQuarterTurns(o.visual.facing, turns) } } : null
     const swap = odd && o.size[0] !== o.size[2]

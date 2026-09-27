@@ -36,7 +36,7 @@ export function layerOf(r: ResolvedRecord): LayerId {
     case 'instances':
       return 'buildings'
     case 'objects':
-      return r.parts.containers?.length ? 'containers' : r.parts.trees?.length ? 'vegetation' : r.parts.decor?.length ? 'decor' : 'props'
+      return r.parts.containers?.length ? 'containers' : r.parts.trees?.length ? 'vegetation' : r.parts.decor?.length ? 'decor' : r.parts.surfaces?.length ? 'surfaces' : 'props'
     case 'roads':
       return 'surfaces'
     case 'zones':

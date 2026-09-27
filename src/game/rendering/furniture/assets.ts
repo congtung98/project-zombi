@@ -470,6 +470,194 @@ function mailbox(p: Parts, c: string): void {
   p.box('flag', x1 - 0.03, x1, h - 0.24, h - 0.1, z0 + 0.04, z0 + 0.1, '#b0352a', 'paintedMetal')
 }
 
+/** WG5: a post-top streetlight: base, tapered post, lantern with its glass and cap (decorative, no light). */
+function streetlight(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const post = Math.min(0.12, w * 0.4)
+  const lantern = Math.min(0.55, h * 0.14)
+  p.box('base', x0 + w * 0.15, x1 - w * 0.15, 0, 0.3, z0 + d * 0.15, z1 - d * 0.15, shade(c, -0.1), 'paintedMetal')
+  p.box('post', -post / 2, post / 2, 0.3, h - lantern, -post / 2, post / 2, c, 'paintedMetal')
+  p.box('collar', -post, post, h - lantern - 0.08, h - lantern, -post, post, shade(c, -0.1), 'paintedMetal')
+  p.box('glass', x0 + w * 0.12, x1 - w * 0.12, h - lantern, h - 0.1, z0 + d * 0.12, z1 - d * 0.12, '#efe6c4', 'matte')
+  p.box('cap', x0, x1, h - 0.1, h, z0, z1, shade(c, -0.15), 'paintedMetal')
+}
+
+
+// ---- Prefab library P2–P5: the pieces the new places needed (same box-built style) ----
+
+/** A hospital bed: castors, steel frame, raised head section, mattress, side rails, a drip stand at the head. */
+function hospitalBed(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const wheel = Math.min(0.1, h * 0.14)
+  for (const [i, [cx, cz]] of [[x0 + 0.04, z0 + 0.04], [x1 - 0.1, z0 + 0.04], [x0 + 0.04, z1 - 0.1], [x1 - 0.1, z1 - 0.1]].entries()) {
+    p.box(`castor-${i}`, cx, cx + 0.06, 0, wheel, cz, cz + 0.06, '#2a2b2e', 'matte')
+  }
+  const frameTop = h * 0.5
+  p.box('frame', x0 + 0.02, x1 - 0.02, wheel, frameTop, z0 + 0.1, z1 - 0.02, STEEL, 'paintedMetal')
+  const mattress = h * 0.68
+  p.box('mattress', x0 + 0.05, x1 - 0.05, frameTop, mattress, z0 + d * 0.35, z1 - 0.05, c, 'fabric')
+  // Head section raised like a backrest.
+  p.box('backrest', x0 + 0.05, x1 - 0.05, frameTop, h * 0.86, z0 + 0.12, z0 + d * 0.35, shade(c, -0.08), 'fabric')
+  p.box('pillow', x0 + w * 0.2, x1 - w * 0.2, h * 0.86 - 0.02, h * 0.95, z0 + 0.14, z0 + 0.34, PILLOW, 'fabric')
+  p.box('headboard', x0, x1, wheel, h * 0.9, z0, z0 + 0.06, shade(STEEL, 0.2), 'paintedMetal')
+  p.box('footboard', x0, x1, wheel, h * 0.75, z1 - 0.05, z1, shade(STEEL, 0.2), 'paintedMetal')
+  p.box('rail-left', x0, x0 + 0.03, mattress, h * 0.8, z0 + d * 0.3, z0 + d * 0.7, STEEL, 'paintedMetal')
+  p.box('rail-right', x1 - 0.03, x1, mattress, h * 0.8, z0 + d * 0.3, z0 + d * 0.7, STEEL, 'paintedMetal')
+  p.box('drip-pole', x1 - 0.06, x1 - 0.03, h * 0.9, h, z0 + 0.02, z0 + 0.05, STEEL, 'paintedMetal')
+  p.box('drip-bag', x1 - 0.1, x1 - 0.02, h - 0.12, h - 0.02, z0 + 0.05, z0 + 0.09, '#dfe8e6', 'matte')
+}
+
+/** An operating table: pedestal, padded top, a head rest and an instrument tray on its arm. */
+function operatingTable(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  p.box('base', -w * 0.25, w * 0.25, 0, 0.08, z0 + d * 0.2, z1 - d * 0.2, '#3f4448', 'paintedMetal')
+  p.box('pedestal', -0.12, 0.12, 0.08, h - 0.15, -0.12, 0.12, STEEL, 'paintedMetal')
+  p.box('frame', x0 + 0.05, x1 - 0.05, h - 0.15, h - 0.1, z0 + 0.1, z1 - 0.1, shade(STEEL, -0.1), 'paintedMetal')
+  p.box('pad', x0 + 0.08, x1 - 0.2, h - 0.1, h - 0.02, z0 + 0.12, z1 - 0.12, c, 'fabric')
+  p.box('head-rest', x1 - 0.2, x1 - 0.04, h - 0.1, h, -d * 0.18, d * 0.18, shade(c, -0.1), 'fabric')
+  p.box('tray-arm', x0 + 0.02, x0 + 0.05, 0.08, h - 0.08, z1 - 0.1, z1 - 0.07, STEEL, 'paintedMetal')
+  p.box('tray', x0, x0 + 0.3, h - 0.1, h - 0.07, z1 - 0.12, z1, shade(STEEL, 0.25), 'paintedMetal')
+}
+
+/** An industrial machine (a lathe): plinth, bed, head stock with its chuck, carriage, motor, control box. */
+function machine(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const bedTop = h * 0.62
+  p.box('plinth', x0, x1, 0, 0.1, z0, z1, PLINTH, 'paintedMetal')
+  p.box('cabinet-left', x0 + 0.05, x0 + w * 0.3, 0.1, bedTop - 0.1, z0 + 0.1, z1 - 0.1, c, 'paintedMetal')
+  p.box('cabinet-right', x1 - w * 0.25, x1 - 0.05, 0.1, bedTop - 0.1, z0 + 0.1, z1 - 0.1, c, 'paintedMetal')
+  p.box('bed', x0 + 0.05, x1 - 0.05, bedTop - 0.1, bedTop, z0 + 0.15, z1 - 0.15, shade(c, -0.25), 'paintedMetal')
+  p.box('headstock', x0 + 0.05, x0 + w * 0.32, bedTop, h, z0 + 0.1, z1 - 0.1, c, 'paintedMetal')
+  p.box('chuck', x0 + w * 0.32, x0 + w * 0.32 + 0.12, bedTop + 0.1, bedTop + 0.35, -0.13, 0.13, STEEL, 'paintedMetal')
+  p.box('carriage', -w * 0.05, w * 0.15, bedTop, bedTop + 0.22, z0 + 0.1, z1 - 0.05, shade(c, 0.1), 'paintedMetal')
+  p.box('tailstock', x1 - w * 0.18, x1 - 0.08, bedTop, bedTop + 0.3, -0.15, 0.15, c, 'paintedMetal')
+  p.box('control-box', x0 + 0.08, x0 + 0.38, bedTop + 0.1, bedTop + 0.4, z1 - 0.08, z1, '#2e3336', 'paintedMetal')
+  p.box('warning-stripe', x0, x1, 0.1, 0.16, z1 - 0.02, z1, '#d9b02f', 'matte')
+}
+
+/** A cash machine: cabinet, fascia with the screen, keypad and slot, a small canopy on top. */
+function atm(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  p.box('cabinet', x0 + 0.02, x1 - 0.02, 0, h - 0.1, z0, z1 - 0.1, c, 'paintedMetal')
+  p.box('fascia', x0 + 0.06, x1 - 0.06, h * 0.45, h - 0.2, z1 - 0.1, z1 - 0.04, shade(c, 0.2), 'paintedMetal')
+  p.box('screen', x0 + 0.15, x1 - 0.15, h * 0.62, h * 0.8, z1 - 0.04, z1 - 0.02, '#2d4d5c', 'matte')
+  p.box('keypad', -0.12, 0.12, h * 0.5, h * 0.58, z1 - 0.04, z1, '#3c3f42', 'matte')
+  p.box('slot', x1 - 0.2, x1 - 0.1, h * 0.5, h * 0.53, z1 - 0.04, z1 - 0.01, '#1f1f21', 'matte')
+  p.box('canopy', x0, x1, h - 0.1, h, z0, z1, '#b73a2f', 'paintedMetal')
+}
+
+/** A headstone: plinth, stone with a stepped top, a darker panel for the inscription. */
+function tombstone(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const plinth = Math.min(0.12, h * 0.15)
+  p.box('plinth', x0, x1, 0, plinth, z0, z1, shade(c, -0.18), 'concrete')
+  const t = Math.min(d * 0.7, 0.18)
+  const zc = (z0 + z1) / 2
+  p.box('stone', x0 + w * 0.08, x1 - w * 0.08, plinth, h * 0.82, zc - t / 2, zc + t / 2, c, 'concrete')
+  p.box('shoulder', x0 + w * 0.16, x1 - w * 0.16, h * 0.82, h * 0.93, zc - t / 2, zc + t / 2, c, 'concrete')
+  p.box('top', x0 + w * 0.3, x1 - w * 0.3, h * 0.93, h, zc - t / 2, zc + t / 2, c, 'concrete')
+  p.box('panel', x0 + w * 0.2, x1 - w * 0.2, h * 0.38, h * 0.72, zc + t / 2, Math.min(z1, zc + t / 2 + 0.01), shade(c, -0.3), 'matte')
+}
+
+/** A park bench: iron legs, three seat slats, two back slats (front = +z). */
+function bench(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const seat = h * 0.85 > 0.45 ? 0.45 : h * 0.6
+  for (const [i, x] of [x0 + 0.08, x1 - 0.13].entries()) {
+    p.box(`leg-front-${i}`, x, x + 0.05, 0, seat, z1 - 0.12, z1 - 0.06, '#2f3336', 'paintedMetal')
+    p.box(`leg-back-${i}`, x, x + 0.05, 0, h, z0 + 0.02, z0 + 0.07, '#2f3336', 'paintedMetal')
+  }
+  slots(z0 + 0.06, z1 - 0.02, 3, 0.02).forEach(([a, b], i) => p.box(`seat-${i}`, x0, x1, seat - 0.04, seat, a, b, c, 'wood'))
+  for (const [i, y] of [seat + (h - seat) * 0.3, h - 0.06].entries()) p.box(`back-${i}`, x0, x1, y, Math.min(h, y + 0.06), z0, z0 + 0.04, c, 'wood')
+}
+
+/** A playground slide: ladder at the back, platform with rails, the chute stepping down to the front. */
+function slide(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const deck = h * 0.7
+  const deckEnd = z0 + d * 0.3
+  for (const [i, x] of [x0 + 0.05, x1 - 0.1].entries()) {
+    p.box(`post-back-${i}`, x, x + 0.05, 0, h, z0, z0 + 0.05, '#3b6fa8', 'paintedMetal')
+    p.box(`post-front-${i}`, x, x + 0.05, 0, h, deckEnd - 0.05, deckEnd, '#3b6fa8', 'paintedMetal')
+  }
+  for (let k = 1; k <= 4; k++) p.box(`rung-${k}`, x0 + 0.1, x1 - 0.1, (deck * k) / 5 - 0.02, (deck * k) / 5 + 0.02, z0, z0 + 0.04, '#e0c34a', 'paintedMetal')
+  p.box('deck', x0 + 0.05, x1 - 0.05, deck - 0.05, deck, z0 + 0.05, deckEnd, '#d9c07a', 'wood')
+  p.box('rail', x0 + 0.05, x1 - 0.05, h - 0.05, h, z0, deckEnd, '#3b6fa8', 'paintedMetal')
+  const steps = 6
+  for (let k = 0; k < steps; k++) {
+    const za = deckEnd + ((z1 - deckEnd) * k) / steps
+    const zb = deckEnd + ((z1 - deckEnd) * (k + 1)) / steps
+    const top = deck * (1 - (k + 0.5) / steps)
+    p.box(`chute-${k}`, x0 + w * 0.15, x1 - w * 0.15, Math.max(0, top - 0.08), Math.max(0.06, top), za, zb, c, 'paintedMetal')
+  }
+}
+
+/** A swing set: two A-frames, the top beam, two seats on their chains (along x). */
+function swing(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  for (const [i, x] of [x0, x1 - 0.08].entries()) {
+    p.box(`leg-a-${i}`, x, x + 0.08, 0, h - 0.08, z0, z0 + 0.08, c, 'paintedMetal')
+    p.box(`leg-b-${i}`, x, x + 0.08, 0, h - 0.08, z1 - 0.08, z1, c, 'paintedMetal')
+  }
+  p.box('beam', x0, x1, h - 0.08, h, z0, z1, shade(c, -0.15), 'paintedMetal')
+  for (const [i, cx] of [-w / 4, w / 4].entries()) {
+    p.box(`chain-l-${i}`, cx - 0.22, cx - 0.2, 0.45, h - 0.08, -0.01, 0.01, '#8e9398', 'paintedMetal')
+    p.box(`chain-r-${i}`, cx + 0.2, cx + 0.22, 0.45, h - 0.08, -0.01, 0.01, '#8e9398', 'paintedMetal')
+    p.box(`seat-${i}`, cx - 0.24, cx + 0.24, 0.4, 0.45, -0.1, 0.1, '#2f2f31', 'matte')
+  }
+}
+
+/** A sandbox: four wooden sides, sand inside, a forgotten bucket. */
+function sandbox(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const t = Math.min(0.12, w * 0.08)
+  p.box('side-back', x0, x1, 0, h, z0, z0 + t, c, 'wood')
+  p.box('side-front', x0, x1, 0, h, z1 - t, z1, c, 'wood')
+  p.box('side-left', x0, x0 + t, 0, h, z0 + t, z1 - t, c, 'wood')
+  p.box('side-right', x1 - t, x1, 0, h, z0 + t, z1 - t, c, 'wood')
+  p.box('sand', x0 + t, x1 - t, 0, h * 0.7, z0 + t, z1 - t, '#d9c48f', 'dirt')
+  p.box('bucket', x0 + w * 0.3, x0 + w * 0.3 + 0.18, h * 0.7, Math.min(h, h * 0.7 + 0.2), -0.09, 0.09, '#c8412f', 'paintedMetal')
+}
+
+/** A basketball hoop: base, pole at the back, the backboard on top, the rim in front of it (front = +z). */
+function hoop(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  p.box('base', -w * 0.3, w * 0.3, 0, 0.15, z0, z0 + d * 0.5, '#3f4448', 'paintedMetal')
+  p.box('pole', -0.06, 0.06, 0.15, h - 0.5, z0 + 0.05, z0 + 0.17, c, 'paintedMetal')
+  p.box('arm', -0.05, 0.05, h - 0.75, h - 0.65, z0 + 0.05, z1 - 0.35, c, 'paintedMetal')
+  p.box('board', x0, x1, h - 0.9, h, z1 - 0.37, z1 - 0.33, '#f2f2f0', 'matte')
+  p.box('square', -0.2, 0.2, h - 0.7, h - 0.45, z1 - 0.33, z1 - 0.32, '#c8412f', 'matte')
+  p.box('rim-front', -0.22, 0.22, h - 0.88, h - 0.85, z1 - 0.04, z1, '#d9582b', 'paintedMetal')
+  p.box('rim-left', -0.22, -0.19, h - 0.88, h - 0.85, z1 - 0.32, z1, '#d9582b', 'paintedMetal')
+  p.box('rim-right', 0.19, 0.22, h - 0.88, h - 0.85, z1 - 0.32, z1, '#d9582b', 'paintedMetal')
+}
+
+/** A flagpole: base, pole at one end of the box, the flag at the top of it (along x). */
+function flagpole(p: Parts, c: string): void {
+  const { w, h, d } = p.dims
+  const x0 = -w / 2, x1 = w / 2, z0 = -d / 2, z1 = d / 2
+  const post = Math.min(0.1, d * 0.8)
+  p.box('base', x0, x0 + Math.min(w, 0.3), 0, 0.2, z0, z1, shade(c, -0.3), 'concrete')
+  p.box('pole', x0 + 0.1, x0 + 0.1 + post, 0.2, h - 0.08, -post / 2, post / 2, c, 'paintedMetal')
+  p.box('finial', x0 + 0.08, x0 + 0.12 + post, h - 0.08, h, -post / 2, post / 2, '#d9b02f', 'paintedMetal')
+  const fx = x0 + 0.1 + post
+  const flagH = Math.min(0.6, h * 0.1)
+  p.box('flag-top', fx, x1, h - 0.1 - flagH / 2, h - 0.1, -0.01, 0.01, '#c8342b', 'fabric')
+  p.box('flag-bottom', fx, x1, h - 0.1 - flagH, h - 0.1 - flagH / 2, -0.01, 0.01, '#c8342b', 'fabric')
+  p.box('star', fx + (x1 - fx) * 0.35, fx + (x1 - fx) * 0.55, h - 0.1 - flagH * 0.7, h - 0.1 - flagH * 0.3, 0.01, 0.015, '#e8c547', 'matte')
+}
+
 const BUILDERS: Record<FurnitureId, (p: Parts, color: string, variant: string) => void> = {
   'furniture/bed': bed,
   'furniture/sofa': sofa,
@@ -489,6 +677,18 @@ const BUILDERS: Record<FurnitureId, (p: Parts, color: string, variant: string) =
   'outdoor/fence': fence,
   'outdoor/bin': bin,
   'outdoor/mailbox': mailbox,
+  'outdoor/streetlight': streetlight,
+  'furniture/hospital-bed': hospitalBed,
+  'furniture/operating-table': operatingTable,
+  'furniture/machine': machine,
+  'furniture/atm': atm,
+  'outdoor/tombstone': tombstone,
+  'outdoor/bench': bench,
+  'outdoor/slide': slide,
+  'outdoor/swing': swing,
+  'outdoor/sandbox': sandbox,
+  'outdoor/hoop': hoop,
+  'outdoor/flagpole': flagpole,
 }
 
 /** The parts of `asset` sized to `dims`, in the asset frame (`clipped`: parts cut back to the box). */

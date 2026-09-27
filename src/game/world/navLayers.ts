@@ -64,10 +64,14 @@ function bandOverlaps(bottom: number, top: number, floor: number): boolean {
 }
 
 /** The part of a map one layer is built from: its storey's walls, doors and windows, over `area`. */
-function layerMap(map: MapData, floor: number, area: Rect | null): MapData {
+function layerMap(map: MapData, floor: number, area: Rect | null, buildingId: string | null = null): MapData {
   const walls = map.walls.filter((w) => bandOverlaps(w.position.y - w.size[1] / 2, w.position.y + w.size[1] / 2, floor))
-  const doors = map.doors.filter((d) => Math.abs(d.center.y - floor) < 0.5)
-  const windows = mapWindows(map).filter((w) => Math.abs(w.center.y - (w.sill + w.head) / 2 - floor) < 0.5)
+  // A building's storey takes only its own doors and windows: another building's storey at a
+  // similar height (3 m and 3.2 m storeys) must not claim them (its grid would then hold their
+  // state, and this building's doors would stay closed in its own grid).
+  const own = (id: string) => buildingId === null || id === buildingId
+  const doors = map.doors.filter((d) => Math.abs(d.center.y - floor) < 0.5 && own(d.buildingId))
+  const windows = mapWindows(map).filter((w) => Math.abs(w.center.y - (w.sill + w.head) / 2 - floor) < 0.5 && own(w.buildingId))
   const layer: MapData = { ...map, walls, doors, windows }
   if (area) {
     layer.size = area.maxX - area.minX
@@ -126,7 +130,7 @@ export class NavWorld {
       const bounds = slabs.reduce<Rect>((u, s) => ({ minX: Math.min(u.minX, s.rect.minX), minZ: Math.min(u.minZ, s.rect.minZ), maxX: Math.max(u.maxX, s.rect.maxX), maxZ: Math.max(u.maxZ, s.rect.maxZ) }), { ...slabs[0].rect })
       const starting = flights.filter((s) => s.buildingId === buildingId && s.level === level)
       const floor = (x: number, z: number) => slabs.some((s) => inRect(s.rect, x, z)) && !starting.some((s) => inRect(s.rect, x, z))
-      const grid = new NavGrid(layerMap(map, y, bounds), { ...small, elevation: y, floor })
+      const grid = new NavGrid(layerMap(map, y, bounds, buildingId), { ...small, elevation: y, floor })
       const index = this.layers.length
       this.layers.push({ index, elevation: y, buildingId, level, grid, bounds })
       this.stairIndex.set(key, index)

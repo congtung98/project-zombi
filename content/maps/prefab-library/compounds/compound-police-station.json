@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/police-station",
+  "contentVersion": 1,
+  "name": "Đồn cảnh sát có bãi xe",
+  "footprint": { "minX": -15, "minZ": -9, "maxX": 15, "maxZ": 20 },
+  "catalog": { "group": "public", "tags": ["canh-sat"] },
+  "placement": {
+    "category": "public",
+    "allowedZones": ["public"],
+    "weight": 1,
+    "setback": 2,
+    "sideGap": 2,
+    "roadFacing": true,
+    "frontage": [30, 60]
+  },
+  "instances": [
+    {
+      "member": "police-station",
+      "prefabId": "public/police-station",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "parking",
+      "shape": "rect",
+      "size": [30, 10],
+      "material": "asphalt",
+      "color": "#3d3d40",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 0, "z": 15 }
+    },
+    {
+      "kind": "surface",
+      "member": "steps",
+      "shape": "rect",
+      "size": [4, 2],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -8, "z": 10 }
+    },
+    {
+      "kind": "prop",
+      "member": "police-car",
+      "position": { "x": 4, "y": 0.75, "z": 15 },
+      "size": [1.9, 1.5, 4.3],
+      "color": "#e8edf2",
+      "visual": { "assetId": "outdoor/car" }
+    },
+    {
+      "kind": "prop",
+      "member": "police-car-2",
+      "position": { "x": 8, "y": 0.75, "z": 15 },
+      "size": [1.9, 1.5, 4.3],
+      "color": "#1f3a66",
+      "visual": { "assetId": "outdoor/car" }
+    },
+    {
+      "kind": "prop",
+      "member": "streetlight",
+      "position": { "x": -14, "y": 2.1, "z": 14 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "member": "flagpole",
+      "position": { "x": 12, "y": 3.5, "z": 11 },
+      "size": [0.9, 7, 0.2],
+      "color": "#c9ccd0",
+      "visual": { "assetId": "outdoor/flagpole" }
+    }
+  ]
+}

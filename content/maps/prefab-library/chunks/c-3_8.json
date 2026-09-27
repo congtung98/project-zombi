@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-3_8",
+  "cx": -3,
+  "cz": 8,
+  "instances": [
+    {
+      "instanceId": "c-3_8/prison-block-1",
+      "prefabId": "public/prison-block",
+      "position": { "x": 14, "y": 0, "z": 25.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

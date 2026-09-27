@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_5",
+  "cx": -1,
+  "cz": 5,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_4/high-school-block-b-1", "ownerChunkId": "c-1_4" },
+    { "id": "c-1_4/objects/high-school-fence-1", "ownerChunkId": "c-1_4" },
+    { "id": "c0_5/objects/high-school-fence-1", "ownerChunkId": "c0_5" }
+  ]
+}

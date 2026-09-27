@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_9",
+  "cx": 1,
+  "cz": 9,
+  "instances": [
+    {
+      "instanceId": "c1_9/prison-tower-1",
+      "prefabId": "public/guard-tower",
+      "position": { "x": 15.5, "y": 0, "z": 30.5 },
+      "quarterTurns": 2
+    }
+  ],
+  "objects": [
+    {
+      "kind": "wall",
+      "objectId": "c1_9/objects/prison-wall-1",
+      "position": { "x": 20.5, "y": 2, "z": 9.5 },
+      "size": [0.5, 4, 51.5],
+      "color": "#9c978d"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c1_9/objects/prison-bench-1",
+      "position": { "x": 2.5, "y": 0.4, "z": 18.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_9/objects/cemetery-pine-1",
+      "position": { "x": 31, "z": 5 },
+      "height": 7,
+      "canopy": 1.4,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c0_8/prison-block-1", "ownerChunkId": "c0_8" },
+    { "id": "c0_9/objects/prison-yard-1", "ownerChunkId": "c0_9" },
+    { "id": "c1_8/objects/cemetery-fence-1", "ownerChunkId": "c1_8" },
+    { "id": "c2_8/objects/cemetery-lawn-1", "ownerChunkId": "c2_8" },
+    { "id": "c2_9/objects/cemetery-fence-1", "ownerChunkId": "c2_9" }
+  ]
+}

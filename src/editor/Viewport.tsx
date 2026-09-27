@@ -9,7 +9,12 @@ import type { Rect, XZ } from '../map/schema'
 import { chunkIdOf, chunkOrigin, playAreaRect } from '../map/transform'
 import { useEditorStore } from './editorStore'
 import { handleAt, handlesUsable, type HandleKey } from '../map/editor/handles'
-import { chunkClick, commitPlace, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
+import { LayoutOverlay } from './LayoutOverlay'
+import { ReferenceOverlay } from './ReferenceOverlay'
+import { documentReference, withReference } from '../map/editor/generator'
+import { featureAt, metresPerPixel, moveVertex, referenceTransform } from '../map/layout/reference'
+import { worldToPixel } from './editorStore'
+import { chunkClick, commitPlace, parcelClick, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview, withGroups } from './interaction'
 import { PrefabScene } from './PrefabScene'
 import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
 import { ChunkBatch, RecordView } from './RecordView'
@@ -201,6 +206,7 @@ function EditorScene() {
   const tool = useEditorStore((s) => s.tool)
   const pickedChunk = useEditorStore((s) => s.selectedChunk)
   const prefabMode = useEditorStore((s) => s.prefabMode)
+  const pending = useEditorStore((s) => s.genPending)
   if (!edit) return null
   if (prefabMode) {
     return (
@@ -213,7 +219,8 @@ function EditorScene() {
       </group>
     )
   }
-  const doc = preview?.doc ?? edit.doc
+  // WG4: a regeneration being previewed shows until Áp dụng / Hủy (never once the document changed).
+  const doc = preview?.doc ?? (pending && pending.base === edit.doc ? pending.doc : edit.doc)
   const ghostIds = preview?.ghostIds ?? []
   const ghosts = resolvedRecords(doc).filter((r) => ghostIds.includes(r.id))
   const statuses = chunkStatuses(edit.doc, savedDoc, issues)
@@ -229,6 +236,8 @@ function EditorScene() {
         <RecordView key={r.id} record={r} ghost />
       ))}
       <Selection doc={doc} ids={preview?.ghostIds.length ? preview.ghostIds : edit.selection} />
+      <LayoutOverlay doc={doc} />
+      <ReferenceOverlay doc={doc} />
       <Handles />
       <Marquee />
     </group>
@@ -236,8 +245,10 @@ function EditorScene() {
 }
 
 interface Drag {
-  /** move: selection; pan: camera; box: selection rectangle; place: sizing a new record; handle: resizing (M7). */
-  kind: 'move' | 'pan' | 'box' | 'place' | 'handle'
+  /** move: selection; pan: camera; box: selection rectangle; place: sizing a new record; handle: resizing (M7); vertex: a traced vertex (WG6). */
+  kind: 'move' | 'pan' | 'box' | 'place' | 'handle' | 'vertex'
+  /** vertex: which feature and vertex. */
+  vertex?: { id: string; index: number }
   start: XZ
   ids: string[]
   delta: XZ
@@ -346,8 +357,27 @@ function Controls() {
         chunkClick(g)
         return
       }
+      if (s.tool === 'parcel') {
+        parcelClick(g)
+        return
+      }
+      if (s.tool === 'trace') {
+        // Reach for snapping and picking: 10 screen pixels.
+        const reach = 10 / camera().zoom
+        if (s.trace.mode === 'select') {
+          const ref = documentReference(s.edit.doc).ref
+          if (!ref) return
+          const px = worldToPixel(s.edit.doc, ref, g)
+          const hit = featureAt(ref, px, reach / Math.max(1e-6, metresPerPixel(referenceTransform(ref))))
+          s.setTrace({ selected: hit?.id ?? null })
+          if (hit && hit.vertex !== null) drag.current = { kind: 'vertex', start: g, ids: [], delta: { x: 0, z: 0 }, vertex: { id: hit.id, index: hit.vertex } }
+          return
+        }
+        s.traceClick(g, reach)
+        return
+      }
       if (s.tool === 'place') {
-        if (s.place?.kind === 'prefab') {
+        if (s.place?.kind === 'prefab' || s.place?.kind === 'compound') {
           commitPlace(snapPoint(g))
           updatePlacePreview(g)
           return
@@ -372,11 +402,13 @@ function Controls() {
         drag.current = { kind: 'box', start: g, ids: [], delta: { x: 0, z: 0 }, additive: e.shiftKey }
         return
       }
+      // P1: a member of a group picks the whole group; Alt picks the one member.
+      const picked = withGroups([pickedId], e.altKey)
       if (e.shiftKey) {
-        s.select(selection.includes(pickedId) ? selection.filter((id) => id !== pickedId) : [...selection, pickedId])
+        s.select(selection.includes(pickedId) ? selection.filter((id) => !picked.includes(id)) : [...new Set([...selection, ...picked])])
         return
       }
-      const ids = selection.includes(pickedId) ? selection : [pickedId]
+      const ids = selection.includes(pickedId) ? selection : picked
       if (ids !== selection) s.select(ids)
       drag.current = { kind: 'move', start: g, ids, delta: { x: 0, z: 0 } }
     }
@@ -399,6 +431,13 @@ function Controls() {
       }
       if (d?.kind === 'place') {
         updatePlacePreview(g, d.start)
+        return
+      }
+      if (d?.kind === 'vertex' && s.edit && d.vertex) {
+        const ref = documentReference(s.edit.doc).ref
+        if (!ref) return
+        d.at = g
+        s.setPreview({ doc: withReference(s.edit.doc, moveVertex(ref, d.vertex.id, d.vertex.index, worldToPixel(s.edit.doc, ref, g))), ghostIds: [] })
         return
       }
       if (d?.kind === 'handle' && s.edit) {
@@ -450,8 +489,17 @@ function Controls() {
           return
         }
         const rect = { minX: d.start.x, minZ: d.start.z, maxX: g.x, maxZ: g.z }
-        const inside = keysInRect(rect)
+        const inside = withGroups(keysInRect(rect), e.altKey)
         s.select(d.additive ? [...new Set([...s.edit.selection, ...inside])] : inside)
+        return
+      }
+      if (d?.kind === 'vertex' && d.vertex) {
+        const at = d.at
+        s.setPreview(null)
+        if (!at || !s.edit) return
+        const v = d.vertex
+        const reach = 10 / camera().zoom
+        s.editReference('Dời đỉnh', (ref) => moveVertex(ref, v.id, v.index, worldToPixel(s.edit!.doc, ref, at), reach / Math.max(1e-6, metresPerPixel(referenceTransform(ref)))))
         return
       }
       if (d?.kind === 'handle') {

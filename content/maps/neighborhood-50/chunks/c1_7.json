@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_7",
+  "cx": 1,
+  "cz": 7,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-0ce9432bc6-tree-5",
+      "position": { "x": 17.191684, "z": 1.700818 },
+      "height": 7.724309,
+      "canopy": 1.744862,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-0ce9432bc6-tree-6",
+      "position": { "x": 20.103683, "z": 0.588888 },
+      "height": 7.816924,
+      "canopy": 2.72677,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-0ce9432bc6-tree-7",
+      "position": { "x": 24.861565, "z": 0.812964 },
+      "height": 8.448857,
+      "canopy": 1.889771,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-39",
+      "position": { "x": 7.433212, "z": 10.074056 },
+      "height": 8.866162,
+      "canopy": 1.973232,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-40",
+      "position": { "x": 25.37519, "z": 11.702843 },
+      "height": 7.361441,
+      "canopy": 1.672288,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-102",
+      "position": { "x": 20.53828, "z": 16.056552 },
+      "height": 6.266337,
+      "canopy": 1.453267,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-169",
+      "position": { "x": 8.399278, "z": 19.352531 },
+      "height": 5.865296,
+      "canopy": 1.946119,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-170",
+      "position": { "x": 12.823915, "z": 19.257731 },
+      "height": 7.384722,
+      "canopy": 1.676944,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-171",
+      "position": { "x": 30.000164, "z": 19.008001 },
+      "height": 6.547706,
+      "canopy": 1.509541,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-226",
+      "position": { "x": 12.922615, "z": 24.635806 },
+      "height": 7.630532,
+      "canopy": 2.652213,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-227",
+      "position": { "x": 20.248594, "z": 23.72988 },
+      "height": 9.298031,
+      "canopy": 2.059606,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-228",
+      "position": { "x": 24.791685, "z": 23.848719 },
+      "height": 5.161303,
+      "canopy": 1.664521,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_7/objects/env-lot-01719c5245-tree-229",
+      "position": { "x": 29.946662, "z": 24.914136 },
+      "height": 8.386286,
+      "canopy": 1.877257,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c0_7/objects/env-lot-01719c5245-tree-168", "ownerChunkId": "c0_7" },
+    { "id": "c0_7/objects/env-lot-01719c5245-tree-38", "ownerChunkId": "c0_7" },
+    { "id": "c0_7/objects/env-lot-0ce9432bc6-tree-4", "ownerChunkId": "c0_7" }
+  ]
+}

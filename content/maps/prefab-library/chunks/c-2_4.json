@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-2_4",
+  "cx": -2,
+  "cz": 4,
+  "instances": [
+    {
+      "instanceId": "c-2_4/hospital-hospital-1",
+      "prefabId": "public/hospital",
+      "position": { "x": 22, "y": 0, "z": 8 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c-2_4/objects/hospital-forecourt-1",
+      "shape": "rect",
+      "size": [40, 12],
+      "material": "concrete",
+      "color": "#9c988f",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 22, "z": 26 }
+    },
+    {
+      "kind": "surface",
+      "objectId": "c-2_4/objects/hospital-ambulance-bay-1",
+      "shape": "rect",
+      "size": [10, 10],
+      "material": "asphalt",
+      "color": "#3d3d40",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 8, "z": 26 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_4/objects/hospital-ambulance-1",
+      "position": { "x": 8, "y": 0.9, "z": 26 },
+      "size": [1.9, 1.8, 4.6],
+      "color": "#f2f2f0",
+      "visual": { "assetId": "outdoor/car" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-2_4/objects/hospital-tree-1",
+      "position": { "x": 28, "z": 29 },
+      "height": 5,
+      "canopy": 2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c-2_4/objects/hospital-bench-1",
+      "position": { "x": 26, "y": 0.4, "z": 24 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c-1_4/objects/hospital-bench-1", "ownerChunkId": "c-1_4" }]
+}

@@ -13,6 +13,14 @@ import { deleteDraft } from './drafts'
 import { editableSelection, isDirty, layerLabel, SNAP_STEPS, useEditorStore, type PaletteTab, type PrefabTab } from './editorStore'
 import { deleteChunk, downloadText, focusChunk, placeLabel } from './interaction'
 import { PrefabThumbnail } from './Thumbnail'
+import { EnvironmentFields, GeneratorPanel } from './GeneratorPanel'
+import { ReferencePanel } from './ReferencePanel'
+import { LibraryPanel } from './LibraryPanel'
+import { PROFILE_LABEL } from '../map/editor/generator'
+import { DEFAULT_ENVIRONMENT } from '../map/layout/environment'
+import type { EnvironmentParams } from '../map/layout/schema'
+import { PROFILES } from '../map/layout/plan'
+import type { WorldMode } from '../map/layout/schema'
 
 const confirmDiscard = () => !isDirty(useEditorStore.getState()) || window.confirm('Document có thay đổi chưa lưu. Bỏ các thay đổi đó?')
 
@@ -23,9 +31,29 @@ const TABS: { id: PaletteTab; label: string }[] = [
   { id: 'zones', label: 'Zone' },
   { id: 'spawns', label: 'Spawn' },
   { id: 'chunks', label: 'Chunk' },
+  { id: 'generator', label: 'Generator' },
+  { id: 'reference', label: 'Bản vẽ' },
 ]
 
 const DRAG_HINT = { point: 'click', line: 'click hoặc kéo (dài)', rect: 'click hoặc kéo (khung)', radius: 'click hoặc kéo (bán kính)' } as const
+
+/** Prefab tab (P1): the world's own prefabs, or the shared library. */
+function PrefabTabs() {
+  const [view, setView] = useState<'world' | 'library'>('world')
+  return (
+    <>
+      <nav className="tabs sub" data-prefab-source>
+        <button className={view === 'world' ? 'active' : ''} onClick={() => setView('world')} data-prefab-source-world>
+          Trong world
+        </button>
+        <button className={view === 'library' ? 'active' : ''} onClick={() => setView('library')} data-prefab-source-library>
+          Thư viện chung
+        </button>
+      </nav>
+      {view === 'world' ? <PrefabList /> : <LibraryPanel />}
+    </>
+  )
+}
 
 function PrefabList() {
   const edit = useEditorStore((s) => s.edit)!
@@ -60,6 +88,11 @@ function PrefabList() {
                   <small>
                     {p.prefabId} · {f.maxX - f.minX}×{f.maxZ - f.minZ} m · {uses} instance
                   </small>
+                  {p.source && (
+                    <small data-prefab-source-of={p.prefabId}>
+                      từ thư viện: {p.source.id} v{p.source.version}
+                    </small>
+                  )}
                 </span>
               </button>
               <div className="row tight">
@@ -90,6 +123,7 @@ const PREFAB_TABS: { id: PrefabTab; label: string }[] = [
   { id: 'containers', label: 'Tủ' },
   { id: 'decor', label: 'Trang trí' },
   { id: 'rooms', label: 'Phòng' },
+  { id: 'surfaces', label: 'Nền' },
 ]
 
 const PREFAB_HINTS: Record<PrefabTab, string> = {
@@ -101,6 +135,8 @@ const PREFAB_HINTS: Record<PrefabTab, string> = {
   decor:
     'Đồ trang trí chỉ để nhìn: không va chạm, không nhặt được, không lưu. Đặt lên bàn/kệ: sửa Y ở Inspector. Cụm: đặt một lần nhiều object có ID riêng (R xoay trước khi click). Không che dấu loot của tủ và lối cửa mở (validator cảnh báo).',
   rooms: 'Kéo khung phòng trên đường tâm tường. Phòng có đèn kèm công tắc (ô vàng, kéo để dời). Ánh sáng: cửa sổ và cửa nối các phòng.',
+  surfaces:
+    'Mặt nền phẳng ở tầng trệt: sân, lối đi, bãi cỏ, hồ. Kéo khung để định kích thước. Nước chắn người chơi và zombie (vẫn nhìn qua được); chỗ chồng nhau, lớp vẽ cao hơn nằm trên (Inspector).',
 }
 
 /**
@@ -192,7 +228,7 @@ function PresetList({ category }: { category: PresetCategory }) {
   return (
     <>
       <ul className="palette">
-        {RECORD_PRESETS.filter((p) => p.category === category).map((p) => {
+        {RECORD_PRESETS.filter((p) => (p.tab ?? p.category) === category).map((p) => {
           const active = tool === 'place' && place?.kind === 'record' && place.presetId === p.id
           return (
             <li key={p.id}>
@@ -211,7 +247,12 @@ function PresetList({ category }: { category: PresetCategory }) {
         </p>
       )}
       {category === 'spawns' && <p className="hint">Spawn zombie: nơi zombie xuất hiện lúc đầu và respawn (ngoài nhà). Spawn người chơi: đặt làm điểm xuất phát ở Inspector.</p>}
-      {category === 'roads' && <p className="hint">Mặt nền chỉ để hiển thị (không collider). Hai mặt khác màu chồng nhau sẽ nhấp nháy trong game (cảnh báo surface-overlap).</p>}
+      {category === 'roads' && (
+        <p className="hint">
+          Đường và vỉa hè chỉ để hiển thị (không collider). Sân, bãi cỏ, hồ là object mặt nền: chọn vật liệu, va chạm và điều hướng ở Inspector (nước chắn người chơi và zombie). Hai mặt
+          khác màu cùng lớp chồng nhau sẽ nhấp nháy trong game (cảnh báo surface-overlap).
+        </p>
+      )}
       <p className="hint">R xoay 90° vùng chọn, Esc thoát.</p>
     </>
   )
@@ -310,6 +351,8 @@ export function Palette() {
     const s = useEditorStore.getState()
     s.set({ paletteTab: id })
     if (id === 'chunks') s.setTool('chunk')
+    else if (id === 'generator') s.setTool('parcel')
+    else if (id === 'reference') s.setTool('trace')
     else if (s.tool !== 'select') s.setTool('select')
   }
   return (
@@ -321,9 +364,11 @@ export function Palette() {
           </button>
         ))}
       </nav>
-      {tab === 'prefabs' && <PrefabList />}
-      {tab !== 'prefabs' && tab !== 'chunks' && <PresetList category={tab} />}
+      {tab === 'prefabs' && <PrefabTabs />}
+      {tab !== 'prefabs' && tab !== 'chunks' && tab !== 'generator' && tab !== 'reference' && <PresetList category={tab} />}
       {tab === 'chunks' && <ChunkPanel />}
+      {tab === 'generator' && <GeneratorPanel />}
+      {tab === 'reference' && <ReferencePanel />}
       <LayersPanel />
     </aside>
   )
@@ -582,7 +627,12 @@ export function NewDialog() {
   const dialog = useEditorStore((s) => s.dialog)
   const [worldId, setWorldId] = useState('new-world')
   const [name, setName] = useState('World mới')
-  const [mode, setMode] = useState<'blank' | 'generate'>('blank')
+  const [mode, setMode] = useState<'blank' | 'generate' | 'layout'>('blank')
+  const [geo, setGeo] = useState<{ name: string; text: string } | null>(null)
+  const [clip, setClip] = useState('500')
+  const [profile, setProfile] = useState('default')
+  const [genMode, setGenMode] = useState<WorldMode>('full')
+  const [env, setEnv] = useState<EnvironmentParams>(DEFAULT_ENVIRONMENT)
   const [seed, setSeed] = useState('1')
   const [blocks, setBlocks] = useState('2x2')
   const [layout, setLayout] = useState<Layout>('grid')
@@ -592,19 +642,70 @@ export function NewDialog() {
     if (dialog === 'new') input.current?.focus()
   }, [dialog])
   if (dialog !== 'new') return null
-  const valid = SLUG.test(worldId) && name.trim().length > 0 && (mode === 'blank' || Number.isInteger(Number(seed)))
+  const valid = SLUG.test(worldId) && name.trim().length > 0 && (mode === 'blank' || Number.isInteger(Number(seed))) && (mode !== 'layout' || geo !== null)
   return (
     <div className="modal" role="dialog">
       <div className="box">
         <h3>World mới</h3>
         <label className="field">
           <span>Kiểu</span>
-          <select value={mode} onChange={(e) => setMode(e.target.value as 'blank' | 'generate')} data-new-mode>
+          <select value={mode} onChange={(e) => setMode(e.target.value as 'blank' | 'generate' | 'layout')} data-new-mode>
             <option value="blank">Trống</option>
             <option value="generate">Sinh bằng generator</option>
+            <option value="layout">Từ GeoJSON (World Generator)</option>
           </select>
         </label>
-        {mode === 'blank' ? (
+        {mode === 'layout' ? (
+          <>
+            <p className="hint">
+              Bản đồ đường thật (overpass-turbo, QGIS hay vẽ tay, GeoJSON) → mạng đường nắn vuông góc → lô đất → công trình từ thư viện prefab-library. File đọc tại máy (không gọi mạng). Sau đó sửa trong tab
+              Generator: khóa, thay prefab, sinh lại lô/chunk/world.
+            </p>
+            <label className="field">
+              <span>File GeoJSON</span>
+              <input
+                type="file"
+                accept=".geojson,.json,application/geo+json,application/json"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  setGeo(f ? { name: f.name, text: await f.text() } : null)
+                }}
+                data-new-geojson
+              />
+            </label>
+            <label className="field">
+              <span>Cắt vùng</span>
+              <select value={clip} onChange={(e) => setClip(e.target.value)} data-new-clip>
+                <option value="">Không cắt</option>
+                <option value="250">250 × 250 m quanh tâm</option>
+                <option value="500">500 × 500 m quanh tâm</option>
+                <option value="1000">1000 × 1000 m quanh tâm</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Chế độ</span>
+              <select value={genMode} onChange={(e) => setGenMode(e.target.value as WorldMode)} data-new-gen-mode>
+                <option value="full">FULL (đường + công trình + zombie)</option>
+                <option value="layout-only">LAYOUT_ONLY (chỉ đường)</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Kiểu lô</span>
+              <select value={profile} onChange={(e) => setProfile(e.target.value)} data-new-profile>
+                {Object.keys(PROFILES).map((p) => (
+                  <option key={p} value={p}>
+                    {PROFILE_LABEL[p] ?? p}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Seed</span>
+              <input type="number" value={seed} onChange={(e) => setSeed(e.target.value)} data-new-layout-seed />
+            </label>
+            {genMode === 'full' && <EnvironmentFields env={env} onChange={setEnv} />}
+          </>
+        ) : mode === 'blank' ? (
           <p className="hint">2 × 2 chunk 32 m quanh gốc tọa độ, hàng rào, spawn người chơi + 1 spawn zombie; thư viện prefab lấy từ neighborhood-50.</p>
         ) : (
           <>
@@ -654,6 +755,12 @@ export function NewDialog() {
           <button
             disabled={!valid}
             onClick={() => {
+              if (mode === 'layout') {
+                if (!geo) return
+                const size = Number(clip)
+                useEditorStore.getState().newLayoutWorld({ worldId, name: name.trim(), text: geo.text, file: geo.name, mode: genMode, seed: Number(seed), profile, clip: size ? { width: size, depth: size } : undefined, environment: env })
+                return
+              }
               const [bx, bz] = blocks.split('x').map(Number)
               useEditorStore.getState().newWorld(worldId, name.trim(), mode === 'generate' ? { seed: Number(seed), blocksX: bx, blocksZ: bz, layout, trees: Number(trees) } : undefined)
             }}

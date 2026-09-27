@@ -46,6 +46,18 @@ const SIZES: Record<FurnitureId, [number, number, number][]> = {
   'outdoor/fence': [[15, 1, 0.15], [5.1, 0.8, 0.12], [1, 1, 0.15]],
   'outdoor/bin': [[0.6, 1.1, 0.6]],
   'outdoor/mailbox': [[0.3, 1.2, 0.3]],
+  'outdoor/streetlight': [[0.3, 4.2, 0.3], [0.4, 5, 0.4]],
+  'furniture/hospital-bed': [[1, 0.7, 2], [1.1, 0.8, 2.2]],
+  'furniture/operating-table': [[2, 0.9, 0.9], [1.8, 0.95, 0.8]],
+  'furniture/machine': [[2, 1.5, 1.2], [1.6, 1.3, 0.9]],
+  'furniture/atm': [[0.9, 1.9, 0.7], [0.8, 1.8, 0.6]],
+  'outdoor/tombstone': [[0.7, 0.9, 0.25], [1, 1.2, 0.4]],
+  'outdoor/bench': [[1.8, 0.8, 0.6], [1.5, 0.75, 0.55]],
+  'outdoor/slide': [[1, 2, 3.2], [0.9, 1.8, 3]],
+  'outdoor/swing': [[3, 2.2, 1.2], [2.6, 2, 1]],
+  'outdoor/sandbox': [[2, 0.4, 2], [1.6, 0.35, 1.6]],
+  'outdoor/hoop': [[1.2, 3.2, 1.2], [1.2, 3, 1]],
+  'outdoor/flagpole': [[0.9, 7, 0.2], [1, 6, 0.25]],
 }
 
 /** A record without its furniture look. */

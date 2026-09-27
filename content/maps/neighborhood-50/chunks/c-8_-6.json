@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-8_-6",
+  "cx": -8,
+  "cz": -6,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-1",
+      "position": { "x": 11.743552, "z": 1.49934 },
+      "height": 7.097336,
+      "canopy": 2.438935,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-2",
+      "position": { "x": 17.454492, "z": 0.347309 },
+      "height": 8.949614,
+      "canopy": 1.989923,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-3",
+      "position": { "x": 21.793169, "z": 1.146734 },
+      "height": 5.447951,
+      "canopy": 1.77918,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-4",
+      "position": { "x": 30.79116, "z": 0.334052 },
+      "height": 5.836956,
+      "canopy": 1.934783,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-6",
+      "position": { "x": 15.909579, "z": 4.903308 },
+      "height": 8.253608,
+      "canopy": 1.850722,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-7",
+      "position": { "x": 20.675716, "z": 6.354089 },
+      "height": 6.283487,
+      "canopy": 1.456697,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-12",
+      "position": { "x": 7.303547, "z": 9.474757 },
+      "height": 6.292241,
+      "canopy": 2.116896,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-13",
+      "position": { "x": 11.20487, "z": 10.473052 },
+      "height": 7.072525,
+      "canopy": 2.42901,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-14",
+      "position": { "x": 16.224321, "z": 9.702818 },
+      "height": 7.611632,
+      "canopy": 2.644653,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-15",
+      "position": { "x": 20.678204, "z": 10.056692 },
+      "height": 5.79876,
+      "canopy": 1.919504,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-16",
+      "position": { "x": 26.430892, "z": 10.89105 },
+      "height": 7.705597,
+      "canopy": 2.682239,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-17",
+      "position": { "x": 29.7367, "z": 10.760016 },
+      "height": 7.699456,
+      "canopy": 1.739891,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-22",
+      "position": { "x": 7.349621, "z": 13.557688 },
+      "height": 7.527782,
+      "canopy": 1.705556,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-23",
+      "position": { "x": 11.09628, "z": 14.589691 },
+      "height": 6.475417,
+      "canopy": 1.495083,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-24",
+      "position": { "x": 16.127518, "z": 14.770121 },
+      "height": 6.726882,
+      "canopy": 1.545376,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-25",
+      "position": { "x": 25.84661, "z": 13.603486 },
+      "height": 7.543364,
+      "canopy": 1.708673,
+      "trunk": 0.2,
+      "color": "#355f40",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-26",
+      "position": { "x": 30.554645, "z": 14.926621 },
+      "height": 8.870151,
+      "canopy": 1.97403,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-30",
+      "position": { "x": 20.030698, "z": 19.175429 },
+      "height": 5.261106,
+      "canopy": 1.704442,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-34",
+      "position": { "x": 11.408633, "z": 23.328436 },
+      "height": 5.467988,
+      "canopy": 1.787195,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-35",
+      "position": { "x": 15.882934, "z": 22.855228 },
+      "height": 6.456483,
+      "canopy": 2.182593,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-36",
+      "position": { "x": 20.914144, "z": 23.488047 },
+      "height": 6.06305,
+      "canopy": 1.41261,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-37",
+      "position": { "x": 25.229185, "z": 23.44086 },
+      "height": 7.644211,
+      "canopy": 2.657684,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-029708ab8b-tree-38",
+      "position": { "x": 30.199887, "z": 23.983685 },
+      "height": 5.54457,
+      "canopy": 1.817828,
+      "trunk": 0.25,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-1cdc1ed118-tree-1",
+      "position": { "x": 3.931853, "z": 29.558051 },
+      "height": 7.009124,
+      "canopy": 1.601825,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-1cdc1ed118-tree-2",
+      "position": { "x": 16.496773, "z": 31.132431 },
+      "height": 7.791386,
+      "canopy": 2.716554,
+      "trunk": 0.25,
+      "color": "#35602f",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c-8_-6/objects/env-lot-1cdc1ed118-tree-3",
+      "position": { "x": 21.441829, "z": 29.888118 },
+      "height": 7.60121,
+      "canopy": 1.720242,
+      "trunk": 0.2,
+      "color": "#28503a",
+      "style": "pine"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [{ "id": "c-7_-6/objects/env-lot-029708ab8b-tree-27", "ownerChunkId": "c-7_-6" }]
+}

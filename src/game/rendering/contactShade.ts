@@ -60,7 +60,7 @@ function standingBoxes(map: MapData): Box[] {
   const out: Box[] = []
   const add = (p: { x: number; y: number; z: number }, s: readonly number[]) =>
     out.push({ min: { x: p.x - s[0] / 2, y: p.y - s[1] / 2, z: p.z - s[2] / 2 }, max: { x: p.x + s[0] / 2, y: p.y + s[1] / 2, z: p.z + s[2] / 2 } })
-  for (const w of map.walls) add(w.position, w.size)
+  for (const w of map.walls) if (!w.hidden) add(w.position, w.size)
   for (const c of map.containers) add(c.position, c.size)
   return out
 }

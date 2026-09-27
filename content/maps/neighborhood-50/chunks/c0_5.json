@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_5",
+  "cx": 0,
+  "cz": 5,
+  "instances": [
+    {
+      "instanceId": "c0_5/lot-0715a9e946",
+      "prefabId": "building/lab-garage",
+      "position": { "x": 10, "y": 0, "z": 16 },
+      "quarterTurns": 3
+    }
+  ],
+  "objects": [
+    {
+      "kind": "tree",
+      "objectId": "c0_5/objects/env-lot-01812290ae-tree-2",
+      "position": { "x": 5.9, "z": 3.597042 },
+      "height": 5.595444,
+      "canopy": 1.392118,
+      "trunk": 0.2,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_5/objects/env-lot-01812290ae-grass-1",
+      "assetId": "decor/grass",
+      "position": { "x": 7.122904, "y": 0, "z": 0.020106 },
+      "yaw": 290
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_5/objects/env-lot-0715a9e946-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 6.1, "y": 0, "z": 13.3 },
+      "yaw": 90
+    },
+    {
+      "kind": "container",
+      "objectId": "c0_5/objects/env-lot-0715a9e946-bin-1",
+      "position": { "x": 6.2, "y": 0.55, "z": 8.5 },
+      "size": [0.6, 1.1, 0.6],
+      "color": "#2f3f5a",
+      "name": "Thùng rác",
+      "lootTableId": "scrap-pile",
+      "visual": { "assetId": "outdoor/bin", "facing": 3 }
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_5/objects/env-lot-0715a9e946-papers-1",
+      "assetId": "decor/papers",
+      "position": { "x": 8.790445, "y": 0, "z": 22.421046 },
+      "yaw": 180
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_5/objects/env-lot-02f2c180cb-tree-1",
+      "position": { "x": 5.9, "z": 25.688624 },
+      "height": 5.408438,
+      "canopy": 1.34225,
+      "trunk": 0.2,
+      "color": "#4a7a3a",
+      "style": "round"
+    },
+    {
+      "kind": "decor",
+      "objectId": "c0_5/objects/env-lot-02f2c180cb-bush-1",
+      "assetId": "decor/bush",
+      "position": { "x": 7.1, "y": 0, "z": 28.3 },
+      "yaw": 250
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_5/objects/env-lot-071e4d1758-tree-1",
+      "position": { "x": 29.461616, "z": 26.985926 },
+      "height": 5.964535,
+      "canopy": 1.985814,
+      "trunk": 0.25,
+      "color": "#5b7f3a",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/street-asphalt-10a129fa-car-1",
+      "position": { "x": 1.1, "y": 0.7, "z": 3.75 },
+      "size": [2, 1.4, 4],
+      "color": "#8a8a86",
+      "visual": { "assetId": "outdoor/car", "facing": 2 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/street-sidewalk-0f3fad37-streetlight-5",
+      "position": { "x": 2.6, "y": 2.1, "z": 0 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/street-sidewalk-0f3fad37-streetlight-6",
+      "position": { "x": 2.6, "y": 2.1, "z": 22.8 },
+      "size": [0.3, 4.2, 0.3],
+      "color": "#4a4d51",
+      "visual": { "assetId": "outdoor/streetlight" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c0_5/objects/lake-tree-1",
+      "position": { "x": 20, "z": 16 },
+      "height": 7,
+      "canopy": 2.4,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "prop",
+      "objectId": "c0_5/objects/lake-bench-1",
+      "position": { "x": 30, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_3/roads/asphalt-10a129fa", "ownerChunkId": "c-1_3" },
+    { "id": "c0_4/lot-01812290ae", "ownerChunkId": "c0_4" },
+    { "id": "c0_4/roads/sidewalk-0f3fad37", "ownerChunkId": "c0_4" },
+    { "id": "c0_6/lot-02f2c180cb", "ownerChunkId": "c0_6" },
+    { "id": "c1_5/objects/lake-bank-1", "ownerChunkId": "c1_5" },
+    { "id": "c1_5/objects/lake-lawn-1", "ownerChunkId": "c1_5" },
+    { "id": "c1_5/objects/lake-path-1", "ownerChunkId": "c1_5" },
+    { "id": "c1_5/objects/lake-water-1", "ownerChunkId": "c1_5" }
+  ]
+}

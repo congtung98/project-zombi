@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c3_4",
+  "cx": 3,
+  "cz": 4,
+  "instances": [
+    {
+      "instanceId": "c3_4/prison-block-1",
+      "prefabId": "public/prison-block",
+      "position": { "x": 21, "y": 0, "z": 20.5 },
+      "quarterTurns": 1
+    }
+  ],
+  "objects": [
+    {
+      "kind": "decor",
+      "objectId": "c3_4/objects/env-lot-1ecb2a030f-cans-1",
+      "assetId": "decor/cans",
+      "position": { "x": 0.569839, "y": 0, "z": 26.754311 },
+      "yaw": 10
+    },
+    {
+      "kind": "wall",
+      "objectId": "c3_4/objects/prison-wall-1",
+      "position": { "x": 5, "y": 2, "z": 20.5 },
+      "size": [0.5, 4, 64],
+      "color": "#9c978d"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

@@ -16,6 +16,8 @@
     "map:pack": "node scripts/map-tools/pack.ts",
     "map:unpack": "node scripts/map-tools/unpack.ts",
     "map:generate": "node scripts/map-tools/generate.ts",
+    "layout:import": "node scripts/map-tools/layout-import.ts",
+    "layout:plan": "node scripts/map-tools/layout-plan.ts",
     "deploy:check": "npm test && npm run build && vite preview --port 4173 --strictPort"
   },
   "dependencies": {

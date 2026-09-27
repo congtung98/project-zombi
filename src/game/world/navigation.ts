@@ -129,6 +129,11 @@ export class NavGrid {
       )
     }
 
+    // Prefab library P1: ground surfaces blocked for navigation (a flowerbed zombies go around); ground grid only.
+    if (this.elevation === 0) {
+      for (const b of map.navBlockers ?? []) this.fillRect(this.staticBlocked, b.rect.minX - r, b.rect.minZ - r, b.rect.maxX + r, b.rect.maxZ + r, 1)
+    }
+
     // Window panes block like the wall they replace (sill below, header above is overhead).
     for (const win of mapWindows(map)) {
       const hx = (win.alongX ? win.width : win.thickness) / 2 + r

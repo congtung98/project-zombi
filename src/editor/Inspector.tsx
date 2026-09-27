@@ -1,13 +1,16 @@
 import { rotateRecords, setRecordAnchor, updateRecord, updateWorld } from '../map/editor/commands'
 import { findRecord, instancesOf, resolvedRecords, worldAnchor, type AnyRecord, type MapDocument } from '../map/editor/document'
-import { SURFACE_LAYER_MAX, type QuarterTurns, type TreeObject, type XYZ, type XZ } from '../map/schema'
+import { SURFACE_LAYER_MAX, type QuarterTurns, type SurfaceObject, type TreeObject, type XYZ, type XZ } from '../map/schema'
 import { zoneFor } from '../game/world/zones'
 import { useEditorStore, OPTS } from './editorStore'
-import { DecorFields, FurnitureFields, NumField, ReadField, TextField, TreeFields } from './fields'
+import { DecorFields, FurnitureFields, NumField, ReadField, SurfaceFields, TextField, TreeFields } from './fields'
 import { VARIANT_IDS, VARIANTS } from '../game/rendering/variants'
 import { PrefabInspector } from './PrefabInspector'
 import { SaveCompat } from './SaveCompat'
 import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
+import { RecordGeneratorInfo } from './GeneratorPanel'
+import { GroupInspector, RecordGroupRow, SelectionGroupActions } from './LibraryPanel'
+import { fullGroups, liveMembers } from '../map/editor/groups'
 
 /** Zones of the document as the runtime sees them (`ZoneDef`). */
 function zoneDefs(doc: MapDocument) {
@@ -94,6 +97,8 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
     <div className="inspector">
       <h3>{CATEGORY_LABEL[loc.category]}</h3>
       <ReadField label="ID" value={id} />
+      <RecordGroupRow doc={doc} id={id} />
+      <RecordGeneratorInfo doc={doc} id={id} />
       <ReadField label="Chunk sở hữu" value={loc.chunkId} />
       {identity !== loc.chunkId && <ReadField label="Chunk định danh" value={`${identity} (giữ nguyên khi đổi chunk)`} />}
       <NumField label="X (world)" value={at.x} onCommit={(x) => run('Di chuyển', (d) => setRecordAnchor(d, id, { x, z: at.z }))} />
@@ -151,8 +156,9 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
         <>
           <ReadField label="Loại" value={String(r.kind)} />
           {r.kind === 'tree' && <TreeFields tree={r as unknown as TreeObject} patch={patch} />}
+          {r.kind === 'surface' && <SurfaceFields surface={r as unknown as SurfaceObject} patch={patch} />}
           {r.kind === 'container' && <TextField label="Tên" value={String(r.name)} onCommit={(name) => patch('Đổi tên', { name })} />}
-          {Array.isArray(r.size) && (r.size as number[]).map((v, i) => (
+          {r.kind !== 'surface' && Array.isArray(r.size) && (r.size as number[]).map((v, i) => (
             <NumField
               key={i}
               label={`Kích thước ${'XYZ'[i]}`}
@@ -162,7 +168,7 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
             />
           ))}
           {r.kind === 'decor' && <DecorFields decor={r} patch={patch} inPrefab={false} />}
-          {r.kind !== 'tree' && r.kind !== 'decor' && <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />}
+          {r.kind !== 'tree' && r.kind !== 'decor' && r.kind !== 'surface' && <TextField label="Màu" value={String(r.color)} pattern={COLOR} onCommit={(color) => patch('Đổi màu', { color })} />}
           {(r.kind === 'prop' || r.kind === 'container') && <FurnitureFields visual={r.visual} patch={patch} />}
           {r.kind === 'container' && (
             <label className="field">
@@ -250,11 +256,15 @@ export function Inspector() {
   if (!edit) return <aside className="panel right" />
   if (prefabMode) return <PrefabInspector prefabId={prefabMode} />
   const sel = edit.selection
+  // P1: exactly one whole group selected (a placed compound or a Ctrl+G group).
+  const groups = sel.length ? fullGroups(edit.doc, sel) : []
+  const group = groups.length === 1 && liveMembers(edit.doc, groups[0]).length === sel.length ? groups[0] : null
   return (
     <aside className="panel right">
       {sel.length === 0 && <WorldInspector doc={edit.doc} />}
-      {sel.length === 1 && <RecordInspector key={sel[0]} doc={edit.doc} id={sel[0]} />}
-      {sel.length > 1 && (
+      {group && <GroupInspector key={group.groupId} doc={edit.doc} group={group} />}
+      {!group && sel.length === 1 && <RecordInspector key={sel[0]} doc={edit.doc} id={sel[0]} />}
+      {!group && sel.length > 1 && (
         <div className="inspector">
           <h3>{sel.length} record</h3>
           <ul className="ids">
@@ -268,6 +278,8 @@ export function Inspector() {
             <button onClick={duplicateSelection}>Nhân bản</button>
             <button onClick={deleteSelection}>Xóa</button>
           </div>
+          <SelectionGroupActions doc={edit.doc} ids={sel} />
+          {groups.length > 0 && <p className="hint">Vùng chọn có {groups.length} nhóm: di chuyển, xoay, nhân bản giữ nguyên từng nhóm.</p>}
         </div>
       )}
     </aside>

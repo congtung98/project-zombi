@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_1",
+  "cx": 1,
+  "cz": 1,
+  "instances": [
+    {
+      "instanceId": "c1_1/shophouse-1",
+      "prefabId": "house/shophouse",
+      "position": { "x": 5.5, "y": 0, "z": 9 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c1_1/villa-1",
+      "prefabId": "house/villa",
+      "position": { "x": 23, "y": 0, "z": 5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

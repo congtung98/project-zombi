@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "prefabId": "building/lab-garage",
+  "contentVersion": 1,
+  "name": "Garage mẫu",
+  "pivot": { "x": 0, "y": 0, "z": 0 },
+  "footprint": { "minX": -3.5, "minZ": -3, "maxX": 3.5, "maxZ": 3 },
+  "building": {
+    "height": 3,
+    "wallThickness": 0.2,
+    "wallColor": "#9c968c",
+    "roofColor": "#4f5357",
+    "floorColor": "#7d7a74"
+  },
+  "objects": [
+    {
+      "kind": "wallRun",
+      "localId": "wall-n",
+      "from": { "x": -3.5, "z": -3 },
+      "to": { "x": 3.5, "z": -3 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#9c968c"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-s",
+      "from": { "x": -3.5, "z": 3 },
+      "to": { "x": 3.5, "z": 3 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#9c968c"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-w",
+      "from": { "x": -3.5, "z": -3 },
+      "to": { "x": -3.5, "z": 3 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#9c968c"
+    },
+    {
+      "kind": "wallRun",
+      "localId": "wall-e",
+      "from": { "x": 3.5, "z": -3 },
+      "to": { "x": 3.5, "z": 3 },
+      "height": 3,
+      "thickness": 0.2,
+      "color": "#9c968c"
+    },
+    {
+      "kind": "door",
+      "localId": "door",
+      "name": "Cửa garage",
+      "position": { "x": 1.2, "z": 3 },
+      "quarterTurns": 0,
+      "width": 1.4,
+      "openTowards": 1
+    },
+    {
+      "kind": "window",
+      "localId": "win-e",
+      "name": "Cửa sổ garage",
+      "position": { "x": 3.5, "z": 0 },
+      "quarterTurns": 3,
+      "width": 1.2,
+      "sill": 1.1,
+      "head": 2,
+      "thickness": 0.2
+    },
+    {
+      "kind": "prop",
+      "localId": "workbench",
+      "position": { "x": 0.5, "y": 0.45, "z": -2.5 },
+      "size": [2, 0.9, 0.8],
+      "color": "#8a6b4a",
+      "visual": { "assetId": "furniture/workbench" }
+    },
+    {
+      "kind": "container",
+      "localId": "tool-rack",
+      "name": "Kệ đồ nghề",
+      "position": { "x": -3.05, "y": 0.9, "z": -0.9 },
+      "size": [0.5, 1.8, 1.6],
+      "color": "#5d6166",
+      "lootTableId": "tool-shelf",
+      "visual": { "assetId": "furniture/shelving", "variantId": "tools" }
+    },
+    {
+      "kind": "decor",
+      "localId": "toolbox",
+      "assetId": "decor/toolbox",
+      "position": { "x": -0.1, "y": 0.8, "z": -2.55 },
+      "yaw": 6
+    },
+    {
+      "kind": "decor",
+      "localId": "jerrycan-1",
+      "assetId": "decor/jerrycan",
+      "position": { "x": -3, "y": 0, "z": 1.2 },
+      "yaw": 15
+    },
+    {
+      "kind": "decor",
+      "localId": "jerrycan-2",
+      "assetId": "decor/jerrycan",
+      "position": { "x": -2.65, "y": 0, "z": 1.55 },
+      "yaw": -20,
+      "color": "#3f5a3a"
+    },
+    {
+      "kind": "decor",
+      "localId": "tires",
+      "assetId": "decor/tires",
+      "position": { "x": 2.7, "y": 0, "z": -1.2 }
+    },
+    {
+      "kind": "decor",
+      "localId": "oil-stain",
+      "assetId": "decor/oil-stain",
+      "position": { "x": 0.2, "y": 0, "z": 0.4 },
+      "yaw": 20
+    },
+    {
+      "kind": "decor",
+      "localId": "oil-stain-2",
+      "assetId": "decor/oil-stain",
+      "position": { "x": -1.4, "y": 0, "z": -0.9 },
+      "yaw": -60,
+      "color": "#57504a"
+    }
+  ],
+  "rooms": [
+    {
+      "localId": "garage",
+      "name": "Garage",
+      "bounds": { "minX": -3.5, "minZ": -3, "maxX": 3.5, "maxZ": 3 },
+      "lamp": {
+        "localId": "lamp-garage",
+        "name": "Đèn garage",
+        "intensity": 0.8,
+        "color": "#e8eef2",
+        "requiresElectricity": true,
+        "switchAt": { "x": 2.2, "z": 2.8 }
+      },
+      "visual": { "floor": "concrete", "floorColor": "#8d8a84" }
+    }
+  ],
+  "placement": {
+    "category": "outbuilding",
+    "allowedZones": ["residential", "industrial"],
+    "weight": 0.5,
+    "setback": 2,
+    "sideGap": 1,
+    "roadFacing": true,
+    "frontage": [8, 30]
+  },
+  "catalog": { "group": "industrial", "tags": ["garage"] }
+}

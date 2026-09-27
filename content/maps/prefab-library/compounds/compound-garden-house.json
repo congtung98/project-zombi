@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "compoundId": "compound/garden-house",
+  "contentVersion": 1,
+  "name": "Nhà vườn có ao (mẫu)",
+  "footprint": { "minX": -9.5, "minZ": -9.5, "maxX": 11, "maxZ": 7.075 },
+  "catalog": { "group": "residential", "tags": ["mau", "nha-vuon"] },
+  "instances": [
+    {
+      "member": "house",
+      "prefabId": "building/house",
+      "position": { "x": 1, "y": 0, "z": -2 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [
+    {
+      "kind": "surface",
+      "member": "lawn",
+      "shape": "rect",
+      "size": [20, 14],
+      "material": "grass",
+      "color": "#5f8a3e",
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 1, "z": 0 }
+    },
+    {
+      "kind": "surface",
+      "member": "path",
+      "shape": "rect",
+      "size": [1.5, 4],
+      "material": "concrete",
+      "color": "#9c988f",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": -1, "z": -7.5 }
+    },
+    {
+      "kind": "surface",
+      "member": "pond",
+      "shape": "ellipse",
+      "size": [8, 4.5],
+      "material": "water",
+      "color": "#3e6e8e",
+      "layer": 1,
+      "collision": "solid",
+      "navigation": "blocked",
+      "position": { "x": 7, "z": 4.5 }
+    },
+    {
+      "kind": "prop",
+      "member": "fence",
+      "position": { "x": 1, "y": 0.5, "z": 7 },
+      "size": [20, 1, 0.15],
+      "color": "#7a6a55"
+    },
+    {
+      "kind": "tree",
+      "member": "tree",
+      "position": { "x": -7, "z": 4 },
+      "height": 6,
+      "canopy": 2.5,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "member": "pine",
+      "position": { "x": -6, "z": -4 },
+      "height": 8,
+      "canopy": 1.8,
+      "trunk": 0.2,
+      "color": "#2f5a3a",
+      "style": "pine"
+    }
+  ]
+}

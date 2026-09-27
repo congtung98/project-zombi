@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_5",
+  "cx": 1,
+  "cz": 5,
+  "instances": [],
+  "objects": [
+    {
+      "kind": "surface",
+      "objectId": "c1_5/objects/high-school-court-1",
+      "shape": "rect",
+      "size": [28, 15],
+      "material": "asphalt",
+      "color": "#3d3d40",
+      "layer": 1,
+      "collision": "none",
+      "navigation": "walkable",
+      "position": { "x": 2, "z": 8 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c1_5/objects/high-school-hoop-1",
+      "position": { "x": 15.2, "y": 1.6, "z": 8 },
+      "size": [1.2, 3.2, 1.2],
+      "color": "#3d4a57",
+      "visual": { "assetId": "outdoor/hoop", "facing": 3 }
+    },
+    {
+      "kind": "prop",
+      "objectId": "c1_5/objects/high-school-fence-1",
+      "position": { "x": 11, "y": 0.6, "z": 26 },
+      "size": [34, 1.2, 0.15],
+      "color": "#7a6a55",
+      "visual": { "assetId": "outdoor/fence" }
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_5/objects/high-school-tree-1",
+      "position": { "x": 25, "z": 8 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    },
+    {
+      "kind": "tree",
+      "objectId": "c1_5/objects/high-school-tree-2",
+      "position": { "x": 25, "z": 20 },
+      "height": 6,
+      "canopy": 2.2,
+      "trunk": 0.25,
+      "color": "#3f6b35",
+      "style": "round"
+    }
+  ],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c0_5/objects/high-school-schoolyard-1", "ownerChunkId": "c0_5" },
+    { "id": "c1_4/objects/high-school-fence-1", "ownerChunkId": "c1_4" }
+  ]
+}

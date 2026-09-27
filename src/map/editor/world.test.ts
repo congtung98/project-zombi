@@ -190,7 +190,8 @@ describe('building across a chunk line (M4)', () => {
 describe('palette records (M4)', () => {
   it('every preset places a valid record with a namespaced ID and content-file key order', () => {
     let doc = blank()
-    const spots = RECORD_PRESETS.map((_, i) => ({ x: 3 + (i % 5) * 5, z: 6 + Math.floor(i / 5) * 6 }))
+    // Six per row, 5 m apart, all inside chunk c0_0 (P1 added the ground surface presets).
+    const spots = RECORD_PRESETS.map((_, i) => ({ x: 3 + (i % 6) * 5, z: 6 + Math.floor(i / 6) * 5 }))
     RECORD_PRESETS.forEach((p, i) => {
       const r = ok(placeRecord(doc, p.id, spots[i]))
       const id = r.selection[0]
