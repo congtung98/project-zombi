@@ -54,10 +54,12 @@ function InputBridge() {
 }
 
 /** Poses every character after the simulation tick (mounted after GameLoop). */
-function CharacterAnimator() {
+function CharacterAnimator({ paused }: { paused: boolean }) {
   useFrame((_, delta) => {
     const started = performance.now()
-    runAnimators(delta)
+    // C3: same time policy as the simulation tick (clamped delta); paused = no animation time, so a
+    // pause never finishes a fall or a swing on screen.
+    runAnimators(paused ? 0 : Math.min(delta, runtime.config.loop.maxDelta))
     runtime.perf.gauge('animatorMs', performance.now() - started)
   })
   return null
@@ -190,7 +192,7 @@ export function Scene({ paused, debug, visionDebug, lightingDebug, perfHud }: Sc
       {visionDebug && <PlayerVisionDebug />}
       <GameLoop paused={paused} />
       <PerfProbe countObjects={perfHud} />
-      <CharacterAnimator />
+      <CharacterAnimator paused={paused} />
     </>
   )
 }

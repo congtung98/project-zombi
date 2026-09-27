@@ -103,6 +103,17 @@ describe('C1 skinned body', () => {
     }
   })
 
+  it('C3: the idle weight shift and a strafing pelvis keep the feet on the floor', () => {
+    const rig = buildCharacter(playerLook(DEFAULT_APPEARANCE))
+    for (const [time, speed, hipTurn] of [[0, 0, 0], [3.5, 0, 0], [7, 0, 0], [10.5, 0, 0], [1, 4, 0.7], [2, 4, -0.7]]) {
+      applyPose(rig, computePose({ ...base, time, speed, hipTurn, gaitPhase: time }))
+      const { min } = posedBounds(rig)
+      expect(min.y, `t ${time}`).toBeGreaterThan(-0.03)
+      expect(min.y, `t ${time}`).toBeLessThan(0.035)
+    }
+    rig.dispose()
+  })
+
   it('joints bend without tearing: blended elbow/knee vertices stay between the two bones', () => {
     const rig = buildCharacter(playerLook(DEFAULT_APPEARANCE))
     applyPose(rig, computePose({ ...base, speed: 7, gaitPhase: Math.PI }))

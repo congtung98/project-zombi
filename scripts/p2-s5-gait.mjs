@@ -75,10 +75,11 @@ try {
   // Walk towards the NW corner inside the safehouse (W), then run, then stand still.
   await page.evaluate(() => window.__runtime.playerBody.setTranslation({ x: -10.8, y: 0.9, z: -10.8 }, true))
   await page.waitForTimeout(300)
-  const walk = await sample(['KeyW'], 3000)
+  // C3: the legs now stop when a wall stops the body, so each sample ends before the NW wall.
+  const walk = await sample(['KeyW'], 1800)
   await page.evaluate(() => window.__runtime.playerBody.setTranslation({ x: -10.8, y: 0.9, z: -10.8 }, true))
   await page.waitForTimeout(300)
-  const run = await sample(['ShiftLeft', 'KeyW'], 2500)
+  const run = await sample(['ShiftLeft', 'KeyW'], 1000)
   const still = await sample([], 1200)
   const count = (s, name) => s.sounds.filter((n) => n === name).length
   log('walk', { ...walk, sounds: count(walk, 'stepWalk') })

@@ -8,7 +8,7 @@ import { computePose, createPose } from './character/pose'
 import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, playerLook, shadowDetail } from './character/rig'
 import { buildWeaponModel, type WeaponModel } from './character/weaponModels'
-import { smoothSpeed } from './character/gait'
+import { advancePlayerGait, createPlayerGait } from './character/locomotion'
 
 const CFG = runtime.config.player
 const MELEE = runtime.config.melee
@@ -35,7 +35,7 @@ export function PlayerView() {
   const rig = useMemo(() => buildCharacter(playerLook(runtime.player.appearance), shadowDetail(shadows)), [shadows])
   const weapon = useRef<{ key: string; model: WeaponModel | null }>({ key: '', model: null })
   const pose = useRef(createPose())
-  const speed = useRef(0)
+  const gait = useRef(createPlayerGait())
   const clock = useRef(0)
   const deadTime = useRef(-1)
   const spawn = runtime.player.position
@@ -63,10 +63,19 @@ export function PlayerView() {
     visual.rotation.y = p.facing
     clock.current += delta
 
-    // Gait phase and speed come from the simulation (intended movement, advanced every tick), not
-    // from the body position that only changes on fixed physics steps: smooth at any frame rate,
-    // and the legs stay in step with the footstep sounds. Speed eases in/out over ~0.1 s.
-    speed.current = smoothSpeed(speed.current, p.alive ? p.moveSpeed : 0, delta)
+    // C3: the legs follow the body's real motion (filtered, frame-rate independent): blocked by a
+    // wall they stop instead of running in place; walking normally the phase locks onto the
+    // simulation's stride so feet and footstep sounds stay together; backing off or strafing while
+    // the facing stays on the cursor reverses the gait and turns the pelvis toward the path.
+    advancePlayerGait(gait.current, {
+      x: p.position.x,
+      z: p.position.z,
+      facing: p.facing,
+      intendedSpeed: p.moveSpeed,
+      stridePhase: p.stridePhase,
+      stride: p.moveSpeed > CFG.walkSpeed + 0.01 ? CFG.runStride : CFG.walkStride,
+      alive: p.alive,
+    }, delta)
 
     const held = equippedWeapon(p.inventory, p.equipment)
     const key = held ? `${held.itemId}:${held.condition <= 0}` : ''
@@ -84,8 +93,9 @@ export function PlayerView() {
       {
         kind: 'player',
         time: clock.current,
-        gaitPhase: p.stridePhase,
-        speed: speed.current,
+        gaitPhase: gait.current.phase,
+        speed: gait.current.speed,
+        hipTurn: gait.current.hipTurn,
         swing: p.attackTimer >= 0 ? p.attackTimer / MELEE.swingDuration : -1,
         hitAt: MELEE.hitDelay / MELEE.swingDuration,
         shove: p.pushCooldown > 0 && shoveElapsed < SHOVE_TIME ? shoveElapsed / SHOVE_TIME : -1,

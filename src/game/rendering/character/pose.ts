@@ -68,6 +68,11 @@ export interface PoseInput {
   armed: boolean
   /** Seconds into a craft/repair (shared work pose for every timed action), or −1. */
   work: number
+  /**
+   * C3: pelvis turn toward the direction of travel relative to the facing (rad): the legs follow the
+   * path, the chest keeps the facing (strafing/backing off while the facing stays on the cursor).
+   */
+  hipTurn?: number
 }
 
 export const WALK_REFERENCE_SPEED = 2
@@ -145,14 +150,29 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
   out.ankleR = -(out.legR + out.kneeR) * 0.75
   out.legSplayL = zombie ? 0.05 : 0.025
   out.legSplayR = out.legSplayL
-  // Pelvis turns with the stride, the chest counters it.
-  out.hipsYaw = (zombie ? 0.05 : 0.09) * s * walk
+  // Pelvis turns with the stride (and toward the path), the chest counters it back to the facing.
+  const hipTurn = input.hipTurn ?? 0
+  const strideYaw = (zombie ? 0.05 : 0.09) * s * walk
+  out.hipsYaw = strideYaw + hipTurn
   out.hipsRoll = 0
   out.bodyPitch = zombie ? 0.14 + 0.04 * walk : 0.16 * run
-  out.torsoTwist = -out.hipsYaw * 0.7
+  out.torsoTwist = -strideYaw * 0.7 - hipTurn
   out.torsoRoll = 0
   out.headPitch = zombie ? 0.18 : 0
   out.headYaw = 0
+  if (!zombie) {
+    // C3 idle: slow weight shift from foot to foot (the free knee bends a little), the pelvis tilts
+    // and the chest balances it; the head drifts. Fades out as soon as the character walks.
+    const idle = 1 - walk
+    const shift = Math.sin(input.time * 0.45)
+    out.hipsRoll = 0.028 * shift * idle
+    out.torsoRoll = -0.7 * out.hipsRoll
+    out.kneeL += 0.08 * Math.max(0, shift) * idle
+    out.kneeR += 0.08 * Math.max(0, -shift) * idle
+    out.ankleL = -(out.legL + out.kneeL) * 0.75
+    out.ankleR = -(out.legR + out.kneeR) * 0.75
+    out.headYaw = 0.06 * Math.sin(input.time * 0.31) * idle
+  }
   out.headRoll = zombie ? 0.22 + 0.06 * Math.sin(input.time * 1.3) : 0
   out.rootPitch = 0
 
