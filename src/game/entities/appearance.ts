@@ -7,12 +7,15 @@ export const HAIR_STYLES = ['short', 'long', 'mohawk'] as const
 export const SKIN_TONES = ['light', 'tan', 'brown', 'dark'] as const
 export const SHIRT_COLORS = ['blue', 'red', 'green', 'grey'] as const
 export const PANTS_COLORS = ['denim', 'khaki', 'black', 'olive'] as const
+/** C2 (character plan): clothing set; the shirt/pants colours paint its top and bottom. */
+export const OUTFIT_STYLES = ['tee', 'jacket', 'shirt', 'work'] as const
 
 export type BodyPreset = (typeof BODY_PRESETS)[number]
 export type HairStyle = (typeof HAIR_STYLES)[number]
 export type SkinTone = (typeof SKIN_TONES)[number]
 export type ShirtColor = (typeof SHIRT_COLORS)[number]
 export type PantsColor = (typeof PANTS_COLORS)[number]
+export type OutfitId = (typeof OUTFIT_STYLES)[number]
 
 export interface CharacterAppearance {
   preset: BodyPreset
@@ -20,9 +23,17 @@ export interface CharacterAppearance {
   skin: SkinTone
   shirt: ShirtColor
   pants: PantsColor
+  /** C2: optional so older saves stay valid; missing = 'tee' (the look every character had before). */
+  outfit?: OutfitId
 }
 
-export const DEFAULT_APPEARANCE: CharacterAppearance = { preset: 'balanced', hair: 'short', skin: 'tan', shirt: 'blue', pants: 'denim' }
+export const DEFAULT_OUTFIT: OutfitId = 'tee'
+export const DEFAULT_APPEARANCE: CharacterAppearance = { preset: 'balanced', hair: 'short', skin: 'tan', shirt: 'blue', pants: 'denim', outfit: DEFAULT_OUTFIT }
+
+/** The outfit to draw (saves from before C2 have none). */
+export function outfitOf(a: CharacterAppearance): OutfitId {
+  return a.outfit ?? DEFAULT_OUTFIT
+}
 export const DEFAULT_PLAYER_NAME = 'Người sống sót'
 export const MAX_NAME_LENGTH = 24
 
@@ -32,6 +43,7 @@ export const APPEARANCE_LABELS = {
   skin: { light: 'Sáng', tan: 'Rám', brown: 'Nâu', dark: 'Sẫm' },
   shirt: { blue: 'Xanh dương', red: 'Đỏ', green: 'Xanh lá', grey: 'Xám' },
   pants: { denim: 'Jean', khaki: 'Kaki', black: 'Đen', olive: 'Ô liu' },
+  outfit: { tee: 'Áo thun', jacket: 'Áo khoác', shirt: 'Sơ mi', work: 'Đồ lao động' },
 } as const
 
 export const SKIN_HEX: Record<SkinTone, string> = { light: '#f1c9a5', tan: '#d69f73', brown: '#9c6a45', dark: '#5e3b26' }
@@ -52,7 +64,10 @@ export function isValidName(v: unknown): v is string {
 export function isAppearance(v: unknown): v is CharacterAppearance {
   if (typeof v !== 'object' || v === null || Array.isArray(v)) return false
   const a = v as Record<string, unknown>
-  return Object.keys(a).length === 5 &&
+  // C2: `outfit` is the one optional key (5 keys = a save from before outfits).
+  const hasOutfit = 'outfit' in a
+  return Object.keys(a).length === (hasOutfit ? 6 : 5) &&
+    (!hasOutfit || (OUTFIT_STYLES as readonly unknown[]).includes(a.outfit)) &&
     (BODY_PRESETS as readonly unknown[]).includes(a.preset) &&
     (HAIR_STYLES as readonly unknown[]).includes(a.hair) &&
     (SKIN_TONES as readonly unknown[]).includes(a.skin) &&
@@ -62,5 +77,5 @@ export function isAppearance(v: unknown): v is CharacterAppearance {
 
 export function randomAppearance(rng: () => number = Math.random): CharacterAppearance {
   const pick = <T>(list: readonly T[]): T => list[Math.min(list.length - 1, Math.floor(rng() * list.length))]
-  return { preset: pick(BODY_PRESETS), hair: pick(HAIR_STYLES), skin: pick(SKIN_TONES), shirt: pick(SHIRT_COLORS), pants: pick(PANTS_COLORS) }
+  return { preset: pick(BODY_PRESETS), hair: pick(HAIR_STYLES), skin: pick(SKIN_TONES), shirt: pick(SHIRT_COLORS), pants: pick(PANTS_COLORS), outfit: pick(OUTFIT_STYLES) }
 }

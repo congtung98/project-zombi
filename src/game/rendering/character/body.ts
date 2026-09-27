@@ -1,5 +1,5 @@
 import type { BufferGeometry } from 'three'
-import type { BodyPreset, HairStyle } from '../../entities/appearance'
+import type { BodyPreset, HairStyle, OutfitId } from '../../entities/appearance'
 import { MeshBuilder, type Ring } from './loft'
 
 /**
@@ -87,9 +87,7 @@ export function boneRest(f: BodyFrame): Record<BoneName, Vec3> {
   return out
 }
 
-/** Clothing sets (C2 adds the others); the look only picks palette colours for the slots. */
-export const OUTFITS = ['tee'] as const
-export type OutfitId = (typeof OUTFITS)[number]
+export type { OutfitId }
 
 export interface BodyShape {
   preset: BodyPreset
@@ -176,35 +174,103 @@ function hair(b: Body, style: HairStyle): void {
   b.loft('head', SLOT.hair, rings, { smooth: true, c: 0.35 })
 }
 
-/** Torso of the top (shirt) from the hem to the collar; w/d scale with the preset. */
-function torso(b: Body, slot: number): void {
-  const k = b.f.bulk
-  const q = b.f.depth
-  b.loft('torso', slot, [
-    { at: -0.12, w: 0.345 * k, d: 0.218 * q, blend: [B.hips, 0.55] },
-    { at: -0.02, w: 0.338 * k, d: 0.214 * q, blend: [B.hips, 0.2] },
-    { at: 0.12, w: 0.338 * k, d: 0.216 * q, o: 0.004 },
-    { at: 0.27, w: 0.38 * k, d: 0.23 * q, o: 0.008 },
-    { at: 0.36, w: 0.405 * k, d: 0.215 * q, o: 0 },
-    { at: 0.425, w: 0.4 * k, d: 0.19 * q, o: -0.006, c: 0.48 },
-    { at: 0.465, w: 0.26 * k, d: 0.155 * q, o: -0.01, c: 0.45 },
-    { at: 0.495, w: 0.15, d: 0.13, o: -0.008, c: 0.45 },
-  ], { smooth: true, c: 0.32 })
+interface TorsoFit {
+  /** Added to every width and depth (m): jackets sit over the body. */
+  grow?: number
+  /** Lowest ring along the spine: −0.12 untucked, −0.2 jacket, −0.015 tucked into the waistband. */
+  hem?: number
+  /** Waist width (balanced preset); a jacket hangs straighter. */
+  waist?: number
 }
 
-function pelvis(b: Body, slot: number): void {
+/** Rings of the top from the hem to the collar; widths scale with the preset. */
+function torsoRings(b: Body, fit: TorsoFit = {}): Ring[] {
   const k = b.f.bulk
   const q = b.f.depth
+  const g = fit.grow ?? 0
+  const hem = fit.hem ?? -0.12
+  const rings: Ring[] = [{ at: hem, w: 0.345 * k + g, d: 0.218 * q + g, blend: [B.hips, hem < -0.15 ? 0.7 : hem > -0.08 ? 0.35 : 0.55] }]
+  if (hem < -0.04) rings.push({ at: -0.02, w: (fit.waist ?? 0.338) * k + g, d: 0.214 * q + g, blend: [B.hips, 0.2] })
+  rings.push(
+    { at: 0.12, w: 0.338 * k + g, d: 0.216 * q + g, o: 0.004 },
+    { at: 0.27, w: 0.38 * k + g, d: 0.23 * q + g, o: 0.008 },
+    { at: 0.36, w: 0.405 * k + g, d: 0.215 * q + g, o: 0 },
+    { at: 0.425, w: 0.4 * k + g, d: 0.19 * q + g, o: -0.006, c: 0.48 },
+    { at: 0.465, w: 0.26 * k + g, d: 0.155 * q + g, o: -0.01, c: 0.45 },
+    { at: 0.495, w: 0.15 + g, d: 0.13 + g, o: -0.008, c: 0.45 },
+  )
+  return rings
+}
+
+function torso(b: Body, slot: number, fit: TorsoFit = {}): Ring[] {
+  const rings = torsoRings(b, fit)
+  b.loft('torso', slot, rings, { smooth: true, c: 0.32 })
+  return rings
+}
+
+/**
+ * A flat band lying on the front (or back) of a loft between two heights: jacket opening, shirt
+ * placket, overall bib and straps. Follows the loft's surface ring by ring, `lift` metres above it.
+ */
+function strip(b: Body, bone: BoneName, slot: number, under: readonly Ring[], o: { from: number; to: number; w: number; x?: number; back?: boolean; lift?: number }): void {
+  const lift = o.lift ?? 0.004
+  const pts: Ring[] = under.filter((r) => r.at > o.from + 1e-6 && r.at < o.to - 1e-6).map((r) => ({ ...r }))
+  // Interpolated end rings so the band starts and stops exactly at `from` and `to`.
+  for (const edge of [o.from, o.to]) {
+    const hi = under.findIndex((r) => r.at >= edge - 1e-9)
+    const a = under[Math.max(0, hi - 1)]
+    const c = under[Math.max(0, hi)]
+    const t = c.at === a.at ? 0 : (edge - a.at) / (c.at - a.at)
+    const mix = (u: number, v: number) => u + (v - u) * t
+    pts.push({ at: edge, w: mix(a.w, c.w), d: mix(a.d, c.d), o: mix(a.o ?? 0, c.o ?? 0), blend: t < 0.5 ? a.blend : c.blend })
+  }
+  pts.sort((u, v) => u.at - v.at)
+  const side = o.back ? -1 : 1
+  b.loft(bone, slot, pts.map((r) => ({
+    at: r.at,
+    w: o.w,
+    d: 0.01,
+    x: o.x ?? 0,
+    o: (r.o ?? 0) + side * (r.d / 2 + lift - 0.005),
+    blend: r.blend,
+  })), { c: 0 })
+}
+
+interface PelvisFit {
+  /** Waistband over a tucked top: taller and wider at the top. */
+  tucked?: boolean
+  /** Width scale of the trousers (baggy work trousers > 1). */
+  fit?: number
+}
+
+function pelvis(b: Body, slot: number, fit: PelvisFit = {}): void {
+  const k = b.f.bulk * (fit.fit ?? 1)
+  const q = b.f.depth * (fit.fit ?? 1)
+  const top: Ring[] = fit.tucked
+    ? [{ at: 0.15, w: 0.366 * k, d: 0.238 * q }, { at: 0.06, w: 0.362 * k, d: 0.234 * q }]
+    : [{ at: 0.13, w: 0.29 * k, d: 0.185 * q }]
   b.loft('hips', slot, [
-    { at: 0.13, w: 0.29 * k, d: 0.185 * q },
-    { at: 0.02, w: 0.322 * k, d: 0.202 * q },
+    ...top,
+    { at: 0.02, w: 0.325 * k, d: 0.204 * q },
     { at: -0.07, w: 0.322 * k, d: 0.2 * q },
     { at: -0.13, w: 0.2 * k, d: 0.16 * q, c: 0.45 },
-  ], { smooth: true, c: 0.32 })
+  ].sort((u, v) => v.at - u.at), { smooth: true, c: 0.32 })
 }
 
-function legs(b: Body, slot: number): void {
-  const k = b.f.bulk
+/** Belt over a tucked waistband, with a buckle. */
+function belt(b: Body, fit = 1): void {
+  const k = b.f.bulk * fit
+  const q = b.f.depth * fit
+  b.loft('hips', SLOT.belt, [
+    { at: 0.1, w: 0.374 * k, d: 0.246 * q },
+    { at: 0.135, w: 0.373 * k, d: 0.245 * q },
+  ], { c: 0.32, caps: [false, false] })
+  b.box('hips', SLOT.stain, [0, 0.117, 0.123 * q + 0.004], [0.045, 0.032, 0.01])
+}
+
+function legs(b: Body, slot: number, fit = 1): void {
+  const k = b.f.bulk * fit
+  const hem = fit > 1 ? 1.08 : 1
   b.sides((_, n) => {
     b.loft(n.hip, slot, [
       { at: 0.05, w: 0.15 * k, d: 0.16 * k },
@@ -216,32 +282,44 @@ function legs(b: Body, slot: number): void {
       { at: 0, w: 0.112 * k, d: 0.118 * k, blend: [B[n.hip], 0.5] },
       { at: -0.11, w: 0.112 * k, d: 0.124 * k, o: -0.006 },
       { at: -0.3, w: 0.09 * k, d: 0.092 * k },
-      { at: -b.f.shin + 0.015, w: 0.086 * k, d: 0.088 * k },
+      { at: -b.f.shin + 0.015, w: 0.086 * k * hem, d: 0.088 * k * hem },
     ], { smooth: true, c: 0.35, caps: [false, true] })
   })
 }
 
-function shoes(b: Body): void {
+function shoes(b: Body, style: 'low' | 'boots'): void {
+  const big = style === 'boots' ? 1.08 : 1
   b.sides((_, n) => {
     // Upper: heel, instep over the ankle, toe box; then a slightly wider flat sole.
     b.loft(n.ankle, SLOT.shoes, [
-      { at: -0.07, w: 0.08, d: 0.07, o: -0.035 },
-      { at: -0.03, w: 0.094, d: 0.1, o: -0.022 },
-      { at: 0.04, w: 0.1, d: 0.088, o: -0.03 },
-      { at: 0.12, w: 0.098, d: 0.06, o: -0.044 },
-      { at: 0.17, w: 0.07, d: 0.034, o: -0.056 },
+      { at: -0.07, w: 0.08 * big, d: 0.07, o: -0.035 },
+      { at: -0.03, w: 0.094 * big, d: 0.1, o: -0.022 },
+      { at: 0.04, w: 0.1 * big, d: 0.088 * big, o: -0.03 },
+      { at: 0.12, w: 0.098 * big, d: 0.06 * big, o: -0.044 },
+      { at: 0.17, w: 0.07 * big, d: 0.034 * big, o: -0.056 },
     ], { axis: 'z', smooth: true, c: 0.3 })
     b.loft(n.ankle, SLOT.sole, [
-      { at: -0.078, w: 0.078, d: 0.022, o: -0.069 },
-      { at: 0.0, w: 0.098, d: 0.022, o: -0.069 },
-      { at: 0.13, w: 0.104, d: 0.022, o: -0.069 },
-      { at: 0.182, w: 0.066, d: 0.02, o: -0.07 },
+      { at: -0.078, w: 0.078 * big, d: 0.022 * big, o: -0.069 },
+      { at: 0.0, w: 0.098 * big, d: 0.022 * big, o: -0.069 },
+      { at: 0.13, w: 0.104 * big, d: 0.022 * big, o: -0.069 },
+      { at: 0.182, w: 0.066 * big, d: 0.02 * big, o: -0.07 },
     ], { axis: 'z', c: 0.3 })
+    if (style === 'boots') {
+      // Shaft up the shin; the trousers tuck into it.
+      b.loft(n.ankle, SLOT.shoes, [
+        { at: -0.03, w: 0.108, d: 0.118, o: -0.006 },
+        { at: 0.06, w: 0.106, d: 0.114, o: -0.004 },
+        { at: 0.115, w: 0.108, d: 0.116, o: -0.004 },
+      ], { smooth: true, c: 0.38, caps: [false, true] })
+    }
   })
 }
 
-function arms(b: Body, sleeve: 'short' | 'long', topSlot: number): void {
+type Sleeve = 'short' | 'long' | 'rolled'
+
+function arms(b: Body, sleeve: Sleeve, topSlot: number, o: { grow?: number; cuff?: number } = {}): void {
   const k = b.f.bulk
+  const g = o.grow ?? 0
   b.sides((s, n) => {
     // Upper arm: rounded top inside the shoulder, tapering to the elbow (blended with the forearm).
     b.loft(n.shoulder, SLOT.skin, [
@@ -268,26 +346,43 @@ function arms(b: Body, sleeve: 'short' | 'long', topSlot: number): void {
         { at: 0.0, w: 0.128 * k, d: 0.134 * k },
         { at: -0.13, w: 0.124 * k, d: 0.13 * k },
       ], { smooth: true, c: 0.4 })
-    } else {
-      b.loft(n.shoulder, topSlot, [
-        { at: 0.035, w: 0.09 * k, d: 0.1 * k, c: 0.5 },
-        { at: 0.0, w: 0.128 * k, d: 0.134 * k },
-        { at: -0.15, w: 0.12 * k, d: 0.126 * k },
-        { at: -b.f.upperArm, w: 0.096 * k, d: 0.1 * k, blend: [B[n.elbow], 0.5] },
-      ], { smooth: true, c: 0.36, caps: [true, false] })
+      return
+    }
+    b.loft(n.shoulder, topSlot, [
+      { at: 0.035, w: 0.09 * k + g, d: 0.1 * k + g, c: 0.5 },
+      { at: 0.0, w: 0.128 * k + g, d: 0.134 * k + g },
+      { at: -0.15, w: 0.12 * k + g, d: 0.126 * k + g },
+      { at: -b.f.upperArm, w: 0.096 * k + g, d: 0.1 * k + g, blend: [B[n.elbow], 0.5] },
+    ], { smooth: true, c: 0.36, caps: [true, false] })
+    if (sleeve === 'rolled') {
+      // Pushed up the forearm with a thick roll.
       b.loft(n.elbow, topSlot, [
         { at: 0.0, w: 0.096 * k, d: 0.1 * k, blend: [B[n.shoulder], 0.5] },
-        { at: -0.1, w: 0.098 * k, d: 0.104 * k },
-        { at: -0.2, w: 0.084 * k, d: 0.086 * k },
-      ], { smooth: true, c: 0.36, caps: [false, true] })
+        { at: -0.05, w: 0.1 * k, d: 0.105 * k },
+      ], { smooth: true, c: 0.36, caps: [false, false] })
+      b.loft(n.elbow, o.cuff ?? topSlot, [
+        { at: -0.045, w: 0.108 * k, d: 0.114 * k },
+        { at: -0.1, w: 0.104 * k, d: 0.11 * k },
+      ], { c: 0.4 })
+      return
+    }
+    b.loft(n.elbow, topSlot, [
+      { at: 0.0, w: 0.096 * k + g, d: 0.1 * k + g, blend: [B[n.shoulder], 0.5] },
+      { at: -0.1, w: 0.098 * k + g, d: 0.104 * k + g },
+      { at: -0.2, w: 0.084 * k + g, d: 0.086 * k + g },
+    ], { smooth: true, c: 0.36, caps: [false, true] })
+    if (o.cuff !== undefined) {
+      b.loft(n.elbow, o.cuff, [
+        { at: -0.2, w: 0.09 * k + g, d: 0.092 * k + g },
+        { at: -0.226, w: 0.088 * k + g, d: 0.09 * k + g },
+      ], { c: 0.4 })
     }
   })
 }
 
-/** T-shirt over trousers with a belt: the C1 sample outfit (player default, most zombies). */
+/** T-shirt over trousers and trainers: crew neck, short sleeves, untucked hem. */
 function outfitTee(b: Body): void {
   torso(b, SLOT.top)
-  // Crew neck: a thin darker band at the collar.
   b.loft('torso', SLOT.trim, [
     { at: 0.465, w: 0.2, d: 0.165, o: -0.006 },
     { at: 0.5, w: 0.152, d: 0.132, o: -0.008 },
@@ -302,9 +397,58 @@ function outfitTee(b: Body): void {
   pelvis(b, SLOT.bottom)
   legs(b, SLOT.bottom)
   arms(b, 'short', SLOT.top)
+  shoes(b, 'low')
 }
 
-const OUTFIT_BUILDERS: Record<OutfitId, (b: Body) => void> = { tee: outfitTee }
+/** Open jacket over a light T-shirt, jeans: longer, straighter and thicker, a fold-down collar. */
+function outfitJacket(b: Body): void {
+  const rings = torso(b, SLOT.top, { grow: 0.03, hem: -0.2, waist: 0.36 })
+  // Open front: the T-shirt shows between the zip edges.
+  strip(b, 'torso', SLOT.trim, rings, { from: -0.19, to: 0.44, w: 0.085, lift: 0.002 })
+  for (const x of [0.047, -0.047]) strip(b, 'torso', SLOT.belt, rings, { from: -0.2, to: 0.44, w: 0.012, x, lift: 0.004 })
+  b.loft('torso', SLOT.top, [
+    { at: 0.44, w: 0.27, d: 0.215, o: -0.01 },
+    { at: 0.478, w: 0.26, d: 0.205, o: -0.012 },
+    { at: 0.525, w: 0.2, d: 0.168, o: -0.014 },
+  ], { c: 0.45, caps: [false, false] })
+  pelvis(b, SLOT.bottom)
+  legs(b, SLOT.bottom)
+  arms(b, 'long', SLOT.top, { grow: 0.018 })
+  shoes(b, 'low')
+}
+
+/** Button shirt tucked into office trousers with a belt: collar points, placket, cuffs. */
+function outfitShirt(b: Body): void {
+  const rings = torso(b, SLOT.top, { hem: -0.015 })
+  strip(b, 'torso', SLOT.trim, rings, { from: -0.015, to: 0.45, w: 0.026, lift: 0.002 })
+  b.loft('torso', SLOT.top, [
+    { at: 0.46, w: 0.19, d: 0.16, o: -0.006 },
+    { at: 0.515, w: 0.162, d: 0.14, o: -0.01 },
+  ], { c: 0.45, caps: [false, false] })
+  for (const s of [1, -1]) b.box('torso', SLOT.top, [s * 0.036, 0.468, 0.078], [0.052, 0.03, 0.02])
+  pelvis(b, SLOT.bottom, { tucked: true, fit: 0.97 })
+  belt(b, 0.97)
+  legs(b, SLOT.bottom, 0.95)
+  arms(b, 'long', SLOT.top, { cuff: SLOT.trim })
+  shoes(b, 'low')
+}
+
+/** Work clothes: shirt with rolled sleeves under bib overalls with straps and buckles, boots. */
+function outfitWork(b: Body): void {
+  const rings = torso(b, SLOT.top, { hem: -0.015 })
+  pelvis(b, SLOT.bottom, { tucked: true, fit: 1.05 })
+  strip(b, 'torso', SLOT.bottom, rings, { from: -0.015, to: 0.3, w: 0.25, lift: 0.006 })
+  for (const x of [0.085, -0.085]) {
+    strip(b, 'torso', SLOT.bottom, rings, { from: 0.28, to: 0.47, w: 0.042, x, lift: 0.006 })
+    strip(b, 'torso', SLOT.bottom, rings, { from: -0.015, to: 0.47, w: 0.042, x, back: true, lift: 0.006 })
+    b.box('torso', SLOT.belt, [x, 0.29, 0.125 * b.f.depth + 0.012], [0.03, 0.028, 0.01])
+  }
+  legs(b, SLOT.bottom, 1.08)
+  arms(b, 'rolled', SLOT.top, { cuff: SLOT.trim })
+  shoes(b, 'boots')
+}
+
+const OUTFIT_BUILDERS: Record<OutfitId, (b: Body) => void> = { tee: outfitTee, jacket: outfitJacket, shirt: outfitShirt, work: outfitWork }
 
 const cache = new Map<string, BufferGeometry>()
 
@@ -320,7 +464,6 @@ export function bodyGeometry(shape: BodyShape): BufferGeometry {
     head(b)
     hair(b, shape.hair)
     OUTFIT_BUILDERS[shape.outfit](b)
-    shoes(b)
     g = b.m.build()
     g.name = `character:${key}`
     cache.set(key, g)

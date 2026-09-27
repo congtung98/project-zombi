@@ -1,5 +1,5 @@
 import { Bone, Color, Group, Matrix4, Skeleton, SkinnedMesh, Sphere, Vector3 } from 'three'
-import { PANTS_HEX, SHIRT_HEX, SKIN_HEX, type BodyPreset, type CharacterAppearance, type HairStyle } from '../../entities/appearance'
+import { OUTFIT_STYLES, PANTS_HEX, SHIRT_HEX, SKIN_HEX, outfitOf, type BodyPreset, type CharacterAppearance, type HairStyle } from '../../entities/appearance'
 import { BODY_FRAMES, BODY_HEIGHT, BONES, BONE_PARENT, GRIP, SLOT, SLOT_COUNT, bodyGeometry, boneOffsets, boneRest, type BoneName, type OutfitId } from './body'
 import { CharacterMaterial } from './material'
 import type { Pose } from './pose'
@@ -69,7 +69,7 @@ export interface CharacterRig {
 }
 
 export function playerLook(a: CharacterAppearance): CharacterLook {
-  return { preset: a.preset, hair: a.hair, outfit: 'tee', skin: SKIN_HEX[a.skin], shirt: SHIRT_HEX[a.shirt], pants: PANTS_HEX[a.pants], hairColor: '#3b2a1e', eyes: '#1d1d22' }
+  return { preset: a.preset, hair: a.hair, outfit: outfitOf(a), skin: SKIN_HEX[a.skin], shirt: SHIRT_HEX[a.shirt], pants: PANTS_HEX[a.pants], hairColor: '#3b2a1e', eyes: '#1d1d22' }
 }
 
 // C1: zombie skin is pale and grey (not green); clothes muted, a little faded.
@@ -87,7 +87,7 @@ export function zombieLook(id: string): CharacterLook {
   return {
     preset: pick(ZOMBIE_PRESETS, 0),
     hair: pick(ZOMBIE_HAIR, 3),
-    outfit: 'tee',
+    outfit: pick(OUTFIT_STYLES, 17),
     skin: pick(ZOMBIE_SKIN, 6),
     shirt: pick(ZOMBIE_SHIRT, 9),
     pants: pick(ZOMBIE_PANTS, 13),
@@ -96,20 +96,34 @@ export function zombieLook(id: string): CharacterLook {
   }
 }
 
+const shade = (hex: string, k: number) => `#${new Color(hex).multiplyScalar(k).getHexString()}`
+
+/**
+ * C2: fixed colours of each outfit's secondary parts (the shirt/pants colours paint the top and
+ * bottom): trim = crew neck / inner T-shirt / placket and cuffs / sleeve roll, belt = zip edges, belt,
+ * strap buckles; stain = belt buckle metal.
+ */
+const OUTFIT_COLORS: Record<OutfitId, (shirt: string) => { trim: string; shoes: string; belt: string; sole: string; stain: string }> = {
+  tee: (shirt) => ({ trim: shade(shirt, 0.72), shoes: '#3b3430', belt: '#2e2a26', sole: '#1f1d1b', stain: '#4a2a22' }),
+  jacket: () => ({ trim: '#b7b1a5', shoes: '#4a3a2c', belt: '#26231f', sole: '#221e1b', stain: '#4a2a22' }),
+  shirt: (shirt) => ({ trim: shade(shirt, 0.84), shoes: '#221f1e', belt: '#2f2219', sole: '#121111', stain: '#a39c88' }),
+  work: (shirt) => ({ trim: shade(shirt, 0.8), shoes: '#5a4330', belt: '#8f8c83', sole: '#1d1a17', stain: '#4a2a22' }),
+}
+
 /** Palette in slot order (see `SLOT`). */
 export function lookPalette(look: CharacterLook): string[] {
   const out = new Array<string>(SLOT_COUNT)
-  const shade = (hex: string, k: number) => `#${new Color(hex).multiplyScalar(k).getHexString()}`
+  const fixed = OUTFIT_COLORS[look.outfit](look.shirt)
   out[SLOT.skin] = look.skin
   out[SLOT.top] = look.shirt
-  out[SLOT.trim] = look.trim ?? shade(look.shirt, 0.72)
+  out[SLOT.trim] = look.trim ?? fixed.trim
   out[SLOT.bottom] = look.pants
-  out[SLOT.shoes] = look.shoes ?? '#3b3430'
+  out[SLOT.shoes] = look.shoes ?? fixed.shoes
   out[SLOT.hair] = look.hairColor
   out[SLOT.eyes] = look.eyes
-  out[SLOT.belt] = look.belt ?? '#2e2a26'
-  out[SLOT.sole] = look.sole ?? '#1f1d1b'
-  out[SLOT.stain] = look.stain ?? '#4a2a22'
+  out[SLOT.belt] = look.belt ?? fixed.belt
+  out[SLOT.sole] = look.sole ?? fixed.sole
+  out[SLOT.stain] = look.stain ?? fixed.stain
   return out
 }
 

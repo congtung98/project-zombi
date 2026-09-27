@@ -101,7 +101,7 @@ try {
   await saveToMenu()
   const first = await readSlot('slot-1')
   assert.equal(first.schemaVersion, 9)
-  assert.deepEqual([first.player.name, first.player.appearance], ['Mai An', { preset: 'slim', hair: 'long', skin: 'light', shirt: 'green', pants: 'khaki' }])
+  assert.deepEqual([first.player.name, first.player.appearance], ['Mai An', { preset: 'slim', hair: 'long', skin: 'light', shirt: 'green', pants: 'khaki', outfit: 'tee' }])
   await hasText('Mai An')
 
   // 2) New Game → Back: the save is untouched and Continue still offers it.
@@ -117,7 +117,7 @@ try {
   await button('Ngẫu nhiên').click()
   await button('Mặc định').click()
   assert.equal(await radio('Dáng người', 'Cân đối').getAttribute('aria-checked'), 'true')
-  for (const [group, label] of [['Dáng người', 'Vạm vỡ'], ['Kiểu tóc', 'Mohawk'], ['Màu da', 'Sẫm'], ['Áo', 'Đỏ'], ['Quần', 'Ô liu']]) await radio(group, label).click()
+  for (const [group, label] of [['Dáng người', 'Vạm vỡ'], ['Kiểu tóc', 'Mohawk'], ['Màu da', 'Sẫm'], ['Áo', 'Đỏ'], ['Quần', 'Ô liu'], ['Trang phục', 'Đồ lao động']]) await radio(group, label).click()
   await shot('p2s3-creation')
   await button('Bắt đầu').click()
   await hasText('Bản lưu hiện tại sẽ bị xóa')
@@ -125,7 +125,7 @@ try {
   await button('Xóa bản lưu và bắt đầu').click()
   await inGame()
   assert.equal((await page.locator('.hud-name').innerText()).trim(), 'Trần Tùng')
-  const look = { preset: 'sturdy', hair: 'mohawk', skin: 'dark', shirt: 'red', pants: 'olive' }
+  const look = { preset: 'sturdy', hair: 'mohawk', skin: 'dark', shirt: 'red', pants: 'olive', outfit: 'work' }
 
   if (!production) {
     // 4) Rig in the real scene: one character per actor, weapon model in the right-hand socket.

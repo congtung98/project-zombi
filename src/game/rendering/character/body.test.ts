@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Vector3 } from 'three'
 import { GAME_CONFIG } from '../../core/config'
-import { BODY_PRESETS, DEFAULT_APPEARANCE, HAIR_STYLES } from '../../entities/appearance'
+import { BODY_PRESETS, DEFAULT_APPEARANCE, HAIR_STYLES, OUTFIT_STYLES } from '../../entities/appearance'
 import { BONES, SLOT, SLOT_COUNT, bodyGeometry, bodyGeometryCount } from './body'
 import { computePose, createPose, type PoseInput } from './pose'
 import { applyPose, buildCharacter, lookPalette, playerLook, zombieLook, type CharacterRig } from './rig'
@@ -47,21 +47,24 @@ describe('C1 skinned body', () => {
     rig.dispose()
   })
 
-  it('geometry is shared per body shape: a crowd of 40 zombies uses at most one per preset × hair', () => {
+  it('geometry is shared per body shape: a crowd of 40 zombies uses at most one per preset × hair × outfit', () => {
     const before = bodyGeometryCount()
+    const shapesMax = BODY_PRESETS.length * HAIR_STYLES.length * OUTFIT_STYLES.length
     const rigs = Array.from({ length: 40 }, (_, i) => buildCharacter(zombieLook(`zombie-${i + 1}`)))
     const shapes = new Set(rigs.map((r) => r.mesh.geometry))
-    expect(shapes.size).toBeLessThanOrEqual(BODY_PRESETS.length * HAIR_STYLES.length)
-    expect(bodyGeometryCount() - before).toBeLessThanOrEqual(BODY_PRESETS.length * HAIR_STYLES.length)
+    expect(shapes.size).toBeLessThanOrEqual(shapesMax)
+    expect(bodyGeometryCount() - before).toBeLessThanOrEqual(shapesMax)
+    // Zombies wear every outfit.
+    expect(new Set(rigs.map((r) => r.mesh.geometry.name.split('/')[2])).size).toBe(OUTFIT_STYLES.length)
     expect(new Set(rigs.map((r) => r.material)).size).toBe(40)
     const a = buildCharacter(zombieLook('zombie-1'))
     expect(a.mesh.geometry).toBe(rigs[0].mesh.geometry)
     for (const r of [...rigs, a]) r.dispose()
   })
 
-  it('stands 1.8 m tall inside the capsule, feet on the floor, for every preset and hair', () => {
-    for (const preset of BODY_PRESETS) for (const hair of HAIR_STYLES) {
-      const rig = buildCharacter(playerLook({ ...DEFAULT_APPEARANCE, preset, hair }))
+  it('stands 1.8 m tall inside the capsule, feet on the floor, for every preset, hair and outfit', () => {
+    for (const preset of BODY_PRESETS) for (const hair of HAIR_STYLES) for (const outfit of OUTFIT_STYLES) {
+      const rig = buildCharacter(playerLook({ ...DEFAULT_APPEARANCE, preset, hair, outfit }))
       applyPose(rig, computePose(base))
       const { min, max } = posedBounds(rig)
       expect(min.y).toBeGreaterThan(-0.015)
@@ -73,9 +76,22 @@ describe('C1 skinned body', () => {
     }
   })
 
+  it('outfits differ in shape, not only colour: each has its own triangle count and silhouette', () => {
+    const counts = OUTFIT_STYLES.map((outfit) => bodyGeometry({ preset: 'balanced', hair: 'short', outfit }).getAttribute('position').count)
+    expect(new Set(counts).size).toBe(OUTFIT_STYLES.length)
+    const box = (outfit: (typeof OUTFIT_STYLES)[number]) => {
+      const g = bodyGeometry({ preset: 'balanced', hair: 'short', outfit })
+      g.computeBoundingBox()
+      return g.boundingBox!
+    }
+    // The jacket is wider than the T-shirt; overalls and shirt sleeves reach the wrists or forearms.
+    expect(box('jacket').max.x - box('jacket').min.x).toBeGreaterThan(box('tee').max.x - box('tee').min.x)
+    for (const outfit of OUTFIT_STYLES) expect(box(outfit).max.x - box(outfit).min.x).toBeLessThanOrEqual(0.8)
+  })
+
   it('walking and running keep a foot on the floor through the whole cycle (no hover, no sinking)', () => {
-    for (const [kind, speed] of [['player', 4], ['player', 7], ['zombie', 2.3]] as const) {
-      const rig = buildCharacter(kind === 'player' ? playerLook(DEFAULT_APPEARANCE) : zombieLook('zombie-2'))
+    for (const [kind, speed, outfit] of [['player', 4, 'tee'], ['player', 7, 'work'], ['player', 4, 'jacket'], ['zombie', 2.3, 'tee']] as const) {
+      const rig = buildCharacter(kind === 'player' ? playerLook({ ...DEFAULT_APPEARANCE, outfit }) : zombieLook('zombie-2'))
       const pose = createPose()
       for (let k = 0; k < 16; k++) {
         applyPose(rig, computePose({ ...base, kind, speed, gaitPhase: (k / 16) * Math.PI * 2 }, pose))

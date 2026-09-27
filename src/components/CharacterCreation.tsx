@@ -6,6 +6,7 @@ import {
   DEFAULT_PLAYER_NAME,
   HAIR_STYLES,
   MAX_NAME_LENGTH,
+  OUTFIT_STYLES,
   PANTS_COLORS,
   PANTS_HEX,
   SHIRT_COLORS,
@@ -13,6 +14,7 @@ import {
   SKIN_HEX,
   SKIN_TONES,
   normalizeName,
+  outfitOf,
   randomAppearance,
   type CharacterAppearance,
 } from '../game/entities/appearance'
@@ -26,10 +28,10 @@ type Field = keyof CharacterAppearance
 function OptionRow<K extends Field>({ label, field, options, value, swatches, onPick }: {
   label: string
   field: K
-  options: readonly CharacterAppearance[K][]
-  value: CharacterAppearance[K]
+  options: readonly NonNullable<CharacterAppearance[K]>[]
+  value: NonNullable<CharacterAppearance[K]>
   swatches?: Record<string, string>
-  onPick: (field: K, value: CharacterAppearance[K]) => void
+  onPick: (field: K, value: NonNullable<CharacterAppearance[K]>) => void
 }) {
   const names = APPEARANCE_LABELS[field] as Record<string, string>
   return (
@@ -69,7 +71,7 @@ export function CharacterCreation() {
   const [look, setLook] = useState<CharacterAppearance>(DEFAULT_APPEARANCE)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
   const hasData = saveSlot.kind === 'ready' || saveSlot.kind === 'incompatible' || saveSlot.kind === 'corrupt'
-  const pick = <K extends Field>(field: K, value: CharacterAppearance[K]) => {
+  const pick = <K extends Field>(field: K, value: NonNullable<CharacterAppearance[K]>) => {
     sfx.play('ui')
     setLook((prev) => ({ ...prev, [field]: value }))
   }
@@ -114,6 +116,7 @@ export function CharacterCreation() {
             <OptionRow label="Dáng người" field="preset" options={BODY_PRESETS} value={look.preset} onPick={pick} />
             <OptionRow label="Kiểu tóc" field="hair" options={HAIR_STYLES} value={look.hair} onPick={pick} />
             <OptionRow label="Màu da" field="skin" options={SKIN_TONES} value={look.skin} swatches={SKIN_HEX} onPick={pick} />
+            <OptionRow label="Trang phục" field="outfit" options={OUTFIT_STYLES} value={outfitOf(look)} onPick={pick} />
             <OptionRow label="Áo" field="shirt" options={SHIRT_COLORS} value={look.shirt} swatches={SHIRT_HEX} onPick={pick} />
             <OptionRow label="Quần" field="pants" options={PANTS_COLORS} value={look.pants} swatches={PANTS_HEX} onPick={pick} />
             <p className="muted creation-hint">Ngoại hình không ảnh hưởng chỉ số, tốc độ hay tầm đánh.</p>

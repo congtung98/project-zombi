@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrthographicCamera } from '@react-three/drei'
 import { GAME_CONFIG } from '../game/core/config'
-import { DEFAULT_APPEARANCE } from '../game/entities/appearance'
+import { DEFAULT_APPEARANCE, OUTFIT_STYLES, type CharacterAppearance } from '../game/entities/appearance'
 import { computePose, createPose, type PoseInput } from '../game/rendering/character/pose'
 import { applyPose, buildCharacter, playerLook, zombieLook, type CharacterLook } from '../game/rendering/character/rig'
 import { buildWeaponModel } from '../game/rendering/character/weaponModels'
@@ -11,7 +11,7 @@ import { buildWeaponModel } from '../game/rendering/character/weaponModels'
  * C0 (character plan): dev-only character lab, `/?lab=characters` on the dev server. Same rig, pose
  * functions, camera angle, zoom (px/m) and day lights as the game, on a 1 m grid (25 cm from zoom 60), with fixed
  * pose inputs (no clock), so screenshots are identical run to run and compare before/after a sprint.
- * URL: `set` = lineup | states | turn | close, `zoom` (px/m, game default 28), `yaw` (rad, facing of the
+ * URL: `set` = lineup | states | turn | close | outfits, `zoom` (px/m, game default 28), `yaw` (rad, facing of the
  * states set), `t` (s, idle breathing time). `window.__labReady` is set once the frame is drawn.
  */
 const CAM = GAME_CONFIG.camera
@@ -74,6 +74,21 @@ function close(): LabActor[] {
   ]
 }
 
+/** C2: every outfit (front three-quarter row, back row), with the hair styles and presets mixed in. */
+function outfits(): LabActor[] {
+  const looks: CharacterAppearance[] = [
+    { ...DEFAULT_APPEARANCE, outfit: 'tee' },
+    { ...DEFAULT_APPEARANCE, outfit: 'jacket', shirt: 'grey', pants: 'denim', hair: 'long', skin: 'light', preset: 'slim' },
+    { ...DEFAULT_APPEARANCE, outfit: 'shirt', shirt: 'blue', pants: 'black', hair: 'short', skin: 'brown' },
+    { ...DEFAULT_APPEARANCE, outfit: 'work', shirt: 'red', pants: 'olive', hair: 'mohawk', skin: 'dark', preset: 'sturdy' },
+  ]
+  if (looks.length !== OUTFIT_STYLES.length) throw new Error('lab: one look per outfit')
+  return [
+    ...looks.map((a) => ({ label: `${a.outfit} front`, look: playerLook(a), kind: 'player' as const, pose: {}, facing: Math.PI / 4 })),
+    ...looks.map((a) => ({ label: `${a.outfit} back`, look: playerLook(a), kind: 'player' as const, pose: { speed: 4, gaitPhase: Math.PI / 2 }, facing: Math.PI + Math.PI / 4 })),
+  ]
+}
+
 function turn(): LabActor[] {
   const out: LabActor[] = []
   for (let i = 0; i < 8; i++) out.push({ label: `p ${i * 45}°`, look: player, kind: 'player', weapon: 'baseball_bat', pose: { armed: true }, facing: (i * Math.PI) / 4 })
@@ -129,9 +144,9 @@ export default function CharacterLab() {
   const zoom = Number(params.get('zoom') ?? CAM.zoomDefault)
   const yaw = Number(params.get('yaw') ?? Math.PI / 2)
   const time = Number(params.get('t') ?? 0)
-  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : set === 'close' ? close() : lineup(Math.PI / 4)
+  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : set === 'close' ? close() : set === 'outfits' ? outfits() : lineup(Math.PI / 4)
   // Two rows when there are many actors (states: player row behind, zombie row in front).
-  const perRow = set === 'lineup' || set === 'close' ? actors.length : 8
+  const perRow = set === 'lineup' || set === 'close' ? actors.length : set === 'outfits' ? 4 : 8
   const spacing = 1.8
   const placed = actors.map((actor, i) => {
     const row = Math.floor(i / perRow)
