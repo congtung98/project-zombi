@@ -19,6 +19,9 @@
   "externalRefs": [
     { "id": "c-1_0/roads/pavement-s", "ownerChunkId": "c-1_0" },
     { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" },
-    { "id": "c-2_0/lab-house-1", "ownerChunkId": "c-2_0" }
+    { "id": "c-2_0/lab-house-1", "ownerChunkId": "c-2_0" },
+    { "id": "c-2_1/bungalow-l-1", "ownerChunkId": "c-2_1" },
+    { "id": "c-3_1/cottage-1", "ownerChunkId": "c-3_1" },
+    { "id": "c-4_1/cap4-1", "ownerChunkId": "c-4_1" }
   ]
 }

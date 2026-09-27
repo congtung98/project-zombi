@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "contentVersion": 1,
-  "chunkId": "c2_0",
-  "cx": 2,
+  "chunkId": "c-4_0",
+  "cx": -4,
   "cz": 0,
   "instances": [],
   "objects": [],
@@ -12,7 +12,7 @@
   "externalRefs": [
     { "id": "c-1_0/roads/pavement-s", "ownerChunkId": "c-1_0" },
     { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" },
-    { "id": "c2_1/suburban-1", "ownerChunkId": "c2_1" },
-    { "id": "c3_1/l-two-storey-1", "ownerChunkId": "c3_1" }
+    { "id": "c-3_0/safehouse-1", "ownerChunkId": "c-3_0" },
+    { "id": "c-4_1/cap4-1", "ownerChunkId": "c-4_1" }
   ]
 }

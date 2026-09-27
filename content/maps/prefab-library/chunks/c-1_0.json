@@ -24,6 +24,8 @@
   "zones": [],
   "spawns": [],
   "externalRefs": [
+    { "id": "c-1_1/longhouse-1", "ownerChunkId": "c-1_1" },
+    { "id": "c-1_1/ranch-1", "ownerChunkId": "c-1_1" },
     { "id": "c-2_0/two-storey-1", "ownerChunkId": "c-2_0" },
     { "id": "c0_0/warehouse-1", "ownerChunkId": "c0_0" }
   ]

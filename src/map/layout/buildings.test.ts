@@ -196,7 +196,10 @@ describe('WG3 buildings on the fixture town', () => {
     const vn = placeBuildings(planLayout(big, { profile: 'vn-urban' }), catalog).plan
     const built = builtOf(vn)
     expect(built.length).toBeGreaterThan(200)
-    expect(new Set(built.map((q) => q.build.prefabId))).toEqual(new Set(['library/tube-house']))
+    // Only the narrow houses fit vn-urban lots (P2 added the 4 m and 5 m tube houses and the shophouse).
+    const narrow = new Set(['library/tube-house', 'house/tube-4x16', 'house/tube-5x18', 'house/shophouse'])
+    expect([...new Set(built.map((q) => q.build.prefabId))].filter((id) => !narrow.has(id!))).toEqual([])
+    expect(built.some((q) => q.build.prefabId === 'library/tube-house')).toBe(true)
     expect(checkBuildings(vn, catalog)).toEqual([])
   })
 

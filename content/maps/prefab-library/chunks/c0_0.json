@@ -24,6 +24,9 @@
   "spawns": [{ "spawnId": "c0_0/spawns/player-start", "kind": "player", "position": { "x": 2, "z": 0 } }],
   "externalRefs": [
     { "id": "c-1_0/roads/pavement-s", "ownerChunkId": "c-1_0" },
-    { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" }
+    { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_1/ranch-1", "ownerChunkId": "c-1_1" },
+    { "id": "c0_1/tube-4x16-1", "ownerChunkId": "c0_1" },
+    { "id": "c0_1/tube-5x18-1", "ownerChunkId": "c0_1" }
   ]
 }
