@@ -29,6 +29,18 @@ export const FURNITURE_IDS = [
   'outdoor/bin',
   'outdoor/mailbox',
   'outdoor/streetlight',
+  // Prefab library P2–P5: pieces of the new places.
+  'furniture/hospital-bed',
+  'furniture/operating-table',
+  'furniture/machine',
+  'furniture/atm',
+  'outdoor/tombstone',
+  'outdoor/bench',
+  'outdoor/slide',
+  'outdoor/swing',
+  'outdoor/sandbox',
+  'outdoor/hoop',
+  'outdoor/flagpole',
 ] as const
 export type FurnitureId = (typeof FURNITURE_IDS)[number]
 
@@ -69,6 +81,17 @@ export const FURNITURE: Record<FurnitureId, FurnitureInfo> = {
   'outdoor/mailbox': { label: 'Hộp thư', deep: false },
   // World generator WG5: a post-top streetlight, decorative (Q8: no light cast), inside its thin post box.
   'outdoor/streetlight': { label: 'Đèn đường', deep: false },
+  'furniture/hospital-bed': { label: 'Giường bệnh', deep: true },
+  'furniture/operating-table': { label: 'Bàn mổ', deep: false },
+  'furniture/machine': { label: 'Máy công cụ', deep: false },
+  'furniture/atm': { label: 'Cây ATM', deep: false },
+  'outdoor/tombstone': { label: 'Bia mộ', deep: false },
+  'outdoor/bench': { label: 'Ghế công viên', deep: false },
+  'outdoor/slide': { label: 'Cầu trượt', deep: true },
+  'outdoor/swing': { label: 'Xích đu', deep: false },
+  'outdoor/sandbox': { label: 'Hố cát', deep: false },
+  'outdoor/hoop': { label: 'Cột bóng rổ', deep: true },
+  'outdoor/flagpole': { label: 'Cột cờ', deep: false },
 }
 
 /**

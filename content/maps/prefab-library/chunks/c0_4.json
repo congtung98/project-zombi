@@ -17,8 +17,9 @@
       "kind": "prop",
       "objectId": "c0_4/objects/high-school-flagpole-1",
       "position": { "x": 28, "y": 3.5, "z": 16 },
-      "size": [0.2, 7, 0.2],
-      "color": "#c9ccd0"
+      "size": [0.9, 7, 0.2],
+      "color": "#c9ccd0",
+      "visual": { "assetId": "outdoor/flagpole" }
     }
   ],
   "roads": [],

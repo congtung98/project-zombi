@@ -178,38 +178,43 @@
     },
     {
       "kind": "prop",
-      "localId": "prop-1",
+      "localId": "machine-1",
       "position": { "x": -7, "y": 0.75, "z": -3 },
       "size": [2, 1.5, 1.2],
-      "color": "#5f6a70"
+      "color": "#4f6f5a",
+      "visual": { "assetId": "furniture/machine" }
     },
     {
       "kind": "prop",
-      "localId": "prop-2",
+      "localId": "machine-2",
       "position": { "x": -3, "y": 0.75, "z": -3 },
       "size": [2, 1.5, 1.2],
-      "color": "#5f6a70"
+      "color": "#4f6f5a",
+      "visual": { "assetId": "furniture/machine" }
     },
     {
       "kind": "prop",
-      "localId": "prop-3",
+      "localId": "machine-3",
       "position": { "x": 1, "y": 0.75, "z": -3 },
       "size": [2, 1.5, 1.2],
-      "color": "#5f6a70"
+      "color": "#4f6f5a",
+      "visual": { "assetId": "furniture/machine" }
     },
     {
       "kind": "prop",
-      "localId": "prop-4",
+      "localId": "machine-4",
       "position": { "x": -7, "y": 0.75, "z": 1.5 },
       "size": [2, 1.5, 1.2],
-      "color": "#5f6a70"
+      "color": "#4f6f5a",
+      "visual": { "assetId": "furniture/machine" }
     },
     {
       "kind": "prop",
-      "localId": "prop-5",
+      "localId": "machine-5",
       "position": { "x": 1, "y": 0.75, "z": 1.5 },
       "size": [2, 1.5, 1.2],
-      "color": "#5f6a70"
+      "color": "#4f6f5a",
+      "visual": { "assetId": "furniture/machine" }
     },
     {
       "kind": "container",

@@ -23,35 +23,40 @@
       "objectId": "c3_9/objects/park-slide-1",
       "position": { "x": 23.5, "y": 1, "z": 6.5 },
       "size": [1, 2, 3.2],
-      "color": "#c8412f"
+      "color": "#c8412f",
+      "visual": { "assetId": "outdoor/slide", "facing": 0 }
     },
     {
       "kind": "prop",
       "objectId": "c3_9/objects/park-swing-1",
-      "position": { "x": 27.5, "y": 1.1, "z": 4.5 },
-      "size": [3, 2.2, 0.3],
-      "color": "#3b6fa8"
+      "position": { "x": 27.5, "y": 1.1, "z": 4.1 },
+      "size": [3, 2.2, 1.2],
+      "color": "#3b6fa8",
+      "visual": { "assetId": "outdoor/swing", "facing": 0 }
     },
     {
       "kind": "prop",
       "objectId": "c3_9/objects/park-sandbox-1",
       "position": { "x": 27.5, "y": 0.2, "z": 8.5 },
       "size": [2, 0.4, 2],
-      "color": "#d9c07a"
+      "color": "#9a7650",
+      "visual": { "assetId": "outdoor/sandbox" }
     },
     {
       "kind": "prop",
       "objectId": "c3_9/objects/park-bench-1",
-      "position": { "x": 14.5, "y": 0.25, "z": 3.5 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": 14.5, "y": 0.4, "z": 3.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "prop",
       "objectId": "c3_9/objects/park-bench-2",
-      "position": { "x": 11.5, "y": 0.25, "z": 1.5 },
-      "size": [0.5, 0.5, 1.8],
-      "color": "#6b5a44"
+      "position": { "x": 11.5, "y": 0.4, "z": 1.5 },
+      "size": [0.6, 0.8, 1.8],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "tree",

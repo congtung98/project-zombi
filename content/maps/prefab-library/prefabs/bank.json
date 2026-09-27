@@ -274,10 +274,11 @@
     },
     {
       "kind": "prop",
-      "localId": "prop-1",
+      "localId": "atm-1",
       "position": { "x": -8.52, "y": 0.95, "z": 4 },
       "size": [0.7, 1.9, 0.9],
-      "color": "#3f4a52"
+      "color": "#3f4a52",
+      "visual": { "assetId": "furniture/atm" }
     },
     {
       "kind": "prop",

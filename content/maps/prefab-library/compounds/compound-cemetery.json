@@ -51,7 +51,8 @@
       "member": "grave",
       "position": { "x": -3.5, "y": 0.45, "z": 1 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -70,7 +71,8 @@
       "member": "grave-2",
       "position": { "x": -5.9, "y": 0.45, "z": 1 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -89,7 +91,8 @@
       "member": "grave-3",
       "position": { "x": -8.3, "y": 0.45, "z": 1 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -108,7 +111,8 @@
       "member": "grave-4",
       "position": { "x": -10.7, "y": 0.6, "z": 1 },
       "size": [1, 1.2, 0.4],
-      "color": "#a4a39d"
+      "color": "#a4a39d",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -127,7 +131,8 @@
       "member": "grave-5",
       "position": { "x": -3.5, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -146,7 +151,8 @@
       "member": "grave-6",
       "position": { "x": -5.9, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -165,7 +171,8 @@
       "member": "grave-7",
       "position": { "x": -8.3, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -184,7 +191,8 @@
       "member": "grave-8",
       "position": { "x": -10.7, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -203,7 +211,8 @@
       "member": "grave-9",
       "position": { "x": -3.5, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -222,7 +231,8 @@
       "member": "grave-10",
       "position": { "x": -5.9, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -241,7 +251,8 @@
       "member": "grave-11",
       "position": { "x": -8.3, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -260,7 +271,8 @@
       "member": "grave-12",
       "position": { "x": -10.7, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -279,7 +291,8 @@
       "member": "grave-13",
       "position": { "x": -3.5, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -298,7 +311,8 @@
       "member": "grave-14",
       "position": { "x": -5.9, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -317,7 +331,8 @@
       "member": "grave-15",
       "position": { "x": -8.3, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -336,7 +351,8 @@
       "member": "grave-16",
       "position": { "x": -10.7, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -355,7 +371,8 @@
       "member": "grave-17",
       "position": { "x": 3.5, "y": 0.45, "z": 1 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -374,7 +391,8 @@
       "member": "grave-18",
       "position": { "x": 5.9, "y": 0.45, "z": 1 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -393,7 +411,8 @@
       "member": "grave-19",
       "position": { "x": 8.3, "y": 0.45, "z": 1 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -412,7 +431,8 @@
       "member": "grave-20",
       "position": { "x": 10.7, "y": 0.6, "z": 1 },
       "size": [1, 1.2, 0.4],
-      "color": "#a4a39d"
+      "color": "#a4a39d",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -431,7 +451,8 @@
       "member": "grave-21",
       "position": { "x": 3.5, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -450,7 +471,8 @@
       "member": "grave-22",
       "position": { "x": 5.9, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -469,7 +491,8 @@
       "member": "grave-23",
       "position": { "x": 8.3, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -488,7 +511,8 @@
       "member": "grave-24",
       "position": { "x": 10.7, "y": 0.45, "z": 3.4 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -507,7 +531,8 @@
       "member": "grave-25",
       "position": { "x": 3.5, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -526,7 +551,8 @@
       "member": "grave-26",
       "position": { "x": 5.9, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -545,7 +571,8 @@
       "member": "grave-27",
       "position": { "x": 8.3, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -564,7 +591,8 @@
       "member": "grave-28",
       "position": { "x": 10.7, "y": 0.45, "z": 5.8 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -583,7 +611,8 @@
       "member": "grave-29",
       "position": { "x": 3.5, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -602,7 +631,8 @@
       "member": "grave-30",
       "position": { "x": 5.9, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -621,7 +651,8 @@
       "member": "grave-31",
       "position": { "x": 8.3, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -640,7 +671,8 @@
       "member": "grave-32",
       "position": { "x": 10.7, "y": 0.45, "z": 8.2 },
       "size": [0.7, 0.9, 0.25],
-      "color": "#8e8e8a"
+      "color": "#8e8e8a",
+      "visual": { "assetId": "outdoor/tombstone" }
     },
     {
       "kind": "surface",
@@ -757,9 +789,10 @@
     {
       "kind": "prop",
       "member": "bench",
-      "position": { "x": 7, "y": 0.25, "z": -3 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": 7, "y": 0.4, "z": -3 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     }
   ]
 }

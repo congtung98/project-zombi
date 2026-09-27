@@ -17,8 +17,8 @@ const bench = box('container', [2, 0.9, 0.8], '#6d5a44', { name: 'Bàn thợ', l
 const toolShelf = box('container', [2, 1.8, 0.6], '#7c7f82', { name: 'Kệ dụng cụ', loot: 'tool-shelf', asset: 'furniture/shelving' })
 const hardware = box('container', [2, 1.8, 0.6], '#80776a', { name: 'Kệ vật tư', loot: 'hardware-shelf', asset: 'furniture/shelving' })
 const car = box('prop', [4.2, 1.4, 1.9], '#8c2f2f', { asset: 'outdoor/car' })
-const machine = box('prop', [2, 1.5, 1.2], '#5f6a70')
-const atm = box('prop', [0.9, 1.9, 0.7], '#3f4a52')
+const machine = box('prop', [2, 1.5, 1.2], '#4f6f5a', { asset: 'furniture/machine' })
+const atm = box('prop', [0.9, 1.9, 0.7], '#3f4a52', { asset: 'furniture/atm' })
 
 /** Ngân hàng, 18 × 14: lobby with the teller counters, staff room, vault, archive, manager's office. */
 function bank(): PrefabDocument {

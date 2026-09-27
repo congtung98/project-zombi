@@ -1117,10 +1117,11 @@
     {
       "kind": "prop",
       "level": 1,
-      "localId": "prop-1",
+      "localId": "operating-table-1",
       "position": { "x": 0.5, "y": 0.45, "z": -4.75 },
       "size": [2, 0.9, 0.9],
-      "color": "#b9c4c9"
+      "color": "#4e8c7a",
+      "visual": { "assetId": "furniture/operating-table" }
     },
     {
       "kind": "container",

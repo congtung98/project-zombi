@@ -23,9 +23,10 @@
     {
       "kind": "prop",
       "objectId": "c1_9/objects/prison-bench-1",
-      "position": { "x": 2.5, "y": 0.25, "z": 18.5 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": 2.5, "y": 0.4, "z": 18.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "tree",

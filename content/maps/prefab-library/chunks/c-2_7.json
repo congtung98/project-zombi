@@ -86,16 +86,18 @@
     {
       "kind": "prop",
       "objectId": "c-2_7/objects/university-bench-1",
-      "position": { "x": 1, "y": 0.25, "z": 16 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": 1, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "prop",
       "objectId": "c-2_7/objects/university-bench-2",
-      "position": { "x": 13, "y": 0.25, "z": 16 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": 13, "y": 0.4, "z": 16 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     }
   ],
   "roads": [],

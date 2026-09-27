@@ -51,16 +51,18 @@
     {
       "kind": "prop",
       "objectId": "c3_8/objects/park-bench-1",
-      "position": { "x": 20.5, "y": 0.25, "z": 25.5 },
-      "size": [1.8, 0.5, 0.5],
-      "color": "#6b5a44"
+      "position": { "x": 20.5, "y": 0.4, "z": 25.5 },
+      "size": [1.8, 0.8, 0.6],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "prop",
       "objectId": "c3_8/objects/park-bench-2",
-      "position": { "x": 23.5, "y": 0.25, "z": 27.5 },
-      "size": [0.5, 0.5, 1.8],
-      "color": "#6b5a44"
+      "position": { "x": 23.5, "y": 0.4, "z": 27.5 },
+      "size": [0.6, 0.8, 1.8],
+      "color": "#7a5a3c",
+      "visual": { "assetId": "outdoor/bench" }
     },
     {
       "kind": "tree",
