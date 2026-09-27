@@ -533,3 +533,130 @@ h4 {
   font-size: 11px;
   padding: 2px 6px;
 }
+
+/* WG4: Generator tab */
+.gen {
+  font-size: 13px;
+}
+
+.gen p {
+  margin: 4px 0;
+}
+
+.gen-block {
+  border-top: 1px solid var(--line);
+  padding: 6px 0;
+}
+
+.gen-block summary {
+  cursor: pointer;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.gen .field {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.gen .field.check,
+.gen-record .field.check {
+  grid-template-columns: 18px 1fr;
+}
+
+.gen .field.check span {
+  color: var(--text);
+}
+
+.gen .row {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.gen-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.gen-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+
+.gen-counts .generated,
+.gen-record .generated {
+  color: #6fcf6f;
+}
+
+.gen-counts .modified,
+.gen-record .modified {
+  color: #ff5fd2;
+}
+
+.gen-counts .locked,
+.gen-record .locked {
+  color: #4aa8ff;
+}
+
+.gen-record .manual {
+  color: var(--muted);
+}
+
+.gen-pending {
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 6px;
+  margin-top: 6px;
+}
+
+.gen-pending.stale {
+  border-color: var(--bad);
+}
+
+.gen-issues {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.gen-issues button {
+  all: unset;
+  display: block;
+  font-size: 12px;
+  padding: 1px 0;
+  cursor: pointer;
+}
+
+.gen-issues button:disabled {
+  cursor: default;
+}
+
+.gen-issues li.error b {
+  color: var(--bad);
+}
+
+.gen-issues li.warning b {
+  color: var(--warn);
+}
+
+.gen-record {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin: 4px 0 8px;
+}
+
+.gen-record .row {
+  margin-top: 4px;
+  flex-wrap: wrap;
+}

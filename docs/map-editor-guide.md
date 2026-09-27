@@ -148,6 +148,22 @@ npm run map:generate -- --seed 3 --blocks 16x16 --layout varied --world-id big-t
 - World sinh ra là nội dung bình thường: sửa tay, chơi thử, export như trên.
 - Generator **không ghi đè** world đã sửa tay (kể cả khi có `--force`). Muốn sinh lại thì dùng `--world-id`/`--out` khác.
 
+### World từ bản đồ thật (World Generator, WG4)
+
+- **Mới** → Kiểu *Từ GeoJSON (World Generator)* → chọn file GeoJSON (overpass-turbo, QGIS, vẽ tay; đọc tại máy) → cắt vùng, chế độ FULL / LAYOUT_ONLY, kiểu lô, seed → **Tạo**. Editor mở world mới ở tab **Generator**.
+- **Tab Generator**:
+  - tick các lớp phủ (đường gốc, mạng đã nắn, lô, khối, vùng cấm);
+  - màu viền lô: xanh lá sinh tự động, hồng sửa tay, xanh dương khóa, xám lô trống;
+  - click một lô: **Sinh lại lô**, **Khóa lô**, **Thay prefab** (chỉ prefab vừa lô), **Khôi phục bản sinh**, **Sinh lại chunk**;
+  - **Sinh lại world**: đổi seed, kiểu lô hoặc chế độ → **Xem trước** → **Áp dụng** / **Hủy**.
+- **Phần sửa tay được giữ**:
+  - di chuyển, xoay hay xóa một object do generator sinh ra thì nó thành "sửa tay"; lần sinh lại sau giữ nguyên, trừ khi tick "Ghi đè";
+  - object khóa và object tự đặt không bao giờ bị đụng;
+  - mọi bước hoàn tác được bằng Ctrl+Z.
+- **Inspector** của record có dòng *Generator* cho biết trạng thái.
+- World đã có trong `content/maps` coi như đã phát hành: chỉ xem và khóa. Muốn sinh lại thì **Lưu thành…** worldId mới.
+- Lưu nháp, Export, `map:unpack` mang theo `layout/world-layout.json`; game không đọc file đó. Chi tiết: `docs/world-generator-wg4.md`.
+
 ## 7. Quy tắc cần nhớ
 
 - **ID là vĩnh viễn**:

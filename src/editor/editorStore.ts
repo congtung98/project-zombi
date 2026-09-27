@@ -12,6 +12,11 @@ import { defaultLayers, isEditable, LAYERS, layerOf, type LayerId, type LayerSta
 import { documentFromFiles, exportPack, parsePack, validateDocument } from '../map/editor/pack'
 import { applyCommand, initialEditState, redo, undo, type EditState } from '../map/editor/session'
 import { listDrafts, readDraft, saveDraft, type DraftRecord } from './drafts'
+import { generatorBlockReason, layoutWorldFromGeoJson, libraryCatalog, LIBRARY_WORLD, type LayoutWorldRequest } from '../map/editor/generator'
+import type { PrefabCatalog } from '../map/layout/buildings'
+import type { LayoutIssue } from '../map/layout/schema'
+import { syncGenerated, type SyncReport, type SyncRequest } from '../map/layout/worldSync'
+import { editorWorldFiles } from './layoutFiles'
 
 /**
  * Editor state (M3, M4). The document and its history (`EditState`) are the only map data; the rest
@@ -23,7 +28,8 @@ export const OPTS = { lootTables: REGISTERED_LOOT_TABLES }
 export const SNAP_STEPS = [1, 0.5, 0.25, 0] as const
 export const DEFAULT_WORLD = 'neighborhood-50'
 
-export type Tool = 'select' | 'place' | 'chunk' | 'play'
+/** parcel (WG4, Generator tab): click picks a parcel of the world's layout (and its building). */
+export type Tool = 'select' | 'place' | 'chunk' | 'play' | 'parcel'
 
 /** A running Play From Here session (M6): the snapshot sent to the playtest frame. */
 export interface Playtest {
@@ -42,7 +48,36 @@ export type PlaceItem = { kind: 'prefab'; prefabId: string } | { kind: 'record';
 /** Palette tabs of the prefab editor (M5). */
 export type PrefabTab = 'structure' | 'openings' | 'furniture' | 'containers' | 'decor' | 'rooms'
 
-export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks'
+export type PaletteTab = 'prefabs' | 'objects' | 'roads' | 'zones' | 'spawns' | 'chunks' | 'generator'
+
+/** WG4: layout layers drawn over the viewport (session state, never exported). */
+export interface LayoutView {
+  /** Roads as imported (before snapping). */
+  source: boolean
+  /** Snapped road network. */
+  network: boolean
+  parcels: boolean
+  blocks: boolean
+  /** Water, railways, no-build land. */
+  restricted: boolean
+}
+
+/** WG4: a regeneration computed but not applied yet (shown in the viewport until Áp dụng / Hủy). */
+export interface GeneratorPending {
+  /** Document it was computed from: stale once the document changes. */
+  base: MapDocument
+  doc: MapDocument
+  label: string
+  summary: string
+  report: SyncReport
+}
+
+/** WG4: result of the last generator action, for the Generator tab. */
+export interface GeneratorReport {
+  label: string
+  summary: string
+  issues: LayoutIssue[]
+}
 
 export interface Preview {
   doc: MapDocument
@@ -103,6 +138,11 @@ interface EditorStore {
   focusRequest: number
   /** Area the next focus frames (a chunk); null = the selection or the whole world. */
   focusRect: Rect | null
+  /** WG4 (Generator tab). */
+  layoutView: LayoutView
+  selectedParcel: string | null
+  genPending: GeneratorPending | null
+  genReport: GeneratorReport | null
 
   openDocument(doc: MapDocument, source: string, issues?: ValidationIssue[]): void
   run(label: string, command: (doc: MapDocument, selection: string[]) => CommandResult): boolean
@@ -136,6 +176,29 @@ interface EditorStore {
   saveAsWorld(worldId: string, name: string): Promise<boolean>
   exportFile(): { name: string; text: string } | null
   refreshDrafts(): Promise<void>
+
+  /** WG4: world generator actions. */
+  setLayoutView(patch: Partial<LayoutView>): void
+  selectParcel(id: string | null): void
+  /** Run a generator action as one command (or, with `preview`, compute it for Áp dụng / Hủy). Q3: refused on published worlds except locks. */
+  generate(label: string, request: SyncRequest, opts?: { preview?: boolean }): boolean
+  applyPending(): boolean
+  cancelPending(): void
+  /** New world from a GeoJSON reference (Mới → Từ GeoJSON). */
+  newLayoutWorld(req: LayoutWorldRequest): boolean
+  commitGenerated(label: string, doc: MapDocument, report: GeneratorReport): boolean
+}
+
+let catalogMemo: { catalog: PrefabCatalog | null } | null = null
+/** Prefab library of the generator (the repo world `prefab-library`), read once. */
+export function generatorCatalog(): PrefabCatalog | null {
+  catalogMemo ??= { catalog: bundledWorldIds().includes(LIBRARY_WORLD) ? libraryCatalog(editorWorldFiles(LIBRARY_WORLD)) : null }
+  return catalogMemo.catalog
+}
+
+/** Q3: why generator actions that change content are refused on this world, or null. */
+export function generatorBlocked(doc: MapDocument): string | null {
+  return generatorBlockReason(doc.world.worldId, bundledWorldIds())
 }
 
 /**
@@ -237,6 +300,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   drafts: [],
   focusRequest: 0,
   focusRect: null,
+  layoutView: { source: false, network: true, parcels: true, blocks: false, restricted: true },
+  selectedParcel: null,
+  genPending: null,
+  genReport: null,
 
   openDocument(doc, source, issues) {
     set({
@@ -256,6 +323,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       prefabView: 0,
       outlineEdit: false,
       dialog: null,
+      selectedParcel: null,
+      genPending: null,
+      genReport: null,
       status: { text: `Đã mở ${doc.world.name} (${doc.world.worldId}) — ${source}`, kind: 'info' },
       focusRequest: get().focusRequest + 1,
     })
@@ -286,7 +356,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const back = undo(edit)
     const prefabMode = get().prefabMode && back.doc.prefabs.has(get().prefabMode!) ? get().prefabMode : null
     const next = { ...back, selection: validSelection(back.doc, back.selection, get().layers, prefabMode) }
-    set({ edit: next, prefabMode, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Hoàn tác: ${label}`, kind: 'info' } })
+    set({ edit: next, prefabMode, preview: null, genPending: null, issues: issuesFor(next.doc, baseline), status: { text: `Hoàn tác: ${label}`, kind: 'info' } })
   },
 
   redo() {
@@ -296,7 +366,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const forward = redo(edit)
     const prefabMode = get().prefabMode && forward.doc.prefabs.has(get().prefabMode!) ? get().prefabMode : null
     const next = { ...forward, selection: validSelection(forward.doc, forward.selection, get().layers, prefabMode) }
-    set({ edit: next, prefabMode, preview: null, issues: issuesFor(next.doc, baseline), status: { text: `Làm lại: ${label}`, kind: 'info' } })
+    set({ edit: next, prefabMode, preview: null, genPending: null, issues: issuesFor(next.doc, baseline), status: { text: `Làm lại: ${label}`, kind: 'info' } })
   },
 
   select(ids) {
@@ -426,7 +496,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
 
   openBundled(worldId) {
-    const r = documentFromFiles(bundledWorldFiles(worldId), OPTS)
+    // WG4: with the world's layout files (editor only; the game never loads them).
+    const r = documentFromFiles(editorWorldFiles(worldId), OPTS)
     if (!r.ok) {
       get().reject(`Không mở được ${worldId}`, r.error, r.issues)
       return false
@@ -538,6 +609,90 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     } catch {
       set({ drafts: [] })
     }
+  },
+
+  setLayoutView(patch) {
+    set({ layoutView: { ...get().layoutView, ...patch } })
+  },
+
+  selectParcel(id) {
+    set({ selectedParcel: id })
+  },
+
+  generate(label, request, opts = {}) {
+    const { edit } = get()
+    if (!edit) return false
+    const blocked = request.kind === 'lock' ? null : generatorBlocked(edit.doc)
+    if (blocked) {
+      set({ status: { text: blocked, kind: 'error' } })
+      return false
+    }
+    const t0 = performance.now()
+    const r = syncGenerated(edit.doc, request, { catalog: generatorCatalog(), validation: OPTS })
+    if (!r.ok) {
+      set({ status: { text: `${label}: ${r.error}`, kind: 'error' } })
+      return false
+    }
+    const ms = performance.now() - t0
+    const report: GeneratorReport = { label, summary: r.summary, issues: r.report.issues }
+    if (opts.preview) {
+      set({
+        genPending: { base: edit.doc, doc: r.doc, label, summary: r.summary, report: r.report },
+        genReport: report,
+        status: { text: `Xem trước ${label}: ${r.summary} (${ms.toFixed(0)} ms) — Áp dụng hoặc Hủy trong tab Generator`, kind: 'info' },
+      })
+      return true
+    }
+    return get().commitGenerated(label, r.doc, report)
+  },
+
+  applyPending() {
+    const { edit, genPending } = get()
+    if (!edit || !genPending) return false
+    if (genPending.base !== edit.doc) {
+      set({ genPending: null, status: { text: 'Bản xem trước đã cũ (document đổi sau đó): xem trước lại', kind: 'error' } })
+      return false
+    }
+    return get().commitGenerated(genPending.label, genPending.doc, { label: genPending.label, summary: genPending.summary, issues: genPending.report.issues })
+  },
+
+  cancelPending() {
+    set({ genPending: null, status: { text: 'Đã hủy bản xem trước (document không đổi)', kind: 'info' } })
+  },
+
+  commitGenerated(label, doc, report) {
+    const selection = get().edit?.selection ?? []
+    const done = get().run(label, () => ({ ok: true, doc, selection: selection.filter((id) => findRecord(doc, id)), note: `${label}: ${report.summary}` }))
+    if (done) set({ genReport: report, genPending: null })
+    return done
+  },
+
+  newLayoutWorld(req) {
+    const r = layoutWorldFromGeoJson(req, generatorCatalog(), OPTS)
+    if (!r.ok) {
+      get().reject('Không tạo được world từ GeoJSON', r.error, [])
+      set({ genReport: { label: 'Tạo world từ GeoJSON', summary: r.error, issues: r.issues } })
+      return false
+    }
+    const issues = validateDocument(r.doc, OPTS)
+    if (issues.some((i) => i.severity === 'error')) {
+      get().reject('World sinh từ GeoJSON không hợp lệ', issues[0].message, issues)
+      return false
+    }
+    get().openDocument(r.doc, `World Generator — ${req.file ?? 'GeoJSON'}`)
+    const count = (k: 'roads' | 'instances') => [...r.doc.chunks.values()].reduce((n, c) => n + c[k].length, 0)
+    const summary = `${count('roads')} mặt đường, ${count('instances')} công trình, ${r.doc.world.chunks.length} chunk`
+    // Never published: no save holds its IDs, no contentVersion warning, the generator may rewrite it (Q3).
+    set({
+      savedDoc: null,
+      baseline: null,
+      issues: issuesFor(r.doc, null),
+      paletteTab: 'generator',
+      tool: 'parcel',
+      genReport: { label: 'Tạo world từ GeoJSON', summary, issues: r.issues },
+      status: { text: `Đã tạo ${r.doc.world.worldId} từ ${req.file ?? 'GeoJSON'}: ${summary}. Lưu nháp để giữ lại.`, kind: 'info' },
+    })
+    return true
   },
 }))
 

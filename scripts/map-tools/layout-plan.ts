@@ -8,7 +8,8 @@
 //        [--mode layout-only|full] [--library content/maps/prefab-library]
 //        [--regen-parcels <lot-id>,…] [--regen-chunks <chunk-id>,…] [--salt <n>]
 //        [--set-prefab <lot-id>=<prefab-id>|none]…
-//     world: [--pack <world>.mappack.json --world-id <id> [--name "…"]]
+//     world: [--pack <world>.mappack.json --world-id <id> [--name "…"]] (the pack holds the layout as
+//        layout/world-layout.json: the editor's Generator tab regenerates it; the game never loads it)
 // Writes the plan (with the buildings) into the layout (in place unless --out). An existing plan is
 // only recomputed when a plan option is given; the replan keeps locked parcels and hand-chosen
 // buildings (and, with --blocks, every parcel outside those blocks); --reset drops everything.
@@ -22,7 +23,8 @@ import { LOOT_TABLES } from '../../src/game/world/lootTables.ts'
 import { exportPack } from '../../src/map/editor/pack.ts'
 import { checkBuildings, placeBuildings, prefabCatalog, setParcelPrefab } from '../../src/map/layout/buildings.ts'
 import { LayoutImportError, parseWorldLayout, serializeWorldLayout } from '../../src/map/layout/importer.ts'
-import { buildLayoutWorld, type WorldMode } from '../../src/map/layout/layoutWorld.ts'
+import type { WorldMode } from '../../src/map/layout/layoutWorld.ts'
+import { createLayoutWorld } from '../../src/map/layout/worldSync.ts'
 import { LayoutPlanError, planLayout, replan } from '../../src/map/layout/plan.ts'
 import { layoutPreviewSvg } from '../../src/map/layout/preview.ts'
 import type { LayoutIssue, PlanParams } from '../../src/map/layout/schema.ts'
@@ -120,7 +122,7 @@ if (svg) {
 const pack = opt('pack')
 if (pack) {
   const worldId = opt('world-id') ?? layout.layoutId
-  const doc = buildLayoutWorld(layout, plan, { worldId, name: opt('name') ?? layout.name, mode, catalog: catalog ?? undefined, validation: { lootTables: new Set(Object.keys(LOOT_TABLES)) } })
+  const doc = createLayoutWorld(layout, { worldId, name: opt('name') ?? layout.name, mode, catalog: catalog ?? undefined, validation: { lootTables: new Set(Object.keys(LOOT_TABLES)) } })
   writeFileSync(pack, exportPack(doc))
   const count = (k: 'roads' | 'instances' | 'zones' | 'spawns') => [...doc.chunks.values()].reduce((n, c) => n + c[k].length, 0)
   console.log(`${pack}: content pack ${mode} (${doc.world.chunks.length} chunk, ${count('roads')} mặt đường, ${count('instances')} công trình, ${count('zones')} zone zombie, ${count('spawns')} spawn) — mở bằng Import… trong editor hoặc npm run map:unpack`)

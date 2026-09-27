@@ -9,7 +9,8 @@ import type { Rect, XZ } from '../map/schema'
 import { chunkIdOf, chunkOrigin, playAreaRect } from '../map/transform'
 import { useEditorStore } from './editorStore'
 import { handleAt, handlesUsable, type HandleKey } from '../map/editor/handles'
-import { chunkClick, commitPlace, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
+import { LayoutOverlay } from './LayoutOverlay'
+import { chunkClick, commitPlace, parcelClick, currentHandles, currentHandleTarget, editElevation, handleCommand, handleLabel, keysInRect, moveCommand, pickAt, snapPoint, updatePlacePreview } from './interaction'
 import { PrefabScene } from './PrefabScene'
 import { GRID_MAT, labelMaterial, lineGeometry, MARQUEE_MAT, rectPoints, SELECT_MAT } from './sceneHelpers'
 import { ChunkBatch, RecordView } from './RecordView'
@@ -201,6 +202,7 @@ function EditorScene() {
   const tool = useEditorStore((s) => s.tool)
   const pickedChunk = useEditorStore((s) => s.selectedChunk)
   const prefabMode = useEditorStore((s) => s.prefabMode)
+  const pending = useEditorStore((s) => s.genPending)
   if (!edit) return null
   if (prefabMode) {
     return (
@@ -213,7 +215,8 @@ function EditorScene() {
       </group>
     )
   }
-  const doc = preview?.doc ?? edit.doc
+  // WG4: a regeneration being previewed shows until Áp dụng / Hủy (never once the document changed).
+  const doc = preview?.doc ?? (pending && pending.base === edit.doc ? pending.doc : edit.doc)
   const ghostIds = preview?.ghostIds ?? []
   const ghosts = resolvedRecords(doc).filter((r) => ghostIds.includes(r.id))
   const statuses = chunkStatuses(edit.doc, savedDoc, issues)
@@ -229,6 +232,7 @@ function EditorScene() {
         <RecordView key={r.id} record={r} ghost />
       ))}
       <Selection doc={doc} ids={preview?.ghostIds.length ? preview.ghostIds : edit.selection} />
+      <LayoutOverlay doc={doc} />
       <Handles />
       <Marquee />
     </group>
@@ -344,6 +348,10 @@ function Controls() {
       }
       if (s.tool === 'chunk') {
         chunkClick(g)
+        return
+      }
+      if (s.tool === 'parcel') {
+        parcelClick(g)
         return
       }
       if (s.tool === 'place') {

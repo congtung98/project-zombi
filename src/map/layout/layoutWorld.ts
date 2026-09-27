@@ -6,7 +6,7 @@ import type { PrefabCatalog } from './buildings.ts'
 import { hashSeed, rng } from './parcels.ts'
 import { PLAN_VERSION } from './plan.ts'
 import { rectArea, rectCentre } from './rects.ts'
-import type { LayoutPlan, SurfaceKind, WorldLayout } from './schema.ts'
+import type { LayoutPlan, SurfaceKind, WorldLayout, WorldMode } from './schema.ts'
 
 /**
  * WorldSerializer (world generator WG2–WG3): a plan becomes ordinary map content that the editor
@@ -21,7 +21,7 @@ import type { LayoutPlan, SurfaceKind, WorldLayout } from './schema.ts'
  */
 
 export const LAYOUT_WORLD_GENERATOR = 'world-layout'
-export type WorldMode = 'layout-only' | 'full'
+export type { WorldMode }
 
 /** Colour (read by the game's surface rules: dark = asphalt, brown = dirt, light = concrete) and draw layer. */
 export const SURFACE_STYLE: Record<SurfaceKind, { color: string; layer: number }> = {

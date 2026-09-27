@@ -1,4 +1,4 @@
-import type { LandUseZone, QuarterTurns, Rect, XZ } from '../schema.ts'
+import type { LandUseZone, PlayArea, QuarterTurns, Rect, XZ } from '../schema.ts'
 
 /**
  * WorldLayout (world generator WG1): the geographic layout a world is generated from, kept apart
@@ -250,6 +250,8 @@ export interface WorldLayout {
   normalized: NormalizedNetwork | null
   /** WG2: street surfaces, blocks and parcels planned from `normalized` (absent in WG1 files = none yet). */
   plan?: LayoutPlan | null
+  /** WG4: what the generator wrote into the world this layout is stored in (absent = not generated yet). */
+  generated?: GeneratedManifest | null
 }
 
 // ---- WG2: street geometry and parcels (world frame, axis-aligned) ----
@@ -397,4 +399,45 @@ export interface LayoutPlan {
   issues: LayoutIssue[]
   /** WG3: prefab library the buildings were placed from (e.g. `prefab-library@1`), or absent. */
   catalog?: string
+}
+
+// ---- WG4: provenance of generated content (editor integration) ----
+
+/** LAYOUT_ONLY: streets, play area and a player spawn; FULL_GENERATION: plus buildings, zombie zones and spawns. */
+export type WorldMode = 'layout-only' | 'full'
+
+/** One record the generator wrote, as it wrote it. */
+export interface GeneratedRecord {
+  id: string
+  /** Owner chunk when written. */
+  chunk: string
+  /** `cyrb53:` hash of the owner chunk and the record (canonical JSON): a hand edit changes it. */
+  hash: string
+  /** Parcel of a building instance. */
+  parcel?: string
+  /** Block of a zombie zone or spawn. */
+  block?: string
+}
+
+/**
+ * WG4 (owner decision Q2): the generator's own record of the world it wrote, stored with the layout
+ * in the world folder (`layout/world-layout.json`, never loaded by the game). A record is
+ * **generated** while its hash matches, **modified** once edited or deleted by hand, **locked** when
+ * its parcel (`LayoutParcel.locked`) or the record itself (`locked`) is; modified ≠ locked. Records
+ * not listed here were placed by hand (manual). Regeneration replaces generated records only, keeps
+ * modified ones unless asked to overwrite them, and never touches locked or manual ones.
+ */
+export interface GeneratedManifest {
+  version: number
+  mode: WorldMode
+  /** Prefab library of the buildings (`prefab-library@1`), or `none` (layout-only). */
+  catalog: string
+  /** Play area as generated (a hand change keeps it through regeneration). */
+  playArea: PlayArea
+  /** Sorted by ID. */
+  records: GeneratedRecord[]
+  /** Records locked by hand besides those of locked parcels (streets, zones, spawns), sorted. */
+  locked: string[]
+  /** Re-rolls so far: the salt of the next selective regeneration (same edits → same world). */
+  rolls: number
 }

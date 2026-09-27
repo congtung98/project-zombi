@@ -1,5 +1,6 @@
 import { addChunk, deleteRecords, duplicateRecords, moveRecords, placeInstance, placeRecord, removeChunk, rotateRecords, type CommandResult } from '../map/editor/commands'
-import { instancesOf, resolvedRecords, type MapDocument } from '../map/editor/document'
+import { findRecord, instancesOf, resolvedRecords, type MapDocument } from '../map/editor/document'
+import { documentLayout, generatorStatus, parcelAt } from '../map/layout/worldSync'
 import { isEditable } from '../map/editor/layers'
 import { pickRecord, recordsInRect, snap } from '../map/editor/picking'
 import { findPreset } from '../map/editor/presets'
@@ -262,15 +263,41 @@ export function selectAll(): void {
   else s.select(resolvedRecords(s.edit.doc).filter((r) => isEditable(r, s.layers)).map((r) => r.id))
 }
 
+/**
+ * WG4 parcel tool (Generator tab): pick the parcel under the point; its building, if it still
+ * exists, becomes the selection so the Inspector shows it. Empty ground clears both.
+ */
+export function parcelClick(p: XZ): void {
+  const s = store()
+  if (!s.edit) return
+  const layout = documentLayout(s.edit.doc).layout
+  if (!layout?.plan) {
+    s.setStatus('World này không có kế hoạch lô (không sinh từ layout)', 'error')
+    return
+  }
+  const q = parcelAt(layout, p)
+  if (!q) {
+    s.selectParcel(null)
+    s.select([])
+    return
+  }
+  const inst = generatorStatus(s.edit.doc, layout).instances.get(q.id)
+  s.selectParcel(q.id)
+  s.select(inst && findRecord(s.edit.doc, inst) ? [inst] : [])
+}
+
 export function cancel(): void {
   const s = store()
-  if (s.tool !== 'select') s.setTool('select')
+  if (s.tool === 'parcel' && s.selectedParcel) {
+    s.selectParcel(null)
+    s.select([])
+  } else if (s.tool !== 'select') s.setTool('select')
   else if (s.preview) s.setPreview(null)
   else s.select([])
 }
 
-export function downloadText(name: string, text: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+export function downloadText(name: string, text: string, type = 'application/json'): void {
+  const url = URL.createObjectURL(new Blob([text], { type }))
   const a = document.createElement('a')
   a.href = url
   a.download = name

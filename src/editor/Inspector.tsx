@@ -8,6 +8,7 @@ import { VARIANT_IDS, VARIANTS } from '../game/rendering/variants'
 import { PrefabInspector } from './PrefabInspector'
 import { SaveCompat } from './SaveCompat'
 import { deleteSelection, duplicateSelection, rotateSelection } from './interaction'
+import { RecordGeneratorInfo } from './GeneratorPanel'
 
 /** Zones of the document as the runtime sees them (`ZoneDef`). */
 function zoneDefs(doc: MapDocument) {
@@ -94,6 +95,7 @@ function RecordInspector({ doc, id }: { doc: MapDocument; id: string }) {
     <div className="inspector">
       <h3>{CATEGORY_LABEL[loc.category]}</h3>
       <ReadField label="ID" value={id} />
+      <RecordGeneratorInfo doc={doc} id={id} />
       <ReadField label="Chunk sở hữu" value={loc.chunkId} />
       {identity !== loc.chunkId && <ReadField label="Chunk định danh" value={`${identity} (giữ nguyên khi đổi chunk)`} />}
       <NumField label="X (world)" value={at.x} onCommit={(x) => run('Di chuyển', (d) => setRecordAnchor(d, id, { x, z: at.z }))} />

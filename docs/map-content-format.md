@@ -11,6 +11,7 @@ content/maps/<worldId>/
   chunks/c<cx>_<cz>.json     layout của một chunk (tọa độ cục bộ chunk)
   migrations/                dữ liệu cho save cũ (map đóng băng + bảng ID cũ → ID ổn định)
   migrations/content-v<N>.json  M8: chuyển save của nội dung vN sang vN+1 (tập ID có trạng thái của vN + đổi tên)
+  layout/world-layout.json   WG4: layout + kế hoạch + manifest của World Generator (chỉ editor đọc; game không nạp, không vào bundle game)
 ```
 
 Game nạp mọi JSON dưới `content/maps/` bằng `import.meta.glob` (Vite gộp vào bundle, vitest đọc cùng cách). Streaming sau này thay nguồn đọc bằng fetch theo chunk, giữ nguyên hợp đồng `read(path)`.
@@ -152,4 +153,5 @@ Dùng chung cho runtime loader, test và CLI (`npm run map:check`). Mỗi lỗi 
 - `npm run layout:import -- <file.geojson> --id <layout-id> [--out …] [--svg …]` (world generator WG1): GeoJSON → WorldLayout (`zombie-outbreak/world-layout`, file riêng, game không nạp) với mạng đường nắn lưới 0°/90°; xem `docs/world-generator-wg1.md`.
 - `npm run layout:plan -- <file>.layout.json [--svg …] [--pack … --world-id …]` (WG2): mặt đường/vỉa hè/khối/lô vào lớp `plan` của layout; `--pack` xuất world chỉ layout (mặt đường là `RoadRecord` thường, màu nhựa/đất/bê tông, lớp 2/1/0); xem `docs/world-generator-wg2.md`.
 - `layout:plan --mode full` (WG3): thêm nhà từ `content/maps/prefab-library` lên lô, zone và spawn zombie; `--regen-parcels`/`--regen-chunks`/`--set-prefab`; `node scripts/map-tools/prefab-library.ts [--force]` khởi tạo thư viện.
+- WG4: `--pack` kèm `layout/world-layout.json` (layout + manifest hash của mọi record đã sinh), để tab Generator của editor sinh lại mà vẫn giữ phần sửa tay; xem `docs/world-generator-wg4.md`.
 - `src/map/tools/tileWorld.ts`: generator ghép ô N × N rồi phân lại vào lưới chunk; map stress `?stress=N` (chỉ dev) dùng nó. Bundle production không chứa generator và importer.

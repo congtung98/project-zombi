@@ -294,5 +294,23 @@ export function checkWorldLayout(data: unknown): LayoutIssue[] {
       if (!blockIds.has(q.block)) err('reference', `plan lô ${q.id}: khối ${q.block} không tồn tại`, [q.id])
     }
   }
+
+  // WG4 provenance (optional): structure only (hashes are compared by the editor, never trusted for content).
+  const g = L.generated
+  if (g !== null && g !== undefined) {
+    const str = (v: unknown) => typeof v === 'string' && v.length > 0
+    if (!Number.isInteger(g.version) || !['layout-only', 'full'].includes(g.mode) || !str(g.catalog) || !g.playArea || !isNum(g.playArea.size) || !Array.isArray(g.records) || !Array.isArray(g.locked) || !Number.isInteger(g.rolls) || g.rolls < 0) {
+      err('schema', 'generated không hợp lệ')
+      return issues
+    }
+    if (!plan) err('reference', 'generated: cần plan')
+    const seen = new Set<string>()
+    for (const r of g.records) {
+      if (!r || !str(r.id) || !str(r.chunk) || !str(r.hash) || (r.parcel !== undefined && !str(r.parcel)) || (r.block !== undefined && !str(r.block))) err('schema', `generated: record ${JSON.stringify(r?.id)} không hợp lệ`)
+      else if (seen.has(r.id)) err('duplicate-id', `generated: record ${r.id} bị trùng`, [r.id])
+      else seen.add(r.id)
+    }
+    if (!g.locked.every(str)) err('schema', 'generated.locked phải là danh sách ID')
+  }
   return issues
 }
