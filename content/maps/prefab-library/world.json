@@ -5,9 +5,9 @@
   "contentVersion": 1,
   "chunkSize": 32,
   "coordinateSystem": "y-up-xz-meters",
-  "playArea": { "size": 284, "depth": 92, "center": { "x": 16, "z": 16 } },
+  "playArea": { "size": 284, "depth": 124, "center": { "x": 16, "z": 32 } },
   "boundary": { "height": 2, "thickness": 1 },
-  "chunkBounds": { "minCx": -4, "maxCx": 4, "minCz": -1, "maxCz": 1 },
+  "chunkBounds": { "minCx": -4, "maxCx": 4, "minCz": -1, "maxCz": 2 },
   "chunks": [
     { "chunkId": "c-3_-1", "cx": -3, "cz": -1, "path": "chunks/c-3_-1.json" },
     { "chunkId": "c-2_-1", "cx": -2, "cz": -1, "path": "chunks/c-2_-1.json" },
@@ -35,7 +35,16 @@
     { "chunkId": "c4_1", "cx": 4, "cz": 1, "path": "chunks/c4_1.json" },
     { "chunkId": "c-4_-1", "cx": -4, "cz": -1, "path": "chunks/c-4_-1.json" },
     { "chunkId": "c3_-1", "cx": 3, "cz": -1, "path": "chunks/c3_-1.json" },
-    { "chunkId": "c4_-1", "cx": 4, "cz": -1, "path": "chunks/c4_-1.json" }
+    { "chunkId": "c4_-1", "cx": 4, "cz": -1, "path": "chunks/c4_-1.json" },
+    { "chunkId": "c-4_2", "cx": -4, "cz": 2, "path": "chunks/c-4_2.json" },
+    { "chunkId": "c-3_2", "cx": -3, "cz": 2, "path": "chunks/c-3_2.json" },
+    { "chunkId": "c-2_2", "cx": -2, "cz": 2, "path": "chunks/c-2_2.json" },
+    { "chunkId": "c-1_2", "cx": -1, "cz": 2, "path": "chunks/c-1_2.json" },
+    { "chunkId": "c0_2", "cx": 0, "cz": 2, "path": "chunks/c0_2.json" },
+    { "chunkId": "c1_2", "cx": 1, "cz": 2, "path": "chunks/c1_2.json" },
+    { "chunkId": "c2_2", "cx": 2, "cz": 2, "path": "chunks/c2_2.json" },
+    { "chunkId": "c3_2", "cx": 3, "cz": 2, "path": "chunks/c3_2.json" },
+    { "chunkId": "c4_2", "cx": 4, "cz": 2, "path": "chunks/c4_2.json" }
   ],
   "prefabs": [
     { "prefabId": "building/house", "contentVersion": 1, "path": "prefabs/house.json" },
@@ -60,7 +69,12 @@
     { "prefabId": "house/villa", "contentVersion": 1, "path": "prefabs/villa.json" },
     { "prefabId": "house/suburban", "contentVersion": 1, "path": "prefabs/suburban.json" },
     { "prefabId": "house/l-two-storey", "contentVersion": 1, "path": "prefabs/l-two-storey.json" },
-    { "prefabId": "apartment/block-4", "contentVersion": 1, "path": "prefabs/block-4.json" }
+    { "prefabId": "apartment/block-4", "contentVersion": 1, "path": "prefabs/block-4.json" },
+    { "prefabId": "service/bank", "contentVersion": 1, "path": "prefabs/bank.json" },
+    { "prefabId": "service/bookstore", "contentVersion": 1, "path": "prefabs/bookstore.json" },
+    { "prefabId": "service/auto-repair", "contentVersion": 1, "path": "prefabs/auto-repair.json" },
+    { "prefabId": "service/garage-double", "contentVersion": 1, "path": "prefabs/garage-double.json" },
+    { "prefabId": "service/machine-shop", "contentVersion": 1, "path": "prefabs/machine-shop.json" }
   ],
   "playerSpawn": "c0_0/spawns/player-start",
   "listed": false

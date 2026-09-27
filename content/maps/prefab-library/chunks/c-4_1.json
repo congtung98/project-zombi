@@ -16,5 +16,5 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": []
+  "externalRefs": [{ "id": "c-3_2/bank-1", "ownerChunkId": "c-3_2" }]
 }

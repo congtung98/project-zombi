@@ -22,5 +22,8 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": []
+  "externalRefs": [
+    { "id": "c-1_2/garage-double-1", "ownerChunkId": "c-1_2" },
+    { "id": "c0_2/machine-shop-1", "ownerChunkId": "c0_2" }
+  ]
 }

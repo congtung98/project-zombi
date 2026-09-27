@@ -322,8 +322,11 @@ export class Building {
       const p = o.position as XZ
       const w = o.width as number
       const alongX = o.quarterTurns === 0 || o.quarterTurns === 2
-      const depth = Math.max(0.9, w)
+      // The side the leaf swings to needs room for it; the other side a step in front of the door.
+      const lz = [[0, 1], [1, 0], [0, -1], [-1, 0]][o.quarterTurns as number]
+      const swing = (alongX ? lz[1] : lz[0]) * (o.openTowards as number)
       for (const sgn of [1, -1]) {
+        const depth = sgn === swing ? Math.max(0.9, w) : 0.9
         const zone = alongX ? rect(p.x - w / 2, sgn > 0 ? p.z + t / 2 : p.z - t / 2 - depth, p.x + w / 2, sgn > 0 ? p.z + t / 2 + depth : p.z - t / 2) : rect(sgn > 0 ? p.x + t / 2 : p.x - t / 2 - depth, p.z - w / 2, sgn > 0 ? p.x + t / 2 + depth : p.x - t / 2, p.z + w / 2)
         const why = this.blocked(l, zone)
         if (why && why !== 'outside') problems.push(`door ${String(o.localId)} (level ${l}) blocked by ${why}`)

@@ -22,5 +22,9 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": [{ "id": "c-1_1/longhouse-1", "ownerChunkId": "c-1_1" }]
+  "externalRefs": [
+    { "id": "c-1_1/longhouse-1", "ownerChunkId": "c-1_1" },
+    { "id": "c-2_2/auto-repair-1", "ownerChunkId": "c-2_2" },
+    { "id": "c-3_2/bookstore-1", "ownerChunkId": "c-3_2" }
+  ]
 }

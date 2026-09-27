@@ -22,5 +22,8 @@
   "roads": [],
   "zones": [],
   "spawns": [],
-  "externalRefs": [{ "id": "c-1_1/ranch-1", "ownerChunkId": "c-1_1" }]
+  "externalRefs": [
+    { "id": "c-1_1/ranch-1", "ownerChunkId": "c-1_1" },
+    { "id": "c0_2/machine-shop-1", "ownerChunkId": "c0_2" }
+  ]
 }

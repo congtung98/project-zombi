@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-3_2",
+  "cx": -3,
+  "cz": 2,
+  "instances": [
+    {
+      "instanceId": "c-3_2/bank-1",
+      "prefabId": "service/bank",
+      "position": { "x": 5, "y": 0, "z": 5.5 },
+      "quarterTurns": 0
+    },
+    {
+      "instanceId": "c-3_2/bookstore-1",
+      "prefabId": "service/bookstore",
+      "position": { "x": 29, "y": 0, "z": 4.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

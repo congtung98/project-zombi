@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c0_2",
+  "cx": 0,
+  "cz": 2,
+  "instances": [
+    {
+      "instanceId": "c0_2/machine-shop-1",
+      "prefabId": "service/machine-shop",
+      "position": { "x": 1, "y": 0, "z": 6.5 },
+      "quarterTurns": 0
+    }
+  ],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": []
+}

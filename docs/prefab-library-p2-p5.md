@@ -70,3 +70,19 @@ Nhánh `feature/prefab-library`, tiếp theo P1 (docs/prefab-library-p1.md). Ch�
 - `npm test`: 918 pass, 13 skip. Test generator "vn-urban chỉ đặt nhà ống" được mở rộng cho 3 nhà hẹp mới.
 - tsc, oxlint, build, build:editor, check:bundle sạch.
 - Chơi thử world thư viện: nhà ống 2 và 3 tầng, nhà phố (cắt lớp nhìn vào trong), biệt thự, nhà ngoại ô hiện đúng.
+
+## P3 — dịch vụ (5 prefab)
+
+| prefabId | Tên | Kích thước | Tầng | Nội dung |
+|---|---|---|---|---|
+| service/bank | Ngân hàng | 18 × 14 | 1 | Sảnh giao dịch, 4 quầy, ATM; khu nhân viên; kho tiền (két `bank-vault`); kho hồ sơ; phòng giám đốc |
+| service/bookstore | Nhà sách | 14 × 12 | 2 | Hai dãy kệ sách (`bookstore-shelf`), quầy, kho; tầng trên là phòng đọc và văn phòng |
+| service/auto-repair | Gara sửa xe | 16 × 12 | 1 | Xưởng có cửa xe 3 m, ô tô đang sửa, bàn thợ (`workshop-bench`), kệ phụ tùng (`garage-shelf`); văn phòng; kho |
+| service/garage-double | Garage đôi | 10 × 7 | 1 | Hai cửa xe mở ra ngoài, một ô tô, kệ |
+| service/machine-shop | Xưởng cơ khí | 22 × 16 | 1 | Xưởng máy (5 máy, 3 bàn thợ), kho vật tư, văn phòng, vệ sinh |
+
+Cùng với lab-garage có sẵn, thư viện có 3 loại garage.
+
+- **Bảng loot theo địa điểm** (`lootTables.ts`, chỉ dùng 15 vật phẩm có sẵn, theo D5): `office-desk`, `bank-vault`, `bookstore-shelf`, `garage-shelf`, `workshop-bench`, `medical-cabinet`, `pharmacy-shelf`, `police-armory` (chỉ vũ khí cận chiến), `locker`, `canteen-fridge`, `kiosk-counter`. Muốn đổi loot một loại địa điểm thì sửa bảng, không phải sửa prefab.
+- **Sửa generator:** trước đây điểm spawn zombie chỉ cần không nằm trên vật cản. Với các công trình công nghiệp đặt sát nhau, một điểm spawn rơi vào khoảng sân bị bao kín (deep check báo `spawn-unreachable`). Giờ generator loang trên lưới 0,5 m (vật cản nở 0,4 m, như lưới nav) từ điểm xuất phát của người chơi và chỉ giữ điểm spawn tới được.
+- **Kiểm chứng:** 5/5 prefab qua deep check thật khi đứng riêng; world thư viện sạch; `npm test` 923 pass, 13 skip; tsc, oxlint sạch; chơi thử thấy ngân hàng và nhà sách hiện đúng.
