@@ -8,7 +8,7 @@ import { createZombieState, UNAWARE_STATES, type ZombieState } from '../entities
 import { InputManager } from '../systems/input'
 import { computeCameraBasis, computeMoveDirection, dampAngle, regenStamina, resolvePlayerSpeed } from '../systems/movement'
 import { applyKnockback, damageZombie, stepZombie, type ZombieAIContext } from '../systems/ai'
-import { facingTowards, resolveConeHits, startAttack, startPush, tickPlayerCombat, type MeleeTarget } from '../systems/combat'
+import { attackReadyIn, canStartAttack, cancelSwing, facingTowards, resolveConeHits, startAttack, startPush, tickPlayerCombat, type MeleeTarget } from '../systems/combat'
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
 import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
@@ -165,6 +165,13 @@ export class GameRuntime {
   readonly stance = createStanceControl()
   /** The stance request turned on this tick (a left click just before it may still count). */
   private stanceStarted = false
+  /** Hold mode and the right button not waiting for a release, as the tick began. */
+  private chordAllowed = false
+  /**
+   * CS1b: at most one click queued near the end of the recovery (its aim snapshot and expiry in
+   * `simTime`). Dropped when the stance ends, on Esc, a panel, an input reset or death.
+   */
+  pendingAttack: { yaw: number; expiresAt: number } | null = null
   /** Seconds of simulation since the runtime was built (input grace windows). */
   simTime = 0
   /** P2-S5: radius of the player's footstep noise this tick (0 = silent); zombies inside hear it. */
@@ -865,6 +872,7 @@ export class GameRuntime {
   cancelStance(): boolean {
     const was = this.stance.requested
     cancelStance(this.stance, this.input.isDown('stance'))
+    this.pendingAttack = null
     this.syncStanceEvent(was)
     return was
   }
@@ -874,6 +882,7 @@ export class GameRuntime {
     const was = this.stance.requested
     cancelStance(this.stance, false)
     this.stanceStarted = false
+    this.pendingAttack = null
     this.syncStanceEvent(was)
   }
 
@@ -889,8 +898,11 @@ export class GameRuntime {
   private stepControls(): void {
     const s = this.stance
     const was = s.requested
+    this.chordAllowed = s.mode === 'hold' && !s.suppressed
     updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive && !this.uiOpen)
     this.stanceStarted = s.requested && !was
+    // A queued click lives only while the stance is asked for (release, panel, death drop it).
+    if (!s.requested) this.pendingAttack = null
     if (this.stanceStarted && !s.hasAim) s.aimYaw = this.player.facing
     const aim = aimYawTowards(this.player.position, this.cursorWorld)
     if (aim !== null) {
@@ -948,13 +960,21 @@ export class GameRuntime {
     this.playerNoise = player.alive && speed > 0 ? (running ? hearing.runRadius : hearing.walkRadius) : 0
     this.advanceFootsteps(this.playerNoise > 0 ? speed : 0, running, dt)
 
-    // Heading (CS1): a swing keeps its direction; in the stance the body turns toward the aim at a
-    // limited speed (strafing/backing off never turns it); otherwise it turns toward the walk.
-    if (player.alive && player.attackTimer < 0) {
-      if (this.stance.requested) {
+    // Heading (CS1): the simulation owns it and turns at a limited speed, the short way. A swing turns
+    // the body toward its own direction (the click's aim) until a little after its hit; then, or with
+    // no swing, the stance turns it toward the aim (strafing/backing off never turns it); otherwise
+    // it turns toward the walk. The cursor itself never sets it.
+    if (player.alive) {
+      const cs = GAME_CONFIG.combatStance
+      const turn = cs.turnSpeedDeg * DEG * dt
+      const swinging = player.attackTimer >= 0
+      const released = swinging && player.attackCommitted && player.attackTimer >= GAME_CONFIG.melee.hitDelay + cs.turnReleaseAfterHit
+      if (swinging && !released) {
+        player.facing = turnToward(player.facing, player.attackYaw, turn, this.stance)
+      } else if (this.stance.requested) {
         const target = this.stance.hasAim ? this.stance.aimYaw : player.facing
-        player.facing = turnToward(player.facing, target, GAME_CONFIG.combatStance.turnSpeedDeg * DEG * dt, this.stance)
-      } else if (moving) {
+        player.facing = turnToward(player.facing, target, turn, this.stance)
+      } else if (moving && !swinging) {
         player.facing = dampAngle(player.facing, Math.atan2(dir.x, dir.z), FACING_SMOOTHING, dt)
       }
     }
@@ -1013,9 +1033,14 @@ export class GameRuntime {
     this.interactPrompt = target ? this.describeInteraction(target) : null
 
     if (target && this.input.wasPressed('interact')) {
-      // CS1: E from the ready stance leaves it first (a held right button must be pressed again).
-      this.cancelStance()
-      this.interact(target)
+      // CS1: no world action in the middle of a swing (never queued either: the press is dropped).
+      // From the ready stance, E leaves it first (a held right button must be pressed again).
+      if (player.attackTimer >= 0) {
+        this.events.queue('player:interactBlocked', {})
+      } else {
+        this.cancelStance()
+        this.interact(target)
+      }
     }
   }
 
@@ -1507,7 +1532,10 @@ export class GameRuntime {
       const s = this.stance
       let attack = false
       if (this.input.wasPressed('attack')) {
-        if (s.requested) attack = true
+        // Hold: a click made while the right button was down counts even if it was let go in the same
+        // frame (not when that button is waiting for a release after Esc/E/a panel).
+        const chord = this.chordAllowed && this.input.wasPressedWhileHeld('attack', 'stance')
+        if (s.requested || chord) attack = true
         else s.clickOutsideAt = this.simTime
       } else if (this.stanceStarted && this.simTime - s.clickOutsideAt <= GAME_CONFIG.combatStance.simultaneousGrace) {
         attack = true
@@ -1515,19 +1543,39 @@ export class GameRuntime {
       if (attack) s.clickOutsideAt = -Infinity
       // Attacking or shoving interrupts a craft/repair (the swing itself still happens).
       if (this.action && (attack || this.input.wasPressed('push'))) this.cancelAction('attacked')
+      const weapon = equippedWeapon(player.inventory, player.equipment)
+      const cs = GAME_CONFIG.combatStance
       if (attack) {
-        const weapon = equippedWeapon(player.inventory, player.equipment)
+        // CS1b: the swing's direction is the aim at the click (no auto-aim); the body turns toward it
+        // during the wind-up (never set at once). Too early in the recovery: dropped; near its end:
+        // queued (one only, the newest click wins).
+        const yaw = s.hasAim ? s.aimYaw : player.facing
         if (!weapon) this.events.queue('player:unarmed', {})
-        else if (startAttack(player, meleeStats(weapon.itemId), GAME_CONFIG.player, weapon.id)) {
-          if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
+        else if (!this.tryStartAttack(yaw)) {
+          // Only a timing wait is buffered (not missing stamina: that click just does nothing).
+          const wait = attackReadyIn(player)
+          if (wait > 0 && wait <= cs.bufferWindow) this.pendingAttack = { yaw, expiresAt: this.simTime + cs.bufferWindow }
+        }
+      } else if (this.pendingAttack) {
+        const pending = this.pendingAttack
+        if (this.simTime > pending.expiresAt || !weapon) this.pendingAttack = null
+        else if (canStartAttack(player, meleeStats(weapon.itemId))) {
+          this.pendingAttack = null
+          this.tryStartAttack(pending.yaw)
         }
       }
       if (this.input.wasPressed('push') && startPush(player)) {
         if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
         this.resolvePlayerPush()
       }
+    } else {
+      this.pendingAttack = null
     }
-    if (tickPlayerCombat(player, dt)) this.resolvePlayerMelee()
+    // Death interrupts a swing: its hit never lands (the cost stays paid).
+    if (!player.alive && cancelSwing(player)) this.events.queue('player:attackCancelled', { reason: 'dead' })
+    const melee = tickPlayerCombat(player, dt)
+    if (melee === 'hit') this.resolvePlayerMelee()
+    else if (melee === 'cancelled') this.events.queue('player:attackCancelled', { reason: 'align-timeout' })
 
     // Chỉ zombie còn sống sau khi người chơi ra đòn mới gây sát thương.
     for (const attack of attacks) {
@@ -1535,6 +1583,12 @@ export class GameRuntime {
       if (!zombie || zombie.ai === 'DEAD') continue
       this.applyPlayerDamage(attack.damage, attack.sourceId)
     }
+  }
+
+  /** Start a swing with the equipped weapon toward `yaw` (its cost, cooldown and ID as before). */
+  private tryStartAttack(yaw: number): boolean {
+    const weapon = equippedWeapon(this.player.inventory, this.player.equipment)
+    return weapon !== null && startAttack(this.player, meleeStats(weapon.itemId), GAME_CONFIG.player, weapon.id, yaw)
   }
 
   /** Zombies that can be within `range` (edge distance) of the player: spatial query (R1), map order. */
@@ -1568,7 +1622,8 @@ export class GameRuntime {
     }
     const stats = meleeStats(weapon.itemId)
     const damage = weaponHitDamage(weapon.itemId, weapon.condition)
-    const hits = resolveConeHits(player.position, player.facing, this.meleeTargets(stats.range), { range: stats.range, halfAngleDeg: cfg.halfAngleDeg }, (t) => this.isTargetBlocked(t))
+    // CS1b: the committed swing direction (the pose swings the same way), from where the player is now.
+    const hits = resolveConeHits(player.position, player.attackYaw, this.meleeTargets(stats.range), { range: stats.range, halfAngleDeg: cfg.halfAngleDeg }, (t) => this.isTargetBlocked(t))
     const hitIds: EntityId[] = []
     for (const hit of hits) {
       const zombie = this.zombies.get(hit.id)

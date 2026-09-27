@@ -364,6 +364,19 @@ export const GAME_CONFIG = {
     turnSideHysteresisDeg: 8,
     /** A left click this long before the right button still counts once the stance starts (seconds). */
     simultaneousGrace: 0.08,
+    /**
+     * CS1b swing timeline: the wind-up takes at least this long (the pose's cocking time, 0.2 of the
+     * swing) while the body turns; the strike starts once it faces the swing within the tolerance,
+     * and the hit still lands `melee.hitDelay` after the click when it already faced that way.
+     */
+    windup: 0.07,
+    alignToleranceDeg: 12,
+    /** A swing that could not face its direction this long after the click is dropped (cost kept). */
+    alignTimeout: 0.6,
+    /** After the hit, the body may turn toward the aim again after this long (the hit stays committed). */
+    turnReleaseAfterHit: 0.1,
+    /** One click is queued only this close to the end of the recovery, and expires after it (seconds). */
+    bufferWindow: 0.18,
     /** View only: blend of the raised-weapon pose in and out (seconds). */
     poseBlend: 0.14,
     /** View only: the chest leads the body toward the aim by at most this much (degrees). */

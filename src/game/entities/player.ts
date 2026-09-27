@@ -36,6 +36,15 @@ export interface PlayerState {
   attackId: number
   /** Weapon instance that started the current swing (equipment cannot change mid-swing). */
   attackWeaponId: string | null
+  /**
+   * CS1b: direction of the current swing (rad): the aim snapshot taken at the click while winding up,
+   * the committed swing direction once `attackCommitted` (hit arc and pose both use it). Not saved.
+   */
+  attackYaw: number
+  /** CS1b: the body faced the swing when the wind-up ended; the strike and its hit are under way. */
+  attackCommitted: boolean
+  /** CS1b: seconds since the click (wind-up and alignment), for the alignment timeout. */
+  attackAlignTime: number
   lastWornAttackId: number
   pushCooldown: number
   /** View only: hit-reaction time left after taking a blow (not saved). */
@@ -70,6 +79,9 @@ export function createPlayerState(spawn: Vec3, profile?: CharacterProfile): Play
     attackHitPending: false,
     attackId: 0,
     attackWeaponId: null,
+    attackYaw: 0,
+    attackCommitted: false,
+    attackAlignTime: 0,
     lastWornAttackId: 0,
     pushCooldown: 0,
     hurtTimer: 0,

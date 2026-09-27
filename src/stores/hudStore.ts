@@ -3,6 +3,7 @@ import type { GameRuntime } from '../game/core/runtime'
 import { countUsedSlots } from '../game/systems/inventory'
 import { equippedWeapon } from '../game/systems/equipment'
 import { conditionLevel, type ConditionLevel } from '../game/systems/weapons'
+import { attackPhase } from '../game/systems/combat'
 import { getItemDef } from '../game/entities/items'
 import { visionOverlayDebug } from '../game/systems/visionOverlay'
 import type { EntityId, ZombieAIState } from '../types'
@@ -72,6 +73,8 @@ interface HudSnapshot {
   pushCooldown: number
   /** CS1: the combat stance is asked for (right button). */
   stance: boolean
+  /** F3 (CS1b): stance, swing phase, desired/actual/swing heading, queued click, input owner. */
+  combat: string
   /** Số ô túi đang dùng / tổng, hiện cạnh phím I. */
   bagUsed: number
   bagSize: number
@@ -122,6 +125,7 @@ export const useHudStore = create<HudState>((set) => ({
   attackCooldown: 0,
   pushCooldown: 0,
   stance: false,
+  combat: '',
   bagUsed: 0,
   bagSize: 12,
   inventoryOpen: false,
@@ -177,6 +181,7 @@ export const useHudStore = create<HudState>((set) => ({
       attackCooldown: p.attackCooldown,
       pushCooldown: p.pushCooldown,
       stance: rt.stance.requested,
+      combat: combatReadout(rt),
       bagUsed: countUsedSlots(p.inventory),
       bagSize: p.inventory.slots.length,
       inventoryOpen: rt.inventoryOpen,
@@ -200,6 +205,19 @@ export const useHudStore = create<HudState>((set) => ({
     }, durationMs)
   },
 }))
+
+const deg = (a: number) => Math.round((((a * 180) / Math.PI) % 360 + 360) % 360)
+
+/** F3 (CS1b): who owns the input, the stance, the swing phase and the three headings. */
+function combatReadout(rt: GameRuntime): string {
+  const p = rt.player
+  const s = rt.stance
+  const phase = attackPhase(p)
+  const swing = p.attackTimer >= 0 ? ` · đòn ${deg(p.attackYaw)}°${p.attackCommitted ? ' (chốt)' : ` (căn ${p.attackAlignTime.toFixed(2)} s)`}` : ''
+  const queued = rt.pendingAttack ? ` · chờ ${Math.max(0, rt.pendingAttack.expiresAt - rt.simTime).toFixed(2)} s` : ''
+  const owner = rt.uiOpen ? 'UI' : s.suppressed ? 'thả chuột phải' : 'thế giới'
+  return `thế ${s.requested ? 'BẬT' : 'tắt'} (${s.mode}) · pha ${phase} · ngắm ${deg(s.aimYaw)}° · thân ${deg(p.facing)}°${swing}${queued} · input ${owner}`
+}
 
 function overlayReadout(): string {
   const o = visionOverlayDebug

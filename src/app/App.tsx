@@ -95,6 +95,10 @@ export function App() {
         const mode = useSettingsStore.getState().combatStance
         useHudStore.getState().showToast(mode === 'toggle' ? 'Bấm chuột phải để vào thế chiến đấu, rồi chuột trái để đánh.' : 'Giữ chuột phải để vào thế chiến đấu, rồi chuột trái để đánh.', 2200)
       }),
+      // CS1b: a swing that could not face its direction in time (rare: the body was held).
+      runtime.events.on('player:attackCancelled', (e) => {
+        if (e.reason === 'align-timeout') useHudStore.getState().showToast('Không kịp quay người: đòn bị hủy.', 1400, 'warn')
+      }),
       runtime.events.on('item:equipped', (e) =>
         useHudStore.getState().showToast(e.itemId ? `Đang cầm ${getItemDef(e.itemId).name}.` : 'Đã cất vũ khí: tay không.', 1400),
       ),

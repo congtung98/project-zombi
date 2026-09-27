@@ -108,6 +108,7 @@ export function HUD() {
             Player: ({hud.playerX.toFixed(1)}, {hud.playerZ.toFixed(1)}) {hud.running ? 'RUN' : ''}
           </div>
           <div>Interact: {hud.interactPrompt ?? '-'}</div>
+          <div>Combat: {hud.combat}</div>
           <div>Tiếng bước chân: {hud.noise > 0 ? `${hud.noise} m` : 'im lặng'} · Di cư sau {hud.hordeTimer.toFixed(0)}s</div>
           <div>
             Tầm nhìn: thấy {hud.visionStats.visible} · ứng viên {hud.visionStats.candidates} · raycast {hud.visionStats.raycasts} (F4 vẽ)

@@ -183,7 +183,9 @@ try {
       await page.mouse.down()
       await page.mouse.up()
       await page.mouse.up({ button: 'right' })
-      await page.waitForTimeout(700)
+      // CS1b: the body turns toward the cursor before the strike; wait for the swing to end.
+      await page.waitForFunction(() => window.__runtime.player.attackTimer < 0 && window.__runtime.player.attackCooldown > 0, null, { timeout: 10000 })
+      await page.waitForTimeout(100)
       return page.evaluate((b) => {
         const rt = window.__runtime
         const w = rt.player.inventory.slots.find((i) => i?.id === rt.player.equipment.weaponInstanceId)

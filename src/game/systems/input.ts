@@ -61,6 +61,8 @@ type EdgeListener = () => void
 export class InputManager {
   private down = new Set<string>()
   private pressedThisFrame = new Set<string>()
+  /** Codes that were held when each code of this frame was pressed (chords resolved between ticks). */
+  private heldAtPress = new Map<string, readonly string[]>()
   private edgeListeners = new Map<ActionName, Set<EdgeListener>>()
   private clearListeners = new Set<EdgeListener>()
   private attached = false
@@ -110,6 +112,7 @@ export class InputManager {
   clear(): void {
     this.down.clear()
     this.pressedThisFrame.clear()
+    this.heldAtPress.clear()
     this.mouseButtons = 0
     for (const fn of this.clearListeners) fn()
   }
@@ -150,9 +153,22 @@ export class InputManager {
     return false
   }
 
+  /**
+   * `action` was pressed this frame while `other` was held at that moment, even if `other` has been
+   * released since (a right-button release in the same frame as the left click keeps the chord).
+   */
+  wasPressedWhileHeld(action: ActionName, other: ActionName): boolean {
+    for (const code of KEY_BINDINGS[action]) {
+      const held = this.heldAtPress.get(code)
+      if (held && this.pressedThisFrame.has(code) && KEY_BINDINGS[other].some((o) => held.includes(o))) return true
+    }
+    return false
+  }
+
   /** Gọi ở cuối mỗi tick simulation. */
   endFrame(): void {
     this.pressedThisFrame.clear()
+    this.heldAtPress.clear()
   }
 
   /** Mô phỏng nhấn phím (dùng cho test). */
@@ -163,6 +179,7 @@ export class InputManager {
 
   private press(code: string): void {
     if (!this.down.has(code)) {
+      this.heldAtPress.set(code, [...this.down])
       this.down.add(code)
       this.pressedThisFrame.add(code)
       this.dispatchEdge(code)

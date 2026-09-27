@@ -23,6 +23,10 @@ export type GameEvents = {
   'player:unarmed': Record<string, never>
   /** CS1: a left click outside the combat stance (no swing); the UI hints at the right button, rarely. */
   'player:attackNeedsStance': Record<string, never>
+  /** CS1b: a swing ended without its hit (could not face its direction in time, or the player died). */
+  'player:attackCancelled': { reason: 'align-timeout' | 'dead' }
+  /** CS1b: E pressed in the middle of a swing: dropped, never queued. */
+  'player:interactBlocked': Record<string, never>
   /** CS1: the combat stance started or ended (intent, not the finished pose). */
   'player:stance': { active: boolean }
   'item:equipped': { id: string | null; itemId: ItemId | null }

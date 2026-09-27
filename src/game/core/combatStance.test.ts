@@ -65,6 +65,24 @@ describe('CS1 left click and the stance', () => {
     expect(hints).toHaveLength(0)
   })
 
+  it('right held, left clicked and right released within one frame: the click still swings', () => {
+    const rt = setup()
+    key(rt, 'Mouse2', true)
+    key(rt, 'Mouse0', true)
+    key(rt, 'Mouse2', false)
+    ticks(rt, 1)
+    expect(rt.player.attackTimer).toBeGreaterThanOrEqual(0)
+    // Not after Esc while the right button stays down (it waits for a release).
+    const rt2 = setup()
+    key(rt2, 'Mouse2', true)
+    ticks(rt2, 2)
+    rt2.cancelStance()
+    key(rt2, 'Mouse0', true)
+    key(rt2, 'Mouse2', false)
+    ticks(rt2, 1)
+    expect(rt2.player.attackTimer).toBeLessThan(0)
+  })
+
   it('a left button held before the stance does not swing without a new press', () => {
     const rt = setup()
     key(rt, 'Mouse0', true)

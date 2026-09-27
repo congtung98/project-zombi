@@ -77,11 +77,11 @@ describe('player attack timing', () => {
   it('fires the hit window at hitDelay, not immediately', () => {
     const p = createPlayerState({ x: 0, y: 0, z: 0 })
     startAttack(p)
-    expect(tickPlayerCombat(p, DT)).toBe(false)
+    expect(tickPlayerCombat(p, DT)).toBe(null)
     let elapsed = DT
     let fired = false
     while (elapsed < melee.hitDelay + DT) {
-      fired = tickPlayerCombat(p, DT)
+      fired = tickPlayerCombat(p, DT) === 'hit'
       elapsed += DT
       if (fired) break
     }
