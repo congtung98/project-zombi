@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c1_0",
+  "cx": 1,
+  "cz": 0,
+  "instances": [],
+  "objects": [],
+  "roads": [],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-1_0/roads/pavement-s", "ownerChunkId": "c-1_0" },
+    { "id": "c-1_0/roads/street", "ownerChunkId": "c-1_0" }
+  ]
+}

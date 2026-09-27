@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "chunkId": "c-1_0",
+  "cx": -1,
+  "cz": 0,
+  "instances": [],
+  "objects": [],
+  "roads": [
+    {
+      "roadId": "c-1_0/roads/street",
+      "position": { "x": 16, "z": 0 },
+      "size": [184, 6],
+      "color": "#3a3a3f",
+      "layer": 2
+    },
+    {
+      "roadId": "c-1_0/roads/pavement-s",
+      "position": { "x": 16, "z": 3.9 },
+      "size": [184, 1.8],
+      "color": "#a19d94"
+    }
+  ],
+  "zones": [],
+  "spawns": [],
+  "externalRefs": [
+    { "id": "c-2_0/two-storey-1", "ownerChunkId": "c-2_0" },
+    { "id": "c0_0/warehouse-1", "ownerChunkId": "c0_0" }
+  ]
+}

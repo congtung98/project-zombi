@@ -80,6 +80,18 @@ export function layoutPreviewSvg(layout: WorldLayout, opts: { scale?: number; ch
         out.push(`<path d="M${f(c.x)} ${f(c.z)}l${f(d.x * 2.5)} ${f(d.z * 2.5)}" stroke="#7a6a4f" stroke-width="0.4"/>`)
       }
     }
+    // WG3 buildings: footprint, prefab name, a tick on the entrance side (towards the street).
+    for (const q of plan.parcels) {
+      const b = q.build
+      if (!b || b.prefabId === null) continue
+      const r = b.footprint
+      out.push(`<rect x="${f(r.minX)}" y="${f(r.minZ)}" width="${f(r.maxX - r.minX)}" height="${f(r.maxZ - r.minZ)}" fill="${b.source === 'manual' ? '#3f5f8a' : '#6b4f3a'}" fill-opacity="0.85" stroke="#2e2218" stroke-width="0.3"><title>${esc(`${q.id}: ${b.prefabId} (${b.source}, xoay ${b.quarterTurns * 90}°)`)}</title></rect>`)
+      if (q.access) {
+        const c = { x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 }
+        const e = { N: { x: c.x, z: r.minZ }, S: { x: c.x, z: r.maxZ }, W: { x: r.minX, z: c.z }, E: { x: r.maxX, z: c.z } }[q.access.side]
+        out.push(`<circle cx="${f(e.x)}" cy="${f(e.z)}" r="0.7" fill="#f2c14e"/>`)
+      }
+    }
     const SURFACE_FILL = { asphalt: '#44444a', dirt: '#8a6a45', sidewalk: '#b9b5ac' }
     for (const sf of plan.surfaces) out.push(`<rect x="${f(sf.rect.minX)}" y="${f(sf.rect.minZ)}" width="${f(sf.rect.maxX - sf.rect.minX)}" height="${f(sf.rect.maxZ - sf.rect.minZ)}" fill="${SURFACE_FILL[sf.kind]}"><title>${esc(`${sf.id} (${sf.edges.join(', ')})`)}</title></rect>`)
   }

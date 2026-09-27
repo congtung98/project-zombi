@@ -1,19 +1,27 @@
-import { MAP_SCHEMA_VERSION, RECORD_NAMESPACES, type ChunkDocument, type PlayArea, type RoadRecord, type SpawnRecord, type WorldDocument, type XZ } from '../schema.ts'
+import { MAP_SCHEMA_VERSION, RECORD_NAMESPACES, type ChunkDocument, type LandUseZone, type PlayArea, type PrefabDocument, type RoadRecord, type SpawnRecord, type WorldDocument, type XZ } from '../schema.ts'
 import { chunkIdOf, chunkIndex, chunkOrigin, chunksOverlapping, quantize } from '../transform.ts'
-import { checkWorldDocuments, hasErrors, type ValidationOptions } from '../validate.ts'
-import { documentFiles, withExternalRefs, type MapDocument } from '../editor/document.ts'
+import { blockingSolid, checkWorldDocuments, hasErrors, lowSolids, type ValidationOptions } from '../validate.ts'
+import { documentFiles, resolvedRecords, withExternalRefs, type MapDocument } from '../editor/document.ts'
+import type { PrefabCatalog } from './buildings.ts'
+import { hashSeed, rng } from './parcels.ts'
 import { PLAN_VERSION } from './plan.ts'
-import { rectCentre } from './rects.ts'
+import { rectArea, rectCentre } from './rects.ts'
 import type { LayoutPlan, SurfaceKind, WorldLayout } from './schema.ts'
 
 /**
- * WorldSerializer, layout-only mode (world generator WG2): a plan becomes ordinary map content —
- * street surfaces as `RoadRecord`s, the play area, a fence and a player spawn on a junction — that the
- * editor opens and the game plays like any world (Export pack → `map:unpack`). Parcels and land use
- * stay in the layout (the game has no use for them); buildings come with WG3.
+ * WorldSerializer (world generator WG2–WG3): a plan becomes ordinary map content that the editor
+ * opens and the game plays like any world (Export pack → `map:unpack`).
+ *
+ * - `layout-only` (LAYOUT_ONLY): street surfaces as `RoadRecord`s, the play area, a fence and a
+ *   player spawn on a junction. Parcels and land use stay in the layout.
+ * - `full` (FULL_GENERATION): plus a prefab instance on every parcel that has a building (the used
+ *   prefabs copied from the library), one zombie population zone per block and zombie spawns outdoors
+ *   in it, clear of every low collider. Environment details come with WG5.
+ * Instance IDs are `<chunk>/<parcel id>`, zone IDs `<chunk>/zones/<block id>`: stable while the plan is.
  */
 
 export const LAYOUT_WORLD_GENERATOR = 'world-layout'
+export type WorldMode = 'layout-only' | 'full'
 
 /** Colour (read by the game's surface rules: dark = asphalt, brown = dirt, light = concrete) and draw layer. */
 export const SURFACE_STYLE: Record<SurfaceKind, { color: string; layer: number }> = {
@@ -22,17 +30,28 @@ export const SURFACE_STYLE: Record<SurfaceKind, { color: string; layer: number }
   sidewalk: { color: '#a19d94', layer: 0 },
 }
 
+/** Zombie spawns per hectare of a block, by its main land use (1–6 per block). */
+export const DEFAULT_ZOMBIES: Record<LandUseZone, number> = { residential: 8, commercial: 10, industrial: 6, public: 6, empty: 3, forest: 2, farmland: 2 }
+
+const ZONE_NAME: Record<LandUseZone, string> = { residential: 'Khu dân cư', commercial: 'Khu thương mại', industrial: 'Khu công nghiệp', public: 'Khu công cộng', empty: 'Đất trống', forest: 'Rừng', farmland: 'Đồng ruộng' }
+
 const CHUNK = 32
 
 export interface LayoutWorldOptions {
   worldId: string
   name: string
   validation?: ValidationOptions
+  /** Default `layout-only`; `full` needs the catalog the buildings were placed from. */
+  mode?: WorldMode
+  catalog?: PrefabCatalog
+  zombies?: Partial<Record<LandUseZone, number>>
 }
 
 export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: LayoutWorldOptions): MapDocument {
   const net = layout.normalized
   if (!net) throw new Error('layout chưa có mạng đường đã nắn')
+  const mode = opts.mode ?? 'layout-only'
+  if (mode === 'full' && !opts.catalog) throw new Error('chế độ full cần thư viện prefab')
   const area = plan.area
   const chunks = new Map<string, ChunkDocument>()
   for (const { cx, cz } of chunksOverlapping(area, CHUNK)) {
@@ -56,6 +75,21 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
     chunk.roads.push(road)
   }
 
+  // Buildings (full): one instance per built parcel, anchored at the prefab pivot.
+  const prefabs = new Map<string, { entry: WorldDocument['prefabs'][number]; doc: PrefabDocument }>()
+  if (mode === 'full') {
+    const lib = new Map(opts.catalog!.prefabs.map((p) => [p.entry.prefabId, p]))
+    for (const q of plan.parcels) {
+      const b = q.build
+      if (!b || b.prefabId === null) continue
+      const p = lib.get(b.prefabId)
+      if (!p) throw new Error(`lô ${q.id}: prefab ${b.prefabId} không có trong thư viện ${opts.catalog!.id}`)
+      prefabs.set(b.prefabId, { entry: { ...p.entry }, doc: p.doc })
+      const { chunk, local } = owner(b.position)
+      chunk.instances.push({ instanceId: `${chunk.chunkId}/${q.id}`, prefabId: b.prefabId, position: { x: local.x, y: 0, z: local.z }, quarterTurns: b.quarterTurns })
+    }
+  }
+
   // Player start: the junction nearest the centre of the area (on the carriageway, never on a collider).
   const centre = rectCentre(area)
   const kinds = new Map(layout.network.nodes.map((n) => [n.id, n.kind]))
@@ -64,10 +98,9 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
     const jb = kinds.get(b.id) === 'junction' ? 0 : 1
     return ja - jb || Math.hypot(a.position.x - centre.x, a.position.z - centre.z) - Math.hypot(b.position.x - centre.x, b.position.z - centre.z) || (a.id < b.id ? -1 : 1)
   })
-  const start = candidates[0].position
-  const s = owner(start)
-  const spawn: SpawnRecord = { spawnId: `${s.chunk.chunkId}/${RECORD_NAMESPACES.spawns}/player-start`, kind: 'player', position: s.local }
-  s.chunk.spawns.push(spawn)
+  const start = owner(candidates[0].position)
+  const spawn: SpawnRecord = { spawnId: `${start.chunk.chunkId}/${RECORD_NAMESPACES.spawns}/player-start`, kind: 'player', position: start.local }
+  start.chunk.spawns.push(spawn)
 
   const list = [...chunks.values()].sort((a, b) => a.cz - b.cz || a.cx - b.cx)
   const w = quantize(area.maxX - area.minX)
@@ -75,7 +108,7 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
   const playArea: PlayArea = { size: w }
   if (d !== w) playArea.depth = d
   if (centre.x !== 0 || centre.z !== 0) playArea.center = { x: quantize(centre.x), z: quantize(centre.z) }
-  const params: Record<string, string | number> = { layout: layout.layoutId, mode: 'layout-only', profile: plan.params.profile, source: layout.source.hash }
+  const params: Record<string, string | number> = { layout: layout.layoutId, mode, profile: plan.params.profile, source: layout.source.hash }
   if (layout.source.attribution) params.attribution = layout.source.attribution
   const world: WorldDocument = {
     schemaVersion: MAP_SCHEMA_VERSION,
@@ -93,11 +126,48 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
       maxCz: Math.max(...list.map((c) => c.cz)),
     },
     chunks: list.map((c) => ({ chunkId: c.chunkId, cx: c.cx, cz: c.cz, path: `chunks/${c.chunkId}.json` })),
-    prefabs: [],
+    prefabs: [...prefabs.values()].map((p) => p.entry).sort((a, b) => (a.prefabId < b.prefabId ? -1 : 1)),
     playerSpawn: spawn.spawnId,
-    generator: { name: LAYOUT_WORLD_GENERATOR, version: PLAN_VERSION, seed: plan.params.seed, params, catalog: 'none' },
+    generator: { name: LAYOUT_WORLD_GENERATOR, version: PLAN_VERSION, seed: plan.params.seed, params, catalog: mode === 'full' ? opts.catalog!.id : 'none' },
   }
-  const doc = withExternalRefs({ world, prefabs: new Map(), chunks: new Map(list.map((c) => [c.chunkId, c])), extras: new Map() })
+  const assemble = () => withExternalRefs({ world, prefabs: new Map([...prefabs].map(([id, p]) => [id, p.doc])), chunks: new Map(list.map((c) => [c.chunkId, structuredClone(c)])), extras: new Map() })
+
+  // Zombie zones and spawns (full): one zone per block, on its largest rectangle, spawns outdoors in it.
+  if (mode === 'full') {
+    const solids = lowSolids(resolvedRecords(assemble()))
+    const footprints = plan.parcels.flatMap((q) => (q.build && q.build.prefabId !== null ? [q.build.footprint] : []))
+    const density = { ...DEFAULT_ZOMBIES, ...opts.zombies }
+    const used = new Map<LandUseZone, number>()
+    for (const block of plan.blocks) {
+      const r = [...block.rects].sort((a, b) => rectArea(b) - rectArea(a))[0]
+      if (rectArea(r) < 150 || Math.min(r.maxX - r.minX, r.maxZ - r.minZ) < 8) continue
+      // Main land use of the block: by parcel area.
+      const byZone = new Map<LandUseZone, number>()
+      for (const q of plan.parcels) if (q.block === block.id) byZone.set(q.zone, (byZone.get(q.zone) ?? 0) + q.area)
+      const zone = [...byZone].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0] ?? layout.defaults.zone
+      used.set(zone, (used.get(zone) ?? 0) + 1)
+      const inner = { minX: r.minX + 1, minZ: r.minZ + 1, maxX: r.maxX - 1, maxZ: r.maxZ - 1 }
+      const c = owner(rectCentre(inner))
+      c.chunk.zones.push({ zoneId: `${c.chunk.chunkId}/${RECORD_NAMESPACES.zones}/${block.id}`, kind: 'zombiePopulation', name: `${ZONE_NAME[zone]} ${used.get(zone)}`, shape: 'rect', center: c.local, size: [quantize(inner.maxX - inner.minX), quantize(inner.maxZ - inner.minZ)] })
+      const n = Math.max(1, Math.min(6, Math.round((rectArea(inner) / 10000) * density[zone])))
+      const spots: XZ[] = []
+      for (let z = inner.minZ + 1.5; z <= inner.maxZ - 1.5; z += 4)
+        for (let x = inner.minX + 1.5; x <= inner.maxX - 1.5; x += 4) {
+          const p = { x: quantize(x), z: quantize(z) }
+          if (footprints.some((f) => p.x > f.minX - 0.8 && p.x < f.maxX + 0.8 && p.z > f.minZ - 0.8 && p.z < f.maxZ + 0.8)) continue
+          if (blockingSolid(solids, p)) continue
+          spots.push(p)
+        }
+      const random = rng(hashSeed(plan.params.seed, `zombies:${block.id}`))
+      for (let k = 0; k < n && spots.length; k++) {
+        const [p] = spots.splice(Math.floor(random() * spots.length), 1)
+        const o = owner(p)
+        o.chunk.spawns.push({ spawnId: `${o.chunk.chunkId}/${RECORD_NAMESPACES.spawns}/zombie-${block.id.slice(6)}-${k + 1}`, kind: 'zombie', position: o.local })
+      }
+    }
+  }
+
+  const doc = assemble()
   const files = new Map(documentFiles(doc))
   const checked = checkWorldDocuments((path) => files.get(path), opts.validation)
   if (hasErrors(checked.issues)) {
@@ -106,3 +176,4 @@ export function buildLayoutWorld(layout: WorldLayout, plan: LayoutPlan, opts: La
   }
   return doc
 }
+

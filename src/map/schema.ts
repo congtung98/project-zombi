@@ -345,6 +345,40 @@ export interface PrefabDocument {
    * save holding state for `<instance>/<old id>` can't attach it to an unrelated new object.
    */
   retiredLocalIds?: string[]
+  /**
+   * World generator WG3: how the generator may place this prefab on a parcel. Absent = never placed
+   * by the generator. Generator data only: the game ignores it (no ID, collider, loot or save change).
+   * The footprint is the collision bound the generator keeps clear.
+   */
+  placement?: PrefabPlacement
+}
+
+/** Land use a generated world is planned with (world generator; independent from `zombiePopulation` zones). */
+export const LAND_USE_ZONES = ['residential', 'commercial', 'industrial', 'public', 'forest', 'farmland', 'empty'] as const
+export type LandUseZone = (typeof LAND_USE_ZONES)[number]
+
+export const PREFAB_CATEGORIES = ['house', 'shop', 'industrial', 'public', 'outbuilding'] as const
+export type PrefabCategory = (typeof PREFAB_CATEGORIES)[number]
+
+/** World generator WG3: placement metadata of a prefab (owner decision Q6: footprint, zones, weight, setback, entrance). */
+export interface PrefabPlacement {
+  category: PrefabCategory
+  /** Land-use zones whose parcels may get this prefab (at least one). */
+  allowedZones: LandUseZone[]
+  /** Relative chance among the prefabs that fit a parcel (> 0). */
+  weight: number
+  /** Minimum front yard (m) between the parcel's street edge and the footprint. */
+  setback: number
+  /** Minimum gap (m) to the parcel's side edges; 0 = row house built to the lot lines. */
+  sideGap: number
+  /** The entrance must face the parcel's street (the prefab is turned so it does). */
+  roadFacing: boolean
+  /** Entrance point in prefab coordinates; default: the first ground-floor door. */
+  entrance?: XZ
+  /** Parcel frontage range (m) this prefab suits, e.g. [3.5, 8] for a tube house; default: any it fits. */
+  frontage?: [number, number]
+  /** Optional decoration anchors in prefab coordinates (for environment generation). */
+  anchors?: { name: string; position: XZ }[]
 }
 
 /** Prefab placement. `instanceId` = `<identityChunkId>/<name>`; positions are chunk-local. */

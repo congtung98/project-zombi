@@ -1,6 +1,8 @@
 import {
+  LAND_USE_ZONES,
   MAP_SCHEMA_VERSION,
   MAX_STOREYS,
+  PREFAB_CATEGORIES,
   RECORD_CATEGORIES,
   RECORD_NAMESPACES,
   RESERVED_INSTANCE_NAMES,
@@ -75,6 +77,32 @@ export const MIN_STOREY_HEIGHT = 2.6
 export const STAIR_LIMITS = { width: [1, 4], length: [2, 12] } as const
 /** Where bodies step on and off a flight: this far past each end must be floor. */
 const STAIR_LANDING = 0.9
+
+/** WG3: prefab placement metadata (generator only). */
+function checkPlacement(c: Checker, v: unknown): void {
+  if (!c.obj(v, '/placement')) return
+  c.oneOf(v.category, PREFAB_CATEGORIES, '/placement/category')
+  if (c.arr(v.allowedZones, '/placement/allowedZones')) {
+    if (!v.allowedZones.length) c.error('schema', '/placement/allowedZones', 'placement needs at least one allowed zone')
+    v.allowedZones.forEach((z, i) => c.oneOf(z, LAND_USE_ZONES, `/placement/allowedZones/${i}`))
+  }
+  c.num(v.weight, '/placement/weight', { positive: true })
+  c.num(v.setback, '/placement/setback', { min: 0, max: 50 })
+  c.num(v.sideGap, '/placement/sideGap', { min: 0, max: 50 })
+  if (typeof v.roadFacing !== 'boolean') c.error('schema', '/placement/roadFacing', 'roadFacing must be true or false')
+  if (v.entrance !== undefined) c.xz(v.entrance, '/placement/entrance')
+  if (v.frontage !== undefined && c.arr(v.frontage, '/placement/frontage')) {
+    const [lo, hi] = v.frontage
+    if (v.frontage.length !== 2 || !c.num(lo, '/placement/frontage/0', { positive: true }) || !c.num(hi, '/placement/frontage/1', { positive: true }) || (lo as number) > (hi as number)) c.error('schema', '/placement/frontage', 'frontage must be [min, max] with 0 < min ≤ max')
+  }
+  if (v.anchors !== undefined && c.arr(v.anchors, '/placement/anchors')) {
+    v.anchors.forEach((a, i) => {
+      if (!c.obj(a, `/placement/anchors/${i}`)) return
+      c.str(a.name, `/placement/anchors/${i}/name`, SLUG)
+      c.xz(a.position, `/placement/anchors/${i}/position`)
+    })
+  }
+}
 
 class Checker {
   readonly issues: ValidationIssue[] = []
@@ -553,6 +581,7 @@ export function validatePrefabDocument(doc: unknown, entry: PrefabEntry, opts: V
     })
   }
   if (building && doors === 0) c.issue('warning', 'building-no-entrance', '/objects', `building ${entry.prefabId} has no door`)
+  if (doc.placement !== undefined) checkPlacement(c, doc.placement)
   if (doc.retiredLocalIds !== undefined && c.arr(doc.retiredLocalIds, '/retiredLocalIds')) {
     const seen = new Set<string>()
     doc.retiredLocalIds.forEach((id, i) => {

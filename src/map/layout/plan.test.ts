@@ -56,7 +56,8 @@ function assertInvariants(l: WorldLayout, p: LayoutPlan) {
     expect(q.access).not.toBeNull()
     const s = q.access!.side
     const mid = { x: (r.minX + r.maxX) / 2, z: (r.minZ + r.maxZ) / 2 }
-    const probe = s === 'N' ? { x: mid.x, z: r.minZ - 0.1 } : s === 'S' ? { x: mid.x, z: r.maxZ + 0.1 } : s === 'W' ? { x: r.minX - 0.1, z: mid.z } : { x: r.maxX + 0.1, z: mid.z }
+    // Parcel edges sit on the 0.5 m grid, up to 0.5 m in from the street surfaces.
+    const probe = s === 'N' ? { x: mid.x, z: r.minZ - 0.6 } : s === 'S' ? { x: mid.x, z: r.maxZ + 0.6 } : s === 'W' ? { x: r.minX - 0.6, z: mid.z } : { x: r.maxX + 0.6, z: mid.z }
     expect(p.surfaces.some((x) => probe.x >= x.rect.minX && probe.x <= x.rect.maxX && probe.z >= x.rect.minZ && probe.z <= x.rect.maxZ), `${q.id} off street`).toBe(true)
   }
 }

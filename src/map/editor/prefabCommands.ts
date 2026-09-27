@@ -1,4 +1,4 @@
-import { MAP_SCHEMA_VERSION, MAX_STOREYS, type PrefabDocument, type PrefabObject, type QuarterTurns, type Rect, type RoomObject, type StairsObject, type WallRunObject, type XZ } from '../schema.ts'
+import { LAND_USE_ZONES, MAP_SCHEMA_VERSION, MAX_STOREYS, PREFAB_CATEGORIES, type PrefabDocument, type PrefabPlacement, type PrefabObject, type QuarterTurns, type Rect, type RoomObject, type StairsObject, type WallRunObject, type XZ } from '../schema.ts'
 import { resolveInstance, stairRect, type ResolvedRecord } from '../resolve.ts'
 import { addQuarterTurns, PREFAB_ID, quantize, rotateXZ, SLUG } from '../transform.ts'
 import type { CommandResult } from './commands.ts'
@@ -363,6 +363,18 @@ export interface PrefabPatch {
   building?: Partial<NonNullable<PrefabDocument['building']>>
   /** G3b: house variants offered; [] or null = none. */
   variants?: string[] | null
+  /** World generator WG3: placement metadata; null = removed (the generator never places this prefab). */
+  placement?: PrefabPlacement | null
+}
+
+/** Why placement metadata is unusable, or null. */
+export function placementProblem(p: PrefabPlacement): string | null {
+  if (!PREFAB_CATEGORIES.includes(p.category)) return `loại "${p.category}" không hỗ trợ`
+  if (!p.allowedZones.length || p.allowedZones.some((z) => !LAND_USE_ZONES.includes(z))) return 'cần ít nhất một zone hợp lệ'
+  if (!(Number.isFinite(p.weight) && p.weight > 0)) return 'trọng số phải > 0'
+  if (!(p.setback >= 0 && p.sideGap >= 0)) return 'khoảng lùi và khoảng hở phải ≥ 0'
+  if (p.frontage && !(p.frontage.length === 2 && p.frontage[0] > 0 && p.frontage[0] <= p.frontage[1])) return 'mặt tiền phải là [min, max], 0 < min ≤ max'
+  return null
 }
 
 /** Prefab properties. `contentVersion` also updates the manifest pin, so they never disagree. */
@@ -400,6 +412,12 @@ export function updatePrefab(doc: MapDocument, prefabId: string, patch: PrefabPa
     if (left.length) return fail(`Còn ${left.length} mục ở tầng ${storeys + 1} trở lên (${left.slice(0, 3).join(', ')}${left.length > 3 ? ' …' : ''}): xóa hoặc chuyển tầng trước`)
     if (storeys === 1) delete b.storeys
     next.building = b
+  }
+  if (patch.placement === null) delete next.placement
+  else if (patch.placement) {
+    const problem = placementProblem(patch.placement)
+    if (problem) return fail(`Placement không hợp lệ: ${problem}`)
+    next.placement = { ...patch.placement, allowedZones: LAND_USE_ZONES.filter((z) => patch.placement!.allowedZones.includes(z)) }
   }
   if (patch.variants !== undefined) {
     const list = [...new Set(patch.variants ?? [])].filter(isVariantId)

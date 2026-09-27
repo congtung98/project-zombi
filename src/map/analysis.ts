@@ -121,7 +121,8 @@ function reachability(map: MapData, zombieSpawnIds: readonly string[], add: Add)
   for (const z of map.zombieZones ?? []) {
     const cell = nav.nearestWalkableCell(z.center.x, z.center.z, 4)
     const c = cell ? nav.cellToWorld(cell.cx, cell.cz) : null
-    if (!c || nav.componentAt(c.x, c.z) !== home) add('zone-unreachable', z.id, `zone "${z.name}" has no walkable ground near its centre connected to the player's area`)
+    // Same component space as `home` (NavWorld numbers components across storeys once stairs exist).
+    if (!c || world.componentAt({ x: c.x, y: 0, z: c.z }) !== home) add('zone-unreachable', z.id, `zone "${z.name}" has no walkable ground near its centre connected to the player's area`)
   }
 }
 

@@ -20,6 +20,17 @@ import type { LandUseZone, LayoutBlock, LayoutParcel, ParcelAccess, ParcelKind, 
  */
 
 export const CELL = { free: 0, road: 1, sidewalk: 2, restricted: 3 } as const
+/** Parcel edges sit on this grid (the navigation cell size): block rectangles shrink inwards to it. */
+export const PARCEL_GRID = 0.5
+/** How far past a (grid-shrunk) side the street is looked for. */
+export const FRONT_PROBE = PARCEL_GRID + 0.1
+
+/** A rectangle shrunk inwards to the parcel grid, or null when nothing is left. */
+export function snapInward(r: Rect, g = PARCEL_GRID): Rect | null {
+  const e = 1e-6
+  const s = { minX: Math.ceil(r.minX / g - e) * g, minZ: Math.ceil(r.minZ / g - e) * g, maxX: Math.floor(r.maxX / g + e) * g, maxZ: Math.floor(r.maxZ / g + e) * g }
+  return s.maxX - s.minX > e && s.maxZ - s.minZ > e ? qRect(s) : null
+}
 const STREET = new Set<number>([CELL.road, CELL.sidewalk])
 
 /** mulberry32. */
@@ -137,7 +148,7 @@ const CLASS_RANK: Record<RoadClass, number> = { arterial: 5, collector: 4, local
 
 /** The street a rectangle side fronts: the nearest parallel segment just outside it, or null. */
 export function frontOf(grid: CellGrid, r: Rect, side: Side, segments: readonly Segment[], maxReach: number): ParcelAccess | null {
-  if (grid.sideCoverage(r, side, STREET) < 0.5) return null
+  if (grid.sideCoverage(r, side, STREET, FRONT_PROBE) < 0.5) return null
   const alongX = side === 'N' || side === 'S'
   const edgeLine = side === 'N' ? r.minZ : side === 'S' ? r.maxZ : side === 'W' ? r.minX : r.maxX
   const lo = alongX ? r.minX : r.minZ
@@ -268,7 +279,7 @@ export function splitByFrontage(grid: CellGrid, rects: readonly Rect[], minRun =
       const alongX = side === 'N' || side === 'S'
       const lo = alongX ? r.minX : r.minZ
       const hi = alongX ? r.maxX : r.maxZ
-      const runs = grid.sideRuns(r, side, STREET).filter(([a, b]) => b - a >= minRun)
+      const runs = grid.sideRuns(r, side, STREET, FRONT_PROBE).filter(([a, b]) => b - a >= minRun)
       if (!runs.length) continue
       const at = [...new Set(runs.flat())].filter((v) => v > lo + minRun && v < hi - minRun).sort((a, b) => a - b)
       if (!at.length) continue
@@ -285,7 +296,8 @@ export function splitByFrontage(grid: CellGrid, rects: readonly Rect[], minRun =
 /** Parcels of a block around the kept parcels in it (their land is left out, they are not changed). */
 export function blockParcels(grid: CellGrid, block: LayoutBlock, ctx: ParcelContext, kept: readonly Rect[] = []): LayoutParcel[] {
   const pieces: Piece[] = []
-  const free = block.rects.flatMap((r) => subtractAll(r, kept)).filter((r) => r.maxX - r.minX > 0.05 && r.maxZ - r.minZ > 0.05)
+  // On the parcel grid, so buildings line up with the navigation cells (kept parcels are cut out first).
+  const free = block.rects.flatMap((r) => subtractAll(r, kept)).map((r) => snapInward(r)).filter((r): r is Rect => r !== null)
   for (const r of splitByFrontage(grid, free)) {
     const zone = ctx.zoneAt(rectCentre(r))
     const fronts = new Map<Side, ParcelAccess>()

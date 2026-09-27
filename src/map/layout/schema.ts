@@ -1,4 +1,4 @@
-import type { Rect, XZ } from '../schema.ts'
+import type { LandUseZone, QuarterTurns, Rect, XZ } from '../schema.ts'
 
 /**
  * WorldLayout (world generator WG1): the geographic layout a world is generated from, kept apart
@@ -18,9 +18,9 @@ import type { Rect, XZ } from '../schema.ts'
 export const LAYOUT_FORMAT = 'zombie-outbreak/world-layout'
 export const LAYOUT_FORMAT_VERSION = 1
 
-/** Land use for the generator only (Q7): independent from the runtime `zombiePopulation` zones. */
-export const LAND_USE_ZONES = ['residential', 'commercial', 'industrial', 'public', 'forest', 'farmland', 'empty'] as const
-export type LandUseZone = (typeof LAND_USE_ZONES)[number]
+/** Land use for the generator only (Q7): independent from the runtime `zombiePopulation` zones (defined with the map schema, shared with prefab placement). */
+export { LAND_USE_ZONES } from '../schema.ts'
+export type { LandUseZone } from '../schema.ts'
 
 /** Areas nothing may be built on (Q8). Kept in the layout even though phase 1 renders none of them. */
 export const RESTRICTED_KINDS = ['water', 'railway', 'no-build'] as const
@@ -343,7 +343,29 @@ export interface LayoutParcel {
   /** Seed for what WG3 puts on the parcel. */
   seed: number
   locked: boolean
+  /** WG3: the building on the parcel (absent = not decided yet; null = no building: not a lot). */
+  build?: ParcelBuild | null
 }
+
+/** Why a lot has no building. */
+export type BuildReason = 'vacant' | 'no-prefab' | 'no-fit' | 'cleared'
+
+/**
+ * WG3: what stands on a parcel. `generated` by the placer, `manual` when chosen or cleared by hand
+ * (kept by a replan and skipped by bulk regeneration, like a locked parcel).
+ */
+export type ParcelBuild =
+  | {
+      prefabId: string
+      /** Turns that bring the prefab's entrance to the parcel's street side. */
+      quarterTurns: QuarterTurns
+      /** World position of the prefab pivot (the instance position). */
+      position: XZ
+      /** World footprint (the collision bound kept inside the parcel). */
+      footprint: Rect
+      source: 'generated' | 'manual'
+    }
+  | { prefabId: null; reason: BuildReason; source: 'generated' | 'manual' }
 
 export interface PlanMetrics {
   surfaces: number
@@ -373,4 +395,6 @@ export interface LayoutPlan {
   parcels: LayoutParcel[]
   metrics: PlanMetrics
   issues: LayoutIssue[]
+  /** WG3: prefab library the buildings were placed from (e.g. `prefab-library@1`), or absent. */
+  catalog?: string
 }

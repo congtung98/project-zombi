@@ -4,7 +4,7 @@ import { pointInOutline, signedArea } from '../polygon.ts'
 import { sourceToWorld } from './coordinates.ts'
 import { byString, hashText } from './geometry.ts'
 import { bucketPairs } from './network.ts'
-import { blockParcels, findBlocks, frontOf, parcelRect, rasterize, type BlockGrid } from './parcels.ts'
+import { blockParcels, findBlocks, FRONT_PROBE, frontOf, parcelRect, rasterize, type BlockGrid } from './parcels.ts'
 import { rectArea, rectCentre, rectsOverlap } from './rects.ts'
 import { networkSegments, streetSurfaces, type Segment } from './streets.ts'
 import type { AccessRoad, LandUseZone, LayoutIssue, LayoutParcel, LayoutPlan, PlanParams, Polygon, RoadClass, Side, WorldLayout, ZoneProfile } from './schema.ts'
@@ -175,11 +175,16 @@ export function planLayout(layout: WorldLayout, params: Partial<PlanParams> = {}
   return plan
 }
 
-/** Recompute the plan keeping the locked parcels and, when `blocks` is given, every parcel outside those blocks. */
+/**
+ * Recompute the plan keeping the locked parcels, parcels whose building was chosen by hand (Q2: hand
+ * edits are protected by default) and, when `blocks` is given, every parcel outside those blocks.
+ * Kept parcels keep their building; the others come back undecided (`build` absent).
+ */
 export function replan(layout: WorldLayout, previous: LayoutPlan, params: Partial<PlanParams> = {}, blocks?: readonly string[]): LayoutPlan {
   const only = blocks ? new Set(blocks) : null
-  const keep = previous.parcels.filter((q) => q.locked || (only !== null && !only.has(q.block)))
-  return planLayout(layout, { ...previous.params, ...params }, { keep })
+  const keep = previous.parcels.filter((q) => q.locked || q.build?.source === 'manual' || (only !== null && !only.has(q.block)))
+  const next = planLayout(layout, { ...previous.params, ...params }, { keep })
+  return previous.catalog ? { ...next, catalog: previous.catalog } : next
 }
 
 /**
@@ -291,7 +296,8 @@ export function checkPlan(layout: WorldLayout, plan: LayoutPlan, restricted: rea
     const side = q.access.side
     const alongX = side === 'N' || side === 'S'
     const mid = rectCentre(r)
-    const p = side === 'N' ? { x: mid.x, z: r.minZ - 0.05 } : side === 'S' ? { x: mid.x, z: r.maxZ + 0.05 } : side === 'W' ? { x: r.minX - 0.05, z: mid.z } : { x: r.maxX + 0.05, z: mid.z }
+    const d = FRONT_PROBE
+    const p = side === 'N' ? { x: mid.x, z: r.minZ - d } : side === 'S' ? { x: mid.x, z: r.maxZ + d } : side === 'W' ? { x: r.minX - d, z: mid.z } : { x: r.maxX + d, z: mid.z }
     const hit = road.some((s) => p.x >= s.rect.minX && p.x <= s.rect.maxX && p.z >= s.rect.minZ && p.z <= s.rect.maxZ)
     if (!hit && !probe.has(q.id)) {
       probe.add(q.id)

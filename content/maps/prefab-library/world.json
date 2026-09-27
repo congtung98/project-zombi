@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "worldId": "prefab-library",
+  "name": "Thư viện prefab (world generator)",
+  "contentVersion": 1,
+  "chunkSize": 32,
+  "coordinateSystem": "y-up-xz-meters",
+  "playArea": { "size": 192, "depth": 64, "center": { "x": -16, "z": 0 } },
+  "boundary": { "height": 2, "thickness": 1 },
+  "chunkBounds": { "minCx": -3, "maxCx": 2, "minCz": -1, "maxCz": 0 },
+  "chunks": [
+    { "chunkId": "c-3_-1", "cx": -3, "cz": -1, "path": "chunks/c-3_-1.json" },
+    { "chunkId": "c-2_-1", "cx": -2, "cz": -1, "path": "chunks/c-2_-1.json" },
+    { "chunkId": "c-1_-1", "cx": -1, "cz": -1, "path": "chunks/c-1_-1.json" },
+    { "chunkId": "c0_-1", "cx": 0, "cz": -1, "path": "chunks/c0_-1.json" },
+    { "chunkId": "c1_-1", "cx": 1, "cz": -1, "path": "chunks/c1_-1.json" },
+    { "chunkId": "c2_-1", "cx": 2, "cz": -1, "path": "chunks/c2_-1.json" },
+    { "chunkId": "c-3_0", "cx": -3, "cz": 0, "path": "chunks/c-3_0.json" },
+    { "chunkId": "c-2_0", "cx": -2, "cz": 0, "path": "chunks/c-2_0.json" },
+    { "chunkId": "c-1_0", "cx": -1, "cz": 0, "path": "chunks/c-1_0.json" },
+    { "chunkId": "c0_0", "cx": 0, "cz": 0, "path": "chunks/c0_0.json" },
+    { "chunkId": "c1_0", "cx": 1, "cz": 0, "path": "chunks/c1_0.json" },
+    { "chunkId": "c2_0", "cx": 2, "cz": 0, "path": "chunks/c2_0.json" }
+  ],
+  "prefabs": [
+    { "prefabId": "building/house", "contentVersion": 1, "path": "prefabs/house.json" },
+    { "prefabId": "building/safehouse", "contentVersion": 1, "path": "prefabs/safehouse.json" },
+    { "prefabId": "building/store", "contentVersion": 1, "path": "prefabs/store.json" },
+    { "prefabId": "building/lab-house", "contentVersion": 1, "path": "prefabs/lab-house.json" },
+    { "prefabId": "building/lab-garage", "contentVersion": 1, "path": "prefabs/lab-garage.json" },
+    { "prefabId": "building/two-storey", "contentVersion": 1, "path": "prefabs/two-storey.json" },
+    { "prefabId": "library/corner-shop", "contentVersion": 1, "path": "prefabs/corner-shop.json" },
+    { "prefabId": "library/warehouse", "contentVersion": 1, "path": "prefabs/warehouse.json" },
+    { "prefabId": "library/clinic", "contentVersion": 1, "path": "prefabs/clinic.json" },
+    { "prefabId": "library/tube-house", "contentVersion": 1, "path": "prefabs/tube-house.json" }
+  ],
+  "playerSpawn": "c0_0/spawns/player-start",
+  "listed": false
+}
