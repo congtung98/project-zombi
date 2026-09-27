@@ -29,6 +29,8 @@ const ALL_SHOTS = [
   { set: 'close', zoom: 200, size: [1800, 700] },
   { set: 'outfits', zoom: 28, size: [600, 400] },
   { set: 'outfits', zoom: 170, size: [1400, 1200] },
+  { set: 'combat', zoom: 28, size: [700, 420] },
+  { set: 'combat', zoom: 110, size: [1700, 1100] },
 ]
 const SHOTS = ONLY ? ALL_SHOTS.filter((s) => ONLY.includes(`${s.set}-z${s.zoom}`)) : ALL_SHOTS
 

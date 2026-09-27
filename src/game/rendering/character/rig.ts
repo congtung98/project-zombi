@@ -178,7 +178,8 @@ export function buildCharacter(look: CharacterLook, shadows: ShadowDetail = 'ful
 
 /** Write a computed pose into the rig's bones. */
 export function applyPose(rig: CharacterRig, pose: Pose): void {
-  rig.root.rotation.x = pose.rootPitch
+  rig.root.rotation.set(pose.rootPitch, 0, pose.rootRoll)
+  rig.root.position.y = pose.rootLift
   rig.hips.position.y = RIG.hipHeight + pose.bodyY
   rig.hips.rotation.set(0, pose.hipsYaw, pose.hipsRoll)
   rig.torso.rotation.set(pose.bodyPitch, pose.torsoTwist, pose.torsoRoll)

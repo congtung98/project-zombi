@@ -4,7 +4,8 @@ import type { Group, Mesh } from 'three'
 import { runtime } from '../core/runtime'
 import { cutaway } from './cutaway'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { computePose, createPose } from './character/pose'
+import { computePose, createPose, type FallKind } from './character/pose'
+import { chooseFall, fallOrder, FALL_ROOM } from './character/death'
 import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, setCharacterGlow, setCharacterOpacity, shadowDetail, zombieLook } from './character/rig'
 import { advanceMeasuredGait, createMeasuredGait } from './character/gait'
@@ -44,7 +45,12 @@ export function ZombieView({ id }: ZombieViewProps) {
   const rig = useMemo(() => buildCharacter(zombieLook(id), shadowDetail(shadows)), [id, shadows])
   const pose = useRef(createPose())
   const zombie = runtime.zombies.get(id)
-  const anim = useRef({ gait: createMeasuredGait(), time: (zombie?.id.length ?? 0) * 0.37, strike: 0, windup: -1, facing: zombie?.facing ?? 0 })
+  const anim = useRef({
+    gait: createMeasuredGait(), time: (zombie?.id.length ?? 0) * 0.37, strike: 0, windup: -1, facing: zombie?.facing ?? 0,
+    // C4: direction of the last hit (relative to the facing) and when; the fall chosen at death;
+    // `settled` once the corpse pose is on the rig (no more posing).
+    stagger: 0, hurtDir: Math.PI, hurtAt: -1e9, fall: null as FallKind | null, settled: false,
+  })
 
   useEffect(() => () => rig.dispose(), [rig])
 
@@ -72,6 +78,20 @@ export function ZombieView({ id }: ZombieViewProps) {
       attack = 1
     }
 
+    // C4: a new stagger records where the blow pushed the body (the simulation's knockback vector).
+    if (z.staggerTimer > a.stagger + 1e-3 && Math.hypot(z.knockback.x, z.knockback.z) > 1e-3) {
+      a.hurtDir = Math.atan2(z.knockback.x, z.knockback.z) - a.facing
+      a.hurtAt = a.time
+    }
+    a.stagger = z.staggerTimer
+    const dead = z.ai === 'DEAD'
+    if (dead && a.fall === null) {
+      // Chosen once: the push of a recent hit, else a stable order from the ID; never through a wall.
+      const from = { x: z.position.x, y: z.position.y + 0.5, z: z.position.z }
+      a.fall = chooseFall(fallOrder(id, a.time - a.hurtAt < 0.6 ? a.hurtDir : null), a.facing, (d) =>
+        runtime.isBlocked(from, { x: from.x + d.x * FALL_ROOM, y: from.y, z: from.z + d.z * FALL_ROOM }, []))
+    }
+
     // Player vision decides what is drawn; a hidden zombie skips posing (gait/timers above keep going).
     // M11c-1A: never on a storey the cutaway hides (above the one the player looks at).
     const opacity = runtime.vision.opacity(id)
@@ -79,24 +99,30 @@ export function ZombieView({ id }: ZombieViewProps) {
     if (!visual.visible) return
     setCharacterOpacity(rig, opacity)
 
-    computePose(
-      {
-        kind: 'zombie',
-        time: a.time,
-        gaitPhase: a.gait.phase,
-        speed: a.gait.speed,
-        swing: -1,
-        hitAt: 1,
-        shove: -1,
-        attack: z.ai === 'DEAD' ? -1 : attack,
-        hurt: z.ai === 'DEAD' ? 0 : z.staggerTimer / MAX_STAGGER,
-        dead: z.ai === 'DEAD' ? Math.min(1, z.deadTimer / FALL_DURATION) : -1,
-        armed: false,
-        work: -1,
-      },
-      pose.current,
-    )
-    applyPose(rig, pose.current)
+    // A corpse that has finished falling keeps its pose: no more posing work (C4).
+    if (!(dead && a.settled)) {
+      computePose(
+        {
+          kind: 'zombie',
+          time: a.time,
+          gaitPhase: a.gait.phase,
+          speed: a.gait.speed,
+          swing: -1,
+          hitAt: 1,
+          shove: -1,
+          attack: z.ai === 'DEAD' ? -1 : attack,
+          hurt: z.ai === 'DEAD' ? 0 : z.staggerTimer / MAX_STAGGER,
+          hurtDir: a.hurtDir,
+          dead: z.ai === 'DEAD' ? Math.min(1, z.deadTimer / FALL_DURATION) : -1,
+          fall: a.fall ?? 'back',
+          armed: false,
+          work: -1,
+        },
+        pose.current,
+      )
+      applyPose(rig, pose.current)
+      a.settled = dead && z.deadTimer >= FALL_DURATION
+    }
 
     // Red eyes while hunting the player or besieging a door (not while wandering/searching).
     setCharacterGlow(rig, z.hitFlashTimer > 0, z.ai === 'CHASE' || z.ai === 'ATTACK' || z.ai === 'APPROACH_STRUCTURE' || z.ai === 'ATTACK_STRUCTURE')

@@ -11,7 +11,7 @@ import { buildWeaponModel } from '../game/rendering/character/weaponModels'
  * C0 (character plan): dev-only character lab, `/?lab=characters` on the dev server. Same rig, pose
  * functions, camera angle, zoom (px/m) and day lights as the game, on a 1 m grid (25 cm from zoom 60), with fixed
  * pose inputs (no clock), so screenshots are identical run to run and compare before/after a sprint.
- * URL: `set` = lineup | states | turn | close | outfits, `zoom` (px/m, game default 28), `yaw` (rad, facing of the
+ * URL: `set` = lineup | states | turn | close | outfits | combat, `zoom` (px/m, game default 28), `yaw` (rad, facing of the
  * states set), `t` (s, idle breathing time). `window.__labReady` is set once the frame is drawn.
  */
 const CAM = GAME_CONFIG.camera
@@ -89,6 +89,26 @@ function outfits(): LabActor[] {
   ]
 }
 
+/** C4: swing phases with the two-handed grip, hit reactions by direction, the five death falls. */
+function combat(yaw: number): LabActor[] {
+  const P = (label: string, pose: Partial<PoseInput>): LabActor => ({ label, look: player, kind: 'player', weapon: 'baseball_bat', pose: { armed: true, ...pose }, facing: yaw })
+  const Z = (label: string, pose: Partial<PoseInput>): LabActor => ({ label, look: zombieLook('zombie-6'), kind: 'zombie', pose, facing: yaw })
+  return [
+    P('windup', { swing: 0.2 }),
+    P('contact', { swing: HIT_AT }),
+    P('follow', { swing: 0.8 }),
+    P('hurt front', { hurt: 1, hurtDir: Math.PI }),
+    P('hurt left', { hurt: 1, hurtDir: Math.PI / 2 }),
+    Z('z hurt back', { hurt: 1, hurtDir: 0 }),
+    Z('fall back', { dead: 1, fall: 'back' }),
+    Z('fall front', { dead: 1, fall: 'front' }),
+    Z('fall left', { dead: 1, fall: 'left' }),
+    Z('fall right', { dead: 1, fall: 'right' }),
+    Z('crumple', { dead: 1, fall: 'crumple' }),
+    Z('mid fall', { dead: 0.55, fall: 'back' }),
+  ]
+}
+
 function turn(): LabActor[] {
   const out: LabActor[] = []
   for (let i = 0; i < 8; i++) out.push({ label: `p ${i * 45}°`, look: player, kind: 'player', weapon: 'baseball_bat', pose: { armed: true }, facing: (i * Math.PI) / 4 })
@@ -144,9 +164,9 @@ export default function CharacterLab() {
   const zoom = Number(params.get('zoom') ?? CAM.zoomDefault)
   const yaw = Number(params.get('yaw') ?? Math.PI / 2)
   const time = Number(params.get('t') ?? 0)
-  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : set === 'close' ? close() : set === 'outfits' ? outfits() : lineup(Math.PI / 4)
+  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : set === 'close' ? close() : set === 'outfits' ? outfits() : set === 'combat' ? combat(yaw) : lineup(Math.PI / 4)
   // Two rows when there are many actors (states: player row behind, zombie row in front).
-  const perRow = set === 'lineup' || set === 'close' ? actors.length : set === 'outfits' ? 4 : 8
+  const perRow = set === 'lineup' || set === 'close' ? actors.length : set === 'outfits' || set === 'combat' ? 6 : 8
   const spacing = 1.8
   const placed = actors.map((actor, i) => {
     const row = Math.floor(i / perRow)

@@ -4,7 +4,8 @@ import type { Group } from 'three'
 import { runtime } from '../core/runtime'
 import { equippedWeapon } from '../systems/equipment'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { computePose, createPose } from './character/pose'
+import { computePose, createPose, type FallKind } from './character/pose'
+import { chooseFall, fallOrder, FALL_ROOM } from './character/death'
 import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, playerLook, shadowDetail } from './character/rig'
 import { buildWeaponModel, type WeaponModel } from './character/weaponModels'
@@ -38,6 +39,7 @@ export function PlayerView() {
   const gait = useRef(createPlayerGait())
   const clock = useRef(0)
   const deadTime = useRef(-1)
+  const fall = useRef<FallKind | null>(null)
   const spawn = runtime.player.position
 
   useEffect(() => {
@@ -88,6 +90,13 @@ export function PlayerView() {
     }
 
     deadTime.current = p.alive ? -1 : Math.max(0, deadTime.current) + delta
+    if (p.alive) fall.current = null
+    else if (fall.current === null) {
+      // C4: no hit direction is kept for the player: on its back if there is room, never through a wall.
+      const from = { x: p.position.x, y: p.position.y + 0.5, z: p.position.z }
+      fall.current = chooseFall(['back', ...fallOrder('player', null).filter((k) => k !== 'back')], p.facing, (d) =>
+        runtime.isBlocked(from, { x: from.x + d.x * FALL_ROOM, y: from.y, z: from.z + d.z * FALL_ROOM }, []))
+    }
     const shoveElapsed = PUSH.cooldown - p.pushCooldown
     computePose(
       {
@@ -102,6 +111,7 @@ export function PlayerView() {
         attack: -1,
         hurt: p.hurtTimer / HURT_TIME,
         dead: deadTime.current >= 0 ? Math.min(1, deadTime.current / DEATH_TIME) : -1,
+        fall: fall.current ?? 'back',
         armed: held !== null,
         work: runtime.action && p.alive ? runtime.action.elapsed : -1,
       },

@@ -3,7 +3,7 @@ import { Vector3 } from 'three'
 import { GAME_CONFIG } from '../../core/config'
 import { BODY_PRESETS, DEFAULT_APPEARANCE, HAIR_STYLES, OUTFIT_STYLES } from '../../entities/appearance'
 import { BONES, SLOT, SLOT_COUNT, bodyGeometry, bodyGeometryCount } from './body'
-import { computePose, createPose, type PoseInput } from './pose'
+import { FALL_KINDS, computePose, createPose, type PoseInput } from './pose'
 import { applyPose, buildCharacter, lookPalette, playerLook, zombieLook, type CharacterRig } from './rig'
 
 const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.43, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false, work: -1 }
@@ -111,6 +111,36 @@ describe('C1 skinned body', () => {
       expect(min.y, `t ${time}`).toBeGreaterThan(-0.03)
       expect(min.y, `t ${time}`).toBeLessThan(0.035)
     }
+    rig.dispose()
+  })
+
+  it('C4: every death pose lies on the floor (not sunk, not floating); crumpling stays low against a wall', () => {
+    for (const fall of FALL_KINDS) for (const look of [playerLook({ ...DEFAULT_APPEARANCE, outfit: 'jacket' }), zombieLook('zombie-4')]) {
+      const rig = buildCharacter(look)
+      applyPose(rig, computePose({ ...base, kind: 'zombie', dead: 1, fall }))
+      const { min, max } = posedBounds(rig)
+      expect(min.y, fall).toBeGreaterThan(-0.045)
+      expect(min.y, fall).toBeLessThan(0.04)
+      expect(max.y, fall).toBeLessThan(fall === 'crumple' ? 1.3 : 0.7)
+      // Mid-fall stays finite and above the floor too.
+      applyPose(rig, computePose({ ...base, kind: 'zombie', dead: 0.5, fall }))
+      expect(posedBounds(rig).min.y, `${fall} mid`).toBeGreaterThan(-0.1)
+      rig.dispose()
+    }
+  })
+
+  it('C4: with a weapon both hands meet on the handle at the hit frame; the chest winds up and drives through', () => {
+    const rig = buildCharacter(playerLook(DEFAULT_APPEARANCE))
+    const hitAt = base.hitAt
+    applyPose(rig, computePose({ ...base, armed: true, swing: hitAt }))
+    rig.root.updateMatrixWorld(true)
+    const hand = (bone: 'elbowL' | 'elbowR') => new Vector3(0, -0.285, 0).applyMatrix4(rig[bone].matrixWorld)
+    expect(hand('elbowL').distanceTo(hand('elbowR'))).toBeLessThan(0.3)
+    const windup = computePose({ ...base, armed: true, swing: 0.2 })
+    const follow = computePose({ ...base, armed: true, swing: 0.8 })
+    expect(windup.torsoTwist).toBeLessThan(-0.3)
+    expect(follow.torsoTwist).toBeGreaterThan(0.3)
+    expect(computePose({ ...base, armed: true, swing: hitAt }).torsoTwist).toBeCloseTo(0, 5)
     rig.dispose()
   })
 

@@ -41,9 +41,20 @@ export interface Pose {
   kneeR: number
   ankleL: number
   ankleR: number
-  /** Death fall: rotation of the whole model around the feet (−π/2 = lying on its back). */
+  /** Death fall: rotation of the whole model around the feet (−π/2 = lying on its back, +π/2 face down). */
   rootPitch: number
+  /** Death fall sideways (+π/2 = onto the right side, −X). */
+  rootRoll: number
+  /** Lift of the whole model while lying, so the body rests on the floor instead of sinking into it. */
+  rootLift: number
 }
+
+/**
+ * C4: how a character falls when it dies (in its own frame): on its back, face down, onto its left
+ * (+X) or right (−X) side, or crumpling to its knees where there is no room to fall (a wall).
+ */
+export const FALL_KINDS = ['back', 'front', 'left', 'right', 'crumple'] as const
+export type FallKind = (typeof FALL_KINDS)[number]
 
 export interface PoseInput {
   kind: 'player' | 'zombie'
@@ -73,6 +84,13 @@ export interface PoseInput {
    * path, the chest keeps the facing (strafing/backing off while the facing stays on the cursor).
    */
   hipTurn?: number
+  /**
+   * C4: direction the hit pushes the body, relative to its facing (rad; 0 = pushed forward, i.e. hit
+   * from behind; π = pushed back, the default when unknown). Tilts the hit reaction.
+   */
+  hurtDir?: number
+  /** C4: death fall (default 'back'). */
+  fall?: FallKind
 }
 
 export const WALK_REFERENCE_SPEED = 2
@@ -87,7 +105,7 @@ export function createPose(): Pose {
   return {
     bodyY: 0, hipsYaw: 0, hipsRoll: 0, bodyPitch: 0, torsoTwist: 0, torsoRoll: 0, headPitch: 0, headYaw: 0, headRoll: 0,
     armL: { x: 0, y: 0, z: 0 }, armR: { x: 0, y: 0, z: 0 }, elbowL: 0, elbowR: 0,
-    legL: 0, legR: 0, legSplayL: 0, legSplayR: 0, kneeL: 0, kneeR: 0, ankleL: 0, ankleR: 0, rootPitch: 0,
+    legL: 0, legR: 0, legSplayL: 0, legSplayR: 0, kneeL: 0, kneeR: 0, ankleL: 0, ankleR: 0, rootPitch: 0, rootRoll: 0, rootLift: 0,
   }
 }
 
@@ -127,6 +145,66 @@ export function swingPitch(progress: number): number {
 export function swingElbow(progress: number, hitAt: number): number {
   const windup = Math.min(0.2, hitAt * 0.5)
   return keyframes(progress, [[0, -0.3], [windup, -1.0], [hitAt, -0.12], [Math.min(0.85, hitAt + 0.4), -0.4], [1, -0.3]])
+}
+
+interface FallTarget {
+  pitch: number
+  roll: number
+  lift: number
+  arm: [number, number]
+  armZ: [number, number]
+  elbow: [number, number]
+  leg: [number, number]
+  knee: [number, number]
+  ankle: [number, number]
+  body: number
+  head: number
+}
+
+/** Lying (or kneeling) end poses; `lift` keeps the body on the floor (checked in body.test.ts). */
+const FALLS: Record<FallKind, FallTarget> = {
+  // Arms stay in the plane of the body (at the side, or up past the head) so they rest on the floor.
+  back: { pitch: -Math.PI / 2, roll: 0, lift: 0.145, arm: [-0.1, -2.95], armZ: [0.55, -0.35], elbow: [-0.3, -0.45], leg: [-0.3, -0.05], knee: [0.55, 0.12], ankle: [0.2, 0.1], body: 0, head: -0.1 },
+  front: { pitch: Math.PI / 2, roll: 0, lift: 0.155, arm: [-2.95, 0.1], armZ: [0.3, -0.45], elbow: [-0.5, -0.2], leg: [0.05, -0.1], knee: [0.1, 0.45], ankle: [0.6, 0.7], body: 0, head: -0.3 },
+  left: { pitch: 0, roll: -Math.PI / 2, lift: 0.3, arm: [-1.3, -0.9], armZ: [0.1, -0.1], elbow: [-0.9, -0.5], leg: [-0.45, -0.2], knee: [0.8, 0.5], ankle: [0.2, 0.2], body: 0.25, head: 0.2 },
+  right: { pitch: 0, roll: Math.PI / 2, lift: 0.3, arm: [-0.9, -1.3], armZ: [0.1, -0.1], elbow: [-0.5, -0.9], leg: [-0.2, -0.45], knee: [0.5, 0.8], ankle: [0.2, 0.2], body: 0.25, head: 0.2 },
+  crumple: { pitch: 0.3, roll: 0, lift: 0.02, arm: [-0.45, -0.3], armZ: [0.08, -0.08], elbow: [-0.3, -0.4], leg: [-0.35, -0.3], knee: [2.0, 1.95], ankle: [0.9, 0.9], body: 0.85, head: 0.55 },
+}
+
+/**
+ * C4 death: the knees give first (0–30 %), then the body topples around the feet, accelerating like
+ * a fall, and lands in the end pose of its fall kind. Progress 1 = the corpse pose (static).
+ */
+function deathPose(out: Pose, d: number, kind: FallKind): void {
+  const t = FALLS[kind]
+  const buckle = smooth(clamp01(d / 0.3))
+  const topple = clamp01((d - 0.12) / 0.88) ** 2
+  const settle = kind === 'crumple' ? buckle : topple
+  const give = kind === 'crumple' ? 0 : 0.7 * buckle * (1 - topple)
+  out.rootPitch = t.pitch * (kind === 'crumple' ? smooth(clamp01((d - 0.3) / 0.7)) : topple)
+  out.rootRoll = t.roll * topple
+  out.rootLift = t.lift * topple
+  out.armL.x = lerp(out.armL.x, t.arm[0], settle)
+  out.armR.x = lerp(out.armR.x, t.arm[1], settle)
+  out.armL.y = lerp(out.armL.y, 0, settle)
+  out.armR.y = lerp(out.armR.y, 0, settle)
+  out.armL.z = lerp(out.armL.z, t.armZ[0], settle)
+  out.armR.z = lerp(out.armR.z, t.armZ[1], settle)
+  out.elbowL = lerp(out.elbowL, t.elbow[0], settle)
+  out.elbowR = lerp(out.elbowR, t.elbow[1], settle)
+  out.legL = lerp(out.legL, t.leg[0], settle)
+  out.legR = lerp(out.legR, t.leg[1], settle)
+  out.kneeL = lerp(out.kneeL, t.knee[0], settle) + give
+  out.kneeR = lerp(out.kneeR, t.knee[1], settle) + give
+  out.ankleL = lerp(out.ankleL, t.ankle[0], settle) - give
+  out.ankleR = lerp(out.ankleR, t.ankle[1], settle) - give
+  out.bodyPitch = lerp(out.bodyPitch, t.body, settle) + 0.25 * buckle * (1 - settle)
+  out.headPitch = lerp(out.headPitch, t.head, settle)
+  out.torsoTwist = lerp(out.torsoTwist, 0, settle)
+  out.torsoRoll = lerp(out.torsoRoll, 0, settle)
+  out.hipsYaw = lerp(out.hipsYaw, 0, settle)
+  out.hipsRoll = lerp(out.hipsRoll, 0, settle)
+  out.headYaw = lerp(out.headYaw, 0, settle)
 }
 
 export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
@@ -175,6 +253,8 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
   }
   out.headRoll = zombie ? 0.22 + 0.06 * Math.sin(input.time * 1.3) : 0
   out.rootPitch = 0
+  out.rootRoll = 0
+  out.rootLift = 0
 
   if (zombie) {
     // Classic reach: arms forward, slightly apart, swaying with the shamble.
@@ -197,6 +277,10 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
       out.elbowL = bend
       out.elbowR = bend
       out.bodyPitch += keyframes(a, [[0, 0], [0.7, -0.12], [1, 0.3]])
+      // The legs brace into the slam.
+      const brace = keyframes(a, [[0, 0], [0.7, 0.05], [1, 0.22]])
+      out.kneeL += brace
+      out.kneeR += brace
     }
   } else {
     const armAmp = 0.45 * walk + 0.35 * run
@@ -210,13 +294,26 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     out.elbowL = lerp(-0.14 - 0.4 * Math.max(0, -out.armL.x), -1.3, run)
     out.elbowR = input.armed ? -0.12 : lerp(-0.14 - 0.4 * Math.max(0, -out.armR.x), -1.3, run)
     if (input.swing >= 0) {
+      // C4: the whole upper body swings: the chest winds up with the arm and drives through the hit,
+      // the pelvis follows a little, the body leans into the contact, the eyes stay on the target.
+      // The arm still crosses the front exactly at `hitAt` (the damage frame of the combat system).
       const p = clamp01(input.swing)
       out.armR.x = swingPitch(p)
       out.armR.y = swingYaw(p, input.hitAt)
       out.elbowR = swingElbow(p, input.hitAt)
-      out.armL.x = -0.4
-      out.elbowL = -0.5
-      out.torsoTwist = out.armR.y * 0.3
+      out.torsoTwist += out.armR.y * 0.45
+      out.hipsYaw += out.armR.y * 0.15
+      out.bodyPitch += keyframes(p, [[0, 0], [Math.min(0.2, input.hitAt * 0.5), -0.06], [input.hitAt, 0.14], [1, 0.03]])
+      out.headYaw = -out.armR.y * 0.5
+      if (input.armed) {
+        // Two-handed grip preset: the left hand follows the right one onto the handle.
+        out.armL.x = out.armR.x * 0.95
+        out.armL.y = out.armR.y - 0.42
+        out.elbowL = out.elbowR - 0.35
+      } else {
+        out.armL.x = -0.4
+        out.elbowL = -0.5
+      }
     }
     if (input.work >= 0 && input.swing < 0) {
       // Shared work pose: lean over the job, left hand steadies it, right hand taps ~2.5 times/s.
@@ -242,30 +339,24 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     }
   }
 
+  // C4 hit reaction: a short flinch away from the blow (lean along the push, head snaps, knees give,
+  // arms come up a little). It never cancels a swing or a step: it only adds to the pose.
   const hurt = clamp01(input.hurt)
-  out.bodyPitch -= 0.35 * hurt
-  out.headPitch -= 0.25 * hurt
-
-  if (input.dead >= 0) {
-    const d = clamp01(input.dead)
-    const fall = 1 - (1 - d) * (1 - d)
-    out.rootPitch = (-Math.PI / 2) * fall
-    out.armL.x = lerp(out.armL.x, -2.6, fall)
-    out.armR.x = lerp(out.armR.x, -2.6, fall)
-    out.armL.y = lerp(out.armL.y, 0, fall)
-    out.armR.y = lerp(out.armR.y, 0, fall)
-    out.elbowL = lerp(out.elbowL, -0.25, fall)
-    out.elbowR = lerp(out.elbowR, -0.35, fall)
-    out.legL = lerp(out.legL, 0.15, fall)
-    out.legR = lerp(out.legR, -0.1, fall)
-    out.kneeL = lerp(out.kneeL, 0.12, fall)
-    out.kneeR = lerp(out.kneeR, 0.3, fall)
-    out.ankleL = lerp(out.ankleL, 0.3, fall)
-    out.ankleR = lerp(out.ankleR, 0.3, fall)
-    out.bodyPitch = lerp(out.bodyPitch, 0, fall)
-    out.torsoTwist = lerp(out.torsoTwist, 0, fall)
-    out.hipsYaw = lerp(out.hipsYaw, 0, fall)
+  if (hurt > 0) {
+    const dir = input.hurtDir ?? Math.PI
+    out.bodyPitch += 0.35 * hurt * Math.cos(dir)
+    out.torsoRoll -= 0.3 * hurt * Math.sin(dir)
+    out.headPitch -= 0.25 * hurt
+    out.headRoll -= 0.2 * hurt * Math.sin(dir)
+    out.kneeL += 0.25 * hurt
+    out.kneeR += 0.25 * hurt
+    if (input.swing < 0 && input.attack < 0) {
+      out.elbowL -= 0.4 * hurt
+      out.elbowR -= 0.4 * hurt
+    }
   }
+
+  if (input.dead >= 0) deathPose(out, clamp01(input.dead), input.fall ?? 'back')
 
   // Feet on the floor: the pelvis drops by what the longer leg lost to bending or spreading, plus a
   // barely visible breath while standing.

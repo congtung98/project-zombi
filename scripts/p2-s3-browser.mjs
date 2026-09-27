@@ -207,11 +207,12 @@ try {
       damageZombie(z, 5)
       await new Promise((r) => setTimeout(r, 900))
       const root = rootOf()
-      return { ai: z.ai, rootPitch: root ? +root.rotation.x.toFixed(2) : null, hurtPitch, healthKept: rt.player.health >= health - 10 }
+      return { ai: z.ai, rootPitch: root ? +root.rotation.x.toFixed(2) : null, rootRoll: root ? +root.rotation.z.toFixed(2) : null, hurtPitch, healthKept: rt.player.health >= health - 10 }
     })
     log('zombie hurt/death', zombieStates)
     assert.equal(zombieStates.ai, 'DEAD')
-    assert.equal(zombieStates.rootPitch, -1.57)
+    // C4: the fall varies (back, face down, a side, or crumpling against a wall): lying = root turned 90°.
+    assert.ok([Math.abs(zombieStates.rootPitch), Math.abs(zombieStates.rootRoll)].includes(1.57) || zombieStates.rootPitch === 0.3, `fallen: ${JSON.stringify(zombieStates)}`)
     await shot('p2s3-zombie-dead')
 
     // 7) Save → reload → Continue keeps name and appearance.
