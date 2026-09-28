@@ -32,17 +32,14 @@ export function RecipeRequirements({ recipe, check }: { recipe: Recipe; check: R
 }
 
 /**
- * Craft list inside the inventory overlay. Checks run on the UI snapshot of the bag (pure
- * function); the runtime re-checks on start and again at commit.
+ * Craft list of the Crafting window (INV-LOOT D4: its own window). Checks run on the UI snapshot of
+ * the main inventory (pure function); the runtime re-checks on start and again at commit.
  */
-export function CraftingPanel() {
+export function CraftingList() {
   const bag = useInventoryStore((s) => s.bag)
   const action = useInventoryStore((s) => s.action)
   return (
-    <div className="inv-panel inv-panel-craft">
-      <div className="inv-header">
-        <h3>Chế tạo</h3>
-      </div>
+    <div className="inv-craft">
       {CRAFT_RECIPES.map((id) => {
         const recipe = RECIPES[id]
         if (recipe.kind !== 'craft') return null

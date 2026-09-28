@@ -329,10 +329,15 @@ describe('instance ownership', () => {
     }
     const cabinet = rt.interactables.find((i) => i.kind === 'container')!
     rt.interact(cabinet)
+    // INV-LOOT: an equipped weapon never leaves (take it off first); the reference never dangles.
+    expect(rt.putIntoContainer(bats[1].id)).toMatchObject({ moved: 0, reason: 'equipped' })
+    expect(rt.equipItem(null)).toBe(true)
     expect(rt.putIntoContainer(bats[1].id).moved).toBe(1)
     expect(rt.player.equipment.weaponInstanceId).toBeNull()
     expect(rt.takeFromContainer(bats[1].id).moved).toBe(1)
     expect(rt.equipItem(bats[0].id)).toBe(true)
+    expect(rt.dropItem(bats[0].id)).toBe(false)
+    expect(rt.equipItem(null)).toBe(true)
     expect(rt.dropItem(bats[0].id)).toBe(true)
     expect(rt.player.equipment.weaponInstanceId).toBeNull()
     for (let i = 0; i < 3; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)

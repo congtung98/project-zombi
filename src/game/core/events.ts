@@ -52,6 +52,8 @@ export type GameEvents = {
   /** Horde director moved a zone's group; `moving` = members that started walking now. */
   'horde:migrated': { from: string; to: string; ids: EntityId[]; moving: EntityId[] }
   'drops:changed': Record<string, never>
+  /** INV-LOOT: one summary per transfer command (the UI shows it once, never per unit). */
+  'inventory:transferred': { source: string; destination: string; moved: number; movedLines: number; skipped: string[] }
   'container:opened': { id: string; name: string; firstTime: boolean }
   'container:closed': { id: string }
   /** Túi người chơi, panel container hoặc trạng thái mở/đóng UI đổi; UI chụp snapshot mới. */

@@ -2,7 +2,9 @@ import { lazy, Suspense, useEffect } from 'react'
 import { DOOR_LAB_ENABLED } from '../game/world/doorLab'
 import { GameCanvas } from './GameCanvas'
 import { HUD } from '../components/HUD'
-import { InventoryOverlay } from '../components/ContainerPanel'
+import { InventoryOverlay } from '../components/inventory/InventoryOverlay'
+import { handleInventoryEscape } from '../components/inventory/escape'
+import { summaryText } from '../components/inventory/labels'
 import { GameOverScreen, MainMenu, PauseMenu } from '../components/Menus'
 import { CharacterCreation } from '../components/CharacterCreation'
 import { PerfHud } from '../components/PerfHud'
@@ -69,16 +71,21 @@ export function App() {
     const ui = () => useUiStore.getState()
     const inv = () => useInventoryStore.getState()
     const offs = [
-      // Esc: đóng túi/tủ trước; rồi rời thế chiến đấu (CS1); không có gì thì mới tạm dừng.
+      // Esc, one layer per press: popup → running action → focused/top window (INV-LOOT); then leave
+      // the combat stance (CS1); nothing left: pause.
       runtime.input.onAction('pause', () => {
-        if (ui().screen === 'playing' && runtime.uiOpen) runtime.closeAllUi()
-        else if (ui().screen === 'playing' && runtime.cancelStance()) return
-        else ui().togglePause()
+        if (ui().screen === 'playing' && handleInventoryEscape()) return
+        if (ui().screen === 'playing' && runtime.cancelStance()) return
+        ui().togglePause()
       }),
       runtime.input.onAction('inventory', () => {
         if (ui().screen === 'playing') runtime.toggleInventory()
       }),
       runtime.events.on('inventory:changed', () => inv().sync(runtime)),
+      // One summary per transfer command: only when something stayed behind or several lines moved.
+      runtime.events.on('inventory:transferred', (e) => {
+        if (e.skipped.length > 0 || e.movedLines > 1) useHudStore.getState().showToast(summaryText(e.moved, e.skipped), 2200, e.skipped.length > 0 ? 'warn' : undefined)
+      }),
       runtime.events.on('item:used', (e) =>
         useHudStore.getState().showToast(`Đã dùng ${e.name}: ${describeEffect(e.effect)}.`, 1800),
       ),

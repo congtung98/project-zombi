@@ -40,6 +40,9 @@ export const KEY_BINDINGS: Record<ActionName, string[]> = {
   cancelAction: ['KeyX'],
 }
 
+/** Keys a focused UI list uses for itself (never game input while it has focus). */
+const UI_NAV_CODES = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'NumpadEnter', 'Home', 'End', 'Space', 'ContextMenu'])
+
 /** Phím cần chặn hành vi mặc định của trình duyệt (cuộn trang, ...). */
 const PREVENT_DEFAULT_CODES = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F3', 'F4', 'F6', 'F7'])
 
@@ -201,6 +204,9 @@ export class InputManager {
     const target = e.target as HTMLElement | null
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return
     if (e.isComposing) return
+    // INV-LOOT: a focused item table or menu keeps its navigation keys and shortcuts (Ctrl+A is not
+    // "walk left"); WASD and the other game keys still work while it has focus.
+    if (target?.closest?.('[data-ui-keys]') && (UI_NAV_CODES.has(e.code) || e.ctrlKey || e.metaKey)) return
     if (PREVENT_DEFAULT_CODES.has(e.code)) e.preventDefault()
     if (e.repeat) return
     this.press(e.code)

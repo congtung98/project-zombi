@@ -72,7 +72,7 @@ export function HUD() {
         )}
       </div>
 
-      {hud.action && (
+      {hud.action && !hud.inventoryOpen && (
         <div className="hud-work" role="status">
           <div className="hud-work-label">
             {hud.action.label} · còn {hud.action.remaining.toFixed(1)} s

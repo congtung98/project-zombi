@@ -12,8 +12,9 @@ import { attackReadyIn, canStartAttack, cancelSwing, facingTowards, resolveConeH
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
 import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
-import { createInventory, cloneInventory, findItem, isEmpty, transferAll, transferItem, type Inventory, type TransferResult } from '../systems/inventory'
-import { bagInstanceIdOf, findUsable, usableInventories } from '../systems/bags'
+import { createInventory, cloneInventory, findItem, isEmpty, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
+import { containerIdOf, containerKey, emptySummary, isCarried, itemRefusal, type InventoryKey, type TransferLine, type TransferRefusal, type TransferOutcome, type TransferSkip, type TransferSummary } from '../systems/inventoryCommands'
+import { bagInstanceIdOf, findUsable, usableInventories, wornBagContents } from '../systems/bags'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { migrationInterval, nearestZone, planMigration } from '../systems/horde'
@@ -1188,9 +1189,11 @@ export class GameRuntime {
     else this.consumeItem(instanceId)
   }
 
+  /** Drop a whole main-inventory item at the player's feet; equipped, favorite and reserved items stay. */
   dropItem(instanceId: string): boolean {
     const item = findItem(this.player.inventory, instanceId)
     if (!item || !this.player.alive || this.player.attackTimer >= 0) return false
+    if (itemRefusal(item, this.player.equipment, true, false)) return false
     if (this.isReserved(item.id, item.quantity)) return false
     const id = `drop:${item.id}`
     // Reuse a previously emptied bag at this ID; never overwrite owned items.
@@ -1221,16 +1224,15 @@ export class GameRuntime {
     this.maxInteractRadius = Math.max(this.maxInteractRadius, item.radius)
   }
 
-  /** Phím I: mở/đóng túi. Đóng túi cũng đóng panel container. */
+  /** Phím I: mở/đóng cửa sổ túi đồ (cửa sổ Loot độc lập, đóng bằng E hoặc nút đóng của nó). */
   toggleInventory(): void {
-    if (this.inventoryOpen) this.closeAllUi()
-    else this.setInventoryOpen(true)
+    this.setInventoryOpen(!this.inventoryOpen)
   }
 
+  /** INV-LOOT: the inventory window only; the loot window (open container) stays as it is. */
   setInventoryOpen(open: boolean): void {
     if (this.inventoryOpen === open) return
     this.inventoryOpen = open
-    if (!open) this.closeContainer()
     this.syncUiOpen()
     this.queueInventoryChanged()
   }
@@ -1279,34 +1281,93 @@ export class GameRuntime {
     return result
   }
 
+  /**
+   * The inventory behind a key, or null when the player cannot reach it now: the main inventory, the
+   * worn bag's contents, or the open container (S3 widens this to nearby containers and the floor).
+   */
+  inventoryFor(key: InventoryKey): Inventory | null {
+    if (key === 'main') return this.player.inventory
+    if (key === 'worn') return wornBagContents(this.player.inventory, this.player.equipment, this.world.bags)
+    const id = containerIdOf(key)
+    return id !== null && id === this.openContainerId ? (this.world.containers.get(id)?.items ?? null) : null
+  }
+
+  /**
+   * INV-LOOT: the one command that moves items between inventories (UI, bot and tests). Lines are
+   * instance IDs with optional quantities, handled in the given order; each is checked against the
+   * current state (equipped, favorite leaving what the player carries, reserved by an action, room),
+   * then moved with `transferItem`, which never loses or duplicates a unit. One summary per call.
+   * S2 moves at once; S4 turns each line into timed steps with the same rules.
+   */
+  transferItems(sourceKey: InventoryKey, destinationKey: InventoryKey, lines: readonly TransferLine[]): TransferSummary {
+    const summary = emptySummary()
+    const skip = (instanceId: string, itemId: TransferSkip['itemId'], reason: TransferRefusal) => summary.skipped.push({ instanceId, itemId, reason })
+    const from = this.inventoryFor(sourceKey)
+    const to = this.inventoryFor(destinationKey)
+    for (const line of lines) {
+      const item = from ? findItem(from, line.instanceId) : undefined
+      const itemId = item?.itemId ?? null
+      if (!this.player.alive) skip(line.instanceId, itemId, 'dead')
+      else if (this.player.attackTimer >= 0) skip(line.instanceId, itemId, 'busy')
+      else if (!from || !to) skip(line.instanceId, itemId, 'unreachable')
+      else if (sourceKey === destinationKey || from === to) skip(line.instanceId, itemId, 'same-inventory')
+      else if (!item) skip(line.instanceId, null, 'missing')
+      else {
+        const leaving = isCarried(sourceKey) && !isCarried(destinationKey)
+        const reserved = sourceKey === 'main' && reservationBlocks(this.player.inventory, this.action?.reservation ?? null, item.id, line.quantity ?? item.quantity)
+        const refusal = itemRefusal(item, this.player.equipment, leaving, reserved)
+        if (refusal) {
+          if (refusal === 'reserved') this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.action!.label })
+          skip(item.id, item.itemId, refusal)
+          continue
+        }
+        const want = line.quantity === undefined ? item.quantity : line.quantity
+        const r = transferItem(from, item.id, to, line.quantity)
+        if (r.moved > 0) {
+          summary.moved += r.moved
+          summary.movedLines += 1
+        }
+        if (r.moved < Math.floor(want) || r.moved === 0) skip(item.id, item.itemId, r.reason ?? 'full')
+      }
+    }
+    if (summary.moved > 0) this.queueInventoryChanged()
+    if (lines.length > 0) this.events.queue('inventory:transferred', { source: sourceKey, destination: destinationKey, moved: summary.moved, movedLines: summary.movedLines, skipped: summary.skipped.map((x) => x.reason) })
+    return summary
+  }
+
+  /** Favorite (or not) an item the player carries; a favorite never merges and never leaves by a batch. */
+  setFavorite(instanceId: string, favorite: boolean): boolean {
+    const found = findUsable(this.player.inventory, this.player.equipment, this.world.bags, instanceId)
+    if (!found) return false
+    if (favorite) found.item.favorite = true
+    else delete found.item.favorite
+    this.queueInventoryChanged()
+    return true
+  }
+
   /** Lấy `quantity` (mặc định cả instance) từ container đang mở vào túi; phần không vừa ở lại container. */
-  takeFromContainer(instanceId: string, quantity?: number): TransferResult {
-    const c = this.openContainer
-    if (!c) return { moved: 0, remainder: 0, reason: 'missing' }
-    const r = transferItem(c.items, instanceId, this.player.inventory, quantity)
-    if (r.moved > 0) this.queueInventoryChanged()
-    return r
+  takeFromContainer(instanceId: string, quantity?: number): TransferOutcome {
+    return this.legacyResult(this.openContainerId ? containerKey(this.openContainerId) : null, 'main', instanceId, quantity)
   }
 
-  /** Cất `quantity` (mặc định cả instance) từ túi vào container đang mở. */
-  putIntoContainer(instanceId: string, quantity?: number): TransferResult {
-    const c = this.openContainer
-    const item = findItem(this.player.inventory, instanceId)
-    if (!c || !item) return { moved: 0, remainder: item?.quantity ?? 0, reason: 'missing' }
-    if (this.player.attackTimer >= 0 || this.isReserved(instanceId, quantity ?? item.quantity)) return { moved: 0, remainder: item.quantity, reason: null }
-    const r = transferItem(this.player.inventory, instanceId, c.items, quantity)
-    reconcileEquipment(this.player.inventory, this.player.equipment)
-    if (r.moved > 0) this.queueInventoryChanged()
-    return r
+  /** Cất `quantity` (mặc định cả instance) từ túi vào container đang mở (đồ đang trang bị/yêu thích: không). */
+  putIntoContainer(instanceId: string, quantity?: number): TransferOutcome {
+    return this.legacyResult('main', this.openContainerId ? containerKey(this.openContainerId) : null, instanceId, quantity)
   }
 
-  /** Lấy tất cả có thể; hết chỗ thì đồ còn lại vẫn ở container. */
-  takeAll(): TransferResult {
+  /** Lấy tất cả có thể (bỏ qua mọi bộ lọc của UI); hết chỗ thì đồ còn lại vẫn ở container. */
+  takeAll(): TransferOutcome {
     const c = this.openContainer
     if (!c) return { moved: 0, remainder: 0, reason: 'missing' }
-    const r = transferAll(c.items, this.player.inventory)
-    if (r.moved > 0) this.queueInventoryChanged()
-    return r
+    const r = this.transferItems(containerKey(c.id), 'main', c.items.items.map((i) => ({ instanceId: i.id })))
+    return { moved: r.moved, remainder: totalQuantity(c.items), reason: r.skipped[0]?.reason ?? null }
+  }
+
+  private legacyResult(sourceKey: InventoryKey | null, destinationKey: InventoryKey | null, instanceId: string, quantity?: number): TransferOutcome {
+    if (!sourceKey || !destinationKey) return { moved: 0, remainder: 0, reason: 'missing' }
+    const r = this.transferItems(sourceKey, destinationKey, [{ instanceId, quantity }])
+    const left = this.inventoryFor(sourceKey)
+    return { moved: r.moved, remainder: (left && findItem(left, instanceId)?.quantity) ?? 0, reason: r.skipped[0]?.reason ?? null }
   }
 
   // ----- Timed actions: craft/repair (plan §7). Started from UI, advanced and committed in tick -----
