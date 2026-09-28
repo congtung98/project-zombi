@@ -157,6 +157,13 @@ try {
   })
   assert.ok(spot, 'an open spot with nothing to interact with')
   await teleport(spot.x, spot.z)
+  // This part checks the bag and the floor, not combat: zombies near the spot are removed so a hit never
+  // cancels the (timed) transfers; interruptions are covered by actionQueue.test.ts and il-s4-browser.mjs.
+  const clearZombies = () => rt(() => {
+    const r = window.__runtime
+    for (const z of [...r.zombies.values()]) if (Math.hypot(z.position.x - r.player.position.x, z.position.z - r.player.position.z) < 40) r.removeZombie(z.id)
+  })
+  await clearZombies()
   const bagId = await rt(() => {
     const r = window.__runtime
     const inv = r.player.inventory
@@ -214,8 +221,15 @@ try {
   await waitNearby()
   await page.keyboard.press('KeyE')
   await win('loot').waitFor()
-  await rows('loot').filter({ hasText: 'Balo' }).dblclick()
-  await page.waitForFunction((id) => window.__runtime.world.floor.find(id) === null, bagId)
+  // Picking up a heavy bag takes ~1.4 s; a zombie's hit cancels it (INV-LOOT §8.4): pick it up again, like a player.
+  await clearZombies()
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await rows('loot').filter({ hasText: 'Balo' }).dblclick()
+    await page.waitForFunction(() => window.__runtime.jobs.length === 0, null, { timeout: 15000 })
+    if (await rt((id) => window.__runtime.world.floor.find(id) === null, bagId)) break
+    log('pick-up interrupted', `attempt ${attempt + 1}`)
+  }
+  assert.equal(await rt((id) => window.__runtime.world.floor.find(id), bagId), null, 'picked up')
   await rt((id) => window.__runtime.wearBag(id), bagId)
   const contents = await rt((id) => window.__runtime.world.bags.get(id).items.map((i) => `${i.itemId}x${i.quantity}`).sort(), bagId)
   assert.deepEqual(contents, ['waterx2', 'wood_plankx3'])

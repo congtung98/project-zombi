@@ -1287,6 +1287,81 @@ button.primary:hover:not(:disabled) {
   color: var(--inv-muted);
 }
 
+.inv-badge-queued {
+  color: var(--inv-muted);
+  border-style: dashed;
+}
+
+.inv-action-wrap {
+  flex: none;
+  border-top: 1px solid var(--inv-border);
+}
+
+.inv-action-wrap .inv-action {
+  border-top: none;
+}
+
+.inv-queue {
+  max-height: 72px;
+  margin: 0;
+  padding: 0 16px 4px 8px;
+  overflow-y: auto;
+  list-style: none;
+  color: var(--inv-muted);
+  font-size: 12px;
+}
+
+.inv-queue li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 22px;
+}
+
+.inv-drag {
+  position: absolute;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--inv-bg);
+  border: 1px solid var(--inv-accent);
+  border-radius: var(--inv-radius);
+  pointer-events: none;
+  z-index: 200;
+  font-size: 12px;
+}
+
+.inv-drag-count {
+  color: var(--inv-accent);
+}
+
+.inv-qty {
+  width: 250px;
+}
+
+.inv-qty-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.inv-qty-input {
+  width: 72px;
+  flex: none;
+}
+
+.inv-qty-input[aria-invalid='true'] {
+  border-color: var(--inv-danger);
+}
+
+.inv-qty-actions {
+  justify-content: flex-end;
+}
+
 .inv-craft {
   flex: 1;
   min-height: 0;

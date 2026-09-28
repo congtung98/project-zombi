@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { ITEMS, type ItemId } from '../entities/items'
 import { RECIPES, repairRecipeFor, type Recipe } from '../entities/recipes'
-import { addItem, countItem, createInventory, removeQuantity, totalQuantity, type Inventory } from './inventory'
+import { addItem, countItem, createInventory, totalQuantity, type Inventory } from './inventory'
 import { checkRecipe, commitRecipe } from './crafting'
-import { reservationBlocks, reservationFor } from './timedAction'
+import { ReservationLedger } from './actionQueue'
 import type { WeaponInstance } from './weapons'
 import { GAME_CONFIG } from '../core/config'
 
@@ -162,23 +162,64 @@ describe('tool requirements', () => {
   })
 })
 
-describe('reservation', () => {
-  it('blocks reserved instances and any removal that would dip below a reserved count', () => {
-    const inv = bag([['wood_plank', 12], ['duct_tape', 1], ['water', 1]])
-    const bat = weapon(inv, 'baseball_bat', 0)
-    const r = reservationFor(WOOD, bat.id, checkRecipe(inv, WOOD, bat.id))
-    expect(r).toEqual({ counts: { wood_plank: 1, duct_tape: 1 }, instanceIds: [bat.id] })
-    const idOf = (itemId: ItemId) => inv.items.find((i) => i.itemId === itemId)!.id
-    expect(reservationBlocks(inv, r, bat.id, 1)).toBe(true)
-    expect(reservationBlocks(inv, r, idOf('duct_tape'), 1)).toBe(true)
-    // 12 wood = stacks of 10 + 2: moving either stack keeps ≥ 1 wood, moving both would not.
-    const wood = inv.items.filter((i) => i.itemId === 'wood_plank').map((i) => i.id)
-    expect(reservationBlocks(inv, r, wood[0], 10)).toBe(false)
-    expect(reservationBlocks(inv, r, wood[1], 2)).toBe(false)
-    removeQuantity(inv, wood[0], 10)
-    expect(reservationBlocks(inv, r, wood[1], 2)).toBe(true)
-    expect(reservationBlocks(inv, r, wood[1], 1)).toBe(false)
-    expect(reservationBlocks(inv, r, idOf('water'), 1)).toBe(false)
-    expect(reservationBlocks(inv, null, bat.id, 1)).toBe(false)
+describe('reservation ledger (INV-LOOT S4)', () => {
+  it('holds instance units per action; releasing one action never frees another', () => {
+    const ledger = new ReservationLedger()
+    ledger.reserve(1, 'recipe', 'wood', 2)
+    ledger.reserve(1, 'recipe', 'bat', 1)
+    ledger.reserve(2, 'transfer', 'wood', 3)
+    expect([ledger.reserved('wood'), ledger.reserved('wood', 2), ledger.reserved('bat')]).toEqual([5, 2, 1])
+    expect([ledger.heldByTransfer('wood'), ledger.heldByTransfer('bat')]).toEqual([true, false])
+    ledger.release(2)
+    expect([ledger.reserved('wood'), ledger.heldByTransfer('wood')]).toEqual([2, false])
+    ledger.release(2)
+    expect(ledger.ids().sort()).toEqual(['bat', 'wood'])
+    ledger.release(1)
+    expect(ledger.isEmpty()).toBe(true)
+  })
+})
+
+describe('inputs from several inventories (INV-LOOT Q2)', () => {
+  const sources = (main: Inventory, worn: Inventory, protect: (id: string) => boolean = () => false, held = new Map<string, number>()) => ({
+    inventories: [main, worn],
+    protect: (i: { id: string }) => protect(i.id),
+    available: (i: { id: string; quantity: number }) => i.quantity - (held.get(i.id) ?? 0),
+  })
+
+  it('takes the main inventory first, then the worn bag, and adds both up', () => {
+    const main = bag([['wood_plank', 1]])
+    const worn = createInventory(8, 'bag:x', 'bag')
+    addItem(worn, 'wood_plank', 3)
+    addItem(worn, 'duct_tape', 1)
+    const check = checkRecipe(sources(main, worn), CLUB, null)
+    expect(check.ok).toBe(true)
+    expect(check.plan).toEqual([{ instanceId: main.items[0].id, quantity: 1 }, { instanceId: worn.items[0].id, quantity: 1 }, { instanceId: worn.items[1].id, quantity: 1 }])
+    const r = commitRecipe(sources(main, worn), CLUB, null, [], check.plan!)
+    expect(r.ok).toBe(true)
+    expect([countItem(main, 'wood_plank'), countItem(worn, 'wood_plank'), countItem(worn, 'duct_tape'), countItem(main, 'wooden_club')]).toEqual([0, 2, 0, 1])
+  })
+
+  it('never consumes a favorite or an equipped item, nor units another action holds', () => {
+    const main = bag([['wood_plank', 2], ['duct_tape', 1]])
+    const worn = createInventory(8, 'bag:x', 'bag')
+    const wood = main.items[0].id
+    expect(checkRecipe(sources(main, worn, (id) => id === wood), CLUB, null)).toMatchObject({ ok: false, failure: 'missing-input', plan: null })
+    expect(checkRecipe(sources(main, worn, () => false, new Map([[wood, 1]])), CLUB, null).inputs[0]).toEqual({ itemId: 'wood_plank', need: 2, have: 1, ok: false })
+    addItem(worn, 'wood_plank', 1)
+    expect(checkRecipe(sources(main, worn, () => false, new Map([[wood, 1]])), CLUB, null).plan).toEqual([
+      { instanceId: wood, quantity: 1 }, { instanceId: worn.items[0].id, quantity: 1 }, { instanceId: main.items[1].id, quantity: 1 },
+    ])
+  })
+
+  it('a commit with a plan that no longer holds (moved away meanwhile) fails and changes nothing', () => {
+    const main = bag([['wood_plank', 2], ['duct_tape', 1]])
+    const worn = createInventory(8, 'bag:x', 'bag')
+    const plan = checkRecipe(sources(main, worn), CLUB, null).plan!
+    const wood = main.items[0]
+    wood.quantity = 1
+    addItem(worn, 'wood_plank', 1)
+    const before = structuredClone([main, worn])
+    expect(commitRecipe(sources(main, worn), CLUB, null, [], plan)).toEqual({ ok: false, failure: 'missing-input' })
+    expect([main, worn]).toEqual(before)
   })
 })

@@ -63,6 +63,16 @@ export const L = {
   cooldown: 'Hồi',
   stamina: 'Thể lực',
   compactTabs: 'Chọn cửa sổ',
+  queued: 'Chờ chuyển',
+  waiting: 'Đang chờ',
+  cancelAll: 'Hủy hết',
+  cancelOne: 'Bỏ thao tác này khỏi hàng đợi',
+  quantityTitle: 'Số lượng',
+  quantityTo: 'Tới',
+  quantityMax: 'Tối đa',
+  confirm: 'Đồng ý',
+  dragHint: (n: number) => (n > 1 ? `${n} món` : ''),
+  progress: (done: number, total: number) => `${done}/${total}`,
 } as const
 
 export const CATEGORY_LABEL: Record<ItemKind, string> = {
@@ -92,6 +102,7 @@ export const ACTION_LABEL = {
   favorite: 'Đánh dấu yêu thích',
   unfavorite: 'Bỏ yêu thích',
   inspect: 'Xem chi tiết',
+  quantity: 'Chọn số lượng…',
 } as const
 
 /** Why an action is disabled or an item did not move (shown in menus and summaries). */
@@ -104,6 +115,7 @@ export const REFUSAL_LABEL: Record<TransferRefusal | 'not-carried' | 'not-main' 
   equipped: 'Đang trang bị — tháo ra trước',
   favorite: 'Món yêu thích — bỏ yêu thích trước',
   reserved: 'Đang dùng cho thao tác khác',
+  queued: 'Đã xếp hàng',
   unreachable: 'Ngoài tầm',
   dead: 'Không thể lúc này',
   busy: 'Đang ra đòn',

@@ -127,7 +127,7 @@ export function PlayerView() {
         dead: deadTime.current >= 0 ? Math.min(1, deadTime.current / DEATH_TIME) : -1,
         fall: fall.current ?? 'back',
         armed: held !== null,
-        work: runtime.action && p.alive ? runtime.action.elapsed : -1,
+        work: p.alive ? runtime.workElapsed : -1,
         ready: ready.current,
         aimLead: lead.current,
       },

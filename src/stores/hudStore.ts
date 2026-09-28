@@ -34,8 +34,15 @@ export type ToastTone = 'info' | 'warn' | 'danger'
 /** Progress of the running craft/repair (simulation time, so it stops while paused). */
 export interface HudAction {
   label: string
+  /** 0..1 of the current step. */
   progress: number
+  /** Seconds left in the current step. */
   remaining: number
+  /** Units done / queued in the running job (a recipe: 0/1). */
+  done: number
+  total: number
+  /** Jobs waiting behind it. */
+  waiting: number
 }
 
 interface HudSnapshot {
@@ -153,6 +160,7 @@ export const useHudStore = create<HudState>((set) => ({
         vision: rt.vision.get(z.id)?.reason ?? '-',
       })
     }
+    const job = rt.runningJob
     set({
       playerName: p.name,
       health: p.health,
@@ -188,9 +196,8 @@ export const useHudStore = create<HudState>((set) => ({
       weapon: w && def
         ? { name: def.name, icon: def.icon, condition: w.condition, maxCondition: def.maxCondition!, level: conditionLevel(w.itemId, w.condition) }
         : null,
-      action: rt.action
-        ? { label: rt.action.label, progress: rt.action.elapsed / rt.action.duration, remaining: Math.max(0, rt.action.duration - rt.action.elapsed) }
-        : null,
+      // INV-LOOT S4: the running job (transfer step, craft or repair) with its step progress.
+      action: job ? { label: job.label, progress: job.stepProgress, remaining: job.stepRemaining, done: job.done, total: job.total, waiting: rt.jobs.length - 1 } : null,
     })
   },
 

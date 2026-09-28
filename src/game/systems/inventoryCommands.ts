@@ -22,7 +22,7 @@ export function isCarried(key: InventoryKey): boolean {
 }
 
 /** Why one item did not move (capacity reasons come from `transferItem`, state reasons from here). */
-export type TransferRefusal = TransferBlock | 'equipped' | 'favorite' | 'reserved' | 'unreachable' | 'dead' | 'busy'
+export type TransferRefusal = TransferBlock | 'equipped' | 'favorite' | 'reserved' | 'queued' | 'unreachable' | 'dead' | 'busy'
 
 export interface TransferLine {
   instanceId: string

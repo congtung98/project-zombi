@@ -86,16 +86,18 @@ describe('timed repair', () => {
     expect(rt.action!.elapsed).toBe(before)
   })
 
-  it('spamming start never duplicates: one action, one output, inputs spent once', () => {
+  it('spamming start never queues beyond the materials: two clubs from materials for two, inputs spent once', () => {
     const { rt, log } = setup([['wood_plank', 4], ['duct_tape', 2]])
-    for (let i = 0; i < 10; i++) rt.startCraft('craft_wooden_club')
+    const results = Array.from({ length: 10 }, () => rt.startCraft('craft_wooden_club'))
     rt.events.flush()
-    expect(log.filter((e) => e === 'action:started')).toHaveLength(1)
-    expect(log.filter((e) => e === 'action:rejected')).toHaveLength(9)
-    run(rt, 4.1)
+    // INV-LOOT Q3: one runs, one waits (its inputs are claimed), the other eight are refused at once.
+    expect(results.map((r) => (r.ok ? (r.queued ? 'queued' : 'started') : r.reason))).toEqual(['started', 'queued', ...Array(8).fill('missing-carried')])
+    expect(log.filter((e) => e === 'action:rejected')).toHaveLength(8)
+    run(rt, 8.2)
     const clubs = () => rt.player.inventory.items.filter((i) => i.itemId === 'wooden_club').length
-    expect(clubs()).toBe(1)
-    expect([countItem(rt.player.inventory, 'wood_plank'), countItem(rt.player.inventory, 'duct_tape')]).toEqual([2, 1])
+    expect(clubs()).toBe(2)
+    expect([countItem(rt.player.inventory, 'wood_plank'), countItem(rt.player.inventory, 'duct_tape')]).toEqual([0, 0])
+    expect(rt.ledger.isEmpty()).toBe(true)
   })
 })
 
@@ -182,7 +184,7 @@ describe('reservation while working', () => {
     expect(find(rt, bat.id)!.condition).toBe(35)
   })
 
-  it('only one action at a time; not mid-swing', () => {
+  it('one action runs at a time, the next waits in the queue; nothing starts mid-swing; one repair per item', () => {
     const { rt } = setup([['wood_plank', 5], ['duct_tape', 5], ['scrap_metal', 1]])
     const bat = give(rt, 'baseball_bat', 10)
     expect(rt.equipItem(bat.id)).toBe(true)
@@ -192,8 +194,10 @@ describe('reservation while working', () => {
     rt.input.simulateKey('Mouse0', false)
     expect(rt.startRepair(bat.id)).toEqual({ ok: false, reason: 'busy' })
     run(rt, 1)
-    expect(rt.startRepair(bat.id).ok).toBe(true)
-    expect(rt.startCraft('craft_wooden_club')).toEqual({ ok: false, reason: 'busy' })
+    expect(rt.startRepair(bat.id)).toMatchObject({ ok: true, queued: false })
+    expect(rt.startRepair(bat.id)).toEqual({ ok: false, reason: 'already-queued' })
+    expect(rt.startCraft('craft_wooden_club')).toMatchObject({ ok: true, queued: true })
+    expect(rt.jobs.map((j) => j.label)).toEqual(['Sửa Gậy bóng chày', 'Chế tạo Gậy gỗ tự chế'])
   })
 })
 

@@ -3,7 +3,7 @@ import { accepts, type Inventory } from '../../game/systems/inventory'
 import { isCarried, isEquipped, itemRefusal, type InventoryKey } from '../../game/systems/inventoryCommands'
 import { ACTION_LABEL, REFUSAL_LABEL } from './labels'
 
-export type ActionId = 'equip' | 'unequip' | 'wear' | 'takeOff' | 'eat' | 'drink' | 'use' | 'repair' | 'transfer' | 'drop' | 'favorite' | 'unfavorite' | 'inspect'
+export type ActionId = 'equip' | 'unequip' | 'wear' | 'takeOff' | 'eat' | 'drink' | 'use' | 'repair' | 'transfer' | 'quantity' | 'drop' | 'favorite' | 'unfavorite' | 'inspect'
 
 export interface MenuEntry {
   key: string
@@ -90,6 +90,11 @@ export function menuEntries(ctx: MenuContext): MenuEntry[] {
     const movable = blocks.filter((b) => b === null).length
     const suffix = ctx.items.length > 1 ? ` (${movable}/${ctx.items.length})` : ''
     entries.push({ key: `transfer:${dest.key}`, action: 'transfer', destination: dest.key, label: transferLabel(ctx.source, dest) + suffix, disabled: movable > 0 ? null : blocks[0] })
+  }
+  // Part of one stack: the quantity dialog (the destination is chosen there).
+  if (one && one.kind === 'stack' && one.quantity > 1 && ctx.destinations.length > 0) {
+    const first = ctx.destinations.find((d) => transferBlock(ctx, one, d) === null)
+    entries.push({ key: 'quantity', action: 'quantity', label: ACTION_LABEL.quantity, destination: (first ?? ctx.destinations[0]).key, disabled: first ? null : transferBlock(ctx, one, ctx.destinations[0]) })
   }
   if (carried) {
     const blocks = ctx.items.map((i) => {

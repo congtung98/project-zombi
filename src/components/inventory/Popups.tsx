@@ -9,7 +9,8 @@ import { useInventoryStore, type InventoryView } from '../../stores/inventorySto
 import { useInventoryUiStore } from '../../stores/inventoryUiStore'
 import { ACTION_FAILURE_TEXT } from '../craftText'
 import { menuEntries, type Destination } from './itemActions'
-import { runMenuEntry } from './commands'
+import { runMenuEntry, transferQuantity } from './commands'
+import { ItemIcon } from './ItemIcon'
 import { ItemCard } from './ItemCard'
 import { instancesIn, useView } from './tableData'
 import { L, REFUSAL_LABEL } from './labels'
@@ -42,7 +43,7 @@ function useDestinations(source: InventoryKey): Destination[] {
   return useMemo(() => [main, worn, loot].filter((v): v is InventoryView => v !== null && v.key !== source && v.key !== 'floor').map((v) => ({ key: v.key, name: v.name, inventory: v.inventory })), [main, worn, loot, source])
 }
 
-function ContextMenu({ source, instanceIds, x, y, view, onInspect }: { source: InventoryKey; instanceIds: string[]; x: number; y: number; view: View; onInspect: (id: string) => void }) {
+function ContextMenu({ source, instanceIds, x, y, view, onInspect, onQuantity }: { source: InventoryKey; instanceIds: string[]; x: number; y: number; view: View; onInspect: (id: string) => void; onQuantity: (id: string, destination: InventoryKey) => void }) {
   const inv = useView(source)
   const items = useMemo(() => instancesIn(inv, instanceIds), [inv, instanceIds])
   const destinations = useDestinations(source)
@@ -50,6 +51,7 @@ function ContextMenu({ source, instanceIds, x, y, view, onInspect }: { source: I
   const backId = useInventoryStore((s) => s.backInstanceId)
   const action = useInventoryStore((s) => s.action)
   const bag = useInventoryStore((s) => s.bag)
+  const worn = useInventoryStore((s) => s.worn)
   const close = useInventoryUiStore((s) => s.closePopup)
   const { ref, pos } = usePlacement(x, y, view, 2)
 
@@ -63,12 +65,13 @@ function ContextMenu({ source, instanceIds, x, y, view, onInspect }: { source: I
       repairBlock: (i: ItemInstance) => {
         const recipe = repairRecipeFor(i.itemId)
         if (!recipe) return undefined
-        if (action) return action.targetId === i.id ? 'Đang sửa' : ACTION_FAILURE_TEXT.busy
-        const check = checkRecipe(bag, recipe, i.id)
-        return check.failure ? ACTION_FAILURE_TEXT[check.failure] : null
+        if (action?.targetId === i.id) return 'Đang sửa'
+        // INV-LOOT Q2/Q3: inputs from the main inventory then the worn bag; queued behind a running action.
+        const check = checkRecipe({ inventories: worn ? [bag, worn.inventory] : [bag], protect: (x) => !!x.favorite || x.id === weaponId || x.id === backId, available: (x) => (reserved.has(x.id) ? 0 : x.quantity) }, recipe, i.id)
+        return check.failure ? ACTION_FAILURE_TEXT[action && check.failure === 'missing-input' ? 'missing-carried' : check.failure] : null
       },
     })
-  }, [items, source, destinations, weaponId, backId, action, bag])
+  }, [items, source, destinations, weaponId, backId, action, bag, worn])
 
   // The menu closes by itself when its items are gone (used up, moved away).
   useEffect(() => {
@@ -100,6 +103,7 @@ function ContextMenu({ source, instanceIds, x, y, view, onInspect }: { source: I
           onClick={() => {
             close()
             if (entry.action === 'inspect') onInspect(instanceIds[0])
+            else if (entry.action === 'quantity') onQuantity(instanceIds[0], entry.destination!)
             else runMenuEntry(entry, source, instanceIds)
           }}
         >
@@ -150,6 +154,78 @@ function InspectCard({ source, instanceId, x, y, view }: { source: InventoryKey;
 }
 
 /**
+ * How many of a stack to move (INV-LOOT §5.1): a whole number 1..available with Max, confirm and
+ * cancel; the runtime checks it again when it queues and when each step moves.
+ */
+function QuantityDialog({ source, instanceId, destination, x, y, view }: { source: InventoryKey; instanceId: string; destination: InventoryKey; x: number; y: number; view: View }) {
+  const inv = useView(source)
+  const item = useMemo(() => instancesIn(inv, [instanceId])[0], [inv, instanceId])
+  const destinations = useDestinations(source)
+  const close = useInventoryUiStore((s) => s.closePopup)
+  const [value, setValue] = useState('1')
+  const [dest, setDest] = useState<InventoryKey>(destination)
+  const input = useRef<HTMLInputElement>(null)
+  const { ref, pos } = usePlacement(x, y, view, 8)
+  useEffect(() => {
+    if (!item) close()
+  }, [item, close])
+  useEffect(() => {
+    input.current?.focus()
+    input.current?.select()
+  }, [])
+  if (!item) return null
+  const max = item.quantity
+  const n = Number(value)
+  const valid = Number.isInteger(n) && n >= 1 && n <= max
+  const confirm = () => {
+    if (!valid) return
+    close()
+    transferQuantity(source, dest, instanceId, n)
+  }
+  return (
+    <div ref={ref} className="inv-card inv-qty" role="dialog" aria-label={L.quantityTitle} style={pos}>
+      <div className="inv-card-head">
+        <ItemIcon itemId={item.itemId} size={28} />
+        <div className="inv-card-name">{getItemDef(item.itemId).name} ×{max}</div>
+      </div>
+      <div className="inv-qty-row">
+        <label>
+          {L.quantityTitle}{' '}
+          <input
+            ref={input}
+            type="number"
+            className="inv-search inv-qty-input"
+            min={1}
+            max={max}
+            step={1}
+            value={value}
+            aria-invalid={!valid}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') confirm()
+              else if (e.key === 'Escape') close()
+            }}
+          />
+        </label>
+        <button type="button" className="inv-btn" onClick={() => setValue(String(max))}>{L.quantityMax}</button>
+      </div>
+      {destinations.length > 1 && (
+        <label className="inv-qty-row">
+          {L.quantityTo}{' '}
+          <select className="inv-filter" value={dest} onChange={(e) => setDest(e.target.value as InventoryKey)}>
+            {destinations.map((d) => <option key={d.key} value={d.key}>{d.name}</option>)}
+          </select>
+        </label>
+      )}
+      <div className="inv-qty-row inv-qty-actions">
+        <button type="button" className="inv-btn inv-btn-accent" disabled={!valid} onClick={confirm}>{L.confirm}</button>
+        <button type="button" className="inv-btn" onClick={close}>{L.cancel}</button>
+      </div>
+    </div>
+  )
+}
+
+/**
  * Popups of the inventory windows, above every window in the scaled UI layer (a portal-like layer:
  * never clipped by a table's scroll box). A press outside the open menu closes it.
  */
@@ -159,7 +235,7 @@ export function Popups({ view }: { view: View }) {
   useEffect(() => {
     if (!popup) return
     const onDown = (e: PointerEvent) => {
-      if (!(e.target as HTMLElement).closest('.inv-menu, .inv-inspect')) closePopup()
+      if (!(e.target as HTMLElement).closest('.inv-menu, .inv-inspect, .inv-qty')) closePopup()
     }
     window.addEventListener('pointerdown', onDown, true)
     return () => window.removeEventListener('pointerdown', onDown, true)
@@ -175,8 +251,10 @@ export function Popups({ view }: { view: View }) {
           y={popup.y}
           view={view}
           onInspect={(id) => openPopup({ kind: 'inspect', panel: popup.panel, source: popup.source, instanceId: id, x: popup.x, y: popup.y })}
+          onQuantity={(id, destination) => openPopup({ kind: 'quantity', panel: popup.panel, source: popup.source, instanceId: id, destination, x: popup.x, y: popup.y })}
         />
       )}
+      {popup?.kind === 'quantity' && <QuantityDialog source={popup.source} instanceId={popup.instanceId} destination={popup.destination} x={popup.x} y={popup.y} view={view} />}
       {popup?.kind === 'inspect' && <InspectCard source={popup.source} instanceId={popup.instanceId} x={popup.x} y={popup.y} view={view} />}
     </div>
   )

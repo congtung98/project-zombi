@@ -84,16 +84,35 @@ function Toolbar({ panel, children }: { panel: PanelId; children?: ReactNode }) 
   )
 }
 
-/** The running timed action with its progress and Cancel (S4 lists the waiting ones here too). */
+/**
+ * The running job (step progress, units done of the job) with Cancel, and the jobs waiting behind it,
+ * each removable (INV-LOOT Q3: the running and the waiting actions are shown).
+ */
 function ActionStrip() {
   const action = useHudStore((s) => s.action)
-  if (!action) return null
+  const waiting = useInventoryStore((s) => s.waiting)
+  if (!action && waiting.length === 0) return null
   return (
-    <div className="inv-action" role="status">
-      <span className="inv-action-label">{L.running}: {action.label}</span>
-      <span className="inv-action-track"><span style={{ width: `${Math.round(action.progress * 100)}%` }} /></span>
-      <span className="inv-action-time">{action.remaining.toFixed(1)} s</span>
-      <button type="button" className="inv-btn" title={L.cancelHint} onClick={() => runtime.cancelAction()}>{L.cancel}</button>
+    <div className="inv-action-wrap">
+      {action && (
+        <div className="inv-action" role="status">
+          <span className="inv-action-label">{L.running}: {action.label}</span>
+          {action.total > 1 && <span className="inv-action-time">{L.progress(action.done, action.total)}</span>}
+          <span className="inv-action-track"><span style={{ width: `${Math.round(action.progress * 100)}%` }} /></span>
+          <span className="inv-action-time">{action.remaining.toFixed(1)} s</span>
+          <button type="button" className="inv-btn" title={L.cancelHint} onClick={() => runtime.cancelAction()}>{waiting.length > 0 ? L.cancelAll : L.cancel}</button>
+        </div>
+      )}
+      {waiting.length > 0 && (
+        <ul className="inv-queue" aria-label={L.waiting}>
+          {waiting.map((j) => (
+            <li key={j.id}>
+              <span>{L.waiting}: {j.label}</span>
+              <button type="button" className="inv-tool" title={L.cancelOne} onClick={() => runtime.cancelJob(j.id)}>×</button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -119,7 +138,7 @@ export function InventoryPanel({ scale }: { scale: number }) {
   }, [active, view.key, patchTable])
 
   return (
-    <div className="inv-panel-body">
+    <div className="inv-panel-body" data-drop-key={view.key}>
       <Selector panel="inventory" views={views} active={view.key} />
       <ContextLine view={view} />
       <Toolbar panel="inventory" />
@@ -174,7 +193,7 @@ export function LootPanel({ scale }: { scale: number }) {
   if (!loot) return <div className="inv-panel-body"><div className="inv-empty-state">{L.noContainer}</div></div>
   const floor = loot.key === 'floor'
   return (
-    <div className="inv-panel-body">
+    <div className="inv-panel-body" data-drop-key={loot.key}>
       <LootTabs active={loot.key} />
       <ContextLine view={loot} extra={inReach ? L.inReach : undefined} warning={inReach ? undefined : L.outOfReach} />
       <Toolbar panel="loot">

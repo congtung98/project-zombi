@@ -62,8 +62,11 @@ export type GameEvents = {
   'item:useFailed': { itemId: ItemId; name: string; reason: UseItemFailure }
   /** P2-S4 timed craft/repair: started (reserved), rejected at start, cancelled, failed at commit, completed. */
   'action:started': { id: number; kind: 'craft' | 'repair'; label: string; duration: number }
-  'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' }
-  'action:cancelled': { id: number; label: string; reason: ActionCancelReason }
+  'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued' }
+  /** INV-LOOT S4: an action waits behind the running one (one queue, run in order). */
+  'action:queued': { id: number; label: string }
+  /** `dropped`: waiting jobs cancelled with it (moving, a hit or X cancel the whole queue). */
+  'action:cancelled': { id: number; label: string; reason: ActionCancelReason; dropped: number }
   'action:failed': { id: number; label: string; reason: CraftFailure }
   'action:completed': {
     id: number

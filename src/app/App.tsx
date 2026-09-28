@@ -122,7 +122,9 @@ export function App() {
       runtime.events.on('action:started', () => sfx.play('workStart')),
       runtime.events.on('action:rejected', (e) => useHudStore.getState().showToast(`${e.label}: ${ACTION_FAILURE_TEXT[e.reason]}.`, 2500, 'warn')),
       runtime.events.on('action:cancelled', (e) => {
-        useHudStore.getState().showToast(`Đã hủy ${e.label.toLowerCase()} (${ACTION_CANCEL_TEXT[e.reason]}); không mất nguyên liệu.`, 2200, 'warn')
+        // INV-LOOT S4: steps already done stay done; the waiting jobs cancelled with it are counted once.
+        const rest = e.dropped > 0 ? ` và ${e.dropped} thao tác đang chờ` : ''
+        useHudStore.getState().showToast(`Đã hủy ${e.label.toLowerCase()}${rest} (${ACTION_CANCEL_TEXT[e.reason]}); phần đã xong giữ nguyên, không mất nguyên liệu.`, 2200, 'warn')
         sfx.play('workCancel')
       }),
       runtime.events.on('action:failed', (e) => {

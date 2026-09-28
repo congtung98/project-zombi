@@ -7,7 +7,8 @@ import { CraftingList } from '../CraftingPanel'
 import { InvWindow } from './InvWindow'
 import { InventoryPanel, LootPanel } from './Panels'
 import { Popups } from './Popups'
-import { Glyph } from './ItemIcon'
+import { Glyph, ItemIcon } from './ItemIcon'
+import { getItemDef } from '../../game/entities/items'
 import { defaultLayout, isCompact, NO_SAFE_AREA, type SafeArea, type View } from './layout'
 import { L } from './labels'
 
@@ -48,6 +49,7 @@ export function InventoryOverlay() {
   const inventoryOpen = useInventoryStore((s) => s.open)
   const loot = useInventoryStore((s) => s.lootView)
   const lootWindow = useInventoryStore((s) => s.lootOpen)
+  const inventoryKey = useInventoryUiStore((s) => s.tables.inventory.activeKey) ?? 'main'
   const craftingOpen = useInventoryUiStore((s) => s.craftingOpen)
   const compactTab = useInventoryUiStore((s) => s.compactTab)
   const { setCraftingOpen, setCompactTab } = useInventoryUiStore.getState()
@@ -88,10 +90,10 @@ export function InventoryOverlay() {
           title={
             <span className="inv-tabs-title" role="tablist" aria-label={L.compactTabs}>
               {inventoryOpen && (
-                <button type="button" role="tab" aria-selected={tab === 'inventory'} className="inv-title-tab" onClick={() => setCompactTab('inventory')}>{L.inventory}</button>
+                <button type="button" role="tab" aria-selected={tab === 'inventory'} className="inv-title-tab" data-drop-key={inventoryKey} onClick={() => setCompactTab('inventory')}>{L.inventory}</button>
               )}
               {lootOpen && (
-                <button type="button" role="tab" aria-selected={tab === 'loot'} className="inv-title-tab" onClick={() => setCompactTab('loot')}>{L.loot}</button>
+                <button type="button" role="tab" aria-selected={tab === 'loot'} className="inv-title-tab" data-drop-key={loot.key} onClick={() => setCompactTab('loot')}>{L.loot}</button>
               )}
             </span>
           }
@@ -118,6 +120,29 @@ export function InventoryOverlay() {
         </InvWindow>
       )}
       <Popups view={view} />
+      <DragPreview />
+    </div>
+  )
+}
+
+/** What is being dragged, under the pointer (never over the drop target: it ignores the pointer). */
+function DragPreview() {
+  const drag = useInventoryUiStore((s) => s.drag)
+  const first = useInventoryStore((s) => {
+    const id = drag?.instanceIds[0]
+    if (!id) return null
+    for (const v of [s.main, s.worn, s.lootView]) {
+      const item = v?.inventory.items.find((i) => i.id === id)
+      if (item) return item
+    }
+    return null
+  })
+  if (!drag || !first) return null
+  return (
+    <div className="inv-drag" style={{ left: drag.x + 12, top: drag.y + 12 }} aria-hidden>
+      <ItemIcon itemId={first.itemId} />
+      <span>{getItemDef(first.itemId).name}{first.quantity > 1 ? ` ×${first.quantity}` : ''}</span>
+      {drag.instanceIds.length > 1 && <span className="inv-drag-count">{L.dragHint(drag.instanceIds.length)}</span>}
     </div>
   )
 }

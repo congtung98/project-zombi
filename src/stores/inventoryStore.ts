@@ -4,14 +4,22 @@ import { cloneInventory, createInventory, type Inventory } from '../game/systems
 import { inventoryWeight, itemWeight, wornBagContents } from '../game/systems/bags'
 import { containerKey, type InventoryKey } from '../game/systems/inventoryCommands'
 
-/** Running timed action as the UI needs it (buttons disable, the target shows "đang sửa"). */
+/** The running job as the UI needs it (the target shows "đang sửa", reserved rows "Đang dùng"). */
 export interface ActionSnapshot {
   id: number
-  recipeId: string
+  kind: 'transfer' | 'craft' | 'repair'
+  /** The recipe of a running craft/repair; null for a transfer. */
+  recipeId: string | null
   targetId: string | null
   label: string
-  /** Instances promised to the action (shown "Đang dùng"). */
+  /** Instances promised to the running job (shown "Đang dùng"). */
   reservedIds: string[]
+}
+
+/** A job waiting behind the running one (INV-LOOT Q3: shown with the running one). */
+export interface WaitingJob {
+  id: number
+  label: string
 }
 
 interface ContainerSnapshot {
@@ -65,11 +73,18 @@ interface InventoryUiState {
   bagWeights: Record<string, number>
   container: ContainerSnapshot | null
   action: ActionSnapshot | null
+  waiting: WaitingJob[]
+  /** Instances with units claimed by queued transfer lines (shown "Chờ chuyển"). */
+  queuedIds: string[]
   sync: (rt: GameRuntime) => void
   reset: () => void
 }
 
 const FLOOR_NAME = 'Dưới đất'
+
+function sameJobs(a: WaitingJob[], b: WaitingJob[]): boolean {
+  return a.length === b.length && a.every((j, i) => j.id === b[i].id && j.label === b[i].label)
+}
 
 function sameTabs(a: LootTab[], b: LootTab[]): boolean {
   return a.length === b.length && a.every((t, i) => t.key === b[i].key && t.used === b[i].used && t.inReach === b[i].inReach && t.name === b[i].name)
@@ -102,6 +117,8 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
   bagWeights: {},
   container: null,
   action: null,
+  waiting: [],
+  queuedIds: [],
 
   sync: (rt) => {
     const prev = get()
@@ -140,7 +157,10 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
     for (const inv of [rt.player.inventory, ...(wornLive ? [wornLive] : []), ...(lootView ? [lootView.inventory] : [])]) {
       for (const i of inv.items) if (i.kind === 'bag') bagWeights[i.id] = itemWeight(i, bags)
     }
+    const head = rt.jobs[0]
     const a = rt.action
+    const waiting = rt.jobs.slice(1).map((j) => ({ id: j.id, label: j.label }))
+    const queuedIds = [...new Set(rt.jobs.flatMap((j) => (j.kind === 'transfer' ? j.lines.slice(j.index).filter((l) => l.left > 0).map((l) => l.instanceId) : [])))]
     set({
       open: rt.inventoryOpen,
       bag: main.inventory,
@@ -155,9 +175,13 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
       weightKg: main.weightKg,
       bagWeights,
       container: c && lootView ? { id: c.id, name, items: lootView.inventory } : null,
-      action: a ? { id: a.id, recipeId: a.recipe.id, targetId: a.targetId, label: a.label, reservedIds: [...a.reservation.instanceIds] } : null,
+      action: head
+        ? { id: head.id, kind: head.kind === 'recipe' ? head.recipe.kind : 'transfer', recipeId: a?.recipe.id ?? null, targetId: a?.targetId ?? null, label: head.label, reservedIds: rt.ledger.ids() }
+        : null,
+      waiting: sameJobs(prev.waiting, waiting) ? prev.waiting : waiting,
+      queuedIds: prev.queuedIds.join() === queuedIds.join() ? prev.queuedIds : queuedIds,
     })
   },
 
-  reset: () => set({ open: false, bag: emptyMain().inventory, main: emptyMain(), worn: null, lootView: null, lootOpen: false, lootInReach: true, lootTabs: [], weaponInstanceId: null, backInstanceId: null, weightKg: 0, bagWeights: {}, container: null, action: null }),
+  reset: () => set({ waiting: [], queuedIds: [], open: false, bag: emptyMain().inventory, main: emptyMain(), worn: null, lootView: null, lootOpen: false, lootInReach: true, lootTabs: [], weaponInstanceId: null, backInstanceId: null, weightKg: 0, bagWeights: {}, container: null, action: null }),
 }))

@@ -29,7 +29,17 @@ export interface TableState {
 export type Popup =
   | { kind: 'menu'; panel: PanelId; source: InventoryKey; instanceIds: string[]; x: number; y: number }
   | { kind: 'inspect'; panel: PanelId; source: InventoryKey; instanceId: string; x: number; y: number }
+  /** INV-LOOT S4: how many of a stack to move (Shift+drag or the menu), checked again when it moves. */
+  | { kind: 'quantity'; panel: PanelId; source: InventoryKey; instanceId: string; destination: InventoryKey; x: number; y: number }
   | null
+
+/** Rows being dragged to another window or tab (their instances resolved when the drag started). */
+export interface DragState {
+  source: InventoryKey
+  instanceIds: string[]
+  x: number
+  y: number
+}
 
 export interface Hover {
   source: InventoryKey
@@ -47,6 +57,7 @@ interface InventoryUiState {
   tables: Record<PanelId, TableState>
   popup: Popup
   hover: Hover | null
+  drag: DragState | null
   /** Compact mode (one window): which panel is shown. */
   compactTab: PanelId
   setRect: (id: WindowId, rect: Rect) => void
@@ -58,6 +69,7 @@ interface InventoryUiState {
   openPopup: (popup: Popup) => void
   closePopup: () => boolean
   setHover: (hover: Hover | null) => void
+  setDrag: (drag: DragState | null) => void
   setCompactTab: (tab: PanelId) => void
   resetLayout: () => void
 }
@@ -114,6 +126,7 @@ export const useInventoryUiStore = create<InventoryUiState>((set, get) => ({
   tables: { inventory: { ...emptyTable(), activeKey: 'main' }, loot: emptyTable() },
   popup: null,
   hover: null,
+  drag: null,
   compactTab: 'inventory',
 
   setRect: (id, rect) => {
@@ -151,6 +164,7 @@ export const useInventoryUiStore = create<InventoryUiState>((set, get) => ({
     if (prev === hover || (prev && hover && prev.x === hover.x && prev.y === hover.y && prev.instanceIds.join() === hover.instanceIds.join())) return
     set({ hover })
   },
+  setDrag: (drag) => set({ drag, ...(drag ? { hover: null } : {}) }),
   setCompactTab: (compactTab) => set({ compactTab }),
   resetLayout: () => {
     const windows = defaultWindows()

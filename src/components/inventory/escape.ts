@@ -11,7 +11,8 @@ import { isCompact, type WindowId } from './layout'
 export function handleInventoryEscape(): boolean {
   const ui = useInventoryUiStore.getState()
   if (ui.closePopup()) return true
-  if (runtime.action) {
+  // Any queued work (a transfer as much as a craft or repair): cancel the queue first.
+  if (runtime.jobs.length > 0) {
     runtime.cancelAction('cancelled')
     return true
   }

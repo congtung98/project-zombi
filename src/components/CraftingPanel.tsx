@@ -1,7 +1,7 @@
 import { getItemDef } from '../game/entities/items'
 import { CRAFT_RECIPES, RECIPES, type Recipe } from '../game/entities/recipes'
 import { runtime } from '../game/core/runtime'
-import { checkRecipe, type RecipeCheck } from '../game/systems/crafting'
+import { checkRecipe, type CraftSources, type RecipeCheck } from '../game/systems/crafting'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { ACTION_FAILURE_TEXT } from './craftText'
 
@@ -37,16 +37,27 @@ export function RecipeRequirements({ recipe, check }: { recipe: Recipe; check: R
  */
 export function CraftingList() {
   const bag = useInventoryStore((s) => s.bag)
+  const worn = useInventoryStore((s) => s.worn)
+  const weaponId = useInventoryStore((s) => s.weaponInstanceId)
+  const backId = useInventoryStore((s) => s.backInstanceId)
   const action = useInventoryStore((s) => s.action)
+  const reserved = new Set(action?.reservedIds ?? [])
+  // INV-LOOT Q2: main inventory then the worn bag; favorites, equipped and reserved items not counted.
+  const sources: CraftSources = {
+    inventories: worn ? [bag, worn.inventory] : [bag],
+    protect: (i) => !!i.favorite || i.id === weaponId || i.id === backId,
+    available: (i) => (reserved.has(i.id) ? 0 : i.quantity),
+  }
   return (
     <div className="inv-craft">
       {CRAFT_RECIPES.map((id) => {
         const recipe = RECIPES[id]
         if (recipe.kind !== 'craft') return null
-        const check = checkRecipe(bag, recipe, null)
+        const check = checkRecipe(sources, recipe, null)
         const out = getItemDef(recipe.output.itemId)
         const running = action?.recipeId === recipe.id
-        const reason = action && !running ? ACTION_FAILURE_TEXT.busy : check.failure ? ACTION_FAILURE_TEXT[check.failure] : null
+        // Another action running: this one waits its turn (it is checked again then), never refused as busy.
+        const reason = check.failure ? ACTION_FAILURE_TEXT[action && check.failure === 'missing-input' ? 'missing-carried' : check.failure] : null
         return (
           <div key={id} className="recipe">
             <h4>
@@ -66,7 +77,7 @@ export function CraftingList() {
                 </button>
               ) : (
                 <button type="button" disabled={reason !== null} onClick={() => runtime.startCraft(id)}>
-                  Chế tạo ({recipe.duration} s)
+                  {action ? `Xếp hàng chế tạo (${recipe.duration} s)` : `Chế tạo (${recipe.duration} s)`}
                 </button>
               )}
             </div>

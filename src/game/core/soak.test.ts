@@ -7,6 +7,7 @@ import { validateSaveGame } from '../systems/save'
 import { getItemDef } from '../entities/items'
 import { equippedWeapon } from '../systems/equipment'
 import { meleeStats } from '../systems/weapons'
+import { containerKey } from '../systems/inventoryCommands'
 import type { NavGrid } from '../world/navigation'
 import type { Vec3 } from '../../types'
 
@@ -84,6 +85,8 @@ interface Metrics {
   doorsDestroyed: string[]
   migrations: number
   maxBashersPerSide: number
+  /** INV-LOOT S4: one-second checks of item totals, unique IDs and an empty ledger when idle. */
+  integrityChecks: number
 }
 
 /**
@@ -155,6 +158,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       doorsDestroyed: [],
       migrations: 0,
       maxBashersPerSide: 0,
+      integrityChecks: 0,
     }
     const unaware = new Set(['IDLE', 'WANDER', 'MIGRATE'])
     rt.events.on('zombie:stateChanged', (e) => {
@@ -255,6 +259,27 @@ function runSoak(policy: 'shelter' | 'patrol') {
     let mouseHeld = false
     let spaceHeld = false
     let autosaveClock = 0
+    // INV-LOOT S4: looting goes through the timed action queue; the bot stands still while it runs.
+    let lootJob: number | null = null
+    let lootCancelled = false
+    let lootBefore = 0
+    const seenWeapons = new Set<string>()
+    rt.events.on('action:cancelled', () => {
+      if (lootJob !== null) lootCancelled = true
+    })
+    // Integrity (not just timing): every unit per item type is conserved except what was used.
+    const allInventories = () => [rt.player.inventory, ...[...rt.world.containers.values()].map((c) => c.items), ...[...rt.world.floor.cells.values()].map((c) => c.items), ...rt.world.bags.values()]
+    const totals = () => {
+      const out: Record<string, number> = {}
+      for (const inv of allInventories()) for (const i of inv.items) out[i.itemId] = (out[i.itemId] ?? 0) + i.quantity
+      return out
+    }
+    const expected = totals()
+    rt.events.on('item:used', (e) => {
+      expected[e.itemId] -= 1
+      if (expected[e.itemId] === 0) delete expected[e.itemId]
+    })
+    let integrityClock = 0
 
     for (let t = 0; t < SESSION_SEC; t += DT) {
       if (!rt.player.alive) break
@@ -315,22 +340,34 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
 
       // ---- Loot: tới tủ mục tiêu thì mở, lấy hết, đóng
-      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting) {
-        rt.interact(target)
-        const before = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
-        for (const item of rt.openContainer!.items.items) if (item.kind === 'weapon') m.weaponsFound.push(`${item.itemId}@${item.condition}`)
-        rt.takeAll()
-        equipBest()
-        const after = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
-        m.lootTaken += after - before
-        rt.closeAllUi()
-        looted.add(goalContainer)
-        m.containersLooted += 1
-        pickGoal()
+      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting && lootJob === null) {
+        if (!rt.lootOpen || rt.openContainerId !== goalContainer) rt.interact(target)
+        if (!seenWeapons.has(goalContainer)) {
+          seenWeapons.add(goalContainer)
+          lootBefore = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
+          for (const item of rt.openContainer!.items.items) if (item.kind === 'weapon') m.weaponsFound.push(`${item.itemId}@${item.condition}`)
+        }
+        lootCancelled = false
+        lootJob = rt.queueTransfer(containerKey(goalContainer), 'main', rt.openContainer!.items.items.map((i) => ({ instanceId: i.id }))).id ?? -1
+      }
+      if (lootJob !== null && rt.jobs.length === 0) {
+        if (lootCancelled && goalContainer) {
+          // Interrupted (a fight): queue the rest again once the bot is back at the container.
+          lootJob = null
+        } else {
+          equipBest()
+          const after = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
+          m.lootTaken += after - lootBefore
+          rt.closeAllUi()
+          if (goalContainer) looted.add(goalContainer)
+          m.containersLooted += 1
+          lootJob = null
+          pickGoal()
+        }
       }
 
-      // ---- Di chuyển theo path (tìm lại định kỳ / khi kẹt / khi cửa đổi)
-      if (goalPos && !fighting) {
+      // ---- Di chuyển theo path (tìm lại định kỳ / khi kẹt / khi cửa đổi); đứng yên khi đang lấy đồ
+      if (goalPos && !fighting && lootJob === null) {
         repathTimer -= DT
         if (dist(pos, lastPos) < 0.02) stuckTimer += DT
         else stuckTimer = 0
@@ -386,6 +423,16 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
       for (const n of bashers.values()) m.maxBashersPerSide = Math.max(m.maxBashersPerSide, n)
       expect(m.maxBashersPerSide).toBeLessThanOrEqual(2)
+
+      integrityClock += DT
+      if (integrityClock >= 1) {
+        integrityClock = 0
+        expect(totals()).toEqual(expected)
+        const ids = allInventories().flatMap((inv) => inv.items.map((i) => i.id))
+        expect(new Set(ids).size).toBe(ids.length)
+        if (rt.jobs.length === 0) expect(rt.ledger.isEmpty()).toBe(true)
+        m.integrityChecks += 1
+      }
 
       autosaveClock += DT
       if (autosaveClock >= 60) {

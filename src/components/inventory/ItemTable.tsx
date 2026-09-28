@@ -4,6 +4,7 @@ import { conditionLevel } from '../../game/systems/weapons'
 import type { InventoryKey } from '../../game/systems/inventoryCommands'
 import { useInventoryStore, type InventoryView } from '../../stores/inventoryStore'
 import { useRows } from './tableData'
+import { transfer } from './commands'
 import { useInventoryUiStore, type PanelId } from '../../stores/inventoryUiStore'
 import type { Row, SortKey } from './rows'
 import { clickRow, pruneSelection, selectAll, selectedInstanceIds, type Selection } from './selection'
@@ -32,12 +33,17 @@ const ROW_H = 28
 const VIRTUAL_MIN_ROWS = 80
 const OVERSCAN = 8
 
+/** A press must move this far (screen px) before it becomes a drag (a click never drags). */
+const DRAG_START_PX = 5
+
 const kg = (n: number) => (n < 0.1 && n > 0 ? n.toFixed(2) : n.toFixed(1))
 
 interface RowFlags {
   weaponId: string | null
   backId: string | null
   reserved: ReadonlySet<string>
+  /** Units claimed by a queued transfer (INV-LOOT S4 ghost state; quantities change only on commit). */
+  queued: ReadonlySet<string>
 }
 
 function Badges({ item, flags }: { item: ItemInstance; flags: RowFlags }) {
@@ -47,7 +53,7 @@ function Badges({ item, flags }: { item: ItemInstance; flags: RowFlags }) {
       {item.id === flags.weaponId && <span className="inv-badge inv-badge-eq" title={L.equippedWeapon}>{L.equippedWeapon}</span>}
       {item.id === flags.backId && <span className="inv-badge inv-badge-eq" title={L.wornBag}>{L.wornBag}</span>}
       {item.favorite && <span className="inv-badge inv-badge-fav" title={L.favorite} aria-label={L.favorite}>★</span>}
-      {flags.reserved.has(item.id) && <span className="inv-badge inv-badge-use">{L.reserved}</span>}
+      {flags.reserved.has(item.id) ? <span className="inv-badge inv-badge-use">{L.reserved}</span> : flags.queued.has(item.id) && <span className="inv-badge inv-badge-queued">{L.queued}</span>}
       {level === 'broken' && <span className="inv-badge inv-badge-broken">{L.broken}</span>}
     </>
   )
@@ -126,7 +132,8 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
   const weaponId = useInventoryStore((s) => s.weaponInstanceId)
   const backId = useInventoryStore((s) => s.backInstanceId)
   const reservedIds = useInventoryStore((s) => s.action?.reservedIds)
-  const { patchTable, openPopup, setHover } = useInventoryUiStore.getState()
+  const queuedIds = useInventoryStore((s) => s.queuedIds)
+  const { patchTable, openPopup, setHover, setDrag } = useInventoryUiStore.getState()
   const [focusId, setFocusId] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const hoverRow = useRef<string | null>(null)
@@ -141,7 +148,7 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
   }, [])
 
   const rows = useRows(view, table)
-  const flags = useMemo<RowFlags>(() => ({ weaponId, backId, reserved: new Set(reservedIds ?? []) }), [weaponId, backId, reservedIds])
+  const flags = useMemo<RowFlags>(() => ({ weaponId, backId, reserved: new Set(reservedIds ?? []), queued: new Set(queuedIds) }), [weaponId, backId, reservedIds, queuedIds])
 
   // Items used up or moved away leave the selection (and the hover card).
   useEffect(() => {
@@ -155,7 +162,40 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
   const onPointer = (row: Row, e: MouseEvent) => {
     setFocusId(row.id)
     listRef.current?.focus({ preventScroll: true })
-    setSelection(clickRow(table.selection, rows, row.id, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey }))
+    const plain = !(e.ctrlKey || e.metaKey || e.shiftKey)
+    const selection = plain && table.selection.ids.has(row.id) ? table.selection : clickRow(table.selection, rows, row.id, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey })
+    if (selection !== table.selection) setSelection(selection)
+    // A press that moves 5 px becomes a drag of the selected rows (or this row) to another window/tab.
+    const ids = selection.ids.has(row.id) ? selectedInstanceIds(selection, rows) : row.instanceIds
+    const x0 = e.clientX
+    const y0 = e.clientY
+    let active = false
+    const move = (ev: PointerEvent) => {
+      if (!active && Math.hypot(ev.clientX - x0, ev.clientY - y0) < DRAG_START_PX) return
+      active = true
+      setDrag({ source: view.key, instanceIds: ids, x: ev.clientX / scale, y: ev.clientY / scale })
+    }
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+      if (!active) {
+        // A plain click (no drag) on a row of a multi-selection selects just that row.
+        if (plain && selection.ids.size > 1) setSelection(clickRow(selection, rows, row.id, { toggle: false, range: false }))
+        return
+      }
+      setDrag(null)
+      if (ev.type === 'pointercancel') return
+      const key = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('[data-drop-key]')?.getAttribute('data-drop-key') as InventoryKey | null
+      if (!key || key === view.key) return
+      const only = ids.length === 1 ? view.inventory.items.find((i) => i.id === ids[0]) : undefined
+      // Shift + drag of one stack: choose how many first (INV-LOOT §5).
+      if (ev.shiftKey && only && only.kind === 'stack' && only.quantity > 1) openPopup({ kind: 'quantity', panel, source: view.key, instanceId: only.id, destination: key, x: ev.clientX / scale, y: ev.clientY / scale })
+      else transfer(view.key, key, ids)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
   }
   const onDouble = (row: Row) => onActivate(row.instanceIds)
   const onMenu = (row: Row, e: MouseEvent) => {
@@ -239,6 +279,7 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
       </div>
       <div
         ref={listRef}
+        data-drop-key={view.key}
         className="inv-tbody"
         tabIndex={0}
         data-ui-keys
