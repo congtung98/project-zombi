@@ -421,33 +421,36 @@ describe('GameRuntime inventory and loot', () => {
     expect(rt.uiOpen).toBe(false)
   })
 
-  it('an open inventory blocks attack and push input', () => {
+  it('INV-LOOT S5: an open inventory window does not block the stance or the swing', () => {
     const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
     arm(rt)
+    const stances: boolean[] = []
+    rt.events.on('player:stance', (e) => stances.push(e.active))
+    // A right button held while the window opens waits for a release (opening leaves the stance).
+    rt.input.simulateKey('Mouse2', true)
+    rt.tick(DT)
+    expect(rt.stance.requested).toBe(true)
     rt.toggleInventory()
     expect(rt.uiOpen).toBe(true)
-    rt.input.simulateKey('Mouse2', true)
-    rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     expect(rt.stance.requested).toBe(false)
-    expect(rt.player.attackTimer).toBeLessThan(0)
-    expect(rt.player.stamina).toBe(GAME_CONFIG.player.maxStamina)
-    rt.input.simulateKey('Mouse0', false)
-
-    rt.toggleInventory()
-    expect(rt.uiOpen).toBe(false)
-    // CS1: the right button held through the panel asks again only after a new press.
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
-    expect(rt.stance.requested).toBe(false)
     expect(rt.player.attackTimer).toBeLessThan(0)
     rt.input.simulateKey('Mouse0', false)
     rt.input.simulateKey('Mouse2', false)
     rt.tick(DT)
+
+    // Window still open: a right press on the world is the stance (the UI collapses the windows on
+    // the event), a left click in it swings.
     rt.input.simulateKey('Mouse2', true)
+    rt.tick(DT)
+    expect(rt.stance.requested).toBe(true)
+    expect(rt.inventoryOpen).toBe(true)
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     expect(rt.player.attackTimer).toBeGreaterThanOrEqual(0)
+    expect(stances).toEqual([true, false, true])
   })
 
   it('newGame resets the bag and closes UI', () => {

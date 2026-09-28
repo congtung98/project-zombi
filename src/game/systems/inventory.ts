@@ -101,9 +101,13 @@ export function canStack(a: ItemInstance, b: ItemInstance): boolean {
   return a.kind === 'stack' && b.kind === 'stack' && a.itemId === b.itemId && !!a.favorite === !!b.favorite
 }
 
-/** Bags never go into a bag (no nesting, no ownership cycle). */
+/**
+ * Bags never go into a bag (no nesting, no ownership cycle). Neither does an unknown item (S5
+ * recovery): it may be a bag with contents of its own.
+ */
 export function accepts(inv: Inventory, itemId: ItemId): boolean {
-  return !(inv.kind === 'bag' && getItemDef(itemId).kind === 'bag')
+  const kind = getItemDef(itemId).kind
+  return !(inv.kind === 'bag' && (kind === 'bag' || kind === 'unknown'))
 }
 
 /** Initial state for new individual items; omitted condition means a new (full) weapon. */

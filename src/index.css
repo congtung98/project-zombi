@@ -1337,6 +1337,16 @@ button.primary:hover:not(:disabled) {
   color: var(--inv-accent);
 }
 
+/* INV-LOOT S5: the list or tab rows would drop into (another inventory than the one they come from). */
+.inv-tbody.inv-drop-target,
+.inv-tab.inv-drop-target,
+.inv-title-tab.inv-drop-target {
+  outline: 1px dashed var(--inv-accent);
+  outline-offset: -1px;
+  background: rgba(155, 167, 131, 0.14);
+  color: var(--inv-text);
+}
+
 .inv-qty {
   width: 250px;
 }

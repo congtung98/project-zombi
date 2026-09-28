@@ -15,6 +15,7 @@ import { INTERACT_RANGE, selectInteractable, type Interactable } from '../system
 import { accepts, cloneInventory, findItem, previewTransfer, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
 import { containerIdOf, containerKey, emptySummary, isCarried, isEquipped, itemRefusal, type InventoryKey, type TransferLine, type TransferRefusal, type TransferOutcome, type TransferSkip, type TransferSummary } from '../systems/inventoryCommands'
 import { bagInstanceIdOf, findUsable, usableInventories, wornBagContents } from '../systems/bags'
+import { recoverSave, toStoredForm } from '../systems/recovery'
 import { FloorStore, type FloorCell } from '../systems/floor'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
@@ -154,7 +155,11 @@ export class GameRuntime {
   interactPrompt: string | null = null
   /** Điểm con trỏ chiếu xuống mặt đất (tầng render cập nhật mỗi frame); null khi ngoài canvas. */
   cursorWorld: Vec3 | null = null
-  /** UI (inventory/container) đang mở thì không kích hoạt đòn đánh ngoài ý muốn. Suy ra từ hai trường dưới. */
+  /**
+   * An inventory/loot window is open (derived from the fields below). INV-LOOT S5: the windows no
+   * longer hold the combat input: presses count only on the canvas, so a right press on the world
+   * enters the stance (the windows collapse, UI side) and the left button swings in it.
+   */
   uiOpen = false
   /** Túi đồ đang mở (phím I hoặc tự mở khi mở container). */
   inventoryOpen = false
@@ -441,6 +446,11 @@ export class GameRuntime {
 
   /** Chụp toàn bộ simulation. Gọi giữa hai tick (game loop hoặc khi pause). */
   createSnapshot(): SaveGame {
+    // Recovered unknown items are written back in the form they were loaded from (INV-LOOT S5).
+    return toStoredForm(this.snapshotState())
+  }
+
+  private snapshotState(): SaveGame {
     const p = this.player
     const zombies: SaveGame['zombies'] = []
     for (const z of this.zombies.values()) {
@@ -506,7 +516,9 @@ export class GameRuntime {
   loadSnapshot(save: SaveGame): void {
     const validation = validateSaveGame(save, this.map.id, this.map)
     if (!validation.ok) throw new Error(`Invalid save: ${validation.detail}`)
-    save = validation.save
+    // INV-LOOT S5: items this version does not know are kept as recovery items (never dropped).
+    const recovery = recoverSave(validation.save)
+    save = recovery.save
     // Containers come from the save: the generator must not run (no second roll, INV-LOOT T16).
     this.newGame(save.worldSeed, { name: save.player.name, appearance: save.player.appearance }, { generateLoot: false })
     this.zombies.clear()
@@ -575,6 +587,7 @@ export class GameRuntime {
     this.spawnCounter = save.spawn.counter
     this.hordeTimer = Math.max(0, save.horde.timer)
     this.hordeCounter = save.horde.counter
+    if (recovery.report.itemIds.length > 0) this.events.queue('items:recovered', recovery.report)
   }
 
   /** Game loop gọi ngay sau tick; true đúng một lần mỗi khi tới hạn autosave. */
@@ -932,15 +945,15 @@ export class GameRuntime {
   }
 
   /**
-   * First step of a tick: the stance request from the right button (not while dead or while a panel
-   * holds the input) and the desired aim from the cursor point. A cursor on the player's feet or off
+   * First step of a tick: the stance request from the right button (not while dead; an open
+   * inventory window does not block it, INV-LOOT S5) and the desired aim from the cursor point. A cursor on the player's feet or off
    * the canvas keeps the previous aim.
    */
   private stepControls(): void {
     const s = this.stance
     const was = s.requested
     this.chordAllowed = s.mode === 'hold' && !s.suppressed
-    updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive && !this.uiOpen)
+    updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive)
     this.stanceStarted = s.requested && !was
     // A queued click lives only while the stance is asked for (release, panel, death drop it).
     if (!s.requested) this.pendingAttack = null
@@ -1174,6 +1187,8 @@ export class GameRuntime {
     this.lootOpen = true
     this.lootInReach = containerId === null || this.canReachContainer(containerId)
     if (withInventory) this.inventoryOpen = true
+    // Opening a window leaves the stance (a held right button must be pressed again to aim).
+    this.cancelStance()
     if (previous && previous !== containerId) this.events.queue('container:closed', { id: previous })
     this.syncUiOpen()
     this.queueInventoryChanged()
@@ -1326,6 +1341,7 @@ export class GameRuntime {
   setInventoryOpen(open: boolean): void {
     if (this.inventoryOpen === open) return
     this.inventoryOpen = open
+    if (open) this.cancelStance()
     this.syncUiOpen()
     this.queueInventoryChanged()
   }
@@ -1988,7 +2004,7 @@ export class GameRuntime {
 
   private stepCombat(attacks: PendingAttack[], dt: number): void {
     const player = this.player
-    if (player.alive && !this.uiOpen) {
+    if (player.alive) {
       // CS1: a left click swings only in the combat stance (or in the grace just before it started);
       // outside it the click does nothing in the world (a rare hint points to the right button).
       const s = this.stance

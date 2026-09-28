@@ -7,9 +7,10 @@ import { useRows } from './tableData'
 import { transfer } from './commands'
 import { useInventoryUiStore, type PanelId } from '../../stores/inventoryUiStore'
 import type { Row, SortKey } from './rows'
-import { clickRow, pruneSelection, selectAll, selectedInstanceIds, type Selection } from './selection'
+import { clickRow, pruneSelection, selectAll, selectedInstanceIds, sweepRows, type Selection } from './selection'
 import { CATEGORY_LABEL, L } from './labels'
 import { Glyph, ItemIcon } from './ItemIcon'
+import { dropKeyAt, useDropTarget } from './dragDrop'
 
 interface Props {
   panel: PanelId
@@ -33,8 +34,19 @@ const ROW_H = 28
 const VIRTUAL_MIN_ROWS = 80
 const OVERSCAN = 8
 
-/** A press must move this far (screen px) before it becomes a drag (a click never drags). */
+/** A press must move this far (screen px) before it becomes a sweep or a drag (a click never drags). */
 const DRAG_START_PX = 5
+/** A sweep keeps selecting while the pointer is this close above/below the list (UI px); farther = drag. */
+const SWEEP_MARGIN = 24
+/**
+ * A sweep is an up/down motion: once the pointer is this far sideways from the press (UI px) the
+ * run is fixed and carried, so leaving the list on a slant never changes what was swept.
+ */
+const SWEEP_SIDEWAYS = 48
+/** Within this distance of the list's top/bottom edge (UI px) a sweep scrolls the list. */
+const SWEEP_EDGE = 14
+/** Sweep auto-scroll speed at the edge (UI px per frame). */
+const SWEEP_SCROLL = 6
 
 const kg = (n: number) => (n < 0.1 && n > 0 ? n.toFixed(2) : n.toFixed(1))
 
@@ -148,6 +160,12 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
   }, [])
 
   const rows = useRows(view, table)
+  // A sweep or drag in progress reads the rows as they are now (an item may come or go meanwhile).
+  const rowsRef = useRef(rows)
+  useEffect(() => {
+    rowsRef.current = rows
+  }, [rows])
+  const dropHere = useDropTarget(view.key)
   const flags = useMemo<RowFlags>(() => ({ weaponId, backId, reserved: new Set(reservedIds ?? []), queued: new Set(queuedIds) }), [weaponId, backId, reservedIds, queuedIds])
 
   // Items used up or moved away leave the selection (and the hover card).
@@ -159,35 +177,110 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
   const setSelection = (selection: Selection) => patchTable(panel, { selection })
   const at = (e: MouseEvent) => ({ x: e.clientX / scale, y: e.clientY / scale })
 
+  /**
+   * Left press on a row (INV-LOOT S4/S5), all by mouse:
+   * - a press that stays put is a click (select; Ctrl toggles, Shift selects a range);
+   * - held and moved up/down the list it sweeps: every row from the pressed one to the one under the
+   *   pointer is selected (Ctrl adds the run to the selection), scrolling at the list's edges;
+   * - pulled sideways at once it carries the row (or its selection); a sweep is carried once the
+   *   pointer goes 48 px sideways or well above/below the list (the run as swept), and dropped on
+   *   the window or tab under the pointer when released (Shift + one stack asks how many first);
+   * - a press on a row of a multi-selection carries that selection at once.
+   */
   const onPointer = (row: Row, e: MouseEvent) => {
     setFocusId(row.id)
-    listRef.current?.focus({ preventScroll: true })
-    const plain = !(e.ctrlKey || e.metaKey || e.shiftKey)
-    const selection = plain && table.selection.ids.has(row.id) ? table.selection : clickRow(table.selection, rows, row.id, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey })
-    if (selection !== table.selection) setSelection(selection)
-    // A press that moves 5 px becomes a drag of the selected rows (or this row) to another window/tab.
-    const ids = selection.ids.has(row.id) ? selectedInstanceIds(selection, rows) : row.instanceIds
+    const list = listRef.current
+    list?.focus({ preventScroll: true })
+    const add = e.ctrlKey || e.metaKey
+    const plain = !(add || e.shiftKey)
+    const base = table.selection
+    const carry = plain && base.ids.has(row.id) && base.ids.size > 1
+    let selection = carry ? base : clickRow(base, rows, row.id, { toggle: add, range: e.shiftKey })
+    if (selection !== base) setSelection(selection)
     const x0 = e.clientX
     const y0 = e.clientY
-    let active = false
+    let mode: 'press' | 'sweep' | 'drag' = 'press'
+    let ids: string[] = []
+    let last = { x: x0, y: y0 }
+    let raf = 0
+    // The row under a screen height, virtualized rows included (index from the scroll), clamped.
+    const rowAt = (y: number): string | null => {
+      if (!list) return null
+      const r = list.getBoundingClientRect()
+      const all = rowsRef.current
+      const i = Math.floor(((y - r.top) / scale + list.scrollTop) / ROW_H)
+      return all[Math.max(0, Math.min(all.length - 1, i))]?.id ?? null
+    }
+    const inBand = (x: number, y: number): boolean => {
+      if (!list || Math.abs(x - x0) > SWEEP_SIDEWAYS * scale) return false
+      const r = list.getBoundingClientRect()
+      const m = SWEEP_MARGIN * scale
+      return x >= r.left && x <= r.right && y >= r.top - m && y <= r.bottom + m
+    }
+    const sweepTo = (y: number) => {
+      const over = rowAt(y)
+      if (!over) return
+      const next = sweepRows(base, rowsRef.current, row.id, over, add)
+      if (next.ids.size !== selection.ids.size || [...next.ids].some((id) => !selection.ids.has(id))) {
+        selection = next
+        setSelection(next)
+      }
+    }
+    const scrollStep = () => {
+      raf = 0
+      if (mode !== 'sweep' || !list) return
+      const r = list.getBoundingClientRect()
+      const edge = SWEEP_EDGE * scale
+      const dir = last.y < r.top + edge ? -1 : last.y > r.bottom - edge ? 1 : 0
+      if (dir === 0) return
+      list.scrollTop += dir * SWEEP_SCROLL
+      sweepTo(last.y)
+      raf = requestAnimationFrame(scrollStep)
+    }
+    const startDrag = () => {
+      mode = 'drag'
+      if (raf) cancelAnimationFrame(raf)
+      raf = 0
+      ids = selection.ids.has(row.id) ? selectedInstanceIds(selection, rowsRef.current) : row.instanceIds
+    }
     const move = (ev: PointerEvent) => {
-      if (!active && Math.hypot(ev.clientX - x0, ev.clientY - y0) < DRAG_START_PX) return
-      active = true
-      setDrag({ source: view.key, instanceIds: ids, x: ev.clientX / scale, y: ev.clientY / scale })
+      last = { x: ev.clientX, y: ev.clientY }
+      if (mode === 'press') {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < DRAG_START_PX) return
+        // A mostly sideways pull carries the row at once (S4); a mostly up/down one sweeps once it
+        // reaches another row.
+        const sideways = Math.abs(ev.clientX - x0) > Math.abs(ev.clientY - y0)
+        if (carry || e.shiftKey || sideways || !inBand(ev.clientX, ev.clientY)) startDrag()
+        else if (rowAt(ev.clientY) !== row.id) {
+          mode = 'sweep'
+          setHover(null)
+        } else return
+      }
+      if (mode === 'sweep') {
+        if (!inBand(ev.clientX, ev.clientY)) startDrag()
+        else {
+          sweepTo(ev.clientY)
+          if (!raf) raf = requestAnimationFrame(scrollStep)
+          return
+        }
+      }
+      setDrag({ source: view.key, instanceIds: ids, x: ev.clientX / scale, y: ev.clientY / scale, target: dropKeyAt(ev.clientX, ev.clientY) })
     }
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
       window.removeEventListener('pointercancel', up)
-      if (!active) {
+      if (raf) cancelAnimationFrame(raf)
+      if (mode === 'press') {
         // A plain click (no drag) on a row of a multi-selection selects just that row.
-        if (plain && selection.ids.size > 1) setSelection(clickRow(selection, rows, row.id, { toggle: false, range: false }))
+        if (carry) setSelection(clickRow(selection, rows, row.id, { toggle: false, range: false }))
         return
       }
+      if (mode === 'sweep') return
       setDrag(null)
       if (ev.type === 'pointercancel') return
-      const key = (document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null)?.closest('[data-drop-key]')?.getAttribute('data-drop-key') as InventoryKey | null
-      if (!key || key === view.key) return
+      const key = dropKeyAt(ev.clientX, ev.clientY)
+      if (!key || key === view.key || ids.length === 0) return
       const only = ids.length === 1 ? view.inventory.items.find((i) => i.id === ids[0]) : undefined
       // Shift + drag of one stack: choose how many first (INV-LOOT §5).
       if (ev.shiftKey && only && only.kind === 'stack' && only.quantity > 1) openPopup({ kind: 'quantity', panel, source: view.key, instanceId: only.id, destination: key, x: ev.clientX / scale, y: ev.clientY / scale })
@@ -280,7 +373,7 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
       <div
         ref={listRef}
         data-drop-key={view.key}
-        className="inv-tbody"
+        className={`inv-tbody${dropHere ? ' inv-drop-target' : ''}`}
         tabIndex={0}
         data-ui-keys
         onKeyDown={onKeyDown}

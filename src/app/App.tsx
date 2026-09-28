@@ -14,6 +14,7 @@ import type { ItemEffect } from '../game/entities/items'
 import { getItemDef } from '../game/entities/items'
 import { useHudStore } from '../stores/hudStore'
 import { useInventoryStore } from '../stores/inventoryStore'
+import { useInventoryUiStore } from '../stores/inventoryUiStore'
 import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -36,7 +37,7 @@ function describeEffect(effect: ItemEffect): string {
   return parts.join(', ')
 }
 
-const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup', bag: 'pickup' } as const
+const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup', bag: 'pickup', unknown: 'pickup' } as const
 const UNAWARE = new Set(['IDLE', 'WANDER', 'MIGRATE'])
 
 /** World sounds fade with distance from the player (full within 6 m, quiet but audible at 30 m). */
@@ -82,6 +83,8 @@ export function App() {
         if (ui().screen === 'playing') runtime.toggleInventory()
       }),
       runtime.events.on('inventory:changed', () => inv().sync(runtime)),
+      // INV-LOOT S5: the combat stance collapses the inventory windows while it lasts.
+      runtime.events.on('player:stance', (e) => useInventoryUiStore.getState().setStance(e.active)),
       // One summary per transfer command: only when something stayed behind or several lines moved.
       runtime.events.on('inventory:transferred', (e) => {
         if (e.skipped.length > 0 || e.movedLines > 1) useHudStore.getState().showToast(summaryText(e.moved, e.skipped), 2200, e.skipped.length > 0 ? 'warn' : undefined)
@@ -112,6 +115,11 @@ export function App() {
       runtime.events.on('bag:worn', (e) =>
         useHudStore.getState().showToast(e.itemId ? `Đang đeo ${getItemDef(e.itemId).name.toLowerCase()}: dùng được đồ bên trong.` : 'Đã tháo balo.', 1400),
       ),
+      // INV-LOOT S5: unknown items of a loaded save are kept, never silently dropped.
+      runtime.events.on('items:recovered', (e) => {
+        const off = e.unequipped.length > 0 ? ' Món đang trang bị trong số đó đã được tháo ra.' : ''
+        useHudStore.getState().showToast(`Bản lưu có ${e.itemIds.length} món phiên bản này không nhận ra (${[...new Set(e.itemIds)].join(', ')}): đã giữ nguyên trong túi/tủ, không dùng được.${off}`, 5000, 'warn')
+      }),
       runtime.events.on('weapon:worn', () => inv().sync(runtime)),
       runtime.events.on('weapon:lowCondition', (e) => useHudStore.getState().showToast(`${e.name} sắp hỏng (≤ 25% độ bền).`, 2500, 'warn')),
       runtime.events.on('weapon:broken', (e) => {

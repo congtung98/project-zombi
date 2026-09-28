@@ -264,7 +264,8 @@ try {
   await win('loot').locator('.inv-tool[title="Mở rộng"]').click()
   await win('loot').locator('.inv-tool[aria-pressed="true"]').first().click() // unpin
   await page.mouse.move(960, 900)
-  await page.waitForTimeout(600)
+  // INV-LOOT S5: an unpinned window waits 1.5 s after the pointer left (was 350 ms).
+  await page.waitForTimeout(1900)
   assert.ok((await box('loot')).height <= 32, 'unpinned window collapsed after the pointer left')
   const lootTitle = await win('loot').locator('.inv-titlebar').boundingBox()
   await page.mouse.move(lootTitle.x + 40, lootTitle.y + 10)

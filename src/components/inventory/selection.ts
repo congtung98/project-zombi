@@ -38,6 +38,20 @@ export function clickRow(sel: Selection, rows: readonly Row[], rowId: string, mo
   return { ids: new Set([rowId]), anchor: rowId }
 }
 
+/**
+ * INV-LOOT S5 sweep: the left button held from `anchorId` down (or up) the list to `overId` selects
+ * that run of visible rows; with Ctrl it adds the run to `base` (the selection when the press began).
+ */
+export function sweepRows(base: Selection, rows: readonly Row[], anchorId: string, overId: string, add: boolean): Selection {
+  const a = rows.findIndex((r) => r.id === anchorId)
+  const b = rows.findIndex((r) => r.id === overId)
+  if (a < 0 || b < 0) return base
+  const [lo, hi] = a < b ? [a, b] : [b, a]
+  const ids = new Set(add ? base.ids : [])
+  for (let i = lo; i <= hi; i++) ids.add(rows[i].id)
+  return { ids, anchor: anchorId }
+}
+
 /** Ctrl+A in the table: every visible row (not the whole page). */
 export function selectAll(rows: readonly Row[]): Selection {
   return { ids: new Set(rows.map((r) => r.id)), anchor: rows[0]?.id ?? null }

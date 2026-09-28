@@ -245,7 +245,8 @@ describe('one queue for transfers, crafts and repairs (Q3) with one reservation 
       expect(end.duct_tape ?? 0).toBe(start.duct_tape - crafted)
       for (const k of ['water', 'nails', 'canned_food', 'chips']) expect(end[k]).toBe(start[k])
     }
-  })
+    // 12 towns built and 120 random operations each: seconds of work, more when the suite runs in parallel.
+  }, 30_000)
 })
 
 describe('worn bag, reach, saves and scale', () => {

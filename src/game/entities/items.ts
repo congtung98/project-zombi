@@ -9,8 +9,10 @@ export type ItemId =
   | 'baseball_bat' | 'metal_pipe' | 'crowbar' | 'hammer' | 'wooden_club'
   | 'wood_plank' | 'scrap_metal' | 'duct_tape' | 'nails'
   | 'backpack'
+  | 'unknown_item'
 
-export type ItemKind = 'food' | 'drink' | 'medical' | 'weapon' | 'tool' | 'material' | 'bag'
+/** `unknown`: an item a save holds that this version does not know (INV-LOOT S5 recovery). */
+export type ItemKind = 'food' | 'drink' | 'medical' | 'weapon' | 'tool' | 'material' | 'bag' | 'unknown'
 
 /** Lượng hồi khi dùng; giá trị âm là tác dụng phụ (ví dụ đồ mặn làm khát). */
 export interface ItemEffect {
@@ -82,6 +84,28 @@ export type ItemInstance =
   | { id: string; itemId: ItemId; kind: 'weapon'; quantity: 1; condition: number; favorite?: true }
   | { id: string; itemId: ItemId; kind: 'tool'; quantity: 1; fuel?: number; favorite?: true }
   | { id: string; itemId: ItemId; kind: 'bag'; quantity: 1; favorite?: true }
+  | UnknownItemInstance
+
+/**
+ * The stored form of an item as a save wrote it (JSON), kept untouched when this version does not
+ * know its `itemId`.
+ */
+export type SavedItemPayload = Readonly<Record<string, unknown>>
+
+/**
+ * INV-LOOT S5 (spec §11.3.7, T19): an item from a save whose definition this version does not have
+ * (a removed item, a newer or edited save). It is kept, shown, moved and dropped like one whole
+ * thing, never used, equipped, merged, split or put into a bag, and saved back exactly as it was
+ * (`raw`, under its current ID and favorite flag), so a version that knows it gets it back.
+ */
+export interface UnknownItemInstance {
+  id: string
+  itemId: 'unknown_item'
+  kind: 'unknown'
+  quantity: 1
+  favorite?: true
+  raw: SavedItemPayload
+}
 
 /** References only (never copies): both instances live in the player's main inventory. */
 export interface Equipment {
@@ -139,6 +163,12 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   nails: {
     id: 'nails', name: 'Đinh', kind: 'material', stackLimit: 50, weightKg: 0.01, transfer: { batch: 10, seconds: 0.3 }, effect: {}, icon: '📌',
     description: 'Đếm từng chiếc; dùng để xây và đóng barricade (sprint sau).',
+  },
+  // INV-LOOT S5: stands in for any item a save holds that this version does not know (never looted,
+  // crafted or saved under this ID: the save keeps the original payload).
+  unknown_item: {
+    id: 'unknown_item', name: 'Vật phẩm không xác định', kind: 'unknown', stackLimit: 1, weightKg: 0, effect: {}, icon: '❓',
+    description: 'Món từ bản lưu mà phiên bản game này không nhận ra. Được giữ nguyên để phục hồi khi cập nhật; không dùng được.',
   },
   // INV-LOOT: the sample worn bag (8 slots of its own, no weight reduction, never inside a bag).
   backpack: {

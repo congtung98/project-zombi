@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from '../core/config'
 import { describe, expect, it } from 'vitest'
 import v10Fixture from './fixtures/inv-loot-v10.json'
 import { FloorStore, floorCellId } from './floor'
@@ -9,6 +10,9 @@ import { GameRuntime } from '../core/runtime'
 import { NEIGHBORHOOD_MAP } from '../world/mapData'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
 import { dropItemsOf, floorItemsOf } from '../../test/legacySave'
+
+/** A load clamps the stored zoom into the camera's current range (ba1db67 moved it to 32–128), so an older fixture's zoom comes back clamped. */
+const zoomAfterLoad = (z: number) => Math.min(GAME_CONFIG.camera.zoomMax, Math.max(GAME_CONFIG.camera.zoomMin, z))
 
 const map = NEIGHBORHOOD_MAP
 const migrate = (data: unknown): Extract<SaveValidation, { ok: true }> => {
@@ -186,7 +190,7 @@ describe('v10 → v11: a real v10 save (written by the S2 code)', () => {
     expect(migrate(save)).toEqual({ ok: true, save, migrated: false, fromVersion: SAVE_SCHEMA_VERSION })
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
   })
 
   it('rejects a dropped bag in a v11 save and a floor item outside its cell', () => {

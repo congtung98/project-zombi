@@ -163,7 +163,7 @@ describe('validateSaveGame', () => {
     if (!v.ok) expect(v.reason).toBe('wrong-map')
   })
 
-  it('rejects garbage, missing fields, NaN and unknown items', () => {
+  it('rejects garbage, missing fields, NaN and malformed items (an unknown item ID is kept, S5)', () => {
     expect(validateSaveGame(null, 'test-map').ok).toBe(false)
     expect(validateSaveGame('x', 'test-map').ok).toBe(false)
     expect(validateSaveGame({}, 'test-map').ok).toBe(false)
@@ -176,9 +176,14 @@ describe('validateSaveGame', () => {
     b.clock.timeOfDay = Number.NaN
     expect(validateSaveGame(b, 'test-map').ok).toBe(false)
 
+    // INV-LOOT S5 (T19): an item ID this version does not know is kept for recovery, not refused…
     const c = good()
     c.player.inventory.items.push({ id: 'bad:1', kind: 'stack', itemId: 'wood' as never, quantity: 1 })
-    expect(validateSaveGame(c, 'test-map').ok).toBe(false)
+    expect(validateSaveGame(c, 'test-map').ok).toBe(true)
+    // …but a malformed one still is.
+    const c2 = good()
+    c2.player.inventory.items.push({ id: 'bad:1', kind: 'stack', itemId: 'wood' as never, quantity: 0 })
+    expect(validateSaveGame(c2, 'test-map').ok).toBe(false)
 
     const d = good()
     d.zombies[0].ai = 'FLY' as never

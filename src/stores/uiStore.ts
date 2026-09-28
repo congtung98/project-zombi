@@ -13,6 +13,7 @@ import { menuWorlds, startupSelection, switchWorld } from '../game/world/worldCh
 import { bundledWorldCatalog, type BundledWorldEntry } from '../map/content'
 import { useHudStore } from './hudStore'
 import { useInventoryStore } from './inventoryStore'
+import { useInventoryUiStore } from './inventoryUiStore'
 import { useWorldStore } from './worldStore'
 
 export type Screen = 'menu' | 'create' | 'playing' | 'paused' | 'gameover'
@@ -163,6 +164,7 @@ interface UiState {
 function enterSession(set: (s: Partial<UiState>) => void): void {
   useWorldStore.getState().syncFromRuntime(runtime)
   useInventoryStore.getState().reset()
+  useInventoryUiStore.getState().resetSession()
   set({ screen: 'playing', sessionId: runtime.sessionId, sceneReady: false })
 }
 
@@ -327,6 +329,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   toMenu: () => {
     runtime.input.clear()
     useInventoryStore.getState().reset()
+    useInventoryUiStore.getState().resetSession()
     set({ screen: 'menu' })
     void get().refreshSaveSlot()
   },

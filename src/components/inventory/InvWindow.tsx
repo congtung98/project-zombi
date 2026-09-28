@@ -4,8 +4,11 @@ import { useInventoryUiStore } from '../../stores/inventoryUiStore'
 import { Glyph } from './ItemIcon'
 import { L } from './labels'
 
-/** Unpinned windows collapse this long after the pointer and focus left them (INV-LOOT §4.3). */
-const AUTO_COLLAPSE_MS = 350
+/**
+ * Unpinned windows collapse this long after the pointer and focus left them (INV-LOOT S5: long
+ * enough to pass by and come back, like PZ), or at once when the player presses on the game world.
+ */
+export const AUTO_COLLAPSE_MS = 1500
 
 interface Props {
   id: WindowId
@@ -33,6 +36,8 @@ export function InvWindow({ id, title, label, view, scale, defaultRect, onClose,
   const z = useInventoryUiStore((s) => s.order.indexOf(id))
   // A menu or inspect card open from any window keeps every window as it is (it lives in a portal).
   const hasPopup = useInventoryUiStore((s) => s.popup !== null)
+  // INV-LOOT S5: the combat stance collapses every window (pinned too) while it lasts.
+  const stance = useInventoryUiStore((s) => s.stance)
   const { setRect, togglePin, setCollapsed, focus } = useInventoryUiStore.getState()
   const [live, setLive] = useState<Rect | null>(null)
   const [autoCollapsed, setAutoCollapsed] = useState(false)
@@ -40,7 +45,7 @@ export function InvWindow({ id, title, label, view, scale, defaultRect, onClose,
   const timer = useRef<number | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const rect = clampRect(live ?? state.rect ?? defaultRect, view)
-  const collapsed = state.collapsed || (!state.pinned && autoCollapsed)
+  const collapsed = state.collapsed || stance || (!state.pinned && autoCollapsed)
 
   const cancelTimer = () => {
     if (timer.current !== null) window.clearTimeout(timer.current)
@@ -48,9 +53,38 @@ export function InvWindow({ id, title, label, view, scale, defaultRect, onClose,
   }
   useEffect(() => cancelTimer, [])
 
+  // An unpinned window leaves the stance collapsed (it opens again under the pointer); a pinned one
+  // comes back by itself.
+  const pinned = state.pinned
+  useEffect(() => useInventoryUiStore.subscribe((s, prev) => {
+    if (!s.stance || prev.stance) return
+    cancelTimer()
+    if (!pinned) setAutoCollapsed(true)
+  }), [pinned])
+
+  // A press on the game world (the canvas) collapses an open unpinned window at once.
+  const open = !state.pinned && !state.collapsed && !autoCollapsed
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target instanceof HTMLCanvasElement)) return
+      cancelTimer()
+      setAutoCollapsed(true)
+    }
+    window.addEventListener('pointerdown', onDown, true)
+    return () => window.removeEventListener('pointerdown', onDown, true)
+  }, [open])
+
+  const expand = () => {
+    cancelTimer()
+    // Passing over a window while aiming never opens it.
+    if (!useInventoryUiStore.getState().stance) setAutoCollapsed(false)
+  }
+
   const scheduleCollapse = () => {
     cancelTimer()
-    if (state.pinned || gesture.current || hasPopup) return
+    // Not while an item is dragged out of it (the rows being carried stay in view).
+    if (state.pinned || gesture.current || hasPopup || useInventoryUiStore.getState().drag) return
     timer.current = window.setTimeout(() => {
       timer.current = null
       // Typing in the search field or working the table keeps it open; a title bar button that kept
@@ -90,15 +124,9 @@ export function InvWindow({ id, title, label, view, scale, defaultRect, onClose,
       aria-label={label}
       style={{ left: rect.x, top: rect.y, width: rect.w, height: collapsed ? TITLE_H : rect.h, zIndex: 10 + Math.max(0, z) }}
       onPointerDownCapture={() => focus(id)}
-      onPointerEnter={() => {
-        cancelTimer()
-        setAutoCollapsed(false)
-      }}
+      onPointerEnter={expand}
       onPointerLeave={scheduleCollapse}
-      onFocusCapture={() => {
-        cancelTimer()
-        setAutoCollapsed(false)
-      }}
+      onFocusCapture={expand}
       onBlurCapture={() => {
         if (!state.pinned) scheduleCollapse()
       }}

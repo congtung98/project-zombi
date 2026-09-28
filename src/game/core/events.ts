@@ -32,6 +32,11 @@ export type GameEvents = {
   'item:equipped': { id: string | null; itemId: ItemId | null }
   /** INV-LOOT: a bag worn (id) or taken off (null). */
   'bag:worn': { id: string | null; itemId: ItemId | null }
+  /**
+   * INV-LOOT S5: a loaded save held items this version does not know; they are kept (unusable) and
+   * saved back unchanged. `unequipped`: the weapon / worn bag was one of them and was taken off.
+   */
+  'items:recovered': { itemIds: string[]; unequipped: ('weapon' | 'back')[] }
   /** Condition đổi sau một đòn trúng; UI chỉ đồng bộ, không phát âm pickup. */
   'weapon:worn': { id: string; itemId: ItemId; condition: number }
   'weapon:lowCondition': { id: string; itemId: ItemId; name: string }

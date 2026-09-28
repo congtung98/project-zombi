@@ -20,6 +20,9 @@ import type { ItemInstance } from '../entities/items'
 import { SAVE_SCHEMA_VERSION, type LegacyInventory, type SaveGame } from '../../types/save'
 import { dropItemsOf, floorItemsOf, isBonusItem } from '../../test/legacySave'
 
+/** A load clamps the stored zoom into the camera's current range (ba1db67 moved it to 32–128), so an older fixture's zoom comes back clamped. */
+const zoomAfterLoad = (z: number) => Math.min(GAME_CONFIG.camera.zoomMax, Math.max(GAME_CONFIG.camera.zoomMin, z))
+
 const map = NEIGHBORHOOD_MAP
 const WARDROBE = 'c0_0/house/wardrobe'
 const RULE = GAME_CONFIG.bonusLoot[0]
@@ -96,7 +99,7 @@ describe('S1 gate: a real v9 save (written by the pre-v10 code) keeps every item
     const rt = new GameRuntime()
     rt.loadSnapshot(first.save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...first.save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...first.save, savedAt: 0, cameraZoom: zoomAfterLoad(first.save.cameraZoom) })
   })
 })
 

@@ -9,10 +9,24 @@ import { useInventoryUiStore, type PanelId } from '../../stores/inventoryUiStore
 import { ItemTable } from './ItemTable'
 import { useSelectedIds } from './tableData'
 import { drop, takeAll, transfer } from './commands'
+import { useDropTarget } from './dragDrop'
 import { CATEGORY_LABEL, L } from './labels'
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as ItemKind[]
 const kg = (n: number) => n.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+/**
+ * A tab that is also a drop target (INV-LOOT S5): rows dropped on "Balo đang đeo", "Túi chính",
+ * "Dưới đất" or a container's tab go there, whichever tab the window shows.
+ */
+function DropTab({ dropKey, selected, className, title, onClick, children }: { dropKey: InventoryKey; selected: boolean; className?: string; title?: string; onClick: () => void; children: ReactNode }) {
+  const over = useDropTarget(dropKey)
+  return (
+    <button type="button" role="tab" aria-selected={selected} data-drop-key={dropKey} className={`inv-tab${className ? ` ${className}` : ''}${over ? ' inv-drop-target' : ''}`} title={title} onClick={onClick}>
+      {children}
+    </button>
+  )
+}
 
 /** Container tabs, selected by key (never by position). */
 function Selector({ panel, views, active }: { panel: PanelId; views: InventoryView[]; active: InventoryKey | null }) {
@@ -20,17 +34,10 @@ function Selector({ panel, views, active }: { panel: PanelId; views: InventoryVi
   return (
     <div className="inv-selector" role="tablist" aria-label={panel === 'inventory' ? L.inventory : L.loot}>
       {views.map((v) => (
-        <button
-          key={v.key}
-          type="button"
-          role="tab"
-          aria-selected={v.key === active}
-          className="inv-tab"
-          onClick={() => patchTable(panel, { activeKey: v.key, selection: { ids: new Set(), anchor: null } })}
-        >
+        <DropTab key={v.key} dropKey={v.key} selected={v.key === active} onClick={() => patchTable(panel, { activeKey: v.key, selection: { ids: new Set(), anchor: null } })}>
           {v.name}
           <span className="inv-tab-count">{countUsedSlots(v.inventory)}/{v.inventory.slotCapacity ?? '∞'}</span>
-        </button>
+        </DropTab>
       ))}
     </div>
   )
@@ -165,18 +172,17 @@ function LootTabs({ active }: { active: InventoryKey }) {
   return (
     <div className="inv-selector" role="tablist" aria-label={L.loot}>
       {tabs.map((t) => (
-        <button
+        <DropTab
           key={t.key}
-          type="button"
-          role="tab"
-          aria-selected={t.key === active}
-          className={`inv-tab${t.inReach ? '' : ' inv-tab-out'}`}
+          dropKey={t.key}
+          selected={t.key === active}
+          className={t.inReach ? undefined : 'inv-tab-out'}
           title={t.inReach ? undefined : L.outOfReach}
           onClick={() => runtime.openLoot(t.key === 'floor' ? null : containerIdOf(t.key))}
         >
           {t.name}
           <span className="inv-tab-count">{t.capacity === null ? t.used : `${t.used}/${t.capacity}`}</span>
-        </button>
+        </DropTab>
       ))}
     </div>
   )

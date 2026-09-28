@@ -1,4 +1,5 @@
-import type { ItemKind } from '../../game/entities/items'
+import { getItemDef, type ItemInstance, type ItemKind } from '../../game/entities/items'
+import { recoveredItemId, recoveredQuantity } from '../../game/systems/recovery'
 import type { TransferRefusal } from '../../game/systems/inventoryCommands'
 
 /**
@@ -6,13 +7,15 @@ import type { TransferRefusal } from '../../game/systems/inventoryCommands'
  * Components never write their own strings, so wording stays consistent and can be translated later.
  */
 export const L = {
+  /** S5 recovery: an unknown item never goes into a bag (it may be a bag itself). */
+  unknownNotInBag: 'Món không xác định không để vào túi được',
   inventory: 'Túi đồ',
   loot: 'Lục đồ',
   crafting: 'Chế tạo',
   main: 'Túi chính',
   worn: 'Balo đang đeo',
   pin: 'Ghim cửa sổ (giữ mở khi rời chuột)',
-  unpin: 'Bỏ ghim (tự thu gọn khi rời chuột)',
+  unpin: 'Bỏ ghim (tự thu gọn một lúc sau khi rời chuột, hoặc khi bấm vào thế giới)',
   collapse: 'Thu gọn',
   expand: 'Mở rộng',
   close: 'Đóng',
@@ -83,6 +86,7 @@ export const CATEGORY_LABEL: Record<ItemKind, string> = {
   tool: 'Dụng cụ',
   material: 'Vật liệu',
   bag: 'Túi',
+  unknown: 'Không xác định',
 }
 
 /** Context menu entries (capability-based, see `itemActions.ts`). */
@@ -149,4 +153,14 @@ export function effectText(effect: { health?: number; hunger?: number; thirst?: 
 /** Vietnamese-insensitive search key: lower case, no diacritics, đ → d. */
 export function searchKey(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase()
+}
+
+/**
+ * The name a row, card or drag preview shows for an instance: the definition's name, or for an
+ * unknown item (S5 recovery) the ID it was saved with and the units its payload holds.
+ */
+export function itemName(item: ItemInstance): string {
+  if (item.kind !== 'unknown') return getItemDef(item.itemId).name
+  const q = recoveredQuantity(item)
+  return `${getItemDef('unknown_item').name} (${recoveredItemId(item)}${q > 1 ? ` ×${q}` : ''})`
 }

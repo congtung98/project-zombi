@@ -8,7 +8,7 @@ import type { ItemId } from '../../game/entities/items'
 const O = '#15181a'
 const SW = 1.2
 
-const SHAPES: Record<ItemId, ReactNode> = {
+const SHAPES: Record<Exclude<ItemId, 'unknown_item'>, ReactNode> = {
   canned_food: (
     <g stroke={O} strokeWidth={SW}>
       <rect x="6" y="5" width="12" height="15" rx="1.5" fill="#b9bec4" />

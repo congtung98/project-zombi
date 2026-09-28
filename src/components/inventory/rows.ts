@@ -1,5 +1,5 @@
 import { getItemDef, type ItemInstance, type ItemKind } from '../../game/entities/items'
-import { CATEGORY_LABEL, searchKey } from './labels'
+import { CATEGORY_LABEL, itemName, searchKey } from './labels'
 
 export type SortKey = 'name' | 'category' | 'qty' | 'weight'
 
@@ -60,7 +60,7 @@ function matches(item: ItemInstance, search: string, category: CategoryFilter): 
   if (category !== 'all' && def.kind !== category) return false
   if (!search) return true
   const key = searchKey(search.trim())
-  return searchKey(def.name).includes(key) || searchKey(CATEGORY_LABEL[def.kind]).includes(key)
+  return searchKey(itemName(item)).includes(key) || searchKey(CATEGORY_LABEL[def.kind]).includes(key)
 }
 
 function compare(a: RowBase, b: RowBase, sort: SortState): number {
@@ -85,7 +85,7 @@ export function buildRows(items: readonly ItemInstance[], query: RowQuery, weigh
   const top: Row[] = []
   const itemRow = (item: ItemInstance, groupId: string | null): ItemRow => {
     const def = getItemDef(item.itemId)
-    return { kind: 'item', id: item.id, item, groupId, name: def.name, category: def.kind, qty: item.quantity, weight: weightOf(item), instanceIds: [item.id] }
+    return { kind: 'item', id: item.id, item, groupId, name: itemName(item), category: def.kind, qty: item.quantity, weight: weightOf(item), instanceIds: [item.id] }
   }
   for (const i of visible) {
     const members = i.kind === 'stack' ? null : singles.get(i.itemId)!

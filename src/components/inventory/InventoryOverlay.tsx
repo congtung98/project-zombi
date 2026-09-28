@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { runtime } from '../../game/core/runtime'
 import { useInventoryStore } from '../../stores/inventoryStore'
 import { useInventoryUiStore } from '../../stores/inventoryUiStore'
@@ -6,11 +6,12 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { CraftingList } from '../CraftingPanel'
 import { InvWindow } from './InvWindow'
 import { InventoryPanel, LootPanel } from './Panels'
+import { useDropTarget } from './dragDrop'
+import type { InventoryKey } from '../../game/systems/inventoryCommands'
 import { Popups } from './Popups'
 import { Glyph, ItemIcon } from './ItemIcon'
-import { getItemDef } from '../../game/entities/items'
 import { defaultLayout, isCompact, NO_SAFE_AREA, type SafeArea, type View } from './layout'
-import { L } from './labels'
+import { itemName, L } from './labels'
 
 /** Viewport in UI pixels (screen pixels / UI scale), updated on resize. */
 function useView(scale: number): View {
@@ -90,10 +91,10 @@ export function InventoryOverlay() {
           title={
             <span className="inv-tabs-title" role="tablist" aria-label={L.compactTabs}>
               {inventoryOpen && (
-                <button type="button" role="tab" aria-selected={tab === 'inventory'} className="inv-title-tab" data-drop-key={inventoryKey} onClick={() => setCompactTab('inventory')}>{L.inventory}</button>
+                <TitleTab dropKey={inventoryKey} selected={tab === 'inventory'} onClick={() => setCompactTab('inventory')}>{L.inventory}</TitleTab>
               )}
               {lootOpen && (
-                <button type="button" role="tab" aria-selected={tab === 'loot'} className="inv-title-tab" data-drop-key={loot.key} onClick={() => setCompactTab('loot')}>{L.loot}</button>
+                <TitleTab dropKey={loot.key} selected={tab === 'loot'} onClick={() => setCompactTab('loot')}>{L.loot}</TitleTab>
               )}
             </span>
           }
@@ -125,6 +126,14 @@ export function InventoryOverlay() {
   )
 }
 
+/** Compact mode's Inventory / Loot tab, also a drop target. */
+function TitleTab({ dropKey, selected, onClick, children }: { dropKey: InventoryKey; selected: boolean; onClick: () => void; children: ReactNode }) {
+  const over = useDropTarget(dropKey)
+  return (
+    <button type="button" role="tab" aria-selected={selected} className={`inv-title-tab${over ? ' inv-drop-target' : ''}`} data-drop-key={dropKey} onClick={onClick}>{children}</button>
+  )
+}
+
 /** What is being dragged, under the pointer (never over the drop target: it ignores the pointer). */
 function DragPreview() {
   const drag = useInventoryUiStore((s) => s.drag)
@@ -141,7 +150,7 @@ function DragPreview() {
   return (
     <div className="inv-drag" style={{ left: drag.x + 12, top: drag.y + 12 }} aria-hidden>
       <ItemIcon itemId={first.itemId} />
-      <span>{getItemDef(first.itemId).name}{first.quantity > 1 ? ` ×${first.quantity}` : ''}</span>
+      <span>{itemName(first)}{first.quantity > 1 ? ` ×${first.quantity}` : ''}</span>
       {drag.instanceIds.length > 1 && <span className="inv-drag-count">{L.dragHint(drag.instanceIds.length)}</span>}
     </div>
   )

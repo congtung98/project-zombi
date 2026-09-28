@@ -296,9 +296,17 @@ function isVec3(v: unknown): v is Vec3 {
   return isRecord(v) && isFiniteNumber(v.x) && isFiniteNumber(v.y) && isFiniteNumber(v.z)
 }
 
-/** One stored instance: known item, quantity within the stack limit, state matching its kind. */
+/**
+ * One stored instance: known item, quantity within the stack limit, state matching its kind. An item
+ * this version does not know (INV-LOOT S5, T19) is accepted with a sound shape (ID, positive whole
+ * quantity, kind named, favorite as the version allows) and loaded as a recovery item that keeps
+ * its payload (`recovery.ts`); the stand-in ID itself is never a stored item.
+ */
 function isInstance(s: unknown, allowV10: boolean): s is ItemInstance {
-  if (!isRecord(s) || typeof s.id !== 'string' || !s.id || typeof s.itemId !== 'string' || !Object.hasOwn(ITEMS, s.itemId)) return false
+  if (!isRecord(s) || typeof s.id !== 'string' || !s.id || typeof s.itemId !== 'string' || !s.itemId || s.itemId === 'unknown_item') return false
+  if (!Object.hasOwn(ITEMS, s.itemId)) {
+    return typeof s.kind === 'string' && Number.isSafeInteger(s.quantity) && Number(s.quantity) > 0 && (s.favorite === undefined || (allowV10 && s.favorite === true))
+  }
   const def = ITEMS[s.itemId as ItemId]
   // Favorites and bags exist since v10 only.
   if (s.favorite !== undefined && !(allowV10 && s.favorite === true)) return false

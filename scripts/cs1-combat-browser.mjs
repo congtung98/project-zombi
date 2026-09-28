@@ -266,26 +266,29 @@ try {
   await wait(300)
   assert.equal((await state()).stance, true)
   await page.keyboard.press('KeyE')
-  await page.locator('.inv-panel-container').waitFor({ timeout: 3000 })
+  await page.locator('[data-inv-window="loot"]').waitFor({ timeout: 3000 })
   s = await state()
   assert.equal(s.stance, false, 'E leaves the stance')
   // A click on the panel never reaches the world; the held right button does not bring the stance back.
   await reset()
-  await page.locator('.inv-panel-container h3').click()
+  await page.locator('[data-inv-window="loot"] .inv-context').click()
   await wait(300)
   s = await state()
   assert.equal(s.swings.length, 0)
   assert.equal(s.stance, false)
-  // Esc closes the panel first (no pause); the stance needs a new right press.
+  // Esc closes the window on top first (the loot window: no pause); the stance needs a new right press.
   await page.keyboard.press('Escape')
   await wait(300)
-  const afterEsc = await page.evaluate(() => ({ panel: !!document.querySelector('.inv-panel-container'), paused: !!document.querySelector('.overlay-dim'), stance: window.__runtime.stance.requested }))
+  const afterEsc = await page.evaluate(() => ({ panel: !!document.querySelector('[data-inv-window="loot"]'), paused: !!document.querySelector('.overlay-dim'), stance: window.__runtime.stance.requested }))
   log('E → panel → Esc', afterEsc)
   assert.deepEqual(afterEsc, { panel: false, paused: false, stance: false })
+  // INV-LOOT S5: the inventory window still open does not block it; it collapses while aiming.
+  assert.equal(await page.locator('[data-inv-window="inventory"]').count(), 1)
   await page.mouse.up({ button: 'right' })
   await page.mouse.down({ button: 'right' })
   await wait(250)
   assert.equal((await state()).stance, true)
+  assert.equal(await page.locator('[data-inv-window="inventory"].inv-window-collapsed').count(), 1)
 
   // 9) E in the middle of a swing: ignored, never queued.
   await reset()
@@ -293,7 +296,7 @@ try {
   await page.mouse.up()
   await page.keyboard.press('KeyE')
   await wait(700)
-  const midSwing = await page.evaluate(() => ({ panel: !!document.querySelector('.inv-panel-container'), swings: window.__cs1.swings.length }))
+  const midSwing = await page.evaluate(() => ({ panel: !!document.querySelector('[data-inv-window="loot"]'), swings: window.__cs1.swings.length }))
   log('E mid-swing', midSwing)
   assert.deepEqual(midSwing, { panel: false, swings: 1 })
   await page.mouse.up({ button: 'right' })
@@ -320,6 +323,8 @@ try {
 
   // 11) Toggle mode from the settings: one right click on, one off; the left click swings in it.
   const setMode = async (label) => {
+    // INV-LOOT: Escape closes an open inventory window before it pauses; none is open here.
+    await page.evaluate(() => window.__runtime.closeAllUi())
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Cài đặt', exact: true }).click()
     await page.locator('[data-combat-stance]').selectOption(label)

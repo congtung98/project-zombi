@@ -3,7 +3,7 @@ import { repairRecipeFor } from '../../game/entities/recipes'
 import { conditionLevel, weaponHitDamage } from '../../game/systems/weapons'
 import { useInventoryStore } from '../../stores/inventoryStore'
 import { ItemIcon } from './ItemIcon'
-import { CATEGORY_LABEL, L, effectText } from './labels'
+import { CATEGORY_LABEL, L, effectText, itemName } from './labels'
 
 const LEVEL_TEXT = { ok: 'Tốt', low: 'Sắp hỏng (≤ 25%)', broken: 'Hỏng — sát thương còn 20%' } as const
 const kg = (n: number) => `${n.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} ${L.kg}`
@@ -22,7 +22,7 @@ function Single({ item }: { item: ItemInstance }) {
       <div className="inv-card-head">
         <ItemIcon itemId={item.itemId} size={40} />
         <div>
-          <div className="inv-card-name">{def.name}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</div>
+          <div className="inv-card-name">{itemName(item)}{item.quantity > 1 ? ` ×${item.quantity}` : ''}</div>
           <div className="inv-card-sub">
             {CATEGORY_LABEL[def.kind]}
             {item.id === weaponId && ` · ${L.equippedWeapon}`}

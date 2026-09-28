@@ -20,6 +20,9 @@ import { asV9, compactSlots, dropItemsOf, floorItemsOf, slotsOf } from '../../te
 import { GAME_CONFIG } from '../core/config'
 import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME } from '../entities/appearance'
 
+/** A load clamps the stored zoom into the camera's current range (ba1db67 moved it to 32–128), so an older fixture's zoom comes back clamped. */
+const zoomAfterLoad = (z: number) => Math.min(GAME_CONFIG.camera.zoomMax, Math.max(GAME_CONFIG.camera.zoomMin, z))
+
 const mapId = NEIGHBORHOOD_MAP.id
 const migrate = (data: unknown) => {
   const result = validateSaveGame(data, mapId)
@@ -281,7 +284,7 @@ describe('P2-S2 browser fixture (v3)', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
     const held = equippedWeapon(rt.player.inventory, rt.player.equipment)!
     expect([held.itemId, held.condition]).toEqual(['metal_pipe', 0])
     // The ID minted by the closet survives take → drop → pick up → save (item IDs are never renamed).
@@ -300,7 +303,7 @@ describe('P2-S3 browser fixture (v4)', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
   })
 })
 
@@ -319,7 +322,7 @@ describe('instance ownership', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     const again = rt.createSnapshot()
-    expect({ ...again, savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...again, savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
     expect(rt.player.inventory.items.flatMap((i) => (i.kind === 'weapon' ? [i.condition] : [])).sort((a, b) => a - b)).toEqual([10, 70])
   })
   it('keeps two bat IDs and conditions through equip, transfer, drop and repeated reload', () => {
@@ -406,7 +409,7 @@ describe('P2-S4 browser fixture (v5)', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
     expect(equippedWeapon(rt.player.inventory, rt.player.equipment)).toMatchObject({ itemId: 'wooden_club', condition: 40 })
     const bat = rt.player.inventory.items.find((i) => i.itemId === 'baseball_bat')!
     expect(bat.id.includes('ct-safehouse-closet') && bat.kind === 'weapon' && bat.condition).toBe(29)
@@ -465,7 +468,7 @@ describe('v5 → v6 (P2-S5 zombie perception, zones, siege, horde)', () => {
     save.horde = { timer: 42.5, counter: 3 }
     const rt = new GameRuntime()
     rt.loadSnapshot(migrate(save).save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
     expect(rt.zombies.get('zombie-2')).toMatchObject({ ai: 'ATTACK_STRUCTURE', structureTargetId: id('door-house'), memoryAge: 4.5 })
     expect(rt.world.doors.get(id('door-house'))!.hp).toBe(70)
     expect([rt.hordeTimer, rt.hordeCounter]).toEqual([42.5, 3])
@@ -484,7 +487,7 @@ describe('P2-S5 browser fixture (v6, saved mid-siege in Chromium)', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
     // No Rapier in Node: walls and the closed door block sight like the grid does.
     rt.setLineOfSightOverride({ isBlocked: (a, b, ignore) => (ignore.length > 0 ? false : !rt.nav.hasLineOfWalk(a, b)) })
     let destroyed = 0
@@ -575,7 +578,7 @@ describe('Building lighting browser fixture (v7, saved in Chromium)', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     for (let i = 0; i < 2; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
-    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0 })
+    expect({ ...rt.createSnapshot(), savedAt: 0 }).toEqual({ ...save, savedAt: 0, cameraZoom: zoomAfterLoad(save.cameraZoom) })
     rt.tick(1 / 60)
     expect(rt.world.lamps.get(id('lamp-house-living'))).toBe(true)
     expect(rt.world.curtains.get(id('win-safehouse-n'))).toBe(true)

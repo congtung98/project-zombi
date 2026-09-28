@@ -9,6 +9,8 @@ import { chooseFall, fallOrder, FALL_ROOM } from './character/death'
 import { registerAnimator } from './character/animators'
 import { applyPose, buildCharacter, playerLook, shadowDetail } from './character/rig'
 import { buildWeaponModel, type WeaponModel } from './character/weaponModels'
+import { buildBackpackModel, type BackpackModel } from './character/backpackModel'
+import { findItem } from '../systems/inventory'
 import { advancePlayerGait, createPlayerGait } from './character/locomotion'
 import { angleDiff } from '../systems/stance'
 
@@ -38,8 +40,11 @@ export function PlayerView() {
   const visualRef = useRef<Group>(null)
   const shadows = useSettingsStore((s) => s.shadows)
   // Scene remounts per session, so the appearance read here is the one of this game/save.
-  const rig = useMemo(() => buildCharacter(playerLook(runtime.player.appearance), shadowDetail(shadows)), [shadows])
+  const look = useMemo(() => playerLook(runtime.player.appearance), [])
+  const rig = useMemo(() => buildCharacter(look, shadowDetail(shadows)), [look, shadows])
   const weapon = useRef<{ key: string; model: WeaponModel | null }>({ key: '', model: null })
+  // INV-LOOT S5: the worn bag, on the torso bone.
+  const bag = useRef<{ key: string; model: BackpackModel | null }>({ key: '', model: null })
   const pose = useRef(createPose())
   const gait = useRef(createPlayerGait())
   const clock = useRef(0)
@@ -57,10 +62,14 @@ export function PlayerView() {
 
   useEffect(() => {
     const held = weapon.current
+    const worn = bag.current
     return () => {
       held.model?.dispose()
       held.model = null
       held.key = ''
+      worn.model?.dispose()
+      worn.model = null
+      worn.key = ''
       rig.dispose()
     }
   }, [rig])
@@ -95,6 +104,16 @@ export function PlayerView() {
       const model = held ? buildWeaponModel(held.itemId, held.condition <= 0, shadows === 'high') : null
       if (model) rig.weaponSocket.add(model.group)
       weapon.current = { key, model }
+    }
+    const backId = p.equipment.backInstanceId
+    const wornBag = backId ? findItem(p.inventory, backId) : undefined
+    const bagKey = wornBag?.itemId ?? ''
+    if (bagKey !== bag.current.key) {
+      bag.current.model?.group.removeFromParent()
+      bag.current.model?.dispose()
+      const model = wornBag ? buildBackpackModel(wornBag.itemId, look, shadows === 'high') : null
+      if (model) rig.torso.add(model.group)
+      bag.current = { key: bagKey, model }
     }
 
     deadTime.current = p.alive ? -1 : Math.max(0, deadTime.current) + delta
@@ -134,7 +153,7 @@ export function PlayerView() {
       pose.current,
     )
     applyPose(rig, pose.current)
-  }), [rig, shadows])
+  }), [rig, look, shadows])
 
   return (
     <RigidBody

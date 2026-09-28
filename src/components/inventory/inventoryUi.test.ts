@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { addItem, createInventory, type Inventory } from '../../game/systems/inventory'
 import type { ItemInstance } from '../../game/entities/items'
 import { buildRows, DEFAULT_QUERY, type RowQuery } from './rows'
-import { clickRow, EMPTY_SELECTION, pruneSelection, selectAll, selectedInstanceIds } from './selection'
+import { clickRow, EMPTY_SELECTION, pruneSelection, selectAll, selectedInstanceIds, sweepRows } from './selection'
+import { useInventoryUiStore } from '../../stores/inventoryUiStore'
+import { itemName } from './labels'
 import { clampRect, defaultLayout, GRIP, isCompact, MIN_H, MIN_W, TITLE_H } from './layout'
 import { menuEntries, type MenuContext } from './itemActions'
 import { REFUSAL_LABEL, searchKey, summaryText } from './labels'
@@ -86,6 +88,49 @@ describe('selection', () => {
     const member = open.find((r) => r.kind === 'item' && r.groupId === group.id)!
     const sel = { ids: new Set([group.id, member.id]), anchor: null }
     expect(selectedInstanceIds(sel, open)).toEqual(group.instanceIds)
+  })
+})
+
+describe('INV-LOOT S5 sweep, session reset, stance', () => {
+  it('a sweep selects the run from the pressed row to the one under the pointer, both ways; Ctrl adds it', () => {
+    const rows = buildRows(bagWith().items, q(), weight)
+    const ids = rows.map((r) => r.id)
+    const down = sweepRows(EMPTY_SELECTION, rows, ids[1], ids[3], false)
+    expect([...down.ids]).toEqual(ids.slice(1, 4))
+    expect(down.anchor).toBe(ids[1])
+    // Back up past the pressed row: the run follows the pointer (never keeps rows it left).
+    expect([...sweepRows(EMPTY_SELECTION, rows, ids[1], ids[0], false).ids]).toEqual(ids.slice(0, 2))
+    const base = clickRow(EMPTY_SELECTION, rows, ids[4], { toggle: false, range: false })
+    expect([...sweepRows(base, rows, ids[0], ids[1], true).ids].sort()).toEqual([ids[4], ids[0], ids[1]].sort())
+    expect(sweepRows(base, rows, 'gone', ids[1], false)).toBe(base)
+    // The group row stands for its 4 bats (T05 still holds for a sweep).
+    const all = sweepRows(EMPTY_SELECTION, rows, ids[0], ids[ids.length - 1], false)
+    expect(selectedInstanceIds(all, rows)).toHaveLength(bagWith().items.length)
+  })
+
+  it('the stance collapses (closes the menu, card and drag); a new session forgets the old world', () => {
+    const ui = useInventoryUiStore.getState()
+    ui.openPopup({ kind: 'menu', panel: 'loot', source: 'container:x', instanceIds: ['a'], x: 1, y: 1 })
+    ui.setDrag({ source: 'main', instanceIds: ['b'], x: 0, y: 0, target: 'worn' })
+    ui.setStance(true)
+    expect(useInventoryUiStore.getState()).toMatchObject({ stance: true, popup: null, drag: null, hover: null })
+    ui.setStance(false)
+    expect(useInventoryUiStore.getState().stance).toBe(false)
+    ui.patchTable('loot', { activeKey: 'container:x', selection: { ids: new Set(['a']), anchor: 'a' }, search: 'nuoc' })
+    ui.setStance(true)
+    ui.resetSession()
+    const after = useInventoryUiStore.getState()
+    expect(after.stance).toBe(false)
+    expect(after.tables.loot).toMatchObject({ activeKey: null, selection: EMPTY_SELECTION, search: 'nuoc' })
+    expect(after.tables.inventory.activeKey).toBe('main')
+  })
+
+  it('an unknown item shows the ID it was saved with and its units', () => {
+    const item: ItemInstance = { id: 'p:9', itemId: 'unknown_item', kind: 'unknown', quantity: 1, raw: { id: 'p:9', itemId: 'rare_gem', kind: 'stack', quantity: 4 } }
+    expect(itemName(item)).toBe('Vật phẩm không xác định (rare_gem ×4)')
+    const rows = buildRows([item], q({ search: 'rare gem' }), weight)
+    expect(rows).toHaveLength(0)
+    expect(buildRows([item], q({ search: 'rare_gem' }), weight)[0]).toMatchObject({ category: 'unknown', qty: 1 })
   })
 })
 

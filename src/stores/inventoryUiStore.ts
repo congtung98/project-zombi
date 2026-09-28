@@ -39,6 +39,8 @@ export interface DragState {
   instanceIds: string[]
   x: number
   y: number
+  /** The drop target under the pointer (a list or a tab of another inventory), for its highlight. */
+  target: InventoryKey | null
 }
 
 export interface Hover {
@@ -60,6 +62,12 @@ interface InventoryUiState {
   drag: DragState | null
   /** Compact mode (one window): which panel is shown. */
   compactTab: PanelId
+  /**
+   * INV-LOOT S5: the player is in the combat stance. Every window collapses to its title bar while it
+   * lasts (pinned ones too, like PZ); pinned windows come back when it ends, unpinned ones stay
+   * collapsed until the pointer comes back over them.
+   */
+  stance: boolean
   setRect: (id: WindowId, rect: Rect) => void
   togglePin: (id: WindowId) => void
   setCollapsed: (id: WindowId, collapsed: boolean) => void
@@ -71,6 +79,12 @@ interface InventoryUiState {
   setHover: (hover: Hover | null) => void
   setDrag: (drag: DragState | null) => void
   setCompactTab: (tab: PanelId) => void
+  setStance: (active: boolean) => void
+  /**
+   * New Game, load or back to the menu: nothing of the previous world stays referenced (selection,
+   * menu, hover card, drag, loot tab), INV-LOOT T22. Layout preferences and sort/filter stay.
+   */
+  resetSession: () => void
   resetLayout: () => void
 }
 
@@ -128,6 +142,7 @@ export const useInventoryUiStore = create<InventoryUiState>((set, get) => ({
   hover: null,
   drag: null,
   compactTab: 'inventory',
+  stance: false,
 
   setRect: (id, rect) => {
     const windows = { ...get().windows, [id]: { ...get().windows[id], rect } }
@@ -166,6 +181,21 @@ export const useInventoryUiStore = create<InventoryUiState>((set, get) => ({
   },
   setDrag: (drag) => set({ drag, ...(drag ? { hover: null } : {}) }),
   setCompactTab: (compactTab) => set({ compactTab }),
+  // Entering the stance closes what would float over the aim (menu, hover card, a drag in progress).
+  setStance: (stance) => {
+    if (get().stance === stance) return
+    set(stance ? { stance, popup: null, hover: null, drag: null } : { stance })
+  },
+  resetSession: () => {
+    const { tables } = get()
+    set({
+      popup: null, hover: null, drag: null, stance: false, compactTab: 'inventory',
+      tables: {
+        inventory: { ...tables.inventory, activeKey: 'main', expanded: [], selection: EMPTY_SELECTION },
+        loot: { ...tables.loot, activeKey: null, expanded: [], selection: EMPTY_SELECTION },
+      },
+    })
+  },
   resetLayout: () => {
     const windows = defaultWindows()
     saveWindows(windows)

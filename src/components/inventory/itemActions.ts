@@ -1,7 +1,7 @@
 import { getItemDef, type Equipment, type ItemInstance } from '../../game/entities/items'
 import { accepts, type Inventory } from '../../game/systems/inventory'
 import { isCarried, isEquipped, itemRefusal, type InventoryKey } from '../../game/systems/inventoryCommands'
-import { ACTION_LABEL, REFUSAL_LABEL } from './labels'
+import { ACTION_LABEL, L, REFUSAL_LABEL } from './labels'
 
 export type ActionId = 'equip' | 'unequip' | 'wear' | 'takeOff' | 'eat' | 'drink' | 'use' | 'repair' | 'transfer' | 'quantity' | 'drop' | 'favorite' | 'unfavorite' | 'inspect'
 
@@ -47,7 +47,7 @@ function transferLabel(source: InventoryKey, dest: Destination): string {
 function transferBlock(ctx: MenuContext, item: ItemInstance, dest: Destination): string | null {
   const refusal = itemRefusal(item, ctx.equipment, isCarried(ctx.source) && !isCarried(dest.key), ctx.isReserved(item))
   if (refusal) return REFUSAL_LABEL[refusal]
-  if (!accepts(dest.inventory, item.itemId)) return REFUSAL_LABEL['bag-in-bag']
+  if (!accepts(dest.inventory, item.itemId)) return item.kind === 'unknown' ? L.unknownNotInBag : REFUSAL_LABEL['bag-in-bag']
   return null
 }
 

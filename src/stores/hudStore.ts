@@ -222,7 +222,7 @@ function combatReadout(rt: GameRuntime): string {
   const phase = attackPhase(p)
   const swing = p.attackTimer >= 0 ? ` · đòn ${deg(p.attackYaw)}°${p.attackCommitted ? ' (chốt)' : ` (căn ${p.attackAlignTime.toFixed(2)} s)`}` : ''
   const queued = rt.pendingAttack ? ` · chờ ${Math.max(0, rt.pendingAttack.expiresAt - rt.simTime).toFixed(2)} s` : ''
-  const owner = rt.uiOpen ? 'UI' : s.suppressed ? 'thả chuột phải' : 'thế giới'
+  const owner = (s.suppressed ? 'thả chuột phải' : 'thế giới') + (rt.uiOpen ? ' · cửa sổ mở' : '')
   return `thế ${s.requested ? 'BẬT' : 'tắt'} (${s.mode}) · pha ${phase} · ngắm ${deg(s.aimYaw)}° · thân ${deg(p.facing)}°${swing}${queued} · input ${owner}`
 }
 
