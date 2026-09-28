@@ -29,7 +29,11 @@ export interface Settings {
   graphics: GraphicsQuality
   /** CS1: the right button holds the combat stance ('hold') or switches it on/off ('toggle'). */
   combatStance: StanceMode
+  /** INV-LOOT: scale of the inventory/loot/crafting windows (1, 1.25 or 1.5). */
+  uiScale: UiScale
 }
+
+export type UiScale = 1 | 1.25 | 1.5
 
 interface SettingsState extends Settings {
   set: (patch: Partial<Settings>) => void
@@ -47,6 +51,7 @@ export const DEFAULT_SETTINGS: Settings = {
   visionOverlay: true,
   graphics: 'medium',
   combatStance: 'hold',
+  uiScale: 1,
 }
 
 function load(): Settings {
@@ -70,6 +75,7 @@ function sanitize(s: Settings): Settings {
     visionOverlay: s.visionOverlay !== false,
     graphics: s.graphics === 'low' || s.graphics === 'medium' || s.graphics === 'high' ? s.graphics : DEFAULT_SETTINGS.graphics,
     combatStance: s.combatStance === 'toggle' ? 'toggle' : 'hold',
+    uiScale: s.uiScale === 1.25 || s.uiScale === 1.5 ? s.uiScale : 1,
   }
 }
 
@@ -106,5 +112,5 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 }))
 
 function pick(s: SettingsState): Settings {
-  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints, visionOverlay: s.visionOverlay, graphics: s.graphics, combatStance: s.combatStance }
+  return { volume: s.volume, muted: s.muted, shadows: s.shadows, maxPixelRatio: s.maxPixelRatio, showHints: s.showHints, visionOverlay: s.visionOverlay, graphics: s.graphics, combatStance: s.combatStance, uiScale: s.uiScale }
 }

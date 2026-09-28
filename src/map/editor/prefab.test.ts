@@ -261,7 +261,7 @@ describe('a GUI-made house in the game, in all four rotations (M5)', () => {
       expect(rt.nav.findPath(outside, inside)).not.toBeNull()
 
       // Loot seeded into the kitchen; the player walks into the building (roof/indoor tests).
-      expect(rt.world.containers.get(`${id}/kitchen-1`)!.items.slots.some((s) => s !== null)).toBe(true)
+      expect(rt.world.containers.get(`${id}/kitchen-1`)!.items.items.length > 0).toBe(true)
       expect(rt.buildingAt(inside)).toBe(id)
 
       // The window lights its room; the lamp adds artificial light.
@@ -284,7 +284,7 @@ describe('prefab edits and existing saves (M5)', () => {
     rt.setDoorState(`${id}/door`, 'open')
     const kitchen = rt.world.containers.get(`${id}/kitchen-1`)!
     kitchen.opened = true
-    kitchen.items.slots = kitchen.items.slots.map(() => null)
+    kitchen.items.items = []
     rt.setLamp(`${id}/lamp-1`, true)
     const save = rt.createSnapshot()
 
@@ -302,7 +302,7 @@ describe('prefab edits and existing saves (M5)', () => {
     if (check.ok) rt2.loadSnapshot(check.save)
     expect(rt2.world.doors.get(`${id}/door`)!.state).toBe('open')
     expect(rt2.world.containers.get(`${id}/kitchen-1`)!.opened).toBe(true)
-    expect(rt2.world.containers.get(`${id}/kitchen-1`)!.items.slots.every((s) => s === null)).toBe(true)
+    expect(rt2.world.containers.get(`${id}/kitchen-1`)!.items.items.length === 0).toBe(true)
     expect(rt2.world.lamps.get(`${id}/lamp-1`)).toBe(true)
 
     // Incompatible: a new container changes the stateful set; the old save is refused, not reset.

@@ -1,0 +1,157 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { runtime } from '../../game/core/runtime'
+import { useInventoryStore } from '../../stores/inventoryStore'
+import { useInventoryUiStore } from '../../stores/inventoryUiStore'
+import { useSettingsStore } from '../../stores/settingsStore'
+import { CraftingList } from '../CraftingPanel'
+import { InvWindow } from './InvWindow'
+import { InventoryPanel, LootPanel } from './Panels'
+import { useDropTarget } from './dragDrop'
+import type { InventoryKey } from '../../game/systems/inventoryCommands'
+import { Popups } from './Popups'
+import { Glyph, ItemIcon } from './ItemIcon'
+import { defaultLayout, isCompact, NO_SAFE_AREA, type SafeArea, type View } from './layout'
+import { itemName, L } from './labels'
+
+/** Viewport in UI pixels (screen pixels / UI scale), updated on resize. */
+function useView(scale: number): View {
+  const read = () => ({ w: window.innerWidth / scale, h: window.innerHeight / scale })
+  const [view, setView] = useState<View>(read)
+  useEffect(() => {
+    const update = () => setView({ w: window.innerWidth / scale, h: window.innerHeight / scale })
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [scale])
+  return view
+}
+
+/** Space the HUD uses, measured from its elements (clock top-right, stats bottom-left, hints bottom). */
+function measureSafeArea(scale: number): SafeArea {
+  const rect = (sel: string) => document.querySelector(sel)?.getBoundingClientRect()
+  const clock = rect('.hud-clock')
+  const stats = rect('.hud-stats')
+  const bottomBars = [rect('.hud-actions'), rect('.hud-hint')].filter((r): r is DOMRect => !!r)
+  const bottomTop = bottomBars.length ? Math.min(...bottomBars.map((r) => r.top)) : window.innerHeight
+  return {
+    ...NO_SAFE_AREA,
+    topRight: clock ? clock.bottom / scale : 0,
+    bottomLeft: stats ? stats.top / scale : Infinity,
+    bottom: Math.max(0, (window.innerHeight - bottomTop) / scale),
+  }
+}
+
+/**
+ * INV-LOOT windows over the running game (no pause, no darkening, no lighting change): Inventory,
+ * Loot and Crafting, independent, in one layer scaled by the UI scale setting. Too narrow for two
+ * windows side by side: one window with Inventory / Loot tabs (the buttons still move items).
+ */
+export function InventoryOverlay() {
+  const inventoryOpen = useInventoryStore((s) => s.open)
+  const loot = useInventoryStore((s) => s.lootView)
+  const lootWindow = useInventoryStore((s) => s.lootOpen)
+  const inventoryKey = useInventoryUiStore((s) => s.tables.inventory.activeKey) ?? 'main'
+  const craftingOpen = useInventoryUiStore((s) => s.craftingOpen)
+  const compactTab = useInventoryUiStore((s) => s.compactTab)
+  const { setCraftingOpen, setCompactTab } = useInventoryUiStore.getState()
+  const scale = useSettingsStore((s) => s.uiScale)
+  const view = useView(scale)
+  const lootOpen = lootWindow && loot !== null
+  // The HUD (rendered before this layer) is measured again whenever the view or the scale changes.
+  const defaults = useMemo(() => defaultLayout(view, measureSafeArea(scale)), [view, scale])
+  const compact = isCompact(view)
+
+  // A newly opened container shows the Loot tab in compact mode.
+  useEffect(() => {
+    if (lootOpen) setCompactTab('loot')
+    else setCompactTab('inventory')
+  }, [lootOpen, setCompactTab])
+
+  if (!inventoryOpen && !lootOpen) return null
+  const craftTool = (
+    <button type="button" className="inv-tool" title={L.crafting} aria-pressed={craftingOpen} onClick={() => setCraftingOpen(!craftingOpen)}>
+      <Glyph name="craft" />
+    </button>
+  )
+  const closeInventory = () => runtime.setInventoryOpen(false)
+  const closeLoot = () => runtime.closeContainer()
+  const tab = compact && lootOpen && (compactTab === 'loot' || !inventoryOpen) ? 'loot' : 'inventory'
+
+  return (
+    <div className="inv-layer" style={{ transform: `scale(${scale})`, width: `${100 / scale}vw`, height: `${100 / scale}vh` }} onContextMenu={(e) => e.preventDefault()}>
+      {compact ? (
+        <InvWindow
+          id="inventory"
+          label={tab === 'loot' ? L.loot : L.inventory}
+          view={view}
+          scale={scale}
+          defaultRect={defaults.compact}
+          onClose={tab === 'loot' ? closeLoot : closeInventory}
+          tools={inventoryOpen ? craftTool : undefined}
+          title={
+            <span className="inv-tabs-title" role="tablist" aria-label={L.compactTabs}>
+              {inventoryOpen && (
+                <TitleTab dropKey={inventoryKey} selected={tab === 'inventory'} onClick={() => setCompactTab('inventory')}>{L.inventory}</TitleTab>
+              )}
+              {lootOpen && (
+                <TitleTab dropKey={loot.key} selected={tab === 'loot'} onClick={() => setCompactTab('loot')}>{L.loot}</TitleTab>
+              )}
+            </span>
+          }
+        >
+          {tab === 'loot' ? <LootPanel scale={scale} /> : <InventoryPanel scale={scale} />}
+        </InvWindow>
+      ) : (
+        <>
+          {inventoryOpen && (
+            <InvWindow id="inventory" label={L.inventory} title={L.inventory} view={view} scale={scale} defaultRect={defaults.inventory} onClose={closeInventory} tools={craftTool}>
+              <InventoryPanel scale={scale} />
+            </InvWindow>
+          )}
+          {lootOpen && (
+            <InvWindow id="loot" label={L.loot} title={`${L.loot} · ${loot.name}`} view={view} scale={scale} defaultRect={defaults.loot} onClose={closeLoot}>
+              <LootPanel scale={scale} />
+            </InvWindow>
+          )}
+        </>
+      )}
+      {inventoryOpen && craftingOpen && (
+        <InvWindow id="crafting" label={L.crafting} title={L.crafting} view={view} scale={scale} defaultRect={defaults.crafting} onClose={() => setCraftingOpen(false)}>
+          <CraftingList />
+        </InvWindow>
+      )}
+      <Popups view={view} />
+      <DragPreview />
+    </div>
+  )
+}
+
+/** Compact mode's Inventory / Loot tab, also a drop target. */
+function TitleTab({ dropKey, selected, onClick, children }: { dropKey: InventoryKey; selected: boolean; onClick: () => void; children: ReactNode }) {
+  const over = useDropTarget(dropKey)
+  return (
+    <button type="button" role="tab" aria-selected={selected} className={`inv-title-tab${over ? ' inv-drop-target' : ''}`} data-drop-key={dropKey} onClick={onClick}>{children}</button>
+  )
+}
+
+/** What is being dragged, under the pointer (never over the drop target: it ignores the pointer). */
+function DragPreview() {
+  const drag = useInventoryUiStore((s) => s.drag)
+  const first = useInventoryStore((s) => {
+    const id = drag?.instanceIds[0]
+    if (!id) return null
+    for (const v of [s.main, s.worn, s.lootView]) {
+      const item = v?.inventory.items.find((i) => i.id === id)
+      if (item) return item
+    }
+    return null
+  })
+  if (!drag || !first) return null
+  return (
+    <div className="inv-drag" style={{ left: drag.x + 12, top: drag.y + 12 }} aria-hidden>
+      <ItemIcon itemId={first.itemId} />
+      <span>{itemName(first)}{first.quantity > 1 ? ` ×${first.quantity}` : ''}</span>
+      {drag.instanceIds.length > 1 && <span className="inv-drag-count">{L.dragHint(drag.instanceIds.length)}</span>}
+    </div>
+  )
+}

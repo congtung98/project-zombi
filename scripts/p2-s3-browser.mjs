@@ -100,7 +100,7 @@ try {
   assert.equal((await page.locator('.hud-name').innerText()).trim(), 'Mai An')
   await saveToMenu()
   const first = await readSlot('slot-1')
-  assert.equal(first.schemaVersion, 9)
+  assert.equal(first.schemaVersion, 10)
   assert.deepEqual([first.player.name, first.player.appearance], ['Mai An', { preset: 'slim', hair: 'long', skin: 'light', shirt: 'green', pants: 'khaki', outfit: 'tee' }])
   await hasText('Mai An')
 
@@ -133,7 +133,7 @@ try {
       const rt = window.__runtime
       const { addItem } = await import('/src/game/systems/inventory.ts')
       addItem(rt.player.inventory, 'crowbar', 1, { condition: 90 })
-      rt.equipItem(rt.player.inventory.slots.find((i) => i?.itemId === 'crowbar').id)
+      rt.equipItem(rt.player.inventory.items.find((i) => i.itemId === 'crowbar').id)
       rt.cameraZoom = rt.config.camera.zoomMax
       await new Promise((r) => setTimeout(r, 400))
       const chars = []

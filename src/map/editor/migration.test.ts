@@ -12,6 +12,7 @@ import { mapStatefulIds, validateSaveGame } from '../../game/systems/save'
 import { backupSlotFor } from '../../game/systems/saveStorage'
 import { NEIGHBORHOOD_MAP, type MapData } from '../../game/world/mapData'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
+import { floorItemsOf } from '../../test/legacySave'
 import { deleteRecords, placeInstance, updateWorld, type CommandResult } from './commands'
 import { documentFiles, type MapDocument } from './document'
 import { contentChanges, documentStatefulIds, migrationOf, setMigrationRename, suggestRenames, writeContentMigration } from './migration'
@@ -136,7 +137,7 @@ describe('content migrations: saves (M8)', () => {
   it('keeps kept and renamed state, seeds what is new, drops removed containers on the ground, reassigns zones', () => {
     const before = v1Save()
     const scrap = before.containers.find((c) => c.id === 'c0_0/objects/house-scrap')!
-    const scrapItems = scrap.items.slots.filter(Boolean)
+    const scrapItems = scrap.items.items
     expect(scrapItems.length).toBeGreaterThan(0)
     const original = JSON.stringify(before)
     const v = validateSaveGame(before, ID, mapV2)
@@ -157,13 +158,14 @@ describe('content migrations: saves (M8)', () => {
       const want = generateContainerLoot(c.loot ? LOOT_TABLES[c.loot] : undefined, save.worldSeed, c.id, GAME_CONFIG.inventory.containerSlots)
       expect(save.containers.find((s) => s.id === c.id)!.items).toEqual(want)
     }
-    // The scrap pile's items lie where it stood, one bag each, item IDs unchanged.
+    // The scrap pile's items lie on the floor where it stood (v11), item IDs unchanged.
     expect(save.containers.some((c) => c.id === scrap.id)).toBe(false)
     const at = NEIGHBORHOOD_MAP.containers.find((c) => c.id === scrap.id)!.position
+    const floor = floorItemsOf(save)
     for (const item of scrapItems) {
-      const bag = save.containers.find((c) => c.id === `drop:${item!.id}`)!
-      expect(bag.items.slots).toEqual([item])
-      expect(Math.hypot(bag.position!.x - at.x, bag.position!.z - at.z)).toBeLessThan(2)
+      const lying = floor.find((e) => e.item.id === item!.id)!
+      expect(lying.item).toEqual(item)
+      expect(Math.hypot(lying.position.x - at.x, lying.position.z - at.z)).toBeLessThan(2)
     }
     expect(save.zombies[0].zoneId).not.toBe('c-1_-1/zones/west')
     expect(mapV2.zombieZones!.some((z) => z.id === save.zombies[0].zoneId)).toBe(true)

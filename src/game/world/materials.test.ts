@@ -36,7 +36,7 @@ describe('P2-S4 material loot', () => {
       const all = [kit, shelf, pile]
       tape.push(all.reduce((n, inv) => n + countItem(inv, 'duct_tape'), 0))
       wood.push(all.reduce((n, inv) => n + countItem(inv, 'wood_plank'), 0))
-      for (const inv of all) for (const s of inv.slots) if (s) expect(s.quantity).toBeLessThanOrEqual(ITEMS[s.itemId].stackLimit)
+      for (const inv of all) for (const s of inv.items) expect(s.quantity).toBeLessThanOrEqual(ITEMS[s.itemId].stackLimit)
     }
     // Recipes are reachable on every seed: at least two tape-using jobs (repair + repair, or a club).
     expect(Math.min(...tape)).toBeGreaterThanOrEqual(2)

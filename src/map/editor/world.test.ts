@@ -5,7 +5,8 @@ import { ChunkLifecycle } from '../loader'
 import { checkWorldDocuments, hasErrors } from '../validate'
 import { GameRuntime } from '../../game/core/runtime'
 import { validateSaveGame } from '../../game/systems/save'
-import { addItem, createInventory } from '../../game/systems/inventory'
+import { addItem } from '../../game/systems/inventory'
+import { FloorStore } from '../../game/systems/floor'
 import { nearestZone } from '../../game/systems/horde'
 import type { ZoneDef } from '../../game/world/mapData'
 import { zoneFor } from '../../game/world/zones'
@@ -404,15 +405,18 @@ describe('an editor-made multi-chunk world plays in the game (M4)', () => {
     for (let i = 0; i < 900; i++) rt.tick(1 / 60)
     expect(rt.world.doors.has('c1_-1/safehouse-1/door')).toBe(true)
     expect(rt.world.containers.has('c1_0/objects/scrap-1')).toBe(true)
-    expect(rt.world.containers.get('c1_0/objects/scrap-1')!.items.slots.some((s) => s !== null)).toBe(true)
+    expect(rt.world.containers.get('c1_0/objects/scrap-1')!.items.items.length > 0).toBe(true)
     expect(hasErrors(loadExported(doc).issues)).toBe(false)
 
-    // Saves: a drop anywhere inside the off-centre area is valid, outside it is corrupt.
+    // Saves: an item on the floor anywhere inside the off-centre area is valid, outside it is corrupt.
     const withDrop = (x: number) => {
       const snap = rt.createSnapshot()
-      const bag = createInventory(1, 'drop-1')
-      addItem(bag, 'water', 1)
-      snap.containers.push({ id: 'drop:1', opened: false, items: bag, position: { x, y: 0, z: -20 } })
+      const floor = new FloorStore()
+      const position = { x, y: 0, z: -20 }
+      const cell = floor.cellAt(position)
+      addItem(cell.items, 'water', 1)
+      floor.sync(cell, position)
+      snap.floor = floor.serialize()
       return validateSaveGame(snap, map.id, map)
     }
     expect(withDrop(58)).toMatchObject({ ok: true })

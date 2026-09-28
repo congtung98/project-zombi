@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { GAME_CONFIG } from '../core/config'
 import { ITEMS, ITEM_IDS, type ItemId } from '../entities/items'
-import { addItem, createInventory } from './inventory'
+import { addItem, createInventory, slotView } from './inventory'
 import { applyWeaponWear, conditionLevel, isUsableTool, meleeStats, weaponHitDamage, type WeaponInstance } from './weapons'
 import { generateContainerLoot } from './loot'
 import { LOOT_TABLES } from '../world/lootTables'
@@ -14,7 +14,7 @@ const WEAPONS: ItemId[] = ['baseball_bat', 'metal_pipe', 'crowbar', 'hammer', 'w
 function weapon(itemId: ItemId, condition: number): WeaponInstance {
   const inv = createInventory(1, 't')
   addItem(inv, itemId, 1, { condition })
-  return inv.slots[0] as WeaponInstance
+  return inv.items[0] as WeaponInstance
 }
 
 describe('melee definitions', () => {
@@ -96,7 +96,7 @@ describe('condition rules', () => {
     expect(weapon('baseball_bat', -5).condition).toBe(0)
     const inv = createInventory(1, 'x')
     addItem(inv, 'hammer', 1)
-    expect(inv.slots[0]).toMatchObject({ kind: 'weapon', condition: 100 })
+    expect(inv.items[0]).toMatchObject({ kind: 'weapon', condition: 100 })
   })
 })
 
@@ -109,14 +109,14 @@ describe('melee loot distribution', () => {
     const starters = new Set<string>()
     const conditions = new Set<number>()
     for (const seed of seeds) {
-      const closet = loot('safehouse-closet', seed, 'c-1_-1/safehouse/closet').slots.filter(Boolean)
+      const closet = loot('safehouse-closet', seed, 'c-1_-1/safehouse/closet').items
       expect(closet).toHaveLength(1)
       const w = closet[0] as WeaponInstance
       expect(['baseball_bat', 'metal_pipe']).toContain(w.itemId)
       expect(w.condition).toBeGreaterThanOrEqual(Math.ceil(ITEMS[w.itemId].maxCondition! * 0.6))
       starters.add(w.itemId)
       conditions.add(w.condition)
-      const hammer = loot('tool-shelf', seed, 'c0_-1/store/tools').slots.find((i) => i?.itemId === 'hammer')
+      const hammer = loot('tool-shelf', seed, 'c0_-1/store/tools').items.find((i) => i.itemId === 'hammer')
       expect(isUsableTool(hammer, 'hammer')).toBe(true)
     }
     expect(starters).toEqual(new Set(['baseball_bat', 'metal_pipe']))
@@ -129,8 +129,8 @@ describe('melee loot distribution', () => {
     for (const seed of seeds) {
       for (const c of NEIGHBORHOOD_MAP.containers) {
         const inv = loot(c.loot!, seed, c.id)
-        for (const item of inv.slots) {
-          if (item?.kind !== 'weapon') continue
+        for (const item of inv.items) {
+          if (item.kind !== 'weapon') continue
           expect(item.condition).toBeGreaterThan(0)
           expect(item.condition).toBeLessThanOrEqual(ITEMS[item.itemId].maxCondition!)
           seen[item.itemId] = (seen[item.itemId] ?? 0) + 1
@@ -150,7 +150,8 @@ describe('melee loot distribution', () => {
     for (const old of legacyFixture.containers.filter((c) => !c.opened)) {
       const def = byId.get(stable[old.id])!
       const now = loot(def.loot!, legacyFixture.worldSeed, old.id)
-      expect(now.slots.map((s) => (s ? { itemId: s.itemId, quantity: s.quantity } : null))).toEqual(old.items.slots)
+      // Same instances in the same slots: the list, padded with empty cells to the old 8-slot layout.
+      expect(slotView(now).map((s) => (s ? { itemId: s.itemId, quantity: s.quantity } : null))).toEqual(old.items.slots)
     }
   })
 })

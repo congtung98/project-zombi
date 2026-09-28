@@ -9,8 +9,10 @@ export const ACTION_FAILURE_TEXT: Record<ActionStartFailure, string> = {
   'missing-input': 'thiếu nguyên liệu',
   'missing-tool': 'thiếu dụng cụ dùng được (dụng cụ hỏng không tính)',
   'no-space': 'túi không đủ chỗ cho thành phẩm (tính sau khi tiêu nguyên liệu)',
-  busy: 'đang làm việc khác',
+  busy: 'đang ra đòn',
   dead: 'không thể lúc này',
+  'missing-carried': 'chưa đủ nguyên liệu đang mang (đồ đang chuyển chưa tính)',
+  'already-queued': 'món này đã có trong hàng đợi',
 }
 
 export const ACTION_CANCEL_TEXT: Record<ActionCancelReason, string> = {
@@ -20,4 +22,5 @@ export const ACTION_CANCEL_TEXT: Record<ActionCancelReason, string> = {
   cancelled: 'bấm hủy',
   dead: 'đã chết',
   'target-damaged': 'mục tiêu bị zombie đánh',
+  unreachable: 'tủ đã ngoài tầm',
 }

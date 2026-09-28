@@ -16,7 +16,7 @@ function StatBar({ label, value, max, color }: StatBarProps) {
     <div className="stat">
       <span className="stat-label">{label}</span>
       <div className="stat-track">
-        <div className="stat-fill" style={{ width: `${pct}%`, background: color }} />
+        <div className="stat-fill" style={{ transform: `scaleX(${pct / 100})`, background: color }} />
       </div>
       <span className="stat-value">{Math.round(value)}</span>
     </div>
@@ -72,13 +72,13 @@ export function HUD() {
         )}
       </div>
 
-      {hud.action && (
+      {hud.action && !hud.inventoryOpen && (
         <div className="hud-work" role="status">
           <div className="hud-work-label">
             {hud.action.label} · còn {hud.action.remaining.toFixed(1)} s
           </div>
           <div className="hud-work-track">
-            <div className="hud-work-fill" style={{ width: `${Math.round(hud.action.progress * 100)}%` }} />
+            <div className="hud-work-fill" style={{ transform: `scaleX(${hud.action.progress.toFixed(3)})` }} />
           </div>
           <div className="hud-work-hint">
             Di chuyển, đánh hoặc trúng đòn sẽ hủy ·{' '}
@@ -89,7 +89,7 @@ export function HUD() {
         </div>
       )}
 
-      {hud.toast && <div className={`hud-toast hud-toast-${hud.toastTone}`}>{hud.toast}</div>}
+      {hud.toast && <div className={`hud-toast hud-toast-${hud.toastTone}`} role={hud.toastTone === 'info' ? 'status' : 'alert'}>{hud.toast}</div>}
 
       {hud.interactPrompt && (
         <div className="hud-prompt">

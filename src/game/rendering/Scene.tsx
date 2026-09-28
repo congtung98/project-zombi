@@ -93,15 +93,15 @@ function ZombieBodies() {
   )
 }
 
-/** A dropped bag; M11c-1A: hidden on a storey the cutaway hides. */
+/** An item on the floor (INV-LOOT: one small pile per item); M11c-1A: hidden on a storey the cutaway hides. */
 function DropView({ position }: { position: Vec3 }) {
   const ref = useRef<Mesh>(null)
   useFrame(() => {
     if (ref.current) ref.current.visible = !cutaway.hidesPoint(position)
   })
   return (
-    <mesh ref={ref} position={[position.x, position.y + 0.18, position.z]}>
-      <boxGeometry args={[0.45, 0.36, 0.45]} />
+    <mesh ref={ref} position={[position.x, position.y + 0.12, position.z]}>
+      <boxGeometry args={[0.3, 0.24, 0.3]} />
       <meshStandardMaterial color="#d5ac54" />
     </mesh>
   )

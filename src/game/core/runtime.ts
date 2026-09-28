@@ -12,18 +12,21 @@ import { attackReadyIn, canStartAttack, cancelSwing, facingTowards, resolveConeH
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
 import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
-import { transferAll, transferSlot, type TransferResult } from '../systems/inventory'
+import { accepts, cloneInventory, findItem, previewTransfer, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
+import { containerIdOf, containerKey, emptySummary, isCarried, isEquipped, itemRefusal, type InventoryKey, type TransferLine, type TransferRefusal, type TransferOutcome, type TransferSkip, type TransferSummary } from '../systems/inventoryCommands'
+import { bagInstanceIdOf, findUsable, usableInventories, wornBagContents } from '../systems/bags'
+import { recoverSave, toStoredForm } from '../systems/recovery'
+import { FloorStore, type FloorCell } from '../systems/floor'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { migrationInterval, nearestZone, planMigration } from '../systems/horde'
-import { getItemDef } from '../entities/items'
-import { cloneInventory } from '../systems/inventory'
-import { createInventory } from '../systems/inventory'
+import { getItemDef, type ItemInstance } from '../entities/items'
 import { applyWeaponWear, meleeStats, weaponHitDamage } from '../systems/weapons'
-import { equipWeapon, equippedWeapon, reconcileEquipment } from '../systems/equipment'
+import { equipWeapon, equippedWeapon, reconcileEquipment, wearBag } from '../systems/equipment'
 import { validateSaveGame } from '../systems/save'
-import { checkRecipe, commitRecipe, type CraftFailure } from '../systems/crafting'
-import { advanceAction, reservationBlocks, reservationFor, type ActionCancelReason, type TimedAction } from '../systems/timedAction'
+import { checkRecipe, commitRecipe, type CraftFailure, type CraftSources } from '../systems/crafting'
+import type { ActionCancelReason, TimedAction } from '../systems/timedAction'
+import { jobView, queuedClaims, ReservationLedger, transferStep, type Job, type JobView, type RecipeJob, type TransferJob, type TransferLineState } from '../systems/actionQueue'
 import { RECIPES, repairRecipeFor, type Recipe, type RecipeId } from '../entities/recipes'
 import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
@@ -70,8 +73,15 @@ export interface ZombieBodyProxy {
   setEnabled?(enabled: boolean): void
 }
 
-export type ActionStartFailure = CraftFailure | 'busy' | 'dead'
-export type ActionStartResult = { ok: true; id: number } | { ok: false; reason: ActionStartFailure }
+/** `missing-carried`: the inputs are not all carried and free now (INV-LOOT Q3: never counts on items still moving). */
+export type ActionStartFailure = CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued'
+/** `queued`: it waits behind the running action (one queue, run in order). */
+export type ActionStartResult = { ok: true; id: number; queued: boolean } | { ok: false; reason: ActionStartFailure }
+/** A queued transfer: its job ID (null when no line could be queued) and the lines refused at once, with why. */
+export interface QueueResult {
+  id: number | null
+  refused: TransferSkip[]
+}
 
 /**
  * Obstruction query. R3b: the runtime answers it itself from `staticColliders` (the boxes Rapier
@@ -94,6 +104,14 @@ const SWING_HEIGHT = 1.2
 const BODY_HEIGHT = 0.9
 /** Interactables further than this above/below the reach height are on another storey (M11b). */
 const INTERACT_VERTICAL = 1.4
+/** INV-LOOT: how often the reachable containers and floor items are refreshed (s). */
+const NEARBY_INTERVAL = 0.125
+/** Reach to an item lying on the floor, from the player's feet to the item (m). */
+const FLOOR_REACH = INTERACT_RANGE + 0.6
+/** Time sums of many small steps drift by float error: a step within this of its end is done (s). */
+const STEP_EPSILON = 1e-9
+/** A drop lands this far ahead of the feet when nothing is in the way (m). */
+const DROP_AHEAD = 0.35
 /** The player's capsule floats this far above its floor (never rests on a wall top it walks over). */
 const PLAYER_HOVER = 0.02
 /**
@@ -137,12 +155,25 @@ export class GameRuntime {
   interactPrompt: string | null = null
   /** Điểm con trỏ chiếu xuống mặt đất (tầng render cập nhật mỗi frame); null khi ngoài canvas. */
   cursorWorld: Vec3 | null = null
-  /** UI (inventory/container) đang mở thì không kích hoạt đòn đánh ngoài ý muốn. Suy ra từ hai trường dưới. */
+  /**
+   * An inventory/loot window is open (derived from the fields below). INV-LOOT S5: the windows no
+   * longer hold the combat input: presses count only on the canvas, so a right press on the world
+   * enters the stance (the windows collapse, UI side) and the left button swings in it.
+   */
   uiOpen = false
   /** Túi đồ đang mở (phím I hoặc tự mở khi mở container). */
   inventoryOpen = false
   /** Container đang hiện panel; null khi không có. */
   openContainerId: string | null = null
+  /** INV-LOOT: the loot window is open, showing `openContainerId` or, when that is null, the floor. */
+  lootOpen = false
+  /** Containers (IDs) the player can reach now, by name then ID, refreshed ~8 times a second. */
+  nearbyContainerIds: string[] = []
+  /** Floor items (instance IDs) the player can reach now, each checked at its own position. */
+  nearbyFloorIds: string[] = []
+  /** The loot window's container is within reach (else shown "Ngoài tầm" and nothing moves). */
+  lootInReach = true
+  private nextNearbyAt = 0
   /** Tăng mỗi ván mới hoặc mỗi lần load; dùng làm key để remount scene và tạo lại physics body. */
   sessionId = 0
   /** Đếm ngược tới lần spawn kế tiếp (giây game). */
@@ -156,7 +187,13 @@ export class GameRuntime {
    * Timed craft/repair in progress (plan §7.1). Runtime only: never saved, so a snapshot taken
    * mid-action holds the unconsumed materials, and load/New Game drop it.
    */
-  action: TimedAction | null = null
+  /**
+   * INV-LOOT S4: every timed action (transfer, craft, repair) in one queue, run in order; the first is
+   * running. Never saved: a save holds the state before the running step, a load clears the queue.
+   */
+  jobs: Job[] = []
+  /** The one reservation ledger: what the running job holds (released on every path). */
+  readonly ledger = new ReservationLedger()
   private nextActionId = 1
   /**
    * CS1 combat stance: right-button intent and the desired aim (runtime only, never saved). The
@@ -257,7 +294,8 @@ export class GameRuntime {
       ...(this.floors.flat ? {} : { surface: (x: number, z: number, y: number) => this.floors.surfaceAt(x, z, y) }),
     }
     this.player = createPlayerState(map.playerSpawn)
-    this.world = createWorldState(map, 0)
+    // Placeholder until `newGame()` below: never rolls loot (that happens once, in newGame).
+    this.world = createWorldState(map, 0, { generateLoot: false })
     this.visionOccluders = buildVisionOccluders(
       map,
       (id) => this.world.doors.get(id)?.state,
@@ -338,7 +376,7 @@ export class GameRuntime {
    * Ván mới với seed loot; loot mọi container được sinh ngay tại đây, một lần cho cả ván.
    * `profile` comes from character creation (cosmetic only); omitted = default look.
    */
-  newGame(seed: number = randomSeed(), profile?: CharacterProfile): void {
+  newGame(seed: number = randomSeed(), profile?: CharacterProfile, options: { generateLoot?: boolean } = {}): void {
     this.sessionId += 1
     this.clock.reset()
     this.events.clear()
@@ -347,7 +385,7 @@ export class GameRuntime {
     // P2-S2: New Game starts unarmed (shove still works); melee is looted from containers.
     // Only the v1 save migration grants the Phase 1 bat.
     this.player = createPlayerState(this.map.playerSpawn, profile && { name: normalizeName(profile.name), appearance: profile.appearance })
-    this.world = createWorldState(this.map, seed)
+    this.world = createWorldState(this.map, seed, { generateLoot: options.generateLoot ?? true })
     this.interactables = buildInteractables(this.map)
     this.interactableById.clear()
     this.interactableIndex.clear()
@@ -359,6 +397,11 @@ export class GameRuntime {
     this.cursorWorld = null
     this.inventoryOpen = false
     this.openContainerId = null
+    this.lootOpen = false
+    this.nearbyContainerIds = []
+    this.nearbyFloorIds = []
+    this.lootInReach = true
+    this.nextNearbyAt = 0
     this.uiOpen = false
     this.zombies.clear()
     this.zombieIndex.clear()
@@ -372,7 +415,8 @@ export class GameRuntime {
     this.spawnTimer = spawnInterval(this.clock.isNight)
     this.autosaveTimer = GAME_CONFIG.save.autosaveInterval
     this.autosaveDue = false
-    this.action = null
+    this.jobs = []
+    this.ledger.clear()
     this.playerNoise = 0
     this.hordeTimer = GAME_CONFIG.horde.intervalMin
     this.hordeCounter = 0
@@ -402,6 +446,11 @@ export class GameRuntime {
 
   /** Chụp toàn bộ simulation. Gọi giữa hai tick (game loop hoặc khi pause). */
   createSnapshot(): SaveGame {
+    // Recovered unknown items are written back in the form they were loaded from (INV-LOOT S5).
+    return toStoredForm(this.snapshotState())
+  }
+
+  private snapshotState(): SaveGame {
     const p = this.player
     const zombies: SaveGame['zombies'] = []
     for (const z of this.zombies.values()) {
@@ -441,7 +490,10 @@ export class GameRuntime {
         equipment: { ...p.equipment },
       },
       doors: Array.from(this.world.doors.values()).map((d) => ({ ...d })),
-      containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items), ...(c.position ? { position: { ...c.position } } : {}) })),
+      containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items) })),
+      floor: this.world.floor.serialize(),
+      bags: Array.from(this.world.bags.values(), cloneInventory),
+      lootPatches: [...this.world.lootPatches],
       zombies,
       spawn: { nextZombieId: this.nextZombieId, timer: this.spawnTimer, counter: this.spawnCounter },
       horde: { timer: this.hordeTimer, counter: this.hordeCounter },
@@ -464,8 +516,11 @@ export class GameRuntime {
   loadSnapshot(save: SaveGame): void {
     const validation = validateSaveGame(save, this.map.id, this.map)
     if (!validation.ok) throw new Error(`Invalid save: ${validation.detail}`)
-    save = validation.save
-    this.newGame(save.worldSeed, { name: save.player.name, appearance: save.player.appearance })
+    // INV-LOOT S5: items this version does not know are kept as recovery items (never dropped).
+    const recovery = recoverSave(validation.save)
+    save = recovery.save
+    // Containers come from the save: the generator must not run (no second roll, INV-LOOT T16).
+    this.newGame(save.worldSeed, { name: save.player.name, appearance: save.player.appearance }, { generateLoot: false })
     this.zombies.clear()
     this.zombieIndex.clear()
     this.aiScheduler.clear()
@@ -502,15 +557,13 @@ export class GameRuntime {
     // M11c-1B: the interior memory (a malformed one is dropped: it is only a view).
     this.interior.restore(isSavedExploration(save.exploration) ? save.exploration : undefined)
     for (const c of save.containers) {
-      if (c.position) {
-        this.world.containers.set(c.id, { ...c, position: { ...c.position }, items: cloneInventory(c.items) })
-        this.registerDropInteractable(c.id, c.position)
-        continue
-      }
       const container = this.world.containers.get(c.id)!
       container.opened = c.opened
       container.items = cloneInventory(c.items)
     }
+    this.world.bags = new Map(save.bags.map((b) => [bagInstanceIdOf(b.id), cloneInventory(b)]))
+    this.world.lootPatches = [...save.lootPatches]
+    this.world.floor = FloorStore.restore(save.floor)
 
     // AI resumes in the saved state; timers, paths and door slots are recomputed (never saved).
     for (const z of save.zombies) {
@@ -534,6 +587,7 @@ export class GameRuntime {
     this.spawnCounter = save.spawn.counter
     this.hordeTimer = Math.max(0, save.horde.timer)
     this.hordeCounter = save.horde.counter
+    if (recovery.report.itemIds.length > 0) this.events.queue('items:recovered', recovery.report)
   }
 
   /** Game loop gọi ngay sau tick; true đúng một lần mỗi khi tới hạn autosave. */
@@ -587,7 +641,7 @@ export class GameRuntime {
     this.stepCombat(attacks, dt)
     this.stepStructureHits(structureHits)
     perf.end('combat', t)
-    this.stepAction(dt)
+    this.stepQueue(dt)
     this.stepSurvival(dt)
     t = perf.begin()
     this.stepSpawn(dt)
@@ -891,15 +945,15 @@ export class GameRuntime {
   }
 
   /**
-   * First step of a tick: the stance request from the right button (not while dead or while a panel
-   * holds the input) and the desired aim from the cursor point. A cursor on the player's feet or off
+   * First step of a tick: the stance request from the right button (not while dead; an open
+   * inventory window does not block it, INV-LOOT S5) and the desired aim from the cursor point. A cursor on the player's feet or off
    * the canvas keeps the previous aim.
    */
   private stepControls(): void {
     const s = this.stance
     const was = s.requested
     this.chordAllowed = s.mode === 'hold' && !s.suppressed
-    updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive && !this.uiOpen)
+    updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive)
     this.stanceStarted = s.requested && !was
     // A queued click lives only while the stance is asked for (release, panel, death drop it).
     if (!s.requested) this.pendingAttack = null
@@ -948,7 +1002,7 @@ export class GameRuntime {
     )
     const moving = dir.x !== 0 || dir.z !== 0
     // Walking away interrupts a craft/repair; nothing is consumed (plan §7.1 step 4).
-    if (moving && this.action) this.cancelAction('moved')
+    if (moving && this.jobs.length > 0) this.cancelAction('moved')
     // CS1: the stance (and a swing finishing after it) walks slower and cannot run; the factor is
     // applied once, to the walking speed (no other movement modifiers exist yet).
     const posture = this.combatPosture
@@ -1012,13 +1066,10 @@ export class GameRuntime {
       return
     }
 
-    // Đi xa container đang mở thì panel tự đóng (không loot từ xa).
-    if (this.openContainerId) {
-      const item = this.interactableById.get(this.openContainerId)
-      const maxDist = item ? INTERACT_RANGE + item.radius + GAME_CONFIG.inventory.closeDistanceSlack : 0
-      if (!item || Math.hypot(item.position.x - player.position.x, item.position.z - player.position.z) > maxDist || !this.withinReachHeight(item)) {
-        this.closeContainer()
-      }
+    // INV-LOOT: what is in reach (containers, floor items) ~8 times a second, never a raycast per frame.
+    if (this.simTime >= this.nextNearbyAt) {
+      this.nextNearbyAt = this.simTime + NEARBY_INTERVAL
+      this.refreshNearby()
     }
 
     const from: Vec3 = above(player.position, BODY_HEIGHT)
@@ -1040,8 +1091,14 @@ export class GameRuntime {
       return this.isBlocked(from, item.position, [item.id])
     }, INTERACT_RANGE, { pointerDistance, current: this.currentInteractable?.id ?? null })
     this.currentInteractable = target
-    this.interactPrompt = target ? this.describeInteraction(target) : null
+    this.interactPrompt = target ? this.describeInteraction(target) : this.nearbyFloorIds.length > 0 && !(this.lootOpen && this.openContainerId === null) ? 'Xem đồ dưới đất' : null
 
+    // E with nothing targeted: the floor around the player (INV-LOOT §5).
+    if (!target && this.nearbyFloorIds.length > 0 && this.input.wasPressed('interact') && player.attackTimer < 0) {
+      this.cancelStance()
+      if (this.lootOpen && this.openContainerId === null) this.closeContainer()
+      else this.openLoot(null, true)
+    }
     if (target && this.input.wasPressed('interact')) {
       // CS1: no world action in the middle of a swing (never queued either: the press is dropped).
       // From the ready stance, E leaves it first (a held right button must be pressed again).
@@ -1075,7 +1132,7 @@ export class GameRuntime {
       const damaged = door && door.hp < DOOR_MAX_HP ? ` (độ bền ${door.hp}/${DOOR_MAX_HP})` : ''
       return `${door?.state === 'open' ? 'Đóng' : 'Mở'} ${target.name}${damaged}`
     }
-    if (this.openContainerId === target.id) return `Đóng ${target.name}`
+    if (this.lootOpen && this.openContainerId === target.id) return `Đóng ${target.name}`
     const container = this.world.containers.get(target.id)
     return `${container?.opened ? 'Xem' : 'Mở'} ${target.name}`
   }
@@ -1101,21 +1158,92 @@ export class GameRuntime {
     }
     const container = this.world.containers.get(target.id)
     if (!container) return
-    if (this.openContainerId === container.id) {
+    if (this.lootOpen && this.openContainerId === container.id) {
       // Nhấn E lần nữa ở cùng container: đóng panel.
       this.closeContainer()
       this.interactPrompt = this.describeInteraction(target)
       return
     }
-    const firstTime = !container.opened
-    container.opened = true
-    // Loot đã sinh khi tạo ván; mở lại chỉ hiện nội dung còn lại, không gieo thêm.
-    this.openContainerId = container.id
-    this.inventoryOpen = true
-    this.syncUiOpen()
-    this.events.queue('container:opened', { id: container.id, name: target.name, firstTime })
-    this.queueInventoryChanged()
+    this.openLoot(container.id, true)
     this.interactPrompt = this.describeInteraction(target)
+  }
+
+  /**
+   * Show a container (or the floor, `null`) in the loot window. Looking into a container is opening
+   * it (its recorded `opened` flag, the backpack patch relies on it); loot is never rolled here.
+   * `withInventory`: E also opens the inventory window (a tab click in the loot window does not).
+   */
+  openLoot(containerId: string | null, withInventory = false): boolean {
+    if (containerId !== null) {
+      const container = this.world.containers.get(containerId)
+      const target = this.interactableById.get(containerId)
+      if (!container || !target) return false
+      const firstTime = !container.opened
+      container.opened = true
+      this.events.queue('container:opened', { id: container.id, name: target.name, firstTime })
+    }
+    const previous = this.openContainerId
+    this.openContainerId = containerId
+    this.lootOpen = true
+    this.lootInReach = containerId === null || this.canReachContainer(containerId)
+    if (withInventory) this.inventoryOpen = true
+    // Opening a window leaves the stance (a held right button must be pressed again to aim).
+    this.cancelStance()
+    if (previous && previous !== containerId) this.events.queue('container:closed', { id: previous })
+    this.syncUiOpen()
+    this.queueInventoryChanged()
+    return true
+  }
+
+  /** Reach of an interactable: in range (plus `slack` for one already open), same storey, no wall between. */
+  private canReachInteractable(item: Interactable, slack = 0): boolean {
+    const p = this.player.position
+    if (Math.hypot(item.position.x - p.x, item.position.z - p.z) > INTERACT_RANGE + item.radius + slack) return false
+    return this.withinReachHeight(item) && !this.isBlocked(above(p, BODY_HEIGHT), item.position, [item.id])
+  }
+
+  private canReachContainer(id: string): boolean {
+    const item = this.interactableById.get(id)
+    return !!item && item.kind === 'container' && this.canReachInteractable(item, id === this.openContainerId ? GAME_CONFIG.inventory.closeDistanceSlack : 0)
+  }
+
+  /** Reach of a point on the floor (an item's own position): same storey, close, no wall between. */
+  private canReachFloor(position: Vec3): boolean {
+    const p = this.player.position
+    if (Math.abs(position.y - p.y) > 0.5 || Math.hypot(position.x - p.x, position.z - p.z) > FLOOR_REACH) return false
+    return !this.isBlocked(above(p, BODY_HEIGHT), above(position, 0.3), [])
+  }
+
+  private refreshNearby(): void {
+    const p = this.player.position
+    const containers = this.interactableIndex.queryRadius(p.x, p.z, INTERACT_RANGE + this.maxInteractRadius)
+      .filter((i) => i.kind === 'container' && this.canReachInteractable(i))
+      .sort((a, b) => a.name.localeCompare(b.name, 'vi') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .map((i) => i.id)
+    const floor = this.world.floor.near(p, FLOOR_REACH, p.y).filter((e) => this.canReachFloor(e.position)).map((e) => e.item.id).sort()
+    const inReach = this.openContainerId === null || this.canReachContainer(this.openContainerId)
+    const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i])
+    if (same(containers, this.nearbyContainerIds) && same(floor, this.nearbyFloorIds) && inReach === this.lootInReach) return
+    this.nearbyContainerIds = containers
+    this.nearbyFloorIds = floor
+    this.lootInReach = inReach
+    // INV-LOOT §7.2: a container that left reach cancels the jobs that use it (the others go on).
+    for (const job of [...this.jobs]) {
+      if (job.kind !== 'transfer') continue
+      const gone = [job.source, job.destination].some((k) => {
+        const id = containerIdOf(k)
+        return id !== null && !this.canReachContainer(id)
+      })
+      if (gone) this.cancelJob(job.id, 'unreachable')
+    }
+    this.queueInventoryChanged()
+  }
+
+  /** Where a drop lands: a little ahead of the feet when nothing is in the way, else at the feet. */
+  private dropPosition(): Vec3 {
+    const p = this.player.position
+    const ahead = { x: p.x + Math.sin(this.player.facing) * DROP_AHEAD, y: p.y, z: p.z + Math.cos(this.player.facing) * DROP_AHEAD }
+    return this.isBlocked(above(p, 0.3), above(ahead, 0.3), []) ? { ...p } : ahead
   }
 
   // ----- Inventory / container: gọi từ UI (ngoài tick) hoặc test -----
@@ -1158,44 +1286,43 @@ export class GameRuntime {
 
   equipItem(id: string | null): boolean {
     if (!this.player.alive || this.player.attackTimer >= 0) return false
+    // An item a transfer step is moving is in use (a craft's target may be equipped, S4 keeps P2-S4's rule).
+    if (id !== null && this.ledger.heldByTransfer(id)) return false
     if (!equipWeapon(this.player.inventory, this.player.equipment, id)) return false
-    const item = id === null ? null : this.player.inventory.slots.find((i) => i?.id === id) ?? null
+    const item = id === null ? null : findItem(this.player.inventory, id) ?? null
     this.events.queue('item:equipped', { id, itemId: item?.itemId ?? null })
     this.queueInventoryChanged()
     return true
   }
 
-  activateItem(slot: number): void {
-    const item = this.player.inventory.slots[slot]
-    if (item?.kind === 'weapon') this.equipItem(this.player.equipment.weaponInstanceId === item.id ? null : item.id)
-    else this.consumeItem(slot)
-  }
-
-  dropItem(slot: number): boolean {
-    const item = this.player.inventory.slots[slot]
-    if (!item || !this.player.alive || this.player.attackTimer >= 0) return false
-    if (this.isReserved(slot, item.quantity)) return false
-    const id = `drop:${item.id}`
-    // Reuse a previously emptied bag at this ID; never overwrite owned items.
-    if (this.world.containers.get(id)?.items.slots.some(Boolean)) return false
-    const items = createInventory(1, id)
-    items.slots[0] = item
-    this.player.inventory.slots[slot] = null
-    reconcileEquipment(this.player.inventory, this.player.equipment)
-    // The bag lies at the player's feet, on whatever storey they stand.
-    const position = { ...this.player.position }
-    this.world.containers.set(id, { id, opened: false, items, position })
-    this.registerDropInteractable(id, position)
-    this.events.queue('drops:changed', {})
+  /** Wear a bag from the main inventory (or take it off with `null`); the bag keeps its slot. */
+  wearBag(id: string | null): boolean {
+    if (!this.player.alive) return false
+    // INV-LOOT Q2: a worn bag holding reserved items stays on until the action ends or is cancelled.
+    const worn = this.player.equipment.backInstanceId
+    if (worn && worn !== id && this.bagHeld(worn)) {
+      this.events.queue('item:reserved', { itemId: 'backpack', name: getItemDef('backpack').name, label: this.jobs[0]?.label ?? '' })
+      return false
+    }
+    if (!wearBag(this.player.inventory, this.player.equipment, id)) return false
+    const item = id === null ? null : findItem(this.player.inventory, id) ?? null
+    this.events.queue('bag:worn', { id, itemId: item?.itemId ?? null })
     this.queueInventoryChanged()
     return true
   }
 
-  private registerDropInteractable(id: string, position: Vec3): void {
-    const item: Interactable = { id, kind: 'container', name: 'Túi đồ rơi', position: { ...position, y: position.y + 0.25 }, radius: 0.25 }
-    this.interactables = this.interactables.filter((i) => i.id !== id)
-    this.interactables.push(item)
-    this.indexInteractable(item)
+  /** Quick action on a main-inventory item: equip/unequip a weapon, wear/take off a bag, else use it. */
+  activateItem(instanceId: string): void {
+    const item = findItem(this.player.inventory, instanceId)
+    if (item?.kind === 'weapon') this.equipItem(this.player.equipment.weaponInstanceId === item.id ? null : item.id)
+    else if (item?.kind === 'bag') this.wearBag(this.player.equipment.backInstanceId === item.id ? null : item.id)
+    else this.consumeItem(instanceId)
+  }
+
+  /** Drop a whole carried item (main or worn bag) on the floor; equipped, favorite and reserved items stay. */
+  dropItem(instanceId: string): boolean {
+    const source: InventoryKey = findItem(this.player.inventory, instanceId) ? 'main' : 'worn'
+    return this.transferItems(source, 'floor', [{ instanceId }]).moved > 0
   }
 
   private indexInteractable(item: Interactable): void {
@@ -1205,33 +1332,35 @@ export class GameRuntime {
     this.maxInteractRadius = Math.max(this.maxInteractRadius, item.radius)
   }
 
-  /** Phím I: mở/đóng túi. Đóng túi cũng đóng panel container. */
+  /** Phím I: mở/đóng cửa sổ túi đồ (cửa sổ Loot độc lập, đóng bằng E hoặc nút đóng của nó). */
   toggleInventory(): void {
-    if (this.inventoryOpen) this.closeAllUi()
-    else this.setInventoryOpen(true)
+    this.setInventoryOpen(!this.inventoryOpen)
   }
 
+  /** INV-LOOT: the inventory window only; the loot window (open container) stays as it is. */
   setInventoryOpen(open: boolean): void {
     if (this.inventoryOpen === open) return
     this.inventoryOpen = open
-    if (!open) this.closeContainer()
+    if (open) this.cancelStance()
     this.syncUiOpen()
     this.queueInventoryChanged()
   }
 
+  /** Close the loot window (container or floor). */
   closeContainer(): void {
+    if (!this.lootOpen && !this.openContainerId) return
     const id = this.openContainerId
-    if (!id) return
     this.openContainerId = null
+    this.lootOpen = false
     this.syncUiOpen()
-    this.events.queue('container:closed', { id })
+    if (id) this.events.queue('container:closed', { id })
     this.queueInventoryChanged()
   }
 
   closeAllUi(): void {
-    if (!this.inventoryOpen && !this.openContainerId) return
+    if (!this.inventoryOpen && !this.lootOpen && !this.openContainerId) return
     this.inventoryOpen = false
-    if (this.openContainerId) {
+    if (this.lootOpen || this.openContainerId) {
       this.closeContainer()
       return
     }
@@ -1244,11 +1373,16 @@ export class GameRuntime {
     return this.openContainerId ? (this.world.containers.get(this.openContainerId) ?? null) : null
   }
 
-  /** Dùng vật phẩm ở ô `slot`; chỉ trừ khi dùng thành công. */
-  consumeItem(slot: number): UseItemResult {
-    const item = this.player.inventory.slots[slot]
-    if (item && this.isReserved(slot, 1)) return { ok: false, reason: 'not-usable', itemId: item.itemId }
-    const result = consumeInventoryItem(this.player, slot)
+  /** Inventories the player may use directly: main, then the worn bag (INV-LOOT Q2). */
+  get usableInventories(): Inventory[] {
+    return usableInventories(this.player.inventory, this.player.equipment, this.world.bags)
+  }
+
+  /** Dùng đúng instance đã chọn (túi chính hoặc balo đang đeo); chỉ trừ khi dùng thành công. */
+  consumeItem(instanceId: string): UseItemResult {
+    const found = findUsable(this.player.inventory, this.player.equipment, this.world.bags, instanceId)
+    if (found && this.isReserved(instanceId, 1)) return { ok: false, reason: 'not-usable', itemId: found.item.itemId }
+    const result = consumeInventoryItem(this.player, found?.inventory ?? this.player.inventory, instanceId)
     if (result.ok) {
       this.events.queue('item:used', { itemId: result.itemId, name: getItemDef(result.itemId).name, effect: result.effect })
       this.queueInventoryChanged()
@@ -1258,89 +1392,263 @@ export class GameRuntime {
     return result
   }
 
-  /** Lấy ô `slot` của container đang mở vào túi; phần không vừa ở lại container. */
-  takeFromContainer(slot: number): TransferResult {
-    const c = this.openContainer
-    if (!c) return { moved: 0, remainder: 0 }
-    const r = transferSlot(c.items, slot, this.player.inventory)
-    if (r.moved > 0) this.queueInventoryChanged()
-    return r
+  /**
+   * The inventory behind a key, or null when the player cannot reach it now: the main inventory, the
+   * worn bag's contents, or the open container (S3 widens this to nearby containers and the floor).
+   */
+  inventoryFor(key: InventoryKey): Inventory | null {
+    if (key === 'main') return this.player.inventory
+    if (key === 'worn') return wornBagContents(this.player.inventory, this.player.equipment, this.world.bags)
+    const id = containerIdOf(key)
+    return id !== null && this.canReachContainer(id) ? (this.world.containers.get(id)?.items ?? null) : null
   }
 
-  /** Cất ô `slot` của túi vào container đang mở. */
-  putIntoContainer(slot: number): TransferResult {
-    const c = this.openContainer
-    if (!c) return { moved: 0, remainder: 0 }
-    const quantity = this.player.inventory.slots[slot]?.quantity ?? 0
-    if (this.player.attackTimer >= 0 || this.isReserved(slot, quantity)) return { moved: 0, remainder: quantity }
-    const r = transferSlot(this.player.inventory, slot, c.items)
-    reconcileEquipment(this.player.inventory, this.player.equipment)
-    if (r.moved > 0) this.queueInventoryChanged()
-    return r
+  /**
+   * INV-LOOT: the one command that moves items between inventories (UI, bot and tests). Lines are
+   * instance IDs with optional quantities, handled in the given order; each is checked against the
+   * current state (equipped, favorite leaving what the player carries, reserved by an action, room),
+   * then moved with `transferItem`, which never loses or duplicates a unit. One summary per call.
+   * S2 moves at once; S4 turns each line into timed steps with the same rules.
+   */
+  transferItems(sourceKey: InventoryKey, destinationKey: InventoryKey, lines: readonly TransferLine[]): TransferSummary {
+    const summary = emptySummary()
+    const skip = (instanceId: string, itemId: TransferSkip['itemId'], reason: TransferRefusal) => summary.skipped.push({ instanceId, itemId, reason })
+    const fromFixed = sourceKey === 'floor' ? null : this.inventoryFor(sourceKey)
+    const dropAt = destinationKey === 'floor' ? this.dropPosition() : null
+    const toFixed = destinationKey === 'floor' ? null : this.inventoryFor(destinationKey)
+    let floorChanged = false
+    for (const line of lines) {
+      // Floor items are checked at their own position (never the middle of the pile or the list).
+      const onFloor = sourceKey === 'floor' ? this.world.floor.find(line.instanceId) : null
+      const from = sourceKey === 'floor' ? (onFloor && this.canReachFloor(onFloor.position) ? onFloor.cell.items : null) : fromFixed
+      const dropCell = dropAt ? this.world.floor.cellAt(dropAt) : null
+      const to = dropCell ? dropCell.items : toFixed
+      const item = from ? findItem(from, line.instanceId) : undefined
+      const itemId = item?.itemId ?? null
+      if (!this.player.alive) skip(line.instanceId, itemId, 'dead')
+      else if (this.player.attackTimer >= 0) skip(line.instanceId, itemId, 'busy')
+      else if (!from || !to) skip(line.instanceId, itemId, 'unreachable')
+      else if (sourceKey === destinationKey || from === to) skip(line.instanceId, itemId, 'same-inventory')
+      else if (!item) skip(line.instanceId, null, 'missing')
+      else {
+        const leaving = isCarried(sourceKey) && !isCarried(destinationKey)
+        const held = this.ledger.reserved(item.id)
+        const reserved = (held > 0 && (line.quantity ?? item.quantity) > item.quantity - held) || this.bagHeld(item.id)
+        const refusal = itemRefusal(item, this.player.equipment, leaving, reserved)
+        if (refusal) {
+          if (refusal === 'reserved') this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.jobs[0]?.label ?? '' })
+          skip(item.id, item.itemId, refusal)
+        } else {
+          const want = line.quantity === undefined ? item.quantity : line.quantity
+          const r = transferItem(from, item.id, to, line.quantity)
+          if (r.moved > 0) {
+            summary.moved += r.moved
+            summary.movedLines += 1
+            if (onFloor || dropCell) floorChanged = true
+          }
+          if (r.moved < Math.floor(want) || r.moved === 0) skip(item.id, item.itemId, r.reason ?? 'full')
+        }
+      }
+      if (onFloor) this.world.floor.sync(onFloor.cell)
+      if (dropCell && dropAt) this.world.floor.sync(dropCell, dropAt)
+    }
+    if (floorChanged) {
+      this.events.queue('drops:changed', {})
+      this.nextNearbyAt = 0
+    }
+    if (summary.moved > 0) this.queueInventoryChanged()
+    if (lines.length > 0) this.events.queue('inventory:transferred', { source: sourceKey, destination: destinationKey, moved: summary.moved, movedLines: summary.movedLines, skipped: summary.skipped.map((x) => x.reason) })
+    return summary
   }
 
-  /** Lấy tất cả có thể; hết chỗ thì đồ còn lại vẫn ở container. */
-  takeAll(): TransferResult {
+  /** Favorite (or not) an item the player carries; a favorite never merges and never leaves by a batch. */
+  setFavorite(instanceId: string, favorite: boolean): boolean {
+    const found = findUsable(this.player.inventory, this.player.equipment, this.world.bags, instanceId)
+    if (!found) return false
+    if (favorite) found.item.favorite = true
+    else delete found.item.favorite
+    this.queueInventoryChanged()
+    return true
+  }
+
+  /** Lấy `quantity` (mặc định cả instance) từ container đang mở vào túi; phần không vừa ở lại container. */
+  takeFromContainer(instanceId: string, quantity?: number): TransferOutcome {
+    return this.legacyResult(this.openContainerId ? containerKey(this.openContainerId) : null, 'main', instanceId, quantity)
+  }
+
+  /** Cất `quantity` (mặc định cả instance) từ túi vào container đang mở (đồ đang trang bị/yêu thích: không). */
+  putIntoContainer(instanceId: string, quantity?: number): TransferOutcome {
+    return this.legacyResult('main', this.openContainerId ? containerKey(this.openContainerId) : null, instanceId, quantity)
+  }
+
+  /** Lấy tất cả có thể (bỏ qua mọi bộ lọc của UI); hết chỗ thì đồ còn lại vẫn ở container. */
+  takeAll(): TransferOutcome {
     const c = this.openContainer
-    if (!c) return { moved: 0, remainder: 0 }
-    const r = transferAll(c.items, this.player.inventory)
-    if (r.moved > 0) this.queueInventoryChanged()
-    return r
+    if (!c) return { moved: 0, remainder: 0, reason: 'missing' }
+    const r = this.transferItems(containerKey(c.id), 'main', c.items.items.map((i) => ({ instanceId: i.id })))
+    return { moved: r.moved, remainder: totalQuantity(c.items), reason: r.skipped[0]?.reason ?? null }
+  }
+
+  private legacyResult(sourceKey: InventoryKey | null, destinationKey: InventoryKey | null, instanceId: string, quantity?: number): TransferOutcome {
+    if (!sourceKey || !destinationKey) return { moved: 0, remainder: 0, reason: 'missing' }
+    const r = this.transferItems(sourceKey, destinationKey, [{ instanceId, quantity }])
+    const left = this.inventoryFor(sourceKey)
+    return { moved: r.moved, remainder: (left && findItem(left, instanceId)?.quantity) ?? 0, reason: r.skipped[0]?.reason ?? null }
   }
 
   // ----- Timed actions: craft/repair (plan §7). Started from UI, advanced and committed in tick -----
+
+  /** The running craft or repair (the first job once it started), or null. */
+  get action(): TimedAction | null {
+    const head = this.jobs[0]
+    return head?.kind === 'recipe' ? head.action : null
+  }
+
+  /** The running job as the HUD and the inventory window show it, or null. */
+  get runningJob(): JobView | null {
+    return this.jobs[0] ? jobView(this.jobs[0]) : null
+  }
+
+  /** Seconds into the running step (the work pose), -1 when idle. */
+  get workElapsed(): number {
+    const head = this.jobs[0]
+    if (!head) return -1
+    return head.kind === 'recipe' ? (head.action?.elapsed ?? -1) : (head.step?.elapsed ?? -1)
+  }
 
   startCraft(id: RecipeId): ActionStartResult {
     return this.startRecipe(RECIPES[id], null)
   }
 
-  /** Repair one weapon instance with the recipe of its group (wood/metal). */
+  /** Repair one weapon instance (main inventory or worn bag) with the recipe of its group. */
   startRepair(targetId: string): ActionStartResult {
-    const target = this.player.inventory.slots.find((i) => i?.id === targetId)
+    const target = findUsable(this.player.inventory, this.player.equipment, this.world.bags, targetId)?.item
     const recipe = target ? repairRecipeFor(target.itemId) : null
     if (!recipe) return this.rejectAction('Sửa', target ? 'not-repairable' : 'no-target')
     return this.startRecipe(recipe, targetId)
   }
 
   /**
-   * Validate (alive, idle, not mid-swing, inputs/tools/space) and reserve; nothing is consumed
-   * until `completeAction`. Public so tests can run ad-hoc recipes (e.g. with tool wear).
+   * Queue a craft or repair (INV-LOOT Q3). Accepted only if what is carried and free now covers it
+   * (inputs from the main inventory then the worn bag, favorites and equipped items never consumed);
+   * it starts at once when nothing runs, else waits its turn, is checked again and reserved then.
+   * Public so tests can run ad-hoc recipes (e.g. with tool wear).
    */
   startRecipe(recipe: Recipe, targetId: string | null): ActionStartResult {
     const label = this.actionLabel(recipe, targetId)
     if (!this.player.alive) return this.rejectAction(label, 'dead')
-    if (this.action || this.player.attackTimer >= 0) return this.rejectAction(label, 'busy')
-    const check = checkRecipe(this.player.inventory, recipe, targetId)
-    if (!check.ok) return this.rejectAction(label, check.failure!)
-    const toolIds = check.tools.map((t) => t.instanceId!)
-    const id = this.nextActionId++
-    this.action = { id, recipe, targetId, worldTargetId: null, toolIds, label, duration: recipe.duration, elapsed: 0, reservation: reservationFor(recipe, targetId, check) }
-    this.events.queue('action:started', { id, kind: recipe.kind, label, duration: recipe.duration })
+    if (this.player.attackTimer >= 0) return this.rejectAction(label, 'busy')
+    // One repair of an item at a time in the queue (a spammed button never queues ten repairs).
+    if (targetId !== null && this.jobs.some((j) => j.kind === 'recipe' && j.targetId === targetId)) return this.rejectAction(label, 'already-queued')
+    const check = checkRecipe(this.craftSources(undefined, true), recipe, targetId)
+    if (!check.ok) return this.rejectAction(label, check.failure === 'missing-input' && this.jobs.length > 0 ? 'missing-carried' : check.failure!)
+    const job: RecipeJob = { kind: 'recipe', id: this.nextActionId++, label, recipe, targetId, action: null, claims: check.plan ?? [] }
+    this.jobs.push(job)
+    if (this.jobs[0] === job && !this.beginRecipe(job)) {
+      this.jobs.shift()
+      return { ok: false, reason: check.failure ?? 'missing-input' }
+    }
+    if (this.jobs[0] !== job) this.events.queue('action:queued', { id: job.id, label })
     this.queueInventoryChanged()
-    return { ok: true, id }
+    return { ok: true, id: job.id, queued: this.jobs[0] !== job }
   }
 
-  /** Cancel releases the reservation; no input, fuel or tool condition is spent. */
+  /**
+   * Queue a timed transfer of instances (INV-LOOT §8): each line is checked now (reach, equipped,
+   * favorite, what the running job holds and what earlier queued lines already claim, so a spammed
+   * double click never queues more than there is) and gets a fixed number of units; the job then
+   * moves them in timed steps, each checked again when it starts and when it commits.
+   */
+  queueTransfer(source: InventoryKey, destination: InventoryKey, lines: readonly TransferLine[]): QueueResult {
+    const refused: TransferSkip[] = []
+    const accepted: TransferLineState[] = []
+    const refuse = (instanceId: string, itemId: TransferSkip['itemId'], reason: TransferRefusal) => refused.push({ instanceId, itemId, reason })
+    const from = source === 'floor' ? null : this.inventoryFor(source)
+    const to = destination === 'floor' ? null : this.inventoryFor(destination)
+    const claimed = new Map<string, number>()
+    for (const line of lines) {
+      const onFloor = source === 'floor' ? this.world.floor.find(line.instanceId) : null
+      const inv = source === 'floor' ? (onFloor && this.canReachFloor(onFloor.position) ? onFloor.cell.items : null) : from
+      const item = inv ? findItem(inv, line.instanceId) : undefined
+      const itemId = item?.itemId ?? null
+      if (!this.player.alive) refuse(line.instanceId, itemId, 'dead')
+      else if (this.player.attackTimer >= 0) refuse(line.instanceId, itemId, 'busy')
+      else if (!inv || (destination !== 'floor' && !to)) refuse(line.instanceId, itemId, 'unreachable')
+      else if (source === destination) refuse(line.instanceId, itemId, 'same-inventory')
+      else if (!item) refuse(line.instanceId, null, 'missing')
+      else if (to && !accepts(to, item.itemId)) refuse(item.id, item.itemId, 'bag-in-bag')
+      else {
+        const leaving = isCarried(source) && !isCarried(destination)
+        const refusal = itemRefusal(item, this.player.equipment, leaving, this.bagHeld(item.id))
+        const free = item.quantity - this.ledger.reserved(item.id) - queuedClaims(this.jobs, item.id) - (claimed.get(item.id) ?? 0)
+        const want = line.quantity === undefined ? item.quantity : Math.floor(line.quantity)
+        if (refusal) refuse(item.id, item.itemId, refusal)
+        else if (!Number.isFinite(want) || want <= 0) refuse(item.id, item.itemId, 'invalid-quantity')
+        else if (free <= 0) refuse(item.id, item.itemId, queuedClaims(this.jobs, item.id) + (claimed.get(item.id) ?? 0) > 0 ? 'queued' : 'reserved')
+        else {
+          const units = Math.min(want, free)
+          claimed.set(item.id, (claimed.get(item.id) ?? 0) + units)
+          accepted.push({ instanceId: item.id, itemId: item.itemId, left: units, queued: units })
+        }
+      }
+    }
+    if (accepted.length === 0) {
+      this.events.queue('inventory:transferred', { source, destination, moved: 0, movedLines: 0, skipped: refused.map((r) => r.reason) })
+      return { id: null, refused }
+    }
+    const verb = destination === 'floor' ? 'Bỏ xuống' : !isCarried(source) && isCarried(destination) ? 'Lấy' : isCarried(source) && !isCarried(destination) ? 'Cất' : 'Chuyển'
+    const first = getItemDef(accepted[0].itemId).name
+    const job: TransferJob = {
+      kind: 'transfer', id: this.nextActionId++, label: `${verb} ${first}${accepted.length > 1 ? ` +${accepted.length - 1}` : ''}`,
+      source, destination, lines: accepted, index: 0, step: null, total: accepted.reduce((n, l) => n + l.left, 0),
+      summary: { moved: 0, movedLines: 0, skipped: [...refused] }, dropAt: destination === 'floor' ? this.dropPosition() : null,
+    }
+    this.jobs.push(job)
+    if (this.jobs[0] === job) {
+      if (!this.beginTransferStep(job)) this.finishTransfer(job)
+    } else this.events.queue('action:queued', { id: job.id, label: job.label })
+    this.queueInventoryChanged()
+    return { id: job.id, refused }
+  }
+
+  /** Cancel every job (the running step moves nothing; committed steps stay). Returns false when idle. */
   cancelAction(reason: ActionCancelReason = 'cancelled'): boolean {
-    const action = this.action
-    if (!action) return false
-    this.action = null
-    this.events.queue('action:cancelled', { id: action.id, label: action.label, reason })
+    const head = this.jobs[0]
+    if (!head) return false
+    const dropped = this.jobs.length - 1
+    this.jobs = []
+    this.ledger.clear()
+    this.events.queue('action:cancelled', { id: head.id, label: head.label, reason, dropped })
+    if (head.kind === 'transfer' && head.summary.moved > 0) this.reportTransfer(head)
+    this.queueInventoryChanged()
+    return true
+  }
+
+  /** Cancel one job: the running one (the next starts on the next tick) or a waiting one. */
+  cancelJob(id: number, reason: ActionCancelReason = 'cancelled'): boolean {
+    const index = this.jobs.findIndex((j) => j.id === id)
+    if (index < 0) return false
+    const [job] = this.jobs.splice(index, 1)
+    this.ledger.release(job.id)
+    this.events.queue('action:cancelled', { id: job.id, label: job.label, reason, dropped: 0 })
+    if (job.kind === 'transfer' && job.summary.moved > 0) this.reportTransfer(job)
     this.queueInventoryChanged()
     return true
   }
 
   /**
-   * Commit action `id` once it has run its full duration. The action is cleared before the
-   * commit, so a repeated or stale completion is a no-op; the commit re-checks everything and
-   * changes the bag in one step inside the tick (snapshots only happen between ticks).
+   * Commit the running recipe `id` once it has run its full duration. It leaves the queue before
+   * the commit, so a repeated or stale completion is a no-op; the commit re-checks everything and
+   * changes the inventories in one step inside the tick (snapshots only happen between ticks).
    */
   completeAction(id: number): boolean {
-    const action = this.action
-    if (!action || action.id !== id || action.elapsed < action.duration) return false
-    this.action = null
+    const job = this.jobs[0]
+    const action = job?.kind === 'recipe' ? job.action : null
+    if (!job || !action || job.id !== id || action.elapsed < action.duration) return false
+    this.jobs.shift()
     const { recipe, label } = action
-    const result = commitRecipe(this.player.inventory, recipe, action.targetId, action.toolIds)
+    const result = commitRecipe(this.craftSources(id), recipe, action.targetId, action.toolIds, action.plan)
+    this.ledger.release(id)
     if (!result.ok) {
       this.events.queue('action:failed', { id, label, reason: result.failure })
       this.queueInventoryChanged()
@@ -1364,9 +1672,12 @@ export class GameRuntime {
     return true
   }
 
-  private stepAction(dt: number): void {
-    const action = this.action
-    if (!action) return
+  /**
+   * Advance the queue by simulation time (stops with the game's pause). Several steps may finish in
+   * one tick: the time left after a step goes to the next, so the pace never depends on the frame rate.
+   */
+  private stepQueue(dt: number): void {
+    if (this.jobs.length === 0) return
     if (!this.player.alive) {
       this.cancelAction('dead')
       return
@@ -1375,7 +1686,160 @@ export class GameRuntime {
       this.cancelAction('cancelled')
       return
     }
-    if (advanceAction(action, dt)) this.completeAction(action.id)
+    let budget = Math.max(0, dt)
+    for (let guard = 0; guard < 100_000 && this.jobs.length > 0; guard++) {
+      const job = this.jobs[0]
+      if (job.kind === 'recipe') {
+        if (!job.action && !this.beginRecipe(job)) {
+          this.jobs.shift()
+          continue
+        }
+        const a = job.action!
+        const need = a.duration - a.elapsed
+        if (budget < need - STEP_EPSILON) {
+          a.elapsed += budget
+          return
+        }
+        budget = Math.max(0, budget - need)
+        a.elapsed = a.duration
+        this.completeAction(job.id)
+        continue
+      }
+      if (!job.step && !this.beginTransferStep(job)) {
+        this.finishTransfer(job)
+        continue
+      }
+      const step = job.step!
+      const need = step.duration - step.elapsed
+      if (budget < need - STEP_EPSILON) {
+        step.elapsed += budget
+        return
+      }
+      budget = Math.max(0, budget - need)
+      step.elapsed = step.duration
+      this.commitTransferStep(job)
+    }
+  }
+
+  /**
+   * Craft sources: main inventory then the worn bag; favorites and equipped items never consumed.
+   * `queueing`: also leave the units that queued work already counts on (claims), for a new action.
+   */
+  private craftSources(exceptAction?: number, queueing = false): CraftSources {
+    const eq = this.player.equipment
+    return {
+      inventories: this.usableInventories,
+      protect: (i) => !!i.favorite || isEquipped(i, eq),
+      available: (i) => i.quantity - this.ledger.reserved(i.id, exceptAction) - (queueing ? queuedClaims(this.jobs, i.id) : 0),
+    }
+  }
+
+  /** A waiting recipe's turn: check again and reserve its inputs, tools and target, else fail with the reason. */
+  private beginRecipe(job: RecipeJob): boolean {
+    const check = checkRecipe(this.craftSources(job.id), job.recipe, job.targetId)
+    if (!check.ok) {
+      this.events.queue('action:failed', { id: job.id, label: job.label, reason: check.failure! })
+      this.queueInventoryChanged()
+      return false
+    }
+    const toolIds = check.tools.map((t) => t.instanceId!)
+    job.action = { id: job.id, recipe: job.recipe, targetId: job.targetId, worldTargetId: null, toolIds, plan: check.plan!, label: job.label, duration: job.recipe.duration, elapsed: 0 }
+    for (const u of check.plan!) this.ledger.reserve(job.id, 'recipe', u.instanceId, u.quantity)
+    for (const t of toolIds) this.ledger.reserve(job.id, 'recipe', t, 1)
+    if (job.targetId) this.ledger.reserve(job.id, 'recipe', job.targetId, 1)
+    this.events.queue('action:started', { id: job.id, kind: job.recipe.kind, label: job.label, duration: job.recipe.duration })
+    this.queueInventoryChanged()
+    return true
+  }
+
+  /** Source, destination and item of a transfer line now (reach checked at the item for the floor), or why not. */
+  private resolveLine(job: TransferJob, line: TransferLineState): { from: Inventory; to: Inventory | null; item: ItemInstance; cell: FloorCell | null } | { reason: TransferRefusal } {
+    const onFloor = job.source === 'floor' ? this.world.floor.find(line.instanceId) : null
+    const from = job.source === 'floor' ? (onFloor && this.canReachFloor(onFloor.position) ? onFloor.cell.items : null) : this.inventoryFor(job.source)
+    const to = job.destination === 'floor' ? null : this.inventoryFor(job.destination)
+    if (!from || (job.destination !== 'floor' && !to)) return { reason: onFloor || job.source !== 'floor' ? 'unreachable' : 'missing' }
+    const item = findItem(from, line.instanceId)
+    if (!item) return { reason: 'missing' }
+    const leaving = isCarried(job.source) && !isCarried(job.destination)
+    const refusal = itemRefusal(item, this.player.equipment, leaving, this.ledger.reserved(item.id, job.id) >= item.quantity || this.bagHeld(item.id))
+    if (refusal) return { reason: refusal }
+    return { from, to, item, cell: onFloor?.cell ?? null }
+  }
+
+  /** Start the next step of a transfer (Pending → Running: validate and reserve), skipping lines that cannot move. */
+  private beginTransferStep(job: TransferJob): boolean {
+    while (job.index < job.lines.length) {
+      const line = job.lines[job.index]
+      const res = this.resolveLine(job, line)
+      if ('reason' in res) {
+        job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: res.reason })
+        job.index += 1
+        continue
+      }
+      const { units: batch, seconds } = transferStep(res.item, this.world.bags)
+      const units = Math.min(line.left, batch, res.item.quantity - this.ledger.reserved(res.item.id, job.id))
+      // Room is checked when the step starts, never kept: a full destination skips this item and the
+      // others still move (merges into stacks with room included), nothing waits forever.
+      const preview = res.to ? previewTransfer(res.from, res.item.id, res.to, units) : { quantity: units, reason: null }
+      if (units <= 0 || preview.quantity <= 0) {
+        job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: units <= 0 ? 'reserved' : (preview.reason ?? 'full') })
+        job.index += 1
+        continue
+      }
+      job.step = { instanceId: res.item.id, units: preview.quantity, duration: seconds, elapsed: 0 }
+      this.ledger.reserve(job.id, 'transfer', res.item.id, preview.quantity)
+      return true
+    }
+    return false
+  }
+
+  /** Running → Committed: check everything again, move the step's units in one mutation, release. */
+  private commitTransferStep(job: TransferJob): void {
+    const step = job.step!
+    job.step = null
+    this.ledger.release(job.id)
+    const line = job.lines[job.index]
+    const res = this.resolveLine(job, line)
+    if ('reason' in res) {
+      job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: res.reason })
+      job.index += 1
+      return
+    }
+    const dropCell = job.destination === 'floor' ? this.world.floor.cellAt(job.dropAt!) : null
+    const r = transferItem(res.from, res.item.id, dropCell ? dropCell.items : res.to!, step.units)
+    if (res.cell) this.world.floor.sync(res.cell)
+    if (dropCell) this.world.floor.sync(dropCell, job.dropAt!)
+    if (r.moved > 0) {
+      job.summary.moved += r.moved
+      line.left -= r.moved
+      if (res.cell || dropCell) {
+        this.events.queue('drops:changed', {})
+        this.nextNearbyAt = 0
+      }
+      this.queueInventoryChanged()
+    }
+    if (r.moved < step.units) {
+      job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: r.reason ?? 'full' })
+      job.index += 1
+    } else if (line.left <= 0 || !findItem(res.from, line.instanceId)) job.index += 1
+  }
+
+  private finishTransfer(job: TransferJob): void {
+    if (this.jobs[0] === job) this.jobs.shift()
+    this.ledger.release(job.id)
+    this.reportTransfer(job)
+    this.queueInventoryChanged()
+  }
+
+  /** One summary per transfer job (what moved, and why the rest did not). */
+  private reportTransfer(job: TransferJob): void {
+    job.summary.movedLines = job.lines.filter((l) => l.left < l.queued).length
+    this.events.queue('inventory:transferred', { source: job.source, destination: job.destination, moved: job.summary.moved, movedLines: job.summary.movedLines, skipped: job.summary.skipped.map((x) => x.reason) })
+  }
+
+  /** A bag whose contents hold a reservation (it may not be taken off, moved or dropped). */
+  private bagHeld(instanceId: string): boolean {
+    return this.world.bags.get(instanceId)?.items.some((i) => this.ledger.reserved(i.id) > 0) ?? false
   }
 
   private rejectAction(label: string, reason: ActionStartFailure): ActionStartResult {
@@ -1385,20 +1849,22 @@ export class GameRuntime {
 
   private actionLabel(recipe: Recipe, targetId: string | null): string {
     if (recipe.kind === 'craft') return `Chế tạo ${getItemDef(recipe.output.itemId).name}`
-    const target = this.player.inventory.slots.find((i) => i?.id === targetId)
+    const target = targetId ? findUsable(this.player.inventory, this.player.equipment, this.world.bags, targetId)?.item : undefined
     return target ? `Sửa ${getItemDef(target.itemId).name}` : recipe.name
   }
 
-  /** Reserved materials/instances of the running action cannot leave the bag. */
-  private isReserved(slot: number, quantity: number): boolean {
-    if (!reservationBlocks(this.player.inventory, this.action?.reservation ?? null, slot, quantity)) return false
-    const item = this.player.inventory.slots[slot]!
-    this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.action!.label })
+  /** Units promised to the running job cannot be used or leave; tells the player which job holds them. */
+  private isReserved(instanceId: string, quantity: number): boolean {
+    const held = this.ledger.reserved(instanceId)
+    if (held <= 0) return false
+    const item = findUsable(this.player.inventory, this.player.equipment, this.world.bags, instanceId)?.item ?? findItem(this.player.inventory, instanceId)
+    if (item && quantity <= item.quantity - held) return false
+    if (item) this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.jobs[0]?.label ?? '' })
     return true
   }
 
   private syncUiOpen(): void {
-    this.uiOpen = this.inventoryOpen || this.openContainerId !== null
+    this.uiOpen = this.inventoryOpen || this.lootOpen || this.openContainerId !== null
   }
 
   private queueInventoryChanged(): void {
@@ -1538,7 +2004,7 @@ export class GameRuntime {
 
   private stepCombat(attacks: PendingAttack[], dt: number): void {
     const player = this.player
-    if (player.alive && !this.uiOpen) {
+    if (player.alive) {
       // CS1: a left click swings only in the combat stance (or in the grace just before it started);
       // outside it the click does nothing in the world (a rare hint points to the right button).
       const s = this.stance
@@ -1554,7 +2020,7 @@ export class GameRuntime {
       }
       if (attack) s.clickOutsideAt = -Infinity
       // Attacking or shoving interrupts a craft/repair (the swing itself still happens).
-      if (this.action && (attack || this.input.wasPressed('push'))) this.cancelAction('attacked')
+      if (this.jobs.length > 0 && (attack || this.input.wasPressed('push'))) this.cancelAction('attacked')
       const weapon = equippedWeapon(player.inventory, player.equipment)
       const cs = GAME_CONFIG.combatStance
       if (attack) {
@@ -1626,7 +2092,7 @@ export class GameRuntime {
   private resolvePlayerMelee(): void {
     const cfg = GAME_CONFIG.melee
     const player = this.player
-    const found = player.inventory.slots.find((i) => i?.id === player.attackWeaponId)
+    const found = player.attackWeaponId ? findItem(player.inventory, player.attackWeaponId) : undefined
     const weapon = found?.kind === 'weapon' ? found : null
     if (!weapon) {
       this.events.queue('player:attacked', { hitIds: [], damage: 0, weaponId: null })

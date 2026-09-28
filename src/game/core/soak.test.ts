@@ -7,6 +7,7 @@ import { validateSaveGame } from '../systems/save'
 import { getItemDef } from '../entities/items'
 import { equippedWeapon } from '../systems/equipment'
 import { meleeStats } from '../systems/weapons'
+import { containerKey } from '../systems/inventoryCommands'
 import type { NavGrid } from '../world/navigation'
 import type { Vec3 } from '../../types'
 
@@ -84,6 +85,8 @@ interface Metrics {
   doorsDestroyed: string[]
   migrations: number
   maxBashersPerSide: number
+  /** INV-LOOT S4: one-second checks of item totals, unique IDs and an empty ledger when idle. */
+  integrityChecks: number
 }
 
 /**
@@ -155,6 +158,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       doorsDestroyed: [],
       migrations: 0,
       maxBashersPerSide: 0,
+      integrityChecks: 0,
     }
     const unaware = new Set(['IDLE', 'WANDER', 'MIGRATE'])
     rt.events.on('zombie:stateChanged', (e) => {
@@ -173,15 +177,15 @@ function runSoak(policy: 'shelter' | 'patrol') {
     rt.events.on('weapon:broken', (e) => {
       m.broken += 1
       // Broken weapons stay owned (never deleted), they are only weaker.
-      expect(rt.player.inventory.slots.some((i) => i?.id === e.id && i.kind === 'weapon' && i.condition === 0)).toBe(true)
+      expect(rt.player.inventory.items.some((i) => i.id === e.id && i.kind === 'weapon' && i.condition === 0)).toBe(true)
     })
     /** Bot policy: keep the best usable weapon (damage per second of cooldown) in hand. */
     const equipBest = () => {
       const current = equippedWeapon(rt.player.inventory, rt.player.equipment)
       if (current && current.condition > 0) return
       let best: { id: string; score: number } | null = null
-      for (const item of rt.player.inventory.slots) {
-        if (item?.kind !== 'weapon' || item.condition <= 0) continue
+      for (const item of rt.player.inventory.items) {
+        if (item.kind !== 'weapon' || item.condition <= 0) continue
         const s = meleeStats(item.itemId)
         const score = s.damage / s.cooldown
         if (!best || score > best.score) best = { id: item.id, score }
@@ -255,6 +259,27 @@ function runSoak(policy: 'shelter' | 'patrol') {
     let mouseHeld = false
     let spaceHeld = false
     let autosaveClock = 0
+    // INV-LOOT S4: looting goes through the timed action queue; the bot stands still while it runs.
+    let lootJob: number | null = null
+    let lootCancelled = false
+    let lootBefore = 0
+    const seenWeapons = new Set<string>()
+    rt.events.on('action:cancelled', () => {
+      if (lootJob !== null) lootCancelled = true
+    })
+    // Integrity (not just timing): every unit per item type is conserved except what was used.
+    const allInventories = () => [rt.player.inventory, ...[...rt.world.containers.values()].map((c) => c.items), ...[...rt.world.floor.cells.values()].map((c) => c.items), ...rt.world.bags.values()]
+    const totals = () => {
+      const out: Record<string, number> = {}
+      for (const inv of allInventories()) for (const i of inv.items) out[i.itemId] = (out[i.itemId] ?? 0) + i.quantity
+      return out
+    }
+    const expected = totals()
+    rt.events.on('item:used', (e) => {
+      expected[e.itemId] -= 1
+      if (expected[e.itemId] === 0) delete expected[e.itemId]
+    })
+    let integrityClock = 0
 
     for (let t = 0; t < SESSION_SEC; t += DT) {
       if (!rt.player.alive) break
@@ -262,10 +287,13 @@ function runSoak(policy: 'shelter' | 'patrol') {
       const pos = p.position
 
       // ---- Ăn uống / băng bó khi cần (gọi như UI click)
-      const slotOf = (kind: 'food' | 'drink' | 'medical') => p.inventory.slots.findIndex((s) => s && getItemDef(s.itemId).kind === kind)
-      if (p.hunger < 35 && slotOf('food') >= 0) rt.consumeItem(slotOf('food'))
-      if (p.thirst < 35 && slotOf('drink') >= 0) rt.consumeItem(slotOf('drink'))
-      if (p.health < 45 && slotOf('medical') >= 0) rt.consumeItem(slotOf('medical'))
+      const firstOf = (kind: 'food' | 'drink' | 'medical') => p.inventory.items.find((s) => getItemDef(s.itemId).kind === kind)?.id
+      const food = firstOf('food')
+      if (p.hunger < 35 && food) rt.consumeItem(food)
+      const drink = firstOf('drink')
+      if (p.thirst < 35 && drink) rt.consumeItem(drink)
+      const medical = firstOf('medical')
+      if (p.health < 45 && medical) rt.consumeItem(medical)
 
       // ---- Combat: zombie gần nhất còn sống
       let nearest: { pos: Vec3; d: number } | null = null
@@ -312,22 +340,34 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
 
       // ---- Loot: tới tủ mục tiêu thì mở, lấy hết, đóng
-      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting) {
-        rt.interact(target)
-        const before = p.inventory.slots.filter(Boolean).reduce((n, s) => n + s!.quantity, 0)
-        for (const item of rt.openContainer!.items.slots) if (item?.kind === 'weapon') m.weaponsFound.push(`${item.itemId}@${item.condition}`)
-        rt.takeAll()
-        equipBest()
-        const after = p.inventory.slots.filter(Boolean).reduce((n, s) => n + s!.quantity, 0)
-        m.lootTaken += after - before
-        rt.closeAllUi()
-        looted.add(goalContainer)
-        m.containersLooted += 1
-        pickGoal()
+      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting && lootJob === null) {
+        if (!rt.lootOpen || rt.openContainerId !== goalContainer) rt.interact(target)
+        if (!seenWeapons.has(goalContainer)) {
+          seenWeapons.add(goalContainer)
+          lootBefore = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
+          for (const item of rt.openContainer!.items.items) if (item.kind === 'weapon') m.weaponsFound.push(`${item.itemId}@${item.condition}`)
+        }
+        lootCancelled = false
+        lootJob = rt.queueTransfer(containerKey(goalContainer), 'main', rt.openContainer!.items.items.map((i) => ({ instanceId: i.id }))).id ?? -1
+      }
+      if (lootJob !== null && rt.jobs.length === 0) {
+        if (lootCancelled && goalContainer) {
+          // Interrupted (a fight): queue the rest again once the bot is back at the container.
+          lootJob = null
+        } else {
+          equipBest()
+          const after = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
+          m.lootTaken += after - lootBefore
+          rt.closeAllUi()
+          if (goalContainer) looted.add(goalContainer)
+          m.containersLooted += 1
+          lootJob = null
+          pickGoal()
+        }
       }
 
-      // ---- Di chuyển theo path (tìm lại định kỳ / khi kẹt / khi cửa đổi)
-      if (goalPos && !fighting) {
+      // ---- Di chuyển theo path (tìm lại định kỳ / khi kẹt / khi cửa đổi); đứng yên khi đang lấy đồ
+      if (goalPos && !fighting && lootJob === null) {
         repathTimer -= DT
         if (dist(pos, lastPos) < 0.02) stuckTimer += DT
         else stuckTimer = 0
@@ -373,7 +413,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       expect(Number.isFinite(p.health) && Number.isFinite(p.hunger) && Number.isFinite(p.thirst)).toBe(true)
       expect(p.hunger).toBeGreaterThanOrEqual(0)
       expect(p.thirst).toBeGreaterThanOrEqual(0)
-      for (const s of p.inventory.slots) if (s) expect(s.quantity).toBeGreaterThan(0)
+      for (const s of p.inventory.items) expect(s.quantity).toBeGreaterThan(0)
       // Plan §10.4: at most two zombies in contact with one side of a door.
       const bashers = new Map<string, number>()
       for (const z of rt.zombies.values()) {
@@ -383,6 +423,16 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
       for (const n of bashers.values()) m.maxBashersPerSide = Math.max(m.maxBashersPerSide, n)
       expect(m.maxBashersPerSide).toBeLessThanOrEqual(2)
+
+      integrityClock += DT
+      if (integrityClock >= 1) {
+        integrityClock = 0
+        expect(totals()).toEqual(expected)
+        const ids = allInventories().flatMap((inv) => inv.items.map((i) => i.id))
+        expect(new Set(ids).size).toBe(ids.length)
+        if (rt.jobs.length === 0) expect(rt.ledger.isEmpty()).toBe(true)
+        m.integrityChecks += 1
+      }
 
       autosaveClock += DT
       if (autosaveClock >= 60) {
@@ -412,7 +462,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       endHealth: Math.round(rt.player.health),
       endHunger: Math.round(rt.player.hunger),
       endThirst: Math.round(rt.player.thirst),
-      bag: rt.player.inventory.slots.filter(Boolean).map((s) => (s!.kind === 'weapon' ? `${s!.itemId}@${s!.condition}` : `${s!.itemId}x${s!.quantity}`)),
+      bag: rt.player.inventory.items.map((s) => (s.kind === 'weapon' ? `${s.itemId}@${s.condition}` : `${s.itemId}x${s.quantity}`)),
       equipped: equippedWeapon(rt.player.inventory, rt.player.equipment)?.itemId ?? null,
       day: rt.clock.day,
       time: rt.clock.formatTime(),

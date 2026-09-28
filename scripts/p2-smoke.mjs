@@ -91,7 +91,7 @@ try {
       req.onerror=()=>reject(req.error)
     })`)
     assert.equal(saved.schemaVersion, 6)
-    assert.equal(saved.player.inventory.slots.filter((i) => i?.kind === 'weapon').length, 0)
+    assert.equal(saved.player.inventory.items.filter((i) => i.kind === 'weapon').length, 0)
     assert.equal(saved.player.equipment.weaponInstanceId, null)
     await navigate(`${base ?? 'http://127.0.0.1:5199'}/`)
     await until("Array.from(document.querySelectorAll('button')).some(b => b.textContent.trim() === 'Continue' && !b.disabled)")
@@ -123,13 +123,13 @@ try {
     const migrated = (await storage.readSave()).value
     const backup = (await storage.readSave(storage.LEGACY_BACKUP_SLOT)).value
     addItem(runtime.player.inventory, 'baseball_bat', 1)
-    const bats = runtime.player.inventory.slots.filter(i => i?.kind === 'weapon')
+    const bats = runtime.player.inventory.items.filter(i => i.kind === 'weapon')
     bats[0].condition = 10; bats[1].condition = 70
     runtime.equipItem(bats[1].id)
     const saved = await useUiStore.getState().saveGame()
     await useUiStore.getState().continueGame()
     useUiStore.getState().pause()
-    const conditions = runtime.player.inventory.slots.filter(i => i?.kind === 'weapon').map(i => i.condition).sort((a,b) => a-b)
+    const conditions = runtime.player.inventory.items.filter(i => i.kind === 'weapon').map(i => i.condition).sort((a,b) => a-b)
     const snapshot = runtime.createSnapshot()
     const current = (await storage.readSave()).value
     const conflict = await storage.commitMigratedSave(original, snapshot)
@@ -141,7 +141,7 @@ try {
     useUiStore.getState().pause()
     const fullDrop = runtime.world.containers.get('drop:legacy-bat')
     if (!fullDrop) throw new Error('Full inventory migration did not create the legacy bat drop')
-    const fullState = { slots: runtime.player.inventory.slots.filter(Boolean).length, drop: fullDrop.items.slots[0], position: fullDrop.position }
+    const fullState = { slots: runtime.player.inventory.items.length, drop: fullDrop.items.items[0], position: fullDrop.position }
     useUiStore.getState().toMenu()
     const bad = { ...original, schemaVersion: 99 }
     await storage.writeSave(bad)

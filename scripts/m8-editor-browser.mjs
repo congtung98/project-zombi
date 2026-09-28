@@ -121,7 +121,7 @@ try {
       const rt = window.__runtime
       rt.world.lamps.set(lamp, true)
       rt.setDoorState(door, 'open')
-      return { contentVersion: rt.map.contentVersion, scrap: rt.world.containers.get(scrap).items.slots.filter(Boolean).map((i) => i.id) }
+      return { contentVersion: rt.map.contentVersion, scrap: rt.world.containers.get(scrap).items.items.map((i) => i.id) }
     },
     [LAMP, DOOR, SCRAP],
   )
@@ -218,7 +218,7 @@ try {
         oldLamp: rt.world.lamps.has(lampOld),
         door: rt.world.doors.get(door).state,
         scrap: rt.world.containers.has(scrap),
-        bags: items.map((id) => rt.world.containers.get(`drop:${id}`)?.items.slots[0]?.id ?? null),
+        bags: items.map((id) => rt.world.containers.get(`drop:${id}`)?.items.items[0]?.id ?? null),
         houseDoor: rt.world.doors.get(`${house}/door`)?.state ?? null,
         houseLamp: rt.world.lamps.get(`${house}/lamp-lounge`),
       }

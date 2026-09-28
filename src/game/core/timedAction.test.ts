@@ -36,11 +36,11 @@ function setup(items: [ItemId, number][] = [['wood_plank', 3], ['duct_tape', 2],
 
 function give(rt: GameRuntime, itemId: ItemId, condition: number): WeaponInstance {
   addItem(rt.player.inventory, itemId, 1, { condition })
-  return rt.player.inventory.slots.findLast((i) => i?.itemId === itemId) as WeaponInstance
+  return rt.player.inventory.items.findLast((i) => i.itemId === itemId) as WeaponInstance
 }
 
-const find = (rt: GameRuntime, id: string) => rt.player.inventory.slots.find((i) => i?.id === id) as WeaponInstance | undefined
-const slotOf = (rt: GameRuntime, itemId: ItemId) => rt.player.inventory.slots.findIndex((i) => i?.itemId === itemId)
+const find = (rt: GameRuntime, id: string) => rt.player.inventory.items.find((i) => i.id === id) as WeaponInstance | undefined
+const idOf = (rt: GameRuntime, itemId: ItemId) => rt.player.inventory.items.find((i) => i.itemId === itemId)!.id
 
 function run(rt: GameRuntime, seconds: number) {
   for (let t = 0; t < seconds - 1e-9; t += DT) rt.tick(DT)
@@ -86,16 +86,18 @@ describe('timed repair', () => {
     expect(rt.action!.elapsed).toBe(before)
   })
 
-  it('spamming start never duplicates: one action, one output, inputs spent once', () => {
+  it('spamming start never queues beyond the materials: two clubs from materials for two, inputs spent once', () => {
     const { rt, log } = setup([['wood_plank', 4], ['duct_tape', 2]])
-    for (let i = 0; i < 10; i++) rt.startCraft('craft_wooden_club')
+    const results = Array.from({ length: 10 }, () => rt.startCraft('craft_wooden_club'))
     rt.events.flush()
-    expect(log.filter((e) => e === 'action:started')).toHaveLength(1)
-    expect(log.filter((e) => e === 'action:rejected')).toHaveLength(9)
-    run(rt, 4.1)
-    const clubs = () => rt.player.inventory.slots.filter((i) => i?.itemId === 'wooden_club').length
-    expect(clubs()).toBe(1)
-    expect([countItem(rt.player.inventory, 'wood_plank'), countItem(rt.player.inventory, 'duct_tape')]).toEqual([2, 1])
+    // INV-LOOT Q3: one runs, one waits (its inputs are claimed), the other eight are refused at once.
+    expect(results.map((r) => (r.ok ? (r.queued ? 'queued' : 'started') : r.reason))).toEqual(['started', 'queued', ...Array(8).fill('missing-carried')])
+    expect(log.filter((e) => e === 'action:rejected')).toHaveLength(8)
+    run(rt, 8.2)
+    const clubs = () => rt.player.inventory.items.filter((i) => i.itemId === 'wooden_club').length
+    expect(clubs()).toBe(2)
+    expect([countItem(rt.player.inventory, 'wood_plank'), countItem(rt.player.inventory, 'duct_tape')]).toEqual([0, 0])
+    expect(rt.ledger.isEmpty()).toBe(true)
   })
 })
 
@@ -122,7 +124,7 @@ describe('interruptions release the reservation and spend nothing', () => {
     expect(countItem(rt.player.inventory, 'duct_tape')).toBe(countItem(before, 'duct_tape'))
     expect(find(rt, bat.id)!.condition).toBe(0)
     // Released: the bat can be dropped now.
-    expect(rt.dropItem(rt.player.inventory.slots.findIndex((i) => i?.id === bat.id))).toBe(true)
+    expect(rt.dropItem(bat.id)).toBe(true)
   })
 
   it('a zombie hit cancels; slow starvation damage does not', () => {
@@ -169,12 +171,11 @@ describe('reservation while working', () => {
     const bat = give(rt, 'baseball_bat', 5)
     rt.player.thirst = 50
     rt.startRepair(bat.id)
-    const batSlot = rt.player.inventory.slots.findIndex((i) => i?.id === bat.id)
-    expect(rt.dropItem(batSlot)).toBe(false)
-    expect(rt.dropItem(slotOf(rt, 'duct_tape'))).toBe(false)
+    expect(rt.dropItem(bat.id)).toBe(false)
+    expect(rt.dropItem(idOf(rt, 'duct_tape'))).toBe(false)
     rt.interact(rt.interactables.find((i) => i.id === 'ct-bench')!)
-    expect(rt.putIntoContainer(slotOf(rt, 'wood_plank')).moved).toBe(0)
-    expect(rt.putIntoContainer(slotOf(rt, 'water')).moved).toBe(1)
+    expect(rt.putIntoContainer(idOf(rt, 'wood_plank')).moved).toBe(0)
+    expect(rt.putIntoContainer(idOf(rt, 'water')).moved).toBe(1)
     rt.tick(DT)
     expect(events['item:reserved']!.length).toBe(3)
     // Equip changes are allowed and do not disturb the action.
@@ -183,7 +184,7 @@ describe('reservation while working', () => {
     expect(find(rt, bat.id)!.condition).toBe(35)
   })
 
-  it('only one action at a time; not mid-swing', () => {
+  it('one action runs at a time, the next waits in the queue; nothing starts mid-swing; one repair per item', () => {
     const { rt } = setup([['wood_plank', 5], ['duct_tape', 5], ['scrap_metal', 1]])
     const bat = give(rt, 'baseball_bat', 10)
     expect(rt.equipItem(bat.id)).toBe(true)
@@ -193,8 +194,10 @@ describe('reservation while working', () => {
     rt.input.simulateKey('Mouse0', false)
     expect(rt.startRepair(bat.id)).toEqual({ ok: false, reason: 'busy' })
     run(rt, 1)
-    expect(rt.startRepair(bat.id).ok).toBe(true)
-    expect(rt.startCraft('craft_wooden_club')).toEqual({ ok: false, reason: 'busy' })
+    expect(rt.startRepair(bat.id)).toMatchObject({ ok: true, queued: false })
+    expect(rt.startRepair(bat.id)).toEqual({ ok: false, reason: 'already-queued' })
+    expect(rt.startCraft('craft_wooden_club')).toMatchObject({ ok: true, queued: true })
+    expect(rt.jobs.map((j) => j.label)).toEqual(['Sửa Gậy bóng chày', 'Chế tạo Gậy gỗ tự chế'])
   })
 })
 
@@ -204,7 +207,7 @@ describe('commit re-checks and stays atomic', () => {
     rt.startCraft('craft_wooden_club')
     run(rt, 1)
     // Picked up other items meanwhile (takes are allowed): no room left after consuming inputs.
-    while (rt.player.inventory.slots.includes(null)) addItem(rt.player.inventory, 'medkit', 1)
+    while (rt.player.inventory.items.length < rt.player.inventory.slotCapacity!) addItem(rt.player.inventory, 'medkit', 1)
     const before = structuredClone(rt.player.inventory)
     run(rt, 3.2)
     expect(events['action:failed']).toMatchObject([{ reason: 'no-space' }])

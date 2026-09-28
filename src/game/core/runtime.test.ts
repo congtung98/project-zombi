@@ -22,7 +22,7 @@ const hut: BuildingDef = {
 /** New Game is unarmed since P2-S2; combat tests equip a looted-style weapon explicitly. */
 function arm(rt: GameRuntime, itemId: 'baseball_bat' | 'metal_pipe' | 'crowbar' | 'hammer' = 'baseball_bat', condition?: number): string {
   addItem(rt.player.inventory, itemId, 1, { condition })
-  const weapon = rt.player.inventory.slots.findLast((i) => i?.itemId === itemId)!
+  const weapon = rt.player.inventory.items.findLast((i) => i.itemId === itemId)!
   expect(rt.equipItem(weapon.id)).toBe(true)
   return weapon.id
 }
@@ -358,11 +358,11 @@ describe('GameRuntime inventory and loot', () => {
     const container = rt.openContainer!
     const total = totalQuantity(container.items) + totalQuantity(rt.player.inventory)
 
-    const r = rt.takeFromContainer(0)
+    const r = rt.takeFromContainer(container.items.items[0].id)
     expect(r.moved).toBeGreaterThan(0)
     expect(totalQuantity(container.items) + totalQuantity(rt.player.inventory)).toBe(total)
 
-    rt.putIntoContainer(0)
+    rt.putIntoContainer(rt.player.inventory.items[0].id)
     expect(totalQuantity(rt.player.inventory)).toBe(0) // New Game is unarmed: nothing else in the bag
     expect(totalQuantity(container.items)).toBe(total)
 
@@ -373,7 +373,7 @@ describe('GameRuntime inventory and loot', () => {
     expect(all.remainder).toBe(total)
     expect(totalQuantity(container.items)).toBe(total)
 
-    rt.player.inventory = createInventory(GAME_CONFIG.inventory.slots)
+    rt.player.inventory = createInventory(GAME_CONFIG.inventory.slots, 'player', 'player')
     const all2 = rt.takeAll()
     expect(all2.moved).toBe(total)
     expect(totalQuantity(container.items)).toBe(0)
@@ -388,30 +388,32 @@ describe('GameRuntime inventory and loot', () => {
     addItem(rt.player.inventory, 'water', 1)
     addItem(rt.player.inventory, 'bandage', 1)
 
+    const [water, bandage] = rt.player.inventory.items.map((i) => i.id)
     rt.player.thirst = 50
-    expect(rt.consumeItem(0).ok).toBe(true)
+    expect(rt.consumeItem(water).ok).toBe(true)
     expect(rt.player.thirst).toBe(90)
-    expect(rt.consumeItem(1).ok).toBe(false) // máu đầy
-    expect(rt.player.inventory.slots[1]?.quantity).toBe(1)
+    expect(rt.consumeItem(bandage).ok).toBe(false) // máu đầy
+    expect(rt.player.inventory.items.find((i) => i.id === bandage)?.quantity).toBe(1)
     rt.events.flush()
     expect(used).toEqual(['water'])
     expect(failed).toEqual(['no-effect'])
   })
 
-  it('walking away from an open container closes its panel, and death closes all UI', () => {
+  it('walking away keeps the loot window on the container, out of reach (nothing moves), and death closes all UI', () => {
     const rt = new GameRuntime(lootMap())
-    const closed: string[] = []
-    rt.events.on('container:closed', (e) => closed.push(e.id))
     standAtContainer(rt)
     rt.interact(rt.currentInteractable!)
     expect(rt.openContainerId).toBe('ct-hut')
+    const back = { ...rt.player.position }
 
+    // INV-LOOT §7.2: the window keeps the container and says it is out of reach; transfers refuse.
     rt.player.position = { x: 0, y: 0.9, z: 2 }
-    rt.tick(DT)
-    expect(rt.openContainerId).toBeNull()
-    expect(rt.inventoryOpen).toBe(true) // túi vẫn mở, chỉ panel container đóng
-    expect(rt.uiOpen).toBe(true)
-    expect(closed).toEqual(['ct-hut'])
+    for (let i = 0; i < 10; i++) rt.tick(DT)
+    expect([rt.openContainerId, rt.lootOpen, rt.lootInReach, rt.inventoryOpen]).toEqual(['ct-hut', true, false, true])
+    expect(rt.takeAll()).toMatchObject({ moved: 0, reason: 'unreachable' })
+    rt.player.position = back
+    for (let i = 0; i < 10; i++) rt.tick(DT)
+    expect(rt.lootInReach).toBe(true)
 
     rt.player.alive = false
     rt.tick(DT)
@@ -419,33 +421,36 @@ describe('GameRuntime inventory and loot', () => {
     expect(rt.uiOpen).toBe(false)
   })
 
-  it('an open inventory blocks attack and push input', () => {
+  it('INV-LOOT S5: an open inventory window does not block the stance or the swing', () => {
     const rt = new GameRuntime(makeMap([{ x: 1, y: 0, z: 0 }]))
     arm(rt)
+    const stances: boolean[] = []
+    rt.events.on('player:stance', (e) => stances.push(e.active))
+    // A right button held while the window opens waits for a release (opening leaves the stance).
+    rt.input.simulateKey('Mouse2', true)
+    rt.tick(DT)
+    expect(rt.stance.requested).toBe(true)
     rt.toggleInventory()
     expect(rt.uiOpen).toBe(true)
-    rt.input.simulateKey('Mouse2', true)
-    rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     expect(rt.stance.requested).toBe(false)
-    expect(rt.player.attackTimer).toBeLessThan(0)
-    expect(rt.player.stamina).toBe(GAME_CONFIG.player.maxStamina)
-    rt.input.simulateKey('Mouse0', false)
-
-    rt.toggleInventory()
-    expect(rt.uiOpen).toBe(false)
-    // CS1: the right button held through the panel asks again only after a new press.
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
-    expect(rt.stance.requested).toBe(false)
     expect(rt.player.attackTimer).toBeLessThan(0)
     rt.input.simulateKey('Mouse0', false)
     rt.input.simulateKey('Mouse2', false)
     rt.tick(DT)
+
+    // Window still open: a right press on the world is the stance (the UI collapses the windows on
+    // the event), a left click in it swings.
     rt.input.simulateKey('Mouse2', true)
+    rt.tick(DT)
+    expect(rt.stance.requested).toBe(true)
+    expect(rt.inventoryOpen).toBe(true)
     rt.input.simulateKey('Mouse0', true)
     rt.tick(DT)
     expect(rt.player.attackTimer).toBeGreaterThanOrEqual(0)
+    expect(stances).toEqual([true, false, true])
   })
 
   it('newGame resets the bag and closes UI', () => {

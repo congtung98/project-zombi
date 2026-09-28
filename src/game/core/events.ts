@@ -30,6 +30,13 @@ export type GameEvents = {
   /** CS1: the combat stance started or ended (intent, not the finished pose). */
   'player:stance': { active: boolean }
   'item:equipped': { id: string | null; itemId: ItemId | null }
+  /** INV-LOOT: a bag worn (id) or taken off (null). */
+  'bag:worn': { id: string | null; itemId: ItemId | null }
+  /**
+   * INV-LOOT S5: a loaded save held items this version does not know; they are kept (unusable) and
+   * saved back unchanged. `unequipped`: the weapon / worn bag was one of them and was taken off.
+   */
+  'items:recovered': { itemIds: string[]; unequipped: ('weapon' | 'back')[] }
   /** Condition đổi sau một đòn trúng; UI chỉ đồng bộ, không phát âm pickup. */
   'weapon:worn': { id: string; itemId: ItemId; condition: number }
   'weapon:lowCondition': { id: string; itemId: ItemId; name: string }
@@ -50,6 +57,8 @@ export type GameEvents = {
   /** Horde director moved a zone's group; `moving` = members that started walking now. */
   'horde:migrated': { from: string; to: string; ids: EntityId[]; moving: EntityId[] }
   'drops:changed': Record<string, never>
+  /** INV-LOOT: one summary per transfer command (the UI shows it once, never per unit). */
+  'inventory:transferred': { source: string; destination: string; moved: number; movedLines: number; skipped: string[] }
   'container:opened': { id: string; name: string; firstTime: boolean }
   'container:closed': { id: string }
   /** Túi người chơi, panel container hoặc trạng thái mở/đóng UI đổi; UI chụp snapshot mới. */
@@ -58,8 +67,11 @@ export type GameEvents = {
   'item:useFailed': { itemId: ItemId; name: string; reason: UseItemFailure }
   /** P2-S4 timed craft/repair: started (reserved), rejected at start, cancelled, failed at commit, completed. */
   'action:started': { id: number; kind: 'craft' | 'repair'; label: string; duration: number }
-  'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' }
-  'action:cancelled': { id: number; label: string; reason: ActionCancelReason }
+  'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued' }
+  /** INV-LOOT S4: an action waits behind the running one (one queue, run in order). */
+  'action:queued': { id: number; label: string }
+  /** `dropped`: waiting jobs cancelled with it (moving, a hit or X cancel the whole queue). */
+  'action:cancelled': { id: number; label: string; reason: ActionCancelReason; dropped: number }
   'action:failed': { id: number; label: string; reason: CraftFailure }
   'action:completed': {
     id: number

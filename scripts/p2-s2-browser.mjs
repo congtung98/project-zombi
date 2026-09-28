@@ -127,13 +127,13 @@ try {
     await shot('p2s2-prod-equipped')
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 9)
-    const weapons = saved.player.inventory.slots.filter((i) => i?.kind === 'weapon')
+    assert.equal(saved.schemaVersion, 10)
+    const weapons = saved.player.inventory.items.filter((i) => i.kind === 'weapon')
     assert.equal(weapons.length, 1)
     assert.equal(saved.player.equipment.weaponInstanceId, weapons[0].id)
     const closet = saved.containers.find((c) => c.id === 'c-1_-1/safehouse/closet')
     assert.equal(closet.opened, true)
-    assert.equal(closet.items.slots.filter(Boolean).length, 0)
+    assert.equal(closet.items.items.length, 0)
     await page.reload()
     await menu()
     await continueGame()
@@ -171,7 +171,7 @@ try {
       z.health = 50
       z.staggerTimer = 1e6
       z.position = { ...pos } // R2: the simulation owns the position; the body follows next tick
-      const w = rt.player.inventory.slots.find((i) => i?.id === rt.player.equipment.weaponInstanceId)
+      const w = rt.player.inventory.items.find((i) => i.id === rt.player.equipment.weaponInstanceId)
       return { condition: w.condition, itemId: w.itemId }
     })
     const hit = async () => {
@@ -188,7 +188,7 @@ try {
       await page.waitForTimeout(100)
       return page.evaluate((b) => {
         const rt = window.__runtime
-        const w = rt.player.inventory.slots.find((i) => i?.id === rt.player.equipment.weaponInstanceId)
+        const w = rt.player.inventory.items.find((i) => i.id === rt.player.equipment.weaponInstanceId)
         return { ...b, damage: 50 - rt.zombies.get('zombie-1').health, after: w.condition }
       }, before)
     }
@@ -198,7 +198,7 @@ try {
     assert.ok(first.damage >= 25)
     await page.evaluate(() => {
       const rt = window.__runtime
-      rt.player.inventory.slots.find((i) => i?.id === rt.player.equipment.weaponInstanceId).condition = 1
+      rt.player.inventory.items.find((i) => i.id === rt.player.equipment.weaponInstanceId).condition = 1
     })
     const last = await hit()
     log('hit (condition 1)', last)
@@ -229,23 +229,23 @@ try {
       const { addItem } = await import('/src/game/systems/inventory.ts')
       const rt = window.__runtime
       addItem(rt.player.inventory, 'metal_pipe', 1, { condition: 33 })
-      const slot = rt.player.inventory.slots.findIndex((i) => i?.itemId === 'metal_pipe' && i.condition === 33)
-      return { id: rt.player.inventory.slots[slot].id, dropped: rt.dropItem(slot) }
+      const id = rt.player.inventory.items.find((i) => i.itemId === 'metal_pipe' && i.condition === 33).id
+      return { id, dropped: rt.dropItem(id) }
     })
     assert.equal(spare.dropped, true)
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 9)
-    const equipped = saved.player.inventory.slots.find((i) => i?.id === saved.player.equipment.weaponInstanceId)
+    assert.equal(saved.schemaVersion, 10)
+    const equipped = saved.player.inventory.items.find((i) => i.id === saved.player.equipment.weaponInstanceId)
     assert.equal(equipped.condition, 0)
-    assert.equal(saved.containers.find((c) => c.id === `drop:${spare.id}`).items.slots[0].condition, 33)
+    assert.equal(saved.containers.find((c) => c.id === `drop:${spare.id}`).items.items[0].condition, 33)
     await page.reload()
     await menu()
     await continueGame()
     assert.match(await hud('.hud-weapon'), /0\/\d+\s+HỎNG/)
     const reloaded = await page.evaluate(() => {
       const rt = window.__runtime
-      const w = rt.player.inventory.slots.find((i) => i?.id === rt.player.equipment.weaponInstanceId)
+      const w = rt.player.inventory.items.find((i) => i.id === rt.player.equipment.weaponInstanceId)
       return { id: w.id, condition: w.condition }
     })
     assert.deepEqual(reloaded, { id: equipped.id, condition: 0 })
@@ -270,11 +270,11 @@ try {
       assert.match(await hud('.hud-toast'), new RegExp(note))
       const upgraded = await readSlot('slot-1')
       const backup = await readSlot(`slot-1.backup-v${version}`)
-      assert.equal(upgraded.schemaVersion, 9)
+      assert.equal(upgraded.schemaVersion, 10)
       assert.deepEqual(backup, original)
       const ids = upgraded.containers.map((c) => c.id)
       for (const id of ['c-1_-1/safehouse/closet', 'c0_-1/store/tools', 'c0_0/house/nightstand', 'c-1_0/objects/park-toolbox']) assert.ok(ids.includes(id), id)
-      const weapons = upgraded.player.inventory.slots.filter((i) => i?.kind === 'weapon').map((i) => i.condition).sort((a, b) => a - b)
+      const weapons = upgraded.player.inventory.items.filter((i) => i.kind === 'weapon').map((i) => i.condition).sort((a, b) => a - b)
       log(`migration v${version} → v8`, { backup: `slot-1.backup-v${version}`, containers: ids.length, bagWeapons: weapons })
     }
 
@@ -284,7 +284,7 @@ try {
     await newGame()
     await page.getByRole('button', { name: /Bộ vũ khí thử/ }).click()
     await hasText('Xà beng')
-    const kit = await page.evaluate(() => window.__runtime.player.inventory.slots.filter(Boolean).map((i) => `${i.itemId}@${i.condition}`))
+    const kit = await page.evaluate(() => window.__runtime.player.inventory.items.map((i) => `${i.itemId}@${i.condition}`))
     log('lab weapon kit', kit)
     await shot('p2s2-lab-kit')
     assert.equal(errors.length, 0, JSON.stringify(errors))

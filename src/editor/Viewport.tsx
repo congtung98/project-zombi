@@ -29,7 +29,14 @@ import { ChunkBatch, RecordView } from './RecordView'
  * The player, AI and game loop never run here.
  */
 
-const ISO_OFFSET = new Vector3(20, 24, 20)
+/**
+ * Isometric view: the game camera's direction, far back. The camera is orthographic, so the distance
+ * changes nothing on screen; at the game's 37 m the lower half of a zoomed-out view (zoom 2: some
+ * 600 m of ground) lay behind the camera and was clipped by the near plane.
+ */
+const ISO_OFFSET = new Vector3(20, 24, 20).setLength(1500)
+/** Far plane: beyond the top edge of the widest isometric view. */
+const CAMERA_FAR = 4000
 const TOP_HEIGHT = 120
 const GROUND = new Plane(new Vector3(0, 1, 0), 0)
 
@@ -555,7 +562,7 @@ function Controls() {
 
 export function Viewport() {
   return (
-    <Canvas orthographic frameloop="demand" camera={{ position: [0, TOP_HEIGHT, 0], zoom: 10, near: 0.1, far: 1000 }} dpr={[1, 2]}>
+    <Canvas orthographic frameloop="demand" camera={{ position: [0, TOP_HEIGHT, 0], zoom: 10, near: 0.1, far: CAMERA_FAR }} dpr={[1, 2]}>
       <color attach="background" args={['#23272b']} />
       <EditorScene />
       <Controls />

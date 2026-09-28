@@ -91,7 +91,7 @@ describe('offline generator (M6)', () => {
     rt.setLineOfSightOverride(null)
     for (let i = 0; i < 900; i++) rt.tick(1 / 60)
     expect(rt.zombies.size).toBeGreaterThan(0)
-    expect([...rt.world.containers.values()].some((c) => c.items.slots.some(Boolean))).toBe(true)
+    expect([...rt.world.containers.values()].some((c) => c.items.items.length > 0)).toBe(true)
     expect(rt.player.alive).toBe(true)
   })
 })

@@ -5,6 +5,8 @@ import { Vector3, type OrthographicCamera as OrthographicCameraImpl } from 'thre
 import { runtime } from '../core/runtime'
 
 const CAM = runtime.config.camera
+/** Camera position relative to the followed point: along `offset`, `distance` away (orthographic: no change on screen). */
+const OFFSET = new Vector3(CAM.offset.x, CAM.offset.y, CAM.offset.z).setLength(CAM.distance)
 
 /**
  * Camera orthographic nghiêng isometric, theo nhân vật có làm mượt và zoom
@@ -35,7 +37,7 @@ export function CameraRig() {
     target.current.y += (p.y - target.current.y) * t
     target.current.z += (p.z - target.current.z) * t
 
-    cam.position.set(target.current.x + CAM.offset.x, target.current.y + CAM.offset.y, target.current.z + CAM.offset.z)
+    cam.position.copy(target.current).add(OFFSET)
     cam.lookAt(target.current)
 
     if (cam.zoom !== runtime.cameraZoom) {
@@ -48,10 +50,10 @@ export function CameraRig() {
     <OrthographicCamera
       ref={cameraRef}
       makeDefault
-      position={[CAM.offset.x, CAM.offset.y, CAM.offset.z]}
+      position={[OFFSET.x, OFFSET.y, OFFSET.z]}
       zoom={CAM.zoomDefault}
       near={0.1}
-      far={200}
+      far={CAM.far}
     />
   )
 }

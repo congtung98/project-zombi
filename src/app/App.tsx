@@ -2,7 +2,9 @@ import { lazy, Suspense, useEffect } from 'react'
 import { DOOR_LAB_ENABLED } from '../game/world/doorLab'
 import { GameCanvas } from './GameCanvas'
 import { HUD } from '../components/HUD'
-import { InventoryOverlay } from '../components/ContainerPanel'
+import { InventoryOverlay } from '../components/inventory/InventoryOverlay'
+import { handleInventoryEscape } from '../components/inventory/escape'
+import { summaryText } from '../components/inventory/labels'
 import { GameOverScreen, MainMenu, PauseMenu } from '../components/Menus'
 import { CharacterCreation } from '../components/CharacterCreation'
 import { PerfHud } from '../components/PerfHud'
@@ -12,6 +14,7 @@ import type { ItemEffect } from '../game/entities/items'
 import { getItemDef } from '../game/entities/items'
 import { useHudStore } from '../stores/hudStore'
 import { useInventoryStore } from '../stores/inventoryStore'
+import { useInventoryUiStore } from '../stores/inventoryUiStore'
 import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -34,7 +37,7 @@ function describeEffect(effect: ItemEffect): string {
   return parts.join(', ')
 }
 
-const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup' } as const
+const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup', bag: 'pickup', unknown: 'pickup' } as const
 const UNAWARE = new Set(['IDLE', 'WANDER', 'MIGRATE'])
 
 /** World sounds fade with distance from the player (full within 6 m, quiet but audible at 30 m). */
@@ -69,16 +72,23 @@ export function App() {
     const ui = () => useUiStore.getState()
     const inv = () => useInventoryStore.getState()
     const offs = [
-      // Esc: đóng túi/tủ trước; rồi rời thế chiến đấu (CS1); không có gì thì mới tạm dừng.
+      // Esc, one layer per press: popup → running action → focused/top window (INV-LOOT); then leave
+      // the combat stance (CS1); nothing left: pause.
       runtime.input.onAction('pause', () => {
-        if (ui().screen === 'playing' && runtime.uiOpen) runtime.closeAllUi()
-        else if (ui().screen === 'playing' && runtime.cancelStance()) return
-        else ui().togglePause()
+        if (ui().screen === 'playing' && handleInventoryEscape()) return
+        if (ui().screen === 'playing' && runtime.cancelStance()) return
+        ui().togglePause()
       }),
       runtime.input.onAction('inventory', () => {
         if (ui().screen === 'playing') runtime.toggleInventory()
       }),
       runtime.events.on('inventory:changed', () => inv().sync(runtime)),
+      // INV-LOOT S5: the combat stance collapses the inventory windows while it lasts.
+      runtime.events.on('player:stance', (e) => useInventoryUiStore.getState().setStance(e.active)),
+      // One summary per transfer command: only when something stayed behind or several lines moved.
+      runtime.events.on('inventory:transferred', (e) => {
+        if (e.skipped.length > 0 || e.movedLines > 1) useHudStore.getState().showToast(summaryText(e.moved, e.skipped), 2200, e.skipped.length > 0 ? 'warn' : undefined)
+      }),
       runtime.events.on('item:used', (e) =>
         useHudStore.getState().showToast(`Đã dùng ${e.name}: ${describeEffect(e.effect)}.`, 1800),
       ),
@@ -102,6 +112,14 @@ export function App() {
       runtime.events.on('item:equipped', (e) =>
         useHudStore.getState().showToast(e.itemId ? `Đang cầm ${getItemDef(e.itemId).name}.` : 'Đã cất vũ khí: tay không.', 1400),
       ),
+      runtime.events.on('bag:worn', (e) =>
+        useHudStore.getState().showToast(e.itemId ? `Đang đeo ${getItemDef(e.itemId).name.toLowerCase()}: dùng được đồ bên trong.` : 'Đã tháo balo.', 1400),
+      ),
+      // INV-LOOT S5: unknown items of a loaded save are kept, never silently dropped.
+      runtime.events.on('items:recovered', (e) => {
+        const off = e.unequipped.length > 0 ? ' Món đang trang bị trong số đó đã được tháo ra.' : ''
+        useHudStore.getState().showToast(`Bản lưu có ${e.itemIds.length} món phiên bản này không nhận ra (${[...new Set(e.itemIds)].join(', ')}): đã giữ nguyên trong túi/tủ, không dùng được.${off}`, 5000, 'warn')
+      }),
       runtime.events.on('weapon:worn', () => inv().sync(runtime)),
       runtime.events.on('weapon:lowCondition', (e) => useHudStore.getState().showToast(`${e.name} sắp hỏng (≤ 25% độ bền).`, 2500, 'warn')),
       runtime.events.on('weapon:broken', (e) => {
@@ -112,7 +130,9 @@ export function App() {
       runtime.events.on('action:started', () => sfx.play('workStart')),
       runtime.events.on('action:rejected', (e) => useHudStore.getState().showToast(`${e.label}: ${ACTION_FAILURE_TEXT[e.reason]}.`, 2500, 'warn')),
       runtime.events.on('action:cancelled', (e) => {
-        useHudStore.getState().showToast(`Đã hủy ${e.label.toLowerCase()} (${ACTION_CANCEL_TEXT[e.reason]}); không mất nguyên liệu.`, 2200, 'warn')
+        // INV-LOOT S4: steps already done stay done; the waiting jobs cancelled with it are counted once.
+        const rest = e.dropped > 0 ? ` và ${e.dropped} thao tác đang chờ` : ''
+        useHudStore.getState().showToast(`Đã hủy ${e.label.toLowerCase()}${rest} (${ACTION_CANCEL_TEXT[e.reason]}); phần đã xong giữ nguyên, không mất nguyên liệu.`, 2200, 'warn')
         sfx.play('workCancel')
       }),
       runtime.events.on('action:failed', (e) => {

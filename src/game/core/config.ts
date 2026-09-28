@@ -407,13 +407,40 @@ export const GAME_CONFIG = {
     /** Người chơi đi xa container quá tầm tương tác cộng dư này thì panel tự đóng. */
     closeDistanceSlack: 0.75,
   },
+  /**
+   * INV-LOOT timed transfer (used from S4): an item without its own `transfer` batch moves one unit
+   * per step of clamp(base + kg × perKg, min, max) seconds. Starting values, tune by playtest.
+   */
+  transfer: {
+    base: 0.2,
+    perKg: 0.15,
+    min: 0.2,
+    max: 1.5,
+  },
+  /**
+   * INV-LOOT extra loot drawn from its own seed stream after the container's table, so the table's
+   * own rolls never change. `id` is also the save's `lootPatches` marker; never reuse or edit a
+   * released rule (add a new id instead). Only added when the container has a free slot.
+   */
+  bonusLoot: [
+    { id: 'backpack-v1', itemId: 'backpack', tables: ['house-wardrobe', 'locker'], chance: 0.15 },
+  ] as const,
   camera: {
     /** Vị trí camera so với nhân vật; hướng nhìn isometric. */
     offset: { x: 20, y: 24, z: 20 },
-    zoomMin: 14,
-    zoomMax: 60,
-    zoomDefault: 28,
-    zoomStep: 2,
+    /**
+     * Camera distance from the player along `offset` (m) and its far plane. The camera is orthographic,
+     * so the distance changes nothing on screen: it only has to be large enough that the widest view
+     * never reaches behind the camera (at 37 m, the length of `offset`, the lower part of the screen
+     * was clipped by the near plane once zoomed out).
+     */
+    distance: 200,
+    far: 500,
+    /** Zoom = pixels per metre (larger = closer): 12 ≈ 100 m of ground on a 1200 px tall screen, 64 ≈ 19 m. */
+    zoomMin: 32,
+    zoomMax: 128,
+    zoomDefault: 64,
+    zoomStep: 4,
     /** Hệ số làm mượt theo nhân vật (càng lớn càng bám sát). */
     followSmoothing: 8,
   },

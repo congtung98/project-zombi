@@ -1,0 +1,672 @@
+{
+ "schemaVersion": 9,
+ "savedAt": 1790584473915,
+ "mapId": "neighborhood-50",
+ "contentVersion": 1,
+ "worldSeed": 20260928,
+ "clock": {
+  "elapsed": 0.9999999999999999,
+  "timeOfDay": 0.3016666666666659,
+  "day": 1
+ },
+ "player": {
+  "name": "Người sống sót",
+  "appearance": {
+   "preset": "balanced",
+   "hair": "short",
+   "skin": "tan",
+   "shirt": "blue",
+   "pants": "denim",
+   "outfit": "tee"
+  },
+  "position": {
+   "x": -13,
+   "y": 0,
+   "z": -13
+  },
+  "facing": 0,
+  "health": 81,
+  "stamina": 100,
+  "hunger": 99.9166666666666,
+  "thirst": 99.8888888888888,
+  "kills": 0,
+  "inventory": {
+   "id": "player",
+   "nextItemId": 1,
+   "slots": [
+    {
+     "id": "loot:20260928:c-1_-1/safehouse/closet:1",
+     "itemId": "baseball_bat",
+     "kind": "weapon",
+     "quantity": 1,
+     "condition": 37
+    },
+    null,
+    {
+     "id": "loot:20260928:c-1_-1/safehouse/cabinet:1",
+     "itemId": "water",
+     "kind": "stack",
+     "quantity": 3
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  "equipment": {
+   "weaponInstanceId": "loot:20260928:c-1_-1/safehouse/closet:1"
+  }
+ },
+ "doors": [
+  {
+   "id": "c-1_-1/safehouse/door",
+   "state": "closed",
+   "hp": 120
+  },
+  {
+   "id": "c0_-1/store/door",
+   "state": "closed",
+   "hp": 120
+  },
+  {
+   "id": "c0_0/house/door",
+   "state": "closed",
+   "hp": 120
+  },
+  {
+   "id": "c0_0/house/door-bedroom",
+   "state": "open",
+   "hp": 120
+  }
+ ],
+ "containers": [
+  {
+   "id": "c-1_-1/safehouse/cabinet",
+   "opened": true,
+   "items": {
+    "id": "loot:20260928:c-1_-1/safehouse/cabinet",
+    "nextItemId": 5,
+    "slots": [
+     null,
+     null,
+     {
+      "id": "loot:20260928:c-1_-1/safehouse/cabinet:3",
+      "itemId": "bandage",
+      "kind": "stack",
+      "quantity": 1
+     },
+     {
+      "id": "loot:20260928:c-1_-1/safehouse/cabinet:4",
+      "itemId": "soda",
+      "kind": "stack",
+      "quantity": 1
+     },
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c-1_-1/safehouse/closet",
+   "opened": true,
+   "items": {
+    "id": "loot:20260928:c-1_-1/safehouse/closet",
+    "nextItemId": 2,
+    "slots": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c-1_-1/safehouse/toolbox",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c-1_-1/safehouse/toolbox",
+    "nextItemId": 4,
+    "slots": [
+     {
+      "id": "loot:20260928:c-1_-1/safehouse/toolbox:1",
+      "itemId": "wood_plank",
+      "kind": "stack",
+      "quantity": 1
+     },
+     {
+      "id": "loot:20260928:c-1_-1/safehouse/toolbox:2",
+      "itemId": "duct_tape",
+      "kind": "stack",
+      "quantity": 1
+     },
+     {
+      "id": "loot:20260928:c-1_-1/safehouse/toolbox:3",
+      "itemId": "scrap_metal",
+      "kind": "stack",
+      "quantity": 1
+     },
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_-1/store/shelf-1",
+   "opened": true,
+   "items": {
+    "id": "loot:20260928:c0_-1/store/shelf-1",
+    "nextItemId": 3,
+    "slots": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_-1/store/shelf-2",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c0_-1/store/shelf-2",
+    "nextItemId": 3,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_-1/store/shelf-2:1",
+      "itemId": "canned_food",
+      "kind": "stack",
+      "quantity": 2
+     },
+     {
+      "id": "loot:20260928:c0_-1/store/shelf-2:2",
+      "itemId": "chips",
+      "kind": "stack",
+      "quantity": 1
+     },
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_-1/store/shelf-3",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c0_-1/store/shelf-3",
+    "nextItemId": 3,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_-1/store/shelf-3:1",
+      "itemId": "water",
+      "kind": "stack",
+      "quantity": 2
+     },
+     {
+      "id": "loot:20260928:c0_-1/store/shelf-3:2",
+      "itemId": "canned_food",
+      "kind": "stack",
+      "quantity": 2
+     },
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_-1/store/fridge",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c0_-1/store/fridge",
+    "nextItemId": 2,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_-1/store/fridge:1",
+      "itemId": "water",
+      "kind": "stack",
+      "quantity": 2
+     },
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_-1/store/tools",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c0_-1/store/tools",
+    "nextItemId": 3,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_-1/store/tools:1",
+      "itemId": "hammer",
+      "kind": "weapon",
+      "quantity": 1,
+      "condition": 97
+     },
+     {
+      "id": "loot:20260928:c0_-1/store/tools:2",
+      "itemId": "metal_pipe",
+      "kind": "weapon",
+      "quantity": 1,
+      "condition": 56
+     },
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_-1/store/hardware",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c0_-1/store/hardware",
+    "nextItemId": 4,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_-1/store/hardware:1",
+      "itemId": "nails",
+      "kind": "stack",
+      "quantity": 8
+     },
+     {
+      "id": "loot:20260928:c0_-1/store/hardware:2",
+      "itemId": "wood_plank",
+      "kind": "stack",
+      "quantity": 2
+     },
+     {
+      "id": "loot:20260928:c0_-1/store/hardware:3",
+      "itemId": "duct_tape",
+      "kind": "stack",
+      "quantity": 1
+     },
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c-1_0/objects/park-toolbox",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c-1_0/objects/park-toolbox",
+    "nextItemId": 1,
+    "slots": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_0/house/wardrobe",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c0_0/house/wardrobe",
+    "nextItemId": 2,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_0/house/wardrobe:1",
+      "itemId": "bandage",
+      "kind": "stack",
+      "quantity": 1
+     },
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_0/house/kitchen",
+   "opened": true,
+   "items": {
+    "id": "loot:20260928:c0_0/house/kitchen",
+    "nextItemId": 3,
+    "slots": [
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_0/house/nightstand",
+   "opened": true,
+   "items": {
+    "id": "loot:20260928:c0_0/house/nightstand",
+    "nextItemId": 3,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_0/house/nightstand:1",
+      "itemId": "baseball_bat",
+      "kind": "weapon",
+      "quantity": 1,
+      "condition": 60
+     },
+     {
+      "id": "loot:20260928:c0_0/house/nightstand:2",
+      "itemId": "bandage",
+      "kind": "stack",
+      "quantity": 1
+     },
+     {
+      "id": "loot:20260928:c0_-1/store/shelf-1:1",
+      "itemId": "chips",
+      "kind": "stack",
+      "quantity": 2
+     },
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "c0_0/objects/house-scrap",
+   "opened": false,
+   "items": {
+    "id": "loot:20260928:c0_0/objects/house-scrap",
+    "nextItemId": 4,
+    "slots": [
+     {
+      "id": "loot:20260928:c0_0/objects/house-scrap:1",
+      "itemId": "scrap_metal",
+      "kind": "stack",
+      "quantity": 2
+     },
+     {
+      "id": "loot:20260928:c0_0/objects/house-scrap:2",
+      "itemId": "duct_tape",
+      "kind": "stack",
+      "quantity": 1
+     },
+     {
+      "id": "loot:20260928:c0_0/objects/house-scrap:3",
+      "itemId": "wood_plank",
+      "kind": "stack",
+      "quantity": 2
+     },
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   }
+  },
+  {
+   "id": "drop:loot:20260928:c-1_-1/safehouse/cabinet:2",
+   "opened": false,
+   "items": {
+    "id": "drop:loot:20260928:c-1_-1/safehouse/cabinet:2",
+    "nextItemId": 1,
+    "slots": [
+     {
+      "id": "loot:20260928:c-1_-1/safehouse/cabinet:2",
+      "itemId": "canned_food",
+      "kind": "stack",
+      "quantity": 3
+     }
+    ]
+   },
+   "position": {
+    "x": 10.4,
+    "y": 0,
+    "z": 14.9
+   }
+  }
+ ],
+ "zombies": [
+  {
+   "id": "zombie-1",
+   "position": {
+    "x": -1.8043722291720818,
+    "y": 0,
+    "z": -19.152279659745716
+   },
+   "facing": 0.22679884805388356,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c-1_-1/zones/north",
+   "structureTargetId": null
+  },
+  {
+   "id": "zombie-2",
+   "position": {
+    "x": 16.093338095116632,
+    "y": 0,
+    "z": -4.346633334183636
+   },
+   "facing": 0.14189705460414678,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c0_-1/zones/store",
+   "structureTargetId": null
+  },
+  {
+   "id": "zombie-3",
+   "position": {
+    "x": -14.466690475583128,
+    "y": 0,
+    "z": 13.466690475583128
+   },
+   "facing": -0.7853981633974483,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c-1_0/zones/park",
+   "structureTargetId": null
+  },
+  {
+   "id": "zombie-4",
+   "position": {
+    "x": -21.174645530696022,
+    "y": 0,
+    "z": -0.2751181564346501
+   },
+   "facing": 1.8925468811915416,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c-1_-1/zones/west",
+   "structureTargetId": null
+  },
+  {
+   "id": "zombie-5",
+   "position": {
+    "x": 3.832034422475439,
+    "y": 0,
+    "z": 14.638269194593335
+   },
+   "facing": -0.25732371497108875,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c0_0/zones/south",
+   "structureTargetId": null
+  },
+  {
+   "id": "zombie-6",
+   "position": {
+    "x": 20.46669047558313,
+    "y": 0,
+    "z": 0.46669047558312177
+   },
+   "facing": 0.7853981633974472,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c0_0/zones/east",
+   "structureTargetId": null
+  },
+  {
+   "id": "zombie-7",
+   "position": {
+    "x": 21.3500428511802,
+    "y": 0,
+    "z": 20.114698320379965
+   },
+   "facing": -1.396124127786657,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c0_0/zones/yard",
+   "structureTargetId": null
+  },
+  {
+   "id": "zombie-8",
+   "position": {
+    "x": 7.963005126170576,
+    "y": 0,
+    "z": 21.371087144899775
+   },
+   "facing": -3.0828368308740703,
+   "health": 50,
+   "ai": "WANDER",
+   "lastKnownTarget": null,
+   "memoryAge": 0,
+   "memorySource": null,
+   "zoneId": "c0_0/zones/south",
+   "structureTargetId": null
+  }
+ ],
+ "spawn": {
+  "nextZombieId": 9,
+  "timer": 23.99999999999995,
+  "counter": 0
+ },
+ "horde": {
+  "timer": 89.00000000000006,
+  "counter": 0
+ },
+ "lighting": {
+  "curtains": [
+   {
+    "id": "c-1_-1/safehouse/win-n",
+    "closed": false
+   },
+   {
+    "id": "c-1_-1/safehouse/win-e",
+    "closed": false
+   },
+   {
+    "id": "c0_-1/store/win-s1",
+    "closed": false
+   },
+   {
+    "id": "c0_-1/store/win-s2",
+    "closed": false
+   },
+   {
+    "id": "c0_0/house/win-n",
+    "closed": false
+   },
+   {
+    "id": "c0_0/house/win-w",
+    "closed": false
+   }
+  ],
+  "lamps": [
+   {
+    "id": "c-1_-1/safehouse/lamp",
+    "on": false
+   },
+   {
+    "id": "c0_-1/store/lamp",
+    "on": false
+   },
+   {
+    "id": "c0_0/house/lamp-living",
+    "on": false
+   },
+   {
+    "id": "c0_0/house/lamp-bedroom",
+    "on": false
+   }
+  ],
+  "electricity": true
+ },
+ "cameraZoom": 28,
+ "exploration": {
+  "cell": 0.25,
+  "rooms": [
+   {
+    "id": "c-1_-1/safehouse/room",
+    "bits": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfgAAgP8BAOD/BwDw/w8A8P8PAPj/HwD4/x8A/P8/APz/PwD8/z8A/P8/APz/PwD8/z8A+P8fAPj/HwDw/w8A+P8fAP7/fwD////A////4P////D///8="
+   }
+  ]
+ }
+}

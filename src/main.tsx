@@ -17,8 +17,9 @@ async function main(): Promise<void> {
   await preloadStartupWorld()
   const [{ App }, { runtime }] = await Promise.all([import('./app/App'), import('./game/core/runtime')])
 
-  // Chỉ ở dev: cho phép kiểm tra simulation từ console/kịch bản playtest tự động.
-  if (import.meta.env.DEV) {
+  // Chỉ ở dev, hoặc bản build `--mode e2e` (production build đo hiệu năng bằng script, INV-LOOT S6):
+  // cho phép kiểm tra simulation từ console/kịch bản playtest tự động. Bản phát hành không có.
+  if (import.meta.env.DEV || import.meta.env.MODE === 'e2e') {
     ;(window as unknown as { __runtime: typeof runtime }).__runtime = runtime
   }
 

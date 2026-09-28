@@ -1,6 +1,7 @@
 # CURRENT_STATE — bàn giao cho phiên làm việc mới
 
-> Cập nhật: **2026-09-27**, **world mặc định thành Thị trấn Ngã Tư** (16 × 16 chunk, chi tiết **docs/town-neighborhood-50.md**): khu 50 m cũ giữ nguyên ở giữa, quanh là đường vành đai, đại lộ, ngõ cụt, đủ prefab và compound của thư viện, rìa là rừng; content v2 có migration; thêm 11 asset nội thất. Trước đó **Prefab library P1–P5 hoàn tất** trên nhánh `feature/prefab-library`, đã merge vào `feature/world-generator` (nội dung P2–P5 ở **docs/prefab-library-p2-p5.md**): 37 prefab và 10 compound trong thư viện chung, gồm nhà ở, dịch vụ, bệnh viện, đồn cảnh sát, trường cấp ba, đại học, nhà tù, nghĩa trang, công viên, hồ nước; bộ dựng có kiểm tra tiếp cận theo quy tắc deep check; sửa lỗi nav tầng trên giữa nhiều nhà và lỗi spawn zombie bị kẹt. Trước đó **Prefab library P1** (chi tiết **docs/prefab-library-p1.md**): thư viện chung trong editor (world `prefab-library`), nhập bản sao có nguồn/phiên bản/hash, cập nhật có xem trước và chặn khi mất ID có trạng thái, object `surface` (cỏ, bê tông, nhựa, đất, gạch lát, nước chặn đi lại), compound prefab thành record thường cộng nhóm trong editor, phong cách kiến trúc cho generator. P2–P5 (nội dung) chưa làm. Trước đó **World generator WG6 — sprint cuối** trên nhánh `feature/world-generator` (chi tiết và tổng kết WG1–WG6 ở **docs/world-generator-wg6.md**): tab Bản vẽ (ảnh tham chiếu, hiệu chỉnh, đo tỷ lệ, vẽ đường/giao lộ/vùng), trích xuất thay thế được về cùng WorldLayout, cập nhật world từ bản vẽ hoặc GeoJSON đã sửa với khung ghim. Trước đó **WG5** (chi tiết **docs/world-generator-wg5.md**): môi trường cho world FULL (cây, bụi, rào, thùng rác, hộp thư, đèn đường, xe đỗ/bỏ hoang, rác) theo quy tắc không chắn cửa/lối/đường, Web Worker + Hủy trong editor, gộp mặt đường trong game, test save/load. Trước đó **WG4** (`docs/writing-block.md`; chi tiết **docs/world-generator-wg4.md**, trước đó wg1–wg3): tab Generator trong Map Editor (tạo world từ GeoJSON, lớp phủ layout, chọn lô, khóa, thay prefab, sinh lại lô/chunk/world có xem trước, undo), layout lưu cùng world trong `layout/world-layout.json` với manifest hash (generated/modified/locked/manual), world đã phát hành chỉ xem (Q3). Trước đó: **hoàn thành Combat CS1** (`docs/Combat_Stance_Input_Sprint_Plan.md`; chi tiết docs/combat-cs1a.md, docs/combat-cs1b.md, bàn giao **docs/combat-cs1c.md**): giữ chuột phải = thế chiến đấu (Hold/Toggle), chuột trái chỉ đánh trong thế, đòn quay người rồi mới vung theo hướng đã chốt, đệm một click, E ưu tiên vật dưới con trỏ có vòng highlight. Trước đó: kế hoạch nhân vật/zombie C0–C6 (sổ tay **docs/character-handbook.md**), đồ họa G0–G6 (sổ tay **docs/graphics-handbook.md**).
+> Cập nhật: **2026-09-29**, **INV-LOOT hoàn tất (S6 — polish, hiệu năng, hồi quy, bàn giao) trên nhánh `feature/inventory-loot`, chưa merge vào master**; sổ tay **docs/inventory-loot-handbook.md**, ghi chú docs/inventory-loot-s6.md. Trước đó S5 (kéo quét nhiều món, thả vào tab, thế chiến đấu khi mở cửa sổ, balo trên lưng, item không xác định, T21/T22 — docs/inventory-loot-s5.md). Trước đó S4 (hàng đợi có thời gian, giữ chỗ chung, kéo thả — docs/inventory-loot-s4.md; S1–S3: docs/inventory-loot-s1.md … s3.md). Trước đó 2026-09-27: **world mặc định thành Thị trấn Ngã Tư** (16 × 16 chunk, chi tiết **docs/town-neighborhood-50.md**): khu 50 m cũ giữ nguyên ở giữa, quanh là đường vành đai, đại lộ, ngõ cụt, đủ prefab và compound của thư viện, rìa là rừng; content v2 có migration; thêm 11 asset nội thất. Trước đó **Prefab library P1–P5 hoàn tất** trên nhánh `feature/prefab-library`, đã merge vào `feature/world-generator` (nội dung P2–P5 ở **docs/prefab-library-p2-p5.md**): 37 prefab và 10 compound trong thư viện chung, gồm nhà ở, dịch vụ, bệnh viện, đồn cảnh sát, trường cấp ba, đại học, nhà tù, nghĩa trang, công viên, hồ nước; bộ dựng có kiểm tra tiếp cận theo quy tắc deep check; sửa lỗi nav tầng trên giữa nhiều nhà và lỗi spawn zombie bị kẹt. Trước đó **Prefab library P1** (chi tiết **docs/prefab-library-p1.md**): thư viện chung trong editor (world `prefab-library`), nhập bản sao có nguồn/phiên bản/hash, cập nhật có xem trước và chặn khi mất ID có trạng thái, object `surface` (cỏ, bê tông, nhựa, đất, gạch lát, nước chặn đi lại), compound prefab thành record thường cộng nhóm trong editor, phong cách kiến trúc cho generator. P2–P5 (nội dung) chưa làm. Trước đó **World generator WG6 — sprint cuối** trên nhánh `feature/world-generator` (chi tiết và tổng kết WG1–WG6 ở **docs/world-generator-wg6.md**): tab Bản vẽ (ảnh tham chiếu, hiệu chỉnh, đo tỷ lệ, vẽ đường/giao lộ/vùng), trích xuất thay thế được về cùng WorldLayout, cập nhật world từ bản vẽ hoặc GeoJSON đã sửa với khung ghim. Trước đó **WG5** (chi tiết **docs/world-generator-wg5.md**): môi trường cho world FULL (cây, bụi, rào, thùng rác, hộp thư, đèn đường, xe đỗ/bỏ hoang, rác) theo quy tắc không chắn cửa/lối/đường, Web Worker + Hủy trong editor, gộp mặt đường trong game, test save/load. Trước đó **WG4** (`docs/writing-block.md`; chi tiết **docs/world-generator-wg4.md**, trước đó wg1–wg3): tab Generator trong Map Editor (tạo world từ GeoJSON, lớp phủ layout, chọn lô, khóa, thay prefab, sinh lại lô/chunk/world có xem trước, undo), layout lưu cùng world trong `layout/world-layout.json` với manifest hash (generated/modified/locked/manual), world đã phát hành chỉ xem (Q3). Trước đó: **hoàn thành Combat CS1** (`docs/Combat_Stance_Input_Sprint_Plan.md`; chi tiết docs/combat-cs1a.md, docs/combat-cs1b.md, bàn giao **docs/combat-cs1c.md**): giữ chuột phải = thế chiến đấu (Hold/Toggle), chuột trái chỉ đánh trong thế, đòn quay người rồi mới vung theo hướng đã chốt, đệm một click, E ưu tiên vật dưới con trỏ có vòng highlight. Trước đó: kế hoạch nhân vật/zombie C0–C6 (sổ tay **docs/character-handbook.md**), đồ họa G0–G6 (sổ tay **docs/graphics-handbook.md**).
+> **INV-LOOT S0 → S6 (chủ dự án quyết định 2026-09-28, Q1 trong docs/inventory-loot-s0.md §0.2):** mỗi sprint agent tự commit + push lên nhánh `feature/inventory-loot` kèm trạng thái kiểm thử thực tế, **dừng chờ duyệt sau S1 và S4**, không merge vào master.
 > **Prefab library P1 → P5 (chủ dự án quyết định 2026-09-27, D1–D8 trong docs/prefab-library-p1.md §0):** mỗi sprint có tiêu chí nghiệm thu, build, test, kiểm tra hồi quy, commit và **push lên nhánh `feature/prefab-library`, không merge vào master**; không làm nội dung P2–P5 trước khi P1 chạy và đã kiểm thử.
 > **World generator WG1 → WG6 (chủ dự án quyết định 2026-09-27, Q1–Q9 trong docs/world-generator-wg1.md §0):** mỗi sprint có tiêu chí nghiệm thu + test, build/test sạch rồi commit và **push lên nhánh `feature/world-generator`, không merge vào master**; làm một sprint mỗi yêu cầu, dừng báo cáo; không làm sprint sau khi còn hồi quy nghiêm trọng.
 > **Đợt chạy combat CS1a → CS1c (chủ dự án cho phép 2026-09-27):** mỗi sprint xong thì tự commit + push lên master rồi làm tiếp, dùng khuyến nghị của agent khi cần quyết định.
@@ -10,7 +11,113 @@
 > Đọc file này, **docs/town-neighborhood-50.md**, **docs/prefab-library-p1.md**, **docs/prefab-library-p2-p5.md**, **docs/writing-block.md**, **docs/world-generator-wg1.md**, **docs/world-generator-wg2.md**, **docs/world-generator-wg3.md**, **docs/world-generator-wg4.md**, **docs/world-generator-wg5.md**, **docs/world-generator-wg6.md**, **docs/Combat_Stance_Input_Sprint_Plan.md**, **docs/combat-cs1a.md**, **docs/combat-cs1b.md**, **docs/combat-cs1c.md**, **docs/Character_Zombie_Model_Animation_Plan.md**, **docs/character-c0.md**, **docs/character-c1.md**, **docs/character-c2.md**, **docs/character-c3.md**, **docs/character-c4.md**, **docs/character-c5.md**, **docs/character-c6.md**, **docs/character-handbook.md**, **docs/Graphics_Improvement_Implementation_Plan.md**, **docs/graphics-g0.md**, **docs/graphics-g1.md**, **docs/graphics-g2.md**, **docs/graphics-g3a.md**, **docs/graphics-g3b.md**, **docs/graphics-g4.md**, **docs/graphics-g5.md**, **docs/graphics-g6.md**, **docs/graphics-handbook.md**, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-m11c2.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0-T. Thị trấn Ngã Tư — world mặc định 16 × 16 chunk (mới nhất — chi tiết docs/town-neighborhood-50.md)
+## 0-IL6. INV-LOOT S6 — sprint cuối: polish, hiệu năng, hồi quy, bàn giao (mới nhất — chi tiết docs/inventory-loot-s6.md, sổ tay docs/inventory-loot-handbook.md)
+
+- **Sửa lỗi input (T23):**
+  - kéo một món xuyên qua màn hình game từng bị tính là cú click trái (vung vũ khí trong thế, nhắc chuột phải ngoài thế);
+  - `input.ts` giờ ghi nhớ nút nhấn trên UI (`uiButtons`); chord và việc bắt lại nút sau khi mất capture giữ nguyên.
+- **Hiệu năng:**
+  - thanh tiến trình và thanh chỉ số HUD bỏ transition `width` (5–6 ms/frame khi đang chuyển đồ, ép layout mỗi frame khi chơi), đổi sang `transform`;
+  - dòng bảng memo theo nội dung;
+  - đo trên bản production (`vite build --mode e2e`): JS riêng của UI khoảng 0,1–0,2 ms/frame; không rò rỉ listener/job/giữ chỗ sau 10 vòng.
+- **Polish:** icon băng keo vẽ lại, tooltip hiện lại sau menu, role cho toast và thẻ chi tiết.
+- **Test:** `inventoryMatrix.test.ts` (T12, T27, T29, T30), `input.test.ts`; ma trận T01–T30 đầy đủ trong handbook §6.
+- **Ảnh bàn giao §15:** `docs/inventory-loot/final/`.
+- **Kiểm chứng:**
+  - 1049 test pass; soak trùng từng số;
+  - tsc, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - `il-s6` (bản production), `il-s5/s4/s3/s2`, `cs1-combat` PASS.
+- **Quyết định:** các đề xuất chờ duyệt của S4/S5 giữ như gợi ý (chủ dự án yêu cầu "hoàn thiện theo đề xuất"). **Phase INV-LOOT hoàn tất**; việc tiếp theo là chủ dự án quyết định merge nhánh.
+
+## 0-IL5. INV-LOOT S5 — kéo quét, thả vào tab, thế chiến đấu khi mở cửa sổ, balo trên lưng, item không xác định (chi tiết docs/inventory-loot-s5.md)
+
+- **Kéo quét** (`ItemTable.tsx`):
+  - nhấn rồi kéo dọc danh sách thì chọn cả dải (Ctrl để cộng thêm, tự cuộn ở mép);
+  - kéo tiếp sang ngang (48 px) thì mang cả cụm sang cửa sổ/tab khác trong một thao tác;
+  - kéo ngang ngay từ đầu thì mang dòng đó như S4;
+  - đích thả được tô sáng.
+- **Tab là đích thả:** Túi chính ↔ Balo đang đeo; Dưới đất ↔ từng tủ; tab compact.
+- **Thế chiến đấu:**
+  - `uiOpen` không chặn thế/đòn nữa (nút chuột chỉ tính trên canvas); mở cửa sổ bằng I/E vẫn rời thế;
+  - vào thế thì mọi cửa sổ, kể cả đã ghim, thu gọn; rời thế thì cửa sổ ghim mở lại.
+- **Cửa sổ không ghim:** thu gọn sau 1,5 s rời chuột, hoặc ngay khi nhấn lên thế giới.
+- **Balo trên lưng:** `rendering/character/backpackModel.ts` trên xương torso, theo preset và áo khoác.
+- **Item không xác định** (`systems/recovery.ts`):
+  - ID lạ trong save được giữ dưới dạng `unknown` với payload gốc, không dùng/trang bị/vào balo được;
+  - đang trang bị lúc load thì được tháo;
+  - khi save ghi lại y nguyên; save cũ v9 qua migration vẫn giữ.
+- **T21** (lỗi ghi IndexedDB giữ bản tốt và báo lỗi thật; save chồng nhau bị chặn), **T22** (New Game sau khi loot trùng khít New Game mới; `inventoryUiStore.resetSession`).
+- **Kiểm chứng:**
+  - 1042 test pass; soak trùng từng số với S4;
+  - tsc, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - `il-s5/s4/s3/s2-browser.mjs` và `cs1-combat-browser.mjs` PASS (Chrome GPU).
+- **Đi kèm:**
+  - sửa 7 test round-trip hỏng do commit `ba1db67` (zoom 28 bị clamp lên 32);
+  - `cs1-combat-browser.mjs` lỗi thời từ S2 đã cập nhật.
+- **Đã duyệt theo đề xuất (2026-09-29):** cửa sổ ghim tự mở lại sau thế, trễ 1,5 s, luật cử chỉ quét, item lạ không vào balo.
+
+## 0-IL4. INV-LOOT S4 — hàng đợi có thời gian, giữ chỗ chung, kéo thả (chi tiết docs/inventory-loot-s4.md)
+
+- **Hàng đợi:** `runtime.jobs` chung cho transfer/craft/repair, chạy tuần tự; `ReservationLedger` duy nhất, chỉ job đang chạy giữ chỗ.
+- **Claims:** transfer và recipe đang chờ đều có claims, nên spam không xếp quá số đồ đang có.
+- **Transfer:** từng bước (lô cho đồ nhỏ); kiểm tra lại lúc bắt đầu và lúc commit; một frame xong được nhiều bước (không phụ thuộc FPS); hủy thì giữ bước đã xong.
+- **Chế tạo:** túi chính rồi balo đang đeo, theo kế hoạch instance.
+- **UI:** thanh thao tác + danh sách job chờ (×), nhãn "Chờ chuyển", kéo thả giữa cửa sổ, hộp số lượng (Shift+kéo / menu), Esc hủy hàng đợi trước.
+- **Kiểm chứng:**
+  - 1030 test pass;
+  - soak qua hàng đợi, kiểm tra toàn vẹn mỗi giây: shelter 1800 s / 14 kill / 110 dmg, patrol 1379 s / 38 kill, 1800 + 1379 lần kiểm tra đều đúng;
+  - `il-s4/s3/s2-browser.mjs` PASS (`GPU=1`);
+  - tsc, oxlint, build, check:bundle sạch.
+- **Chờ duyệt:** thông số thời gian, mốc soak mới, Esc hủy cả hàng đợi, cách đếm "món" trong tóm tắt (§3 ghi chú S4). Chủ dự án giao S5 tiếp mà không đổi các điểm này.
+
+## 0-IL3. INV-LOOT S3 — tủ lân cận, Ngoài tầm, đồ dưới đất (save v11), balo (chi tiết docs/inventory-loot-s3.md)
+
+- **Tầm với:**
+  - `nearbyContainerIds` / `nearbyFloorIds` cập nhật khoảng 8 Hz; mọi lệnh chuyển kiểm tra tầm ngay lúc chuyển (khoảng cách, tầng, tường);
+  - đồ dưới đất kiểm tra theo vị trí từng món;
+  - cửa sổ Lục đồ không tự đóng khi đi xa mà hiện "Ngoài tầm";
+  - tab: Dưới đất + tủ trong tầm; tủ mới vào tầm không cướp tab; E ở chỗ trống mở Dưới đất.
+- **Floor (`systems/floor.ts`):**
+  - ô 1 m theo tầng, mỗi món giữ vị trí thật, thả không gộp, marker theo từng món;
+  - `transferItems(…, 'floor')` là đường thả duy nhất (thả được từ túi chính hoặc balo đang đeo).
+- **Save v11:** `floor`, không còn túi rơi; v10 → v11 giữ nguyên instance và vị trí. Fixture đóng băng `inv-loot-v10.json`.
+- **Kiểm chứng:**
+  - 1011 test pass; soak trùng từng số;
+  - tsc, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - `il-s3-browser.mjs` và `il-s2-browser.mjs` PASS (`GPU=1`).
+- **Tiếp theo:** S4 (hàng đợi có thời gian, reservation chung, kéo thả, hộp số lượng), rồi **dừng chờ duyệt**.
+
+## 0-IL2. INV-LOOT S2 — UI hai cửa sổ Túi đồ / Lục đồ (chi tiết docs/inventory-loot-s2.md)
+
+- **UI:** `src/components/inventory/` — ba cửa sổ độc lập (Túi đồ, Lục đồ, Chế tạo): kéo, đổi cỡ, ghim, thu gọn, đóng. Bảng có sort ổn định, lọc, tìm không dấu, nhóm hiển thị, chọn nhiều (click / Ctrl / Shift / Ctrl+A), bàn phím, tooltip và menu theo capability với lý do khi bị khóa. Ảo hoá khi trên 80 dòng; icon SVG; nhãn tiếng Việt gom ở `labels.ts`.
+- **Cài đặt:** UI scale 100/125/150 %, Đặt lại bố cục; hẹp thì một cửa sổ có tab.
+- **Runtime:** một đường `transferItems(source, dest, lines)` theo khóa `main|worn|container:<id>`; đồ đang trang bị không đi, Favorite không rời đồ đang mang; `setFavorite`. Phím I chỉ bật/tắt Túi đồ. Esc mỗi lần một tầng: popup → hủy thao tác → cửa sổ → rời thế → pause.
+- **Kiểm chứng:**
+  - 1003 test pass; soak trùng từng số;
+  - tsc, oxlint, build, build:editor, check:bundle sạch;
+  - `scripts/il-s2-browser.mjs` PASS trên **Chrome GPU** (`GPU=1`; SwiftShader chạy thị trấn dưới 1 FPS): bố cục 1920/1366/1024, scale, T23, T24, Esc, 500 món không đổi frame time, sort 500 dòng ~60 ms.
+- **Tiếp theo:** S3 (tủ lân cận, trạng thái Ngoài tầm, Floor v11, balo UI) rồi S4 (hàng đợi có thời gian), **dừng chờ duyệt sau S4**.
+
+## 0-IL1. INV-LOOT S1 — data model, save v10, balo cho save cũ (chi tiết docs/inventory-loot-s1.md)
+
+- **Nhánh** `feature/inventory-loot` (Q1: commit + push mỗi sprint, **dừng chờ duyệt sau S1 và S4**, không merge vào master).
+- **Inventory:** danh sách instance `{ id, kind, nextItemId, items, slotCapacity }`, API theo instance ID; giới hạn slot giữ nguyên (12/8/1). Item có `weightKg` và `transfer` (lô cho đồ nhỏ). Item mới `backpack`, slot `backInstanceId`, nội dung balo ở `WorldState.bags`. `usableInventories` = túi chính + balo đang đeo.
+- **Save v10:** v9 → v10 chỉ đổi hình dạng (cùng instance, thứ tự, ID, độ bền, vũ khí). `lootPatches` + `patchLoot`: balo chỉ vào tủ phù hợp có `opened === false`, còn chỗ, seed riêng, ID tất định. Load không gọi generator nữa.
+- **Kiểm chứng:**
+  - 984 test pass (+43);
+  - soak trùng từng số mốc cũ (shelter 1800 s/3 kill/30 dmg; patrol 646,75 s/26 kill);
+  - tsc, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - `scripts/il-s1-browser.mjs` PASS: UI cũ, save v10, fixture v9 thật `inv-loot-v9.json` → v10 với backup, đeo balo.
+- **Chuyển sang sprint sau:** Floor (S3, v11); craft đọc balo + sổ reservation chung + chặn đồ đang trang bị (S4); item lạ (S5). `p2-s4-browser.mjs` hỏng từ trước S1 (cũng hỏng trên master).
+
+## 0-IL0. INV-LOOT S0 — audit Inventory & Loot (chi tiết docs/inventory-loot-s0.md)
+
+- **Spec:** `docs/Phase_Inventory_Loot_Upgrade.md` (hai cửa sổ Inventory/Loot kiểu PZ, balo, Floor, hàng đợi chuyển đồ có thời gian, save v10).
+- **Đã chốt (2026-09-28):** UI tiếng Việt với nhãn gom một file; icon SVG tự vẽ; không làm tab Corpse; bảng chế tạo thành cửa sổ riêng; thời gian chuyển đồ theo nhóm (đồ nhỏ theo lô, đồ lớn theo đơn vị, không phụ thuộc FPS); balo cho save cũ chỉ vào tủ phù hợp có `opened === false` (cờ này có thật trong mọi save), còn chỗ, seed tất định, có dấu `lootPatches`.
+- **Đã trả lời (2026-09-28):** Q1–Q4 theo đề xuất, kèm luật chi tiết cho Q2/Q3 (audit §0.2–§0.3).
+- **Tiếp theo:** S1 đã làm (mục 0-IL1).
+
+## 0-T. Thị trấn Ngã Tư — world mặc định 16 × 16 chunk (chi tiết docs/town-neighborhood-50.md)
 
 - **Script:** `scripts/map-tools/town-build.ts` chạy trên world 50 m gốc. Script viết bản đồ đường, phân khu và vị trí compound dưới dạng GeoJSON, sau đó chạy generator WG (lô, nhà, môi trường, rừng). Kết quả là 16 × 16 chunk, vùng chơi ±254 m, content v2 (`migrations/content-v1.json`).
 - **Nội dung:** 38 prefab (đủ 37 prefab thư viện), 310 instance, 10 compound đặt ở vị trí riêng, 173 đoạn đường, 2073 cây; validate 0 cảnh báo, `map:check --deep` OK.

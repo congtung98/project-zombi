@@ -44,33 +44,35 @@ describe('consumeInventoryItem', () => {
     addItem(p.inventory, itemId, qty)
     return p
   }
+  /** Use the first carried instance (a missing one uses an ID nobody has). */
+  const useFirst = (p: ReturnType<typeof playerWith>) => consumeInventoryItem(p, p.inventory, p.inventory.items[0]?.id ?? 'none')
 
   it('restores the stat, clamps at max and consumes exactly one item', () => {
     const p = playerWith('water', 2)
     p.thirst = 80
-    const r = consumeInventoryItem(p, 0)
+    const r = useFirst(p)
     expect(r.ok).toBe(true)
     expect(p.thirst).toBe(100)
-    expect(p.inventory.slots[0]).toMatchObject({ itemId: 'water', quantity: 1 })
+    expect(p.inventory.items[0]).toMatchObject({ itemId: 'water', quantity: 1 })
   })
 
   it('does not consume the item when it would have no effect', () => {
     const p = playerWith('bandage', 1)
-    const r = consumeInventoryItem(p, 0)
+    const r = useFirst(p)
     expect(r).toEqual({ ok: false, reason: 'no-effect', itemId: 'bandage' })
-    expect(p.inventory.slots[0]).toMatchObject({ itemId: 'bandage', quantity: 1 })
+    expect(p.inventory.items[0]).toMatchObject({ itemId: 'bandage', quantity: 1 })
     p.health = 50
-    expect(consumeInventoryItem(p, 0).ok).toBe(true)
+    expect(useFirst(p).ok).toBe(true)
     expect(p.health).toBe(75)
-    expect(p.inventory.slots[0]).toBeNull()
+    expect(p.inventory.items).toHaveLength(0)
   })
 
   it('fails on an empty slot and never creates a negative quantity', () => {
     const p = playerWith('chips', 1)
     p.hunger = 10
-    expect(consumeInventoryItem(p, 0).ok).toBe(true)
-    expect(consumeInventoryItem(p, 0)).toEqual({ ok: false, reason: 'empty' })
-    expect(consumeInventoryItem(p, 5)).toEqual({ ok: false, reason: 'empty' })
+    expect(useFirst(p).ok).toBe(true)
+    expect(useFirst(p)).toEqual({ ok: false, reason: 'empty' })
+    expect(consumeInventoryItem(p, p.inventory, 'player:99')).toEqual({ ok: false, reason: 'empty' })
     expect(p.hunger).toBe(25)
   })
 
@@ -78,13 +80,13 @@ describe('consumeInventoryItem', () => {
     const p = playerWith('chips', 1)
     p.hunger = 50
     p.thirst = 2
-    consumeInventoryItem(p, 0)
+    useFirst(p)
     expect(p.hunger).toBe(65)
     expect(p.thirst).toBe(0)
 
     const q = playerWith('soda', 1)
     q.stamina = 95
-    consumeInventoryItem(q, 0)
+    useFirst(q)
     expect(q.stamina).toBe(100)
     expect(q.thirst).toBe(100)
   })
@@ -93,7 +95,7 @@ describe('consumeInventoryItem', () => {
     const p = playerWith('bandage', 1)
     p.health = 0
     p.alive = false
-    expect(consumeInventoryItem(p, 0)).toEqual({ ok: false, reason: 'dead', itemId: 'bandage' })
-    expect(p.inventory.slots[0]?.quantity).toBe(1)
+    expect(useFirst(p)).toEqual({ ok: false, reason: 'dead', itemId: 'bandage' })
+    expect(p.inventory.items[0]?.quantity).toBe(1)
   })
 })
