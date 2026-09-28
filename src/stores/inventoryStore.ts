@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { GameRuntime } from '../game/core/runtime'
 import { cloneInventory, createInventory, type Inventory } from '../game/systems/inventory'
+import { inventoryWeight } from '../game/systems/bags'
 
 /** Running timed action as the UI needs it (buttons disable, the target shows "đang sửa"). */
 export interface ActionSnapshot {
@@ -25,6 +26,10 @@ interface InventoryUiState {
   open: boolean
   bag: Inventory
   weaponInstanceId: string | null
+  /** INV-LOOT: the worn bag (slot Back), null when none. */
+  backInstanceId: string | null
+  /** Carried weight: main inventory with every bag's contents counted once (display only). */
+  weightKg: number
   container: ContainerSnapshot | null
   action: ActionSnapshot | null
   sync: (rt: GameRuntime) => void
@@ -33,8 +38,10 @@ interface InventoryUiState {
 
 export const useInventoryStore = create<InventoryUiState>((set) => ({
   open: false,
-  bag: createInventory(0, 'ui'),
+  bag: createInventory(0, 'ui', 'player'),
   weaponInstanceId: null,
+  backInstanceId: null,
+  weightKg: 0,
   container: null,
   action: null,
 
@@ -45,10 +52,12 @@ export const useInventoryStore = create<InventoryUiState>((set) => ({
       open: rt.inventoryOpen,
       bag: cloneInventory(rt.player.inventory),
       weaponInstanceId: rt.player.equipment.weaponInstanceId,
+      backInstanceId: rt.player.equipment.backInstanceId,
+      weightKg: inventoryWeight(rt.player.inventory, rt.world.bags),
       container: c ? { id: c.id, name, items: cloneInventory(c.items) } : null,
       action: rt.action ? { id: rt.action.id, recipeId: rt.action.recipe.id, targetId: rt.action.targetId, label: rt.action.label } : null,
     })
   },
 
-  reset: () => set({ open: false, bag: createInventory(0, 'ui'), weaponInstanceId: null, container: null, action: null }),
+  reset: () => set({ open: false, bag: createInventory(0, 'ui', 'player'), weaponInstanceId: null, backInstanceId: null, weightKg: 0, container: null, action: null }),
 }))

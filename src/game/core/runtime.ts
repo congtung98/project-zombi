@@ -12,15 +12,14 @@ import { attackReadyIn, canStartAttack, cancelSwing, facingTowards, resolveConeH
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
 import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
-import { transferAll, transferSlot, type TransferResult } from '../systems/inventory'
+import { createInventory, cloneInventory, findItem, isEmpty, transferAll, transferItem, type Inventory, type TransferResult } from '../systems/inventory'
+import { bagInstanceIdOf, findUsable, usableInventories } from '../systems/bags'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { migrationInterval, nearestZone, planMigration } from '../systems/horde'
 import { getItemDef } from '../entities/items'
-import { cloneInventory } from '../systems/inventory'
-import { createInventory } from '../systems/inventory'
 import { applyWeaponWear, meleeStats, weaponHitDamage } from '../systems/weapons'
-import { equipWeapon, equippedWeapon, reconcileEquipment } from '../systems/equipment'
+import { equipWeapon, equippedWeapon, reconcileEquipment, wearBag } from '../systems/equipment'
 import { validateSaveGame } from '../systems/save'
 import { checkRecipe, commitRecipe, type CraftFailure } from '../systems/crafting'
 import { advanceAction, reservationBlocks, reservationFor, type ActionCancelReason, type TimedAction } from '../systems/timedAction'
@@ -257,7 +256,8 @@ export class GameRuntime {
       ...(this.floors.flat ? {} : { surface: (x: number, z: number, y: number) => this.floors.surfaceAt(x, z, y) }),
     }
     this.player = createPlayerState(map.playerSpawn)
-    this.world = createWorldState(map, 0)
+    // Placeholder until `newGame()` below: never rolls loot (that happens once, in newGame).
+    this.world = createWorldState(map, 0, { generateLoot: false })
     this.visionOccluders = buildVisionOccluders(
       map,
       (id) => this.world.doors.get(id)?.state,
@@ -338,7 +338,7 @@ export class GameRuntime {
    * Ván mới với seed loot; loot mọi container được sinh ngay tại đây, một lần cho cả ván.
    * `profile` comes from character creation (cosmetic only); omitted = default look.
    */
-  newGame(seed: number = randomSeed(), profile?: CharacterProfile): void {
+  newGame(seed: number = randomSeed(), profile?: CharacterProfile, options: { generateLoot?: boolean } = {}): void {
     this.sessionId += 1
     this.clock.reset()
     this.events.clear()
@@ -347,7 +347,7 @@ export class GameRuntime {
     // P2-S2: New Game starts unarmed (shove still works); melee is looted from containers.
     // Only the v1 save migration grants the Phase 1 bat.
     this.player = createPlayerState(this.map.playerSpawn, profile && { name: normalizeName(profile.name), appearance: profile.appearance })
-    this.world = createWorldState(this.map, seed)
+    this.world = createWorldState(this.map, seed, { generateLoot: options.generateLoot ?? true })
     this.interactables = buildInteractables(this.map)
     this.interactableById.clear()
     this.interactableIndex.clear()
@@ -442,6 +442,8 @@ export class GameRuntime {
       },
       doors: Array.from(this.world.doors.values()).map((d) => ({ ...d })),
       containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items), ...(c.position ? { position: { ...c.position } } : {}) })),
+      bags: Array.from(this.world.bags.values(), cloneInventory),
+      lootPatches: [...this.world.lootPatches],
       zombies,
       spawn: { nextZombieId: this.nextZombieId, timer: this.spawnTimer, counter: this.spawnCounter },
       horde: { timer: this.hordeTimer, counter: this.hordeCounter },
@@ -465,7 +467,8 @@ export class GameRuntime {
     const validation = validateSaveGame(save, this.map.id, this.map)
     if (!validation.ok) throw new Error(`Invalid save: ${validation.detail}`)
     save = validation.save
-    this.newGame(save.worldSeed, { name: save.player.name, appearance: save.player.appearance })
+    // Containers come from the save: the generator must not run (no second roll, INV-LOOT T16).
+    this.newGame(save.worldSeed, { name: save.player.name, appearance: save.player.appearance }, { generateLoot: false })
     this.zombies.clear()
     this.zombieIndex.clear()
     this.aiScheduler.clear()
@@ -511,6 +514,8 @@ export class GameRuntime {
       container.opened = c.opened
       container.items = cloneInventory(c.items)
     }
+    this.world.bags = new Map(save.bags.map((b) => [bagInstanceIdOf(b.id), cloneInventory(b)]))
+    this.world.lootPatches = [...save.lootPatches]
 
     // AI resumes in the saved state; timers, paths and door slots are recomputed (never saved).
     for (const z of save.zombies) {
@@ -1159,28 +1164,39 @@ export class GameRuntime {
   equipItem(id: string | null): boolean {
     if (!this.player.alive || this.player.attackTimer >= 0) return false
     if (!equipWeapon(this.player.inventory, this.player.equipment, id)) return false
-    const item = id === null ? null : this.player.inventory.slots.find((i) => i?.id === id) ?? null
+    const item = id === null ? null : findItem(this.player.inventory, id) ?? null
     this.events.queue('item:equipped', { id, itemId: item?.itemId ?? null })
     this.queueInventoryChanged()
     return true
   }
 
-  activateItem(slot: number): void {
-    const item = this.player.inventory.slots[slot]
-    if (item?.kind === 'weapon') this.equipItem(this.player.equipment.weaponInstanceId === item.id ? null : item.id)
-    else this.consumeItem(slot)
+  /** Wear a bag from the main inventory (or take it off with `null`); the bag keeps its slot. */
+  wearBag(id: string | null): boolean {
+    if (!this.player.alive) return false
+    if (!wearBag(this.player.inventory, this.player.equipment, id)) return false
+    const item = id === null ? null : findItem(this.player.inventory, id) ?? null
+    this.events.queue('bag:worn', { id, itemId: item?.itemId ?? null })
+    this.queueInventoryChanged()
+    return true
   }
 
-  dropItem(slot: number): boolean {
-    const item = this.player.inventory.slots[slot]
+  /** Quick action on a main-inventory item: equip/unequip a weapon, wear/take off a bag, else use it. */
+  activateItem(instanceId: string): void {
+    const item = findItem(this.player.inventory, instanceId)
+    if (item?.kind === 'weapon') this.equipItem(this.player.equipment.weaponInstanceId === item.id ? null : item.id)
+    else if (item?.kind === 'bag') this.wearBag(this.player.equipment.backInstanceId === item.id ? null : item.id)
+    else this.consumeItem(instanceId)
+  }
+
+  dropItem(instanceId: string): boolean {
+    const item = findItem(this.player.inventory, instanceId)
     if (!item || !this.player.alive || this.player.attackTimer >= 0) return false
-    if (this.isReserved(slot, item.quantity)) return false
+    if (this.isReserved(item.id, item.quantity)) return false
     const id = `drop:${item.id}`
     // Reuse a previously emptied bag at this ID; never overwrite owned items.
-    if (this.world.containers.get(id)?.items.slots.some(Boolean)) return false
-    const items = createInventory(1, id)
-    items.slots[0] = item
-    this.player.inventory.slots[slot] = null
+    if (this.world.containers.get(id) && !isEmpty(this.world.containers.get(id)!.items)) return false
+    const items = createInventory(1, id, 'drop')
+    if (transferItem(this.player.inventory, item.id, items).moved !== item.quantity) return false
     reconcileEquipment(this.player.inventory, this.player.equipment)
     // The bag lies at the player's feet, on whatever storey they stand.
     const position = { ...this.player.position }
@@ -1244,11 +1260,16 @@ export class GameRuntime {
     return this.openContainerId ? (this.world.containers.get(this.openContainerId) ?? null) : null
   }
 
-  /** Dùng vật phẩm ở ô `slot`; chỉ trừ khi dùng thành công. */
-  consumeItem(slot: number): UseItemResult {
-    const item = this.player.inventory.slots[slot]
-    if (item && this.isReserved(slot, 1)) return { ok: false, reason: 'not-usable', itemId: item.itemId }
-    const result = consumeInventoryItem(this.player, slot)
+  /** Inventories the player may use directly: main, then the worn bag (INV-LOOT Q2). */
+  get usableInventories(): Inventory[] {
+    return usableInventories(this.player.inventory, this.player.equipment, this.world.bags)
+  }
+
+  /** Dùng đúng instance đã chọn (túi chính hoặc balo đang đeo); chỉ trừ khi dùng thành công. */
+  consumeItem(instanceId: string): UseItemResult {
+    const found = findUsable(this.player.inventory, this.player.equipment, this.world.bags, instanceId)
+    if (found && this.isReserved(instanceId, 1)) return { ok: false, reason: 'not-usable', itemId: found.item.itemId }
+    const result = consumeInventoryItem(this.player, found?.inventory ?? this.player.inventory, instanceId)
     if (result.ok) {
       this.events.queue('item:used', { itemId: result.itemId, name: getItemDef(result.itemId).name, effect: result.effect })
       this.queueInventoryChanged()
@@ -1258,22 +1279,22 @@ export class GameRuntime {
     return result
   }
 
-  /** Lấy ô `slot` của container đang mở vào túi; phần không vừa ở lại container. */
-  takeFromContainer(slot: number): TransferResult {
+  /** Lấy `quantity` (mặc định cả instance) từ container đang mở vào túi; phần không vừa ở lại container. */
+  takeFromContainer(instanceId: string, quantity?: number): TransferResult {
     const c = this.openContainer
-    if (!c) return { moved: 0, remainder: 0 }
-    const r = transferSlot(c.items, slot, this.player.inventory)
+    if (!c) return { moved: 0, remainder: 0, reason: 'missing' }
+    const r = transferItem(c.items, instanceId, this.player.inventory, quantity)
     if (r.moved > 0) this.queueInventoryChanged()
     return r
   }
 
-  /** Cất ô `slot` của túi vào container đang mở. */
-  putIntoContainer(slot: number): TransferResult {
+  /** Cất `quantity` (mặc định cả instance) từ túi vào container đang mở. */
+  putIntoContainer(instanceId: string, quantity?: number): TransferResult {
     const c = this.openContainer
-    if (!c) return { moved: 0, remainder: 0 }
-    const quantity = this.player.inventory.slots[slot]?.quantity ?? 0
-    if (this.player.attackTimer >= 0 || this.isReserved(slot, quantity)) return { moved: 0, remainder: quantity }
-    const r = transferSlot(this.player.inventory, slot, c.items)
+    const item = findItem(this.player.inventory, instanceId)
+    if (!c || !item) return { moved: 0, remainder: item?.quantity ?? 0, reason: 'missing' }
+    if (this.player.attackTimer >= 0 || this.isReserved(instanceId, quantity ?? item.quantity)) return { moved: 0, remainder: item.quantity, reason: null }
+    const r = transferItem(this.player.inventory, instanceId, c.items, quantity)
     reconcileEquipment(this.player.inventory, this.player.equipment)
     if (r.moved > 0) this.queueInventoryChanged()
     return r
@@ -1282,7 +1303,7 @@ export class GameRuntime {
   /** Lấy tất cả có thể; hết chỗ thì đồ còn lại vẫn ở container. */
   takeAll(): TransferResult {
     const c = this.openContainer
-    if (!c) return { moved: 0, remainder: 0 }
+    if (!c) return { moved: 0, remainder: 0, reason: 'missing' }
     const r = transferAll(c.items, this.player.inventory)
     if (r.moved > 0) this.queueInventoryChanged()
     return r
@@ -1296,7 +1317,7 @@ export class GameRuntime {
 
   /** Repair one weapon instance with the recipe of its group (wood/metal). */
   startRepair(targetId: string): ActionStartResult {
-    const target = this.player.inventory.slots.find((i) => i?.id === targetId)
+    const target = findItem(this.player.inventory, targetId)
     const recipe = target ? repairRecipeFor(target.itemId) : null
     if (!recipe) return this.rejectAction('Sửa', target ? 'not-repairable' : 'no-target')
     return this.startRecipe(recipe, targetId)
@@ -1385,14 +1406,14 @@ export class GameRuntime {
 
   private actionLabel(recipe: Recipe, targetId: string | null): string {
     if (recipe.kind === 'craft') return `Chế tạo ${getItemDef(recipe.output.itemId).name}`
-    const target = this.player.inventory.slots.find((i) => i?.id === targetId)
+    const target = targetId ? findItem(this.player.inventory, targetId) : undefined
     return target ? `Sửa ${getItemDef(target.itemId).name}` : recipe.name
   }
 
   /** Reserved materials/instances of the running action cannot leave the bag. */
-  private isReserved(slot: number, quantity: number): boolean {
-    if (!reservationBlocks(this.player.inventory, this.action?.reservation ?? null, slot, quantity)) return false
-    const item = this.player.inventory.slots[slot]!
+  private isReserved(instanceId: string, quantity: number): boolean {
+    if (!reservationBlocks(this.player.inventory, this.action?.reservation ?? null, instanceId, quantity)) return false
+    const item = findItem(this.player.inventory, instanceId)!
     this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.action!.label })
     return true
   }
@@ -1626,7 +1647,7 @@ export class GameRuntime {
   private resolvePlayerMelee(): void {
     const cfg = GAME_CONFIG.melee
     const player = this.player
-    const found = player.inventory.slots.find((i) => i?.id === player.attackWeaponId)
+    const found = player.attackWeaponId ? findItem(player.inventory, player.attackWeaponId) : undefined
     const weapon = found?.kind === 'weapon' ? found : null
     if (!weapon) {
       this.events.queue('player:attacked', { hitIds: [], damage: 0, weaponId: null })

@@ -30,6 +30,8 @@ export type GameEvents = {
   /** CS1: the combat stance started or ended (intent, not the finished pose). */
   'player:stance': { active: boolean }
   'item:equipped': { id: string | null; itemId: ItemId | null }
+  /** INV-LOOT: a bag worn (id) or taken off (null). */
+  'bag:worn': { id: string | null; itemId: ItemId | null }
   /** Condition đổi sau một đòn trúng; UI chỉ đồng bộ, không phát âm pickup. */
   'weapon:worn': { id: string; itemId: ItemId; condition: number }
   'weapon:lowCondition': { id: string; itemId: ItemId; name: string }

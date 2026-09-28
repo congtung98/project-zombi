@@ -55,7 +55,7 @@ describe('snapshot round trip', () => {
     rt.player.position = { x: 0, y: 0.9, z: -1.5 }
     rt.tick(DT)
     rt.interact(rt.interactables.find((i) => i.id === 'ct-hut')!)
-    rt.takeFromContainer(0)
+    rt.takeFromContainer(box.items.items[0].id)
     rt.closeAllUi()
     rt.player.health = 63
     rt.player.thirst = 41
@@ -131,8 +131,8 @@ describe('snapshot round trip', () => {
     snap.player.health = 999
     snap.player.hunger = -5
     addItem(snap.player.inventory, 'water', 5)
-    snap.player.inventory.slots[0]!.quantity = 99
-    snap.player.inventory.slots.push(null, null, null)
+    snap.player.inventory.items[0].quantity = 99
+    snap.player.inventory.slotCapacity = 0
     const before = rt.createSnapshot()
     expect(() => rt.loadSnapshot(snap)).toThrow('Invalid save')
     expect(rt.createSnapshot().player).toEqual(before.player)
@@ -177,7 +177,7 @@ describe('validateSaveGame', () => {
     expect(validateSaveGame(b, 'test-map').ok).toBe(false)
 
     const c = good()
-    c.player.inventory.slots[0] = { id: 'bad:1', kind: 'stack', itemId: 'wood' as never, quantity: 1 }
+    c.player.inventory.items.push({ id: 'bad:1', kind: 'stack', itemId: 'wood' as never, quantity: 1 })
     expect(validateSaveGame(c, 'test-map').ok).toBe(false)
 
     const d = good()

@@ -18,7 +18,7 @@ function setup(spawns: MapData['zombieSpawns'] = []) {
   const rt = new GameRuntime(field(spawns))
   for (const z of rt.zombies.values()) z.staggerTimer = 1e6
   addItem(rt.player.inventory, 'baseball_bat', 1)
-  expect(rt.equipItem(rt.player.inventory.slots.find(Boolean)!.id)).toBe(true)
+  expect(rt.equipItem(rt.player.inventory.items[0]!.id)).toBe(true)
   return rt
 }
 

@@ -116,9 +116,14 @@ export async function commitMigratedSave(original: unknown, save: SaveGame, slot
   if (!hasIndexedDb()) return { ok: false, error: 'Trình duyệt không hỗ trợ IndexedDB.' }
   const fromVersion = typeof original === 'object' && original !== null ? (original as { schemaVersion?: unknown }).schemaVersion : undefined
   if (typeof fromVersion !== 'number') return { ok: false, error: 'Bản gốc không có schemaVersion; giữ nguyên.' }
-  // Same schema, older content revision: a content migration (M8) gets its own backup key.
+  // Same schema, older content revision: a content migration (M8) gets its own backup key; same
+  // schema and content: only a bonus loot patch ran (INV-LOOT `lootPatches`), with its own key.
   const fromContent = (original as { contentVersion?: unknown }).contentVersion
-  const backupSlot = backupSlotFor(slot, fromVersion, fromVersion === save.schemaVersion && typeof fromContent === 'number' ? fromContent : undefined)
+  const sameSchema = fromVersion === save.schemaVersion
+  const contentChanged = typeof fromContent === 'number' && fromContent !== save.contentVersion
+  const backupSlot = sameSchema && !contentChanged
+    ? `${backupSlotFor(slot, fromVersion)}-loot-patch`
+    : backupSlotFor(slot, fromVersion, sameSchema && typeof fromContent === 'number' ? fromContent : undefined)
   let db: IDBDatabase | null = null
   try {
     db = await openDb()

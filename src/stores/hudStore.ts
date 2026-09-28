@@ -183,7 +183,7 @@ export const useHudStore = create<HudState>((set) => ({
       stance: rt.stance.requested,
       combat: combatReadout(rt),
       bagUsed: countUsedSlots(p.inventory),
-      bagSize: p.inventory.slots.length,
+      bagSize: p.inventory.slotCapacity ?? p.inventory.items.length,
       inventoryOpen: rt.inventoryOpen,
       weapon: w && def
         ? { name: def.name, icon: def.icon, condition: w.condition, maxCondition: def.maxCondition!, level: conditionLevel(w.itemId, w.condition) }

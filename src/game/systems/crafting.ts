@@ -62,7 +62,7 @@ export function checkRecipe(inv: Inventory, recipe: Recipe, targetId: string | n
 
   let repair: RepairPreview | null = null
   if (recipe.kind === 'repair') {
-    const target = targetId ? inv.slots.find((i) => i?.id === targetId) : undefined
+    const target = targetId ? inv.items.find((i) => i.id === targetId) : undefined
     if (!target) fail('no-target')
     else if (target.kind !== 'weapon' || getItemDef(target.itemId).repairGroup !== recipe.group) fail('not-repairable')
     else {
@@ -81,7 +81,7 @@ export function checkRecipe(inv: Inventory, recipe: Recipe, targetId: string | n
   const used = new Set<string>(targetId ? [targetId] : [])
   const tools = recipe.tools.map((req, n) => {
     const pinned = fixedTools?.[n]
-    const candidate = inv.slots.find((i) => i !== null && !used.has(i.id) && (pinned === undefined || i.id === pinned) && isUsableTool(i, req.tag))
+    const candidate = inv.items.find((i) => !used.has(i.id) && (pinned === undefined || i.id === pinned) && isUsableTool(i, req.tag))
     if (candidate) used.add(candidate.id)
     return { tag: req.tag, instanceId: candidate?.id ?? null, ok: candidate !== undefined }
   })
@@ -103,30 +103,30 @@ export function commitRecipe(inv: Inventory, recipe: Recipe, targetId: string | 
   if (!check.ok) return { ok: false, failure: check.failure! }
   const result = simulate(inv, recipe, targetId, check.tools.map((t) => t.instanceId!))
   if (!result.ok) return { ok: false, failure: 'no-space' }
-  inv.slots = result.trial.slots
+  inv.items = result.trial.items
   inv.nextItemId = result.trial.nextItemId
   return { ok: true, outputId: result.outputId, repair: check.repair, toolWear: result.toolWear }
 }
 
 function simulate(inv: Inventory, recipe: Recipe, targetId: string | null, toolIds: readonly string[]) {
   const trial = cloneInventory(inv)
-  const before = new Set(inv.slots.flatMap((i) => (i ? [i.id] : [])))
+  const before = new Set(inv.items.map((i) => i.id))
   for (const input of recipe.inputs) removeItem(trial, input.itemId, input.quantity)
   const toolWear: ToolWear[] = []
   recipe.tools.forEach((req, n) => {
-    const tool = trial.slots.find((i) => i?.id === toolIds[n])
+    const tool = trial.items.find((i) => i.id === toolIds[n])
     if (tool?.kind !== 'weapon' || req.wear <= 0) return
     tool.condition = Math.max(0, tool.condition - req.wear)
     toolWear.push({ id: tool.id, itemId: tool.itemId, condition: tool.condition, broke: tool.condition === 0 })
   })
   if (recipe.kind === 'repair') {
-    const target = trial.slots.find((i) => i?.id === targetId)
+    const target = trial.items.find((i) => i.id === targetId)
     if (target?.kind === 'weapon') target.condition = Math.min(getItemDef(target.itemId).maxCondition!, target.condition + recipe.amount)
   }
   let outputId: string | null = null
   if (recipe.kind === 'craft') {
     if (addItem(trial, recipe.output.itemId, recipe.output.quantity).remainder > 0) return { ok: false as const }
-    outputId = trial.slots.find((i) => i !== null && i.itemId === recipe.output.itemId && !before.has(i.id))?.id ?? null
+    outputId = trial.items.find((i) => i.itemId === recipe.output.itemId && !before.has(i.id))?.id ?? null
   }
   return { ok: true as const, trial, outputId, toolWear }
 }

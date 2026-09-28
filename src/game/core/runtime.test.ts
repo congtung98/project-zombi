@@ -22,7 +22,7 @@ const hut: BuildingDef = {
 /** New Game is unarmed since P2-S2; combat tests equip a looted-style weapon explicitly. */
 function arm(rt: GameRuntime, itemId: 'baseball_bat' | 'metal_pipe' | 'crowbar' | 'hammer' = 'baseball_bat', condition?: number): string {
   addItem(rt.player.inventory, itemId, 1, { condition })
-  const weapon = rt.player.inventory.slots.findLast((i) => i?.itemId === itemId)!
+  const weapon = rt.player.inventory.items.findLast((i) => i.itemId === itemId)!
   expect(rt.equipItem(weapon.id)).toBe(true)
   return weapon.id
 }
@@ -358,11 +358,11 @@ describe('GameRuntime inventory and loot', () => {
     const container = rt.openContainer!
     const total = totalQuantity(container.items) + totalQuantity(rt.player.inventory)
 
-    const r = rt.takeFromContainer(0)
+    const r = rt.takeFromContainer(container.items.items[0].id)
     expect(r.moved).toBeGreaterThan(0)
     expect(totalQuantity(container.items) + totalQuantity(rt.player.inventory)).toBe(total)
 
-    rt.putIntoContainer(0)
+    rt.putIntoContainer(rt.player.inventory.items[0].id)
     expect(totalQuantity(rt.player.inventory)).toBe(0) // New Game is unarmed: nothing else in the bag
     expect(totalQuantity(container.items)).toBe(total)
 
@@ -373,7 +373,7 @@ describe('GameRuntime inventory and loot', () => {
     expect(all.remainder).toBe(total)
     expect(totalQuantity(container.items)).toBe(total)
 
-    rt.player.inventory = createInventory(GAME_CONFIG.inventory.slots)
+    rt.player.inventory = createInventory(GAME_CONFIG.inventory.slots, 'player', 'player')
     const all2 = rt.takeAll()
     expect(all2.moved).toBe(total)
     expect(totalQuantity(container.items)).toBe(0)
@@ -388,11 +388,12 @@ describe('GameRuntime inventory and loot', () => {
     addItem(rt.player.inventory, 'water', 1)
     addItem(rt.player.inventory, 'bandage', 1)
 
+    const [water, bandage] = rt.player.inventory.items.map((i) => i.id)
     rt.player.thirst = 50
-    expect(rt.consumeItem(0).ok).toBe(true)
+    expect(rt.consumeItem(water).ok).toBe(true)
     expect(rt.player.thirst).toBe(90)
-    expect(rt.consumeItem(1).ok).toBe(false) // máu đầy
-    expect(rt.player.inventory.slots[1]?.quantity).toBe(1)
+    expect(rt.consumeItem(bandage).ok).toBe(false) // máu đầy
+    expect(rt.player.inventory.items.find((i) => i.id === bandage)?.quantity).toBe(1)
     rt.events.flush()
     expect(used).toEqual(['water'])
     expect(failed).toEqual(['no-effect'])

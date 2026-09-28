@@ -75,7 +75,7 @@ async function idb(op, key, value) {
   }), { op, key, value })
 }
 const readSlot = (slot) => idb('get', slot)
-const count = (inv, itemId) => inv.slots.reduce((n, s) => n + (s?.itemId === itemId ? s.quantity : 0), 0)
+const count = (inv, itemId) => inv.items.reduce((n, s) => n + (s.itemId === itemId ? s.quantity : 0), 0)
 
 /** Hold movement keys until the E prompt names `target` (real keyboard input). */
 async function walkTo(keys, target, timeout = 5000) {
@@ -164,7 +164,7 @@ try {
       await page.waitForTimeout(800)
       await saveToMenu()
       const mid = await readSlot('slot-1')
-      assert.equal(mid.schemaVersion, 9)
+      assert.equal(mid.schemaVersion, 10)
       assert.equal(count(mid.player.inventory, 'duct_tape'), 1)
       assert.doesNotMatch(JSON.stringify(mid), /action|reserv/i)
       await page.reload()
@@ -204,13 +204,13 @@ try {
       window.__runtime.setInventoryOpen(false)
     }, items)
     const bag = () => rt(() => JSON.parse(JSON.stringify(window.__runtime.player.inventory)))
-    const held = () => rt(() => { const r = window.__runtime; return JSON.parse(JSON.stringify(r.player.inventory.slots.find((i) => i?.id === r.player.equipment.weaponInstanceId))) })
+    const held = () => rt(() => { const r = window.__runtime; return JSON.parse(JSON.stringify(r.player.inventory.items.find((i) => i.id === r.player.equipment.weaponInstanceId))) })
 
     await newGame()
     // 1) Real input: starter kit (materials) and the closet weapon.
     const weaponName = await lootKitAndWeapon()
     const start = await bag()
-    log('looted', { weaponName, bag: start.slots.filter(Boolean).map((s) => `${s.itemId}x${s.quantity}`) })
+    log('looted', { weaponName, bag: start.items.map((s) => `${s.itemId}x${s.quantity}`) })
     assert.deepEqual(['wood_plank', 'duct_tape', 'scrap_metal'].map((id) => count(start, id)), [1, 1, 1])
 
     // Materials have no direct use (right click): hint, nothing spent.
@@ -257,7 +257,7 @@ try {
       await page.waitForTimeout(100)
       return rt(() => 50 - window.__runtime.zombies.get('zombie-1').health)
     }
-    await rt(() => { const r = window.__runtime; r.player.inventory.slots.find((i) => i?.id === r.player.equipment.weaponInstanceId).condition = 0 })
+    await rt(() => { const r = window.__runtime; r.player.inventory.items.find((i) => i.id === r.player.equipment.weaponInstanceId).condition = 0 })
     const weak = await hit()
     const w0 = await held()
     log('broken hit', { weapon: w0.itemId, damage: weak })
@@ -286,7 +286,7 @@ try {
     const t1 = await rt(() => window.__runtime.clock.elapsed)
     const w1 = await held()
     const afterRepair = await bag()
-    log('repaired', { condition: w1.condition, gameSeconds: +(t1 - t0).toFixed(2), bag: afterRepair.slots.filter(Boolean).map((s) => `${s.itemId}x${s.quantity}`) })
+    log('repaired', { condition: w1.condition, gameSeconds: +(t1 - t0).toFixed(2), bag: afterRepair.items.map((s) => `${s.itemId}x${s.quantity}`) })
     assert.equal(w1.id, w0.id)
     assert.equal(w1.condition, group.gain)
     assert.ok(t1 - t0 >= group.time - 0.05)
@@ -351,7 +351,7 @@ try {
     await button('Lưu và về menu').click()
     await menu()
     const mid = await readSlot('slot-1')
-    assert.equal(mid.schemaVersion, 9)
+    assert.equal(mid.schemaVersion, 10)
     assert.deepEqual(mid.player.inventory, preSave)
     assert.doesNotMatch(JSON.stringify(mid), /action|reserv/i)
     await page.reload()
@@ -370,7 +370,7 @@ try {
     await shot('p2s4-craft-progress')
     await waitWorkDone()
     await hasText('Đã chế tạo Gậy gỗ tự chế')
-    const clubs = (await bag()).slots.filter((i) => i?.itemId === 'wooden_club')
+    const clubs = (await bag()).items.filter((i) => i.itemId === 'wooden_club')
     assert.equal(clubs.length, 1)
     assert.equal(clubs[0].condition, 40)
     await selectBagItem('Gậy gỗ tự chế')
@@ -385,7 +385,7 @@ try {
     // 8) Save → fixture → reload → Continue keeps the club, the repaired weapon and materials.
     await saveToMenu()
     const saved = await readSlot('slot-1')
-    assert.equal(saved.schemaVersion, 9)
+    assert.equal(saved.schemaVersion, 10)
     assert.equal(saved.containers.find((c) => c.id === 'c-1_-1/safehouse/toolbox').opened, true)
     await page.reload()
     await menu()
@@ -405,7 +405,7 @@ try {
     await hasText('3 chỗ vật liệu')
     const migrated = await readSlot('slot-1')
     const backup = await readSlot('slot-1.backup-v4')
-    assert.equal(migrated.schemaVersion, 9)
+    assert.equal(migrated.schemaVersion, 10)
     assert.deepEqual(backup, v4)
     const ids = migrated.containers.filter((c) => !c.position).map((c) => c.id)
     for (const id of ['c-1_-1/safehouse/toolbox', 'c0_-1/store/hardware', 'c0_0/objects/house-scrap']) assert.ok(ids.includes(id))

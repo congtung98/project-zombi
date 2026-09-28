@@ -36,11 +36,11 @@ function setup(items: [ItemId, number][] = [['wood_plank', 3], ['duct_tape', 2],
 
 function give(rt: GameRuntime, itemId: ItemId, condition: number): WeaponInstance {
   addItem(rt.player.inventory, itemId, 1, { condition })
-  return rt.player.inventory.slots.findLast((i) => i?.itemId === itemId) as WeaponInstance
+  return rt.player.inventory.items.findLast((i) => i.itemId === itemId) as WeaponInstance
 }
 
-const find = (rt: GameRuntime, id: string) => rt.player.inventory.slots.find((i) => i?.id === id) as WeaponInstance | undefined
-const slotOf = (rt: GameRuntime, itemId: ItemId) => rt.player.inventory.slots.findIndex((i) => i?.itemId === itemId)
+const find = (rt: GameRuntime, id: string) => rt.player.inventory.items.find((i) => i.id === id) as WeaponInstance | undefined
+const idOf = (rt: GameRuntime, itemId: ItemId) => rt.player.inventory.items.find((i) => i.itemId === itemId)!.id
 
 function run(rt: GameRuntime, seconds: number) {
   for (let t = 0; t < seconds - 1e-9; t += DT) rt.tick(DT)
@@ -93,7 +93,7 @@ describe('timed repair', () => {
     expect(log.filter((e) => e === 'action:started')).toHaveLength(1)
     expect(log.filter((e) => e === 'action:rejected')).toHaveLength(9)
     run(rt, 4.1)
-    const clubs = () => rt.player.inventory.slots.filter((i) => i?.itemId === 'wooden_club').length
+    const clubs = () => rt.player.inventory.items.filter((i) => i.itemId === 'wooden_club').length
     expect(clubs()).toBe(1)
     expect([countItem(rt.player.inventory, 'wood_plank'), countItem(rt.player.inventory, 'duct_tape')]).toEqual([2, 1])
   })
@@ -122,7 +122,7 @@ describe('interruptions release the reservation and spend nothing', () => {
     expect(countItem(rt.player.inventory, 'duct_tape')).toBe(countItem(before, 'duct_tape'))
     expect(find(rt, bat.id)!.condition).toBe(0)
     // Released: the bat can be dropped now.
-    expect(rt.dropItem(rt.player.inventory.slots.findIndex((i) => i?.id === bat.id))).toBe(true)
+    expect(rt.dropItem(bat.id)).toBe(true)
   })
 
   it('a zombie hit cancels; slow starvation damage does not', () => {
@@ -169,12 +169,11 @@ describe('reservation while working', () => {
     const bat = give(rt, 'baseball_bat', 5)
     rt.player.thirst = 50
     rt.startRepair(bat.id)
-    const batSlot = rt.player.inventory.slots.findIndex((i) => i?.id === bat.id)
-    expect(rt.dropItem(batSlot)).toBe(false)
-    expect(rt.dropItem(slotOf(rt, 'duct_tape'))).toBe(false)
+    expect(rt.dropItem(bat.id)).toBe(false)
+    expect(rt.dropItem(idOf(rt, 'duct_tape'))).toBe(false)
     rt.interact(rt.interactables.find((i) => i.id === 'ct-bench')!)
-    expect(rt.putIntoContainer(slotOf(rt, 'wood_plank')).moved).toBe(0)
-    expect(rt.putIntoContainer(slotOf(rt, 'water')).moved).toBe(1)
+    expect(rt.putIntoContainer(idOf(rt, 'wood_plank')).moved).toBe(0)
+    expect(rt.putIntoContainer(idOf(rt, 'water')).moved).toBe(1)
     rt.tick(DT)
     expect(events['item:reserved']!.length).toBe(3)
     // Equip changes are allowed and do not disturb the action.
@@ -204,7 +203,7 @@ describe('commit re-checks and stays atomic', () => {
     rt.startCraft('craft_wooden_club')
     run(rt, 1)
     // Picked up other items meanwhile (takes are allowed): no room left after consuming inputs.
-    while (rt.player.inventory.slots.includes(null)) addItem(rt.player.inventory, 'medkit', 1)
+    while (rt.player.inventory.items.length < rt.player.inventory.slotCapacity!) addItem(rt.player.inventory, 'medkit', 1)
     const before = structuredClone(rt.player.inventory)
     run(rt, 3.2)
     expect(events['action:failed']).toMatchObject([{ reason: 'no-space' }])

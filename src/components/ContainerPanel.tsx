@@ -1,5 +1,5 @@
 import { runtime } from '../game/core/runtime'
-import { isEmpty } from '../game/systems/inventory'
+import { isEmpty, slotView } from '../game/systems/inventory'
 import { useInventoryStore } from '../stores/inventoryStore'
 import { SlotGrid } from './Inventory'
 import { CraftingPanel } from './CraftingPanel'
@@ -21,7 +21,10 @@ export function ContainerPanel() {
       {empty ? (
         <div className="inv-empty">Trống</div>
       ) : (
-        <SlotGrid inv={container.items} columns={4} title="Trái: lấy" onClick={(i) => runtime.takeFromContainer(i)} />
+        <SlotGrid inv={container.items} columns={4} title="Trái: lấy" onClick={(i) => {
+            const item = slotView(container.items)[i]
+            if (item) runtime.takeFromContainer(item.id)
+          }} />
       )}
       <div className="inv-footer">
         <button type="button" disabled={empty} onClick={() => runtime.takeAll()}>

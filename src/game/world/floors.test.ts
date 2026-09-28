@@ -15,6 +15,7 @@ import { validateSaveGame } from '../systems/save'
 import { collectStaticItems } from '../rendering/staticBatchData'
 import { SAVE_SCHEMA_VERSION } from '../../types/save'
 import type { Vec3 } from '../../types'
+import { asV9 } from '../../test/legacySave'
 
 /**
  * M11b multi-storey buildings: content (storeys, levels, stairs, slabs), the floor rule, layered
@@ -283,8 +284,8 @@ describe('two storeys in the simulation', () => {
     expect(rt.openContainerId).toBe(id('wardrobe'))
     // Dropped upstairs, the bag lies on the upper floor.
     rt.closeAllUi()
-    rt.player.inventory.slots[0] = { id: 'test:1', itemId: 'water', quantity: 1, kind: 'stack' }
-    expect(rt.dropItem(0)).toBe(true)
+    rt.player.inventory.items.push({ id: 'test:1', itemId: 'water', quantity: 1, kind: 'stack' })
+    expect(rt.dropItem('test:1')).toBe(true)
     expect(rt.world.containers.get('drop:test:1')!.position).toMatchObject({ y: 3 })
   })
 
@@ -359,7 +360,7 @@ describe('two storeys in the simulation', () => {
     expect(other.player.position.y).toBe(3)
     expect(other.zombies.get('zombie-1')!.position.y).toBe(3)
 
-    const v8 = structuredClone(snap)
+    const v8 = asV9(snap)
     v8.schemaVersion = 8
     v8.player.position.y = 0.9
     v8.zombies[0].position.y = 0.9

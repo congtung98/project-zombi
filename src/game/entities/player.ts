@@ -88,7 +88,7 @@ export function createPlayerState(spawn: Vec3, profile?: CharacterProfile): Play
     moveSpeed: 0,
     stridePhase: 0,
     kills: 0,
-    inventory: createInventory(GAME_CONFIG.inventory.slots, 'player'),
-    equipment: { weaponInstanceId: null },
+    inventory: createInventory(GAME_CONFIG.inventory.slots, 'player', 'player'),
+    equipment: { weaponInstanceId: null, backInstanceId: null },
   }
 }

@@ -48,7 +48,7 @@ describe('WG5 generated worlds and saves', () => {
     rt.interact(target)
     const box = rt.world.containers.get(wreck.id)!
     const before = totalQuantity(box.items)
-    if (before > 0) rt.takeFromContainer(0)
+    if (before > 0) rt.takeFromContainer(rt.openContainer!.items.items[0].id)
     rt.closeAllUi()
     const door = map.doors[0]
     rt.interact(rt.interactables.find((i) => i.id === door.id)!)

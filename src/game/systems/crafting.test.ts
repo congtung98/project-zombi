@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ITEMS, type ItemId } from '../entities/items'
 import { RECIPES, repairRecipeFor, type Recipe } from '../entities/recipes'
-import { addItem, countItem, createInventory, totalQuantity, type Inventory } from './inventory'
+import { addItem, countItem, createInventory, removeQuantity, totalQuantity, type Inventory } from './inventory'
 import { checkRecipe, commitRecipe } from './crafting'
 import { reservationBlocks, reservationFor } from './timedAction'
 import type { WeaponInstance } from './weapons'
@@ -12,14 +12,14 @@ const WOOD = RECIPES.repair_wood
 const METAL = RECIPES.repair_metal
 
 function bag(items: [ItemId, number][], size = GAME_CONFIG.inventory.slots): Inventory {
-  const inv = createInventory(size, 'player')
+  const inv = createInventory(size, 'player', 'player')
   for (const [id, n] of items) addItem(inv, id, n)
   return inv
 }
 
 function weapon(inv: Inventory, itemId: ItemId, condition: number): WeaponInstance {
   addItem(inv, itemId, 1, { condition })
-  return inv.slots.findLast((i) => i?.itemId === itemId) as WeaponInstance
+  return inv.items.findLast((i) => i.itemId === itemId) as WeaponInstance
 }
 
 /** Ad-hoc recipe for the tool rules (shipped S4 recipes need no tool; S6/S7 ones will). */
@@ -33,7 +33,7 @@ describe('P2-S4 items and recipe data', () => {
     expect([ITEMS.wood_plank.stackLimit, ITEMS.scrap_metal.stackLimit, ITEMS.duct_tape.stackLimit, ITEMS.nails.stackLimit]).toEqual([10, 10, 10, 50])
     for (const id of ['wood_plank', 'scrap_metal', 'duct_tape', 'nails'] as const) expect(ITEMS[id].kind).toBe('material')
     const inv = bag([['nails', 60]])
-    expect(inv.slots.filter(Boolean).map((s) => s!.quantity)).toEqual([50, 10])
+    expect(inv.items.map((s) => s!.quantity)).toEqual([50, 10])
     expect(repairRecipeFor('baseball_bat')).toBe(WOOD)
     expect(repairRecipeFor('wooden_club')).toBe(WOOD)
     for (const id of ['metal_pipe', 'crowbar', 'hammer'] as const) expect(repairRecipeFor(id)).toBe(METAL)
@@ -50,10 +50,10 @@ describe('crafting', () => {
     const r = commitRecipe(inv, CLUB, null, [])
     expect(r.ok).toBe(true)
     expect([countItem(inv, 'wood_plank'), countItem(inv, 'duct_tape')]).toEqual([1, 1])
-    const club = inv.slots.find((i) => i?.itemId === 'wooden_club') as WeaponInstance
+    const club = inv.items.find((i) => i.itemId === 'wooden_club') as WeaponInstance
     expect(club).toMatchObject({ kind: 'weapon', condition: 40 })
     expect(r.ok && r.outputId).toBe(club.id)
-    const ids = inv.slots.flatMap((i) => (i ? [i.id] : []))
+    const ids = inv.items.map((i) => i.id)
     expect(new Set(ids).size).toBe(ids.length)
   })
 
@@ -73,7 +73,7 @@ describe('crafting', () => {
   it('a full bag may craft when consuming the inputs frees a slot (space counted after inputs)', () => {
     const inv = bag([['wood_plank', 2], ['duct_tape', 1]])
     for (let i = 0; i < 10; i++) addItem(inv, 'medkit', 1)
-    expect(inv.slots.every(Boolean)).toBe(true)
+    expect(inv.items.length).toBe(inv.slotCapacity)
     expect(checkRecipe(inv, CLUB, null).ok).toBe(true)
     const total = totalQuantity(inv)
     expect(commitRecipe(inv, CLUB, null, []).ok).toBe(true)
@@ -99,7 +99,7 @@ describe('repair', () => {
     expect(check.repair).toEqual({ targetId: bat.id, itemId: 'baseball_bat', before: 0, after: 30, max: 80 })
     const r = commitRecipe(inv, WOOD, bat.id, [])
     expect(r.ok).toBe(true)
-    const after = inv.slots.find((i) => i?.id === bat.id) as WeaponInstance
+    const after = inv.items.find((i) => i.id === bat.id) as WeaponInstance
     expect(after.condition).toBe(30)
     expect([countItem(inv, 'wood_plank'), countItem(inv, 'duct_tape')]).toEqual([1, 0])
   })
@@ -110,7 +110,7 @@ describe('repair', () => {
     expect(checkRecipe(inv, METAL, pipe.id).repair).toMatchObject({ before: 110, after: 120, max: 120 })
     expect(commitRecipe(inv, METAL, pipe.id, []).ok).toBe(true)
     expect(pipe.condition).toBe(110) // the old object is not mutated; the bag holds the committed copy
-    expect((inv.slots.find((i) => i?.id === pipe.id) as WeaponInstance).condition).toBe(120)
+    expect((inv.items.find((i) => i.id === pipe.id) as WeaponInstance).condition).toBe(120)
     const before = structuredClone(inv)
     expect(checkRecipe(inv, METAL, pipe.id).failure).toBe('full-condition')
     expect(commitRecipe(inv, METAL, pipe.id, [])).toEqual({ ok: false, failure: 'full-condition' })
@@ -120,7 +120,7 @@ describe('repair', () => {
   it('rejects the wrong group, non-weapons and missing targets', () => {
     const inv = bag([['wood_plank', 5], ['duct_tape', 5], ['scrap_metal', 5]])
     const pipe = weapon(inv, 'metal_pipe', 10)
-    const tape = inv.slots.find((i) => i?.itemId === 'duct_tape')!
+    const tape = inv.items.find((i) => i.itemId === 'duct_tape')!
     expect(checkRecipe(inv, WOOD, pipe.id).failure).toBe('not-repairable')
     expect(checkRecipe(inv, WOOD, tape.id).failure).toBe('not-repairable')
     expect(checkRecipe(inv, WOOD, 'player:999').failure).toBe('no-target')
@@ -147,7 +147,7 @@ describe('tool requirements', () => {
     const selfRepair: Recipe = { ...METAL, tools: [{ tag: 'hammer', wear: 1 }] }
     expect(checkRecipe(inv, selfRepair, target.id).tools[0]).toEqual({ tag: 'hammer', instanceId: null, ok: false })
     // Plain repair needs no tool, so a broken hammer never locks progress.
-    const broken = inv.slots.find((i) => i?.itemId === 'hammer' && i.kind === 'weapon' && i.condition === 0)!
+    const broken = inv.items.find((i) => i.itemId === 'hammer' && i.kind === 'weapon' && i.condition === 0)!
     expect(checkRecipe(inv, METAL, broken.id).ok).toBe(true)
   })
 
@@ -168,17 +168,17 @@ describe('reservation', () => {
     const bat = weapon(inv, 'baseball_bat', 0)
     const r = reservationFor(WOOD, bat.id, checkRecipe(inv, WOOD, bat.id))
     expect(r).toEqual({ counts: { wood_plank: 1, duct_tape: 1 }, instanceIds: [bat.id] })
-    const slotOf = (pred: (i: Inventory['slots'][number]) => boolean) => inv.slots.findIndex(pred)
-    expect(reservationBlocks(inv, r, slotOf((i) => i?.id === bat.id), 1)).toBe(true)
-    expect(reservationBlocks(inv, r, slotOf((i) => i?.itemId === 'duct_tape'), 1)).toBe(true)
+    const idOf = (itemId: ItemId) => inv.items.find((i) => i.itemId === itemId)!.id
+    expect(reservationBlocks(inv, r, bat.id, 1)).toBe(true)
+    expect(reservationBlocks(inv, r, idOf('duct_tape'), 1)).toBe(true)
     // 12 wood = stacks of 10 + 2: moving either stack keeps ≥ 1 wood, moving both would not.
-    const woodSlots = inv.slots.flatMap((i, n) => (i?.itemId === 'wood_plank' ? [n] : []))
-    expect(reservationBlocks(inv, r, woodSlots[0], 10)).toBe(false)
-    expect(reservationBlocks(inv, r, woodSlots[1], 2)).toBe(false)
-    inv.slots[woodSlots[0]] = null
-    expect(reservationBlocks(inv, r, woodSlots[1], 2)).toBe(true)
-    expect(reservationBlocks(inv, r, woodSlots[1], 1)).toBe(false)
-    expect(reservationBlocks(inv, r, slotOf((i) => i?.itemId === 'water'), 1)).toBe(false)
-    expect(reservationBlocks(inv, null, slotOf((i) => i?.id === bat.id), 1)).toBe(false)
+    const wood = inv.items.filter((i) => i.itemId === 'wood_plank').map((i) => i.id)
+    expect(reservationBlocks(inv, r, wood[0], 10)).toBe(false)
+    expect(reservationBlocks(inv, r, wood[1], 2)).toBe(false)
+    removeQuantity(inv, wood[0], 10)
+    expect(reservationBlocks(inv, r, wood[1], 2)).toBe(true)
+    expect(reservationBlocks(inv, r, wood[1], 1)).toBe(false)
+    expect(reservationBlocks(inv, r, idOf('water'), 1)).toBe(false)
+    expect(reservationBlocks(inv, null, bat.id, 1)).toBe(false)
   })
 })

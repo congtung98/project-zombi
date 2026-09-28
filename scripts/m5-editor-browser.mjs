@@ -244,7 +244,7 @@ try {
         id,
         closed,
         open,
-        loot: kitchen.items.slots.filter(Boolean).length,
+        loot: kitchen.items.items.length,
         window: rt.world.curtains.has(`${id}/win-1`),
         lamp: rt.world.lamps.has(`${id}/lamp-1`),
         indoor: rt.buildingAt(inside) === id,

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { runtime } from '../game/core/runtime'
-import { summarizeSave, validateSaveGame } from '../game/systems/save'
+import { summarizeSave, validateSaveGame, type LootPatchReport } from '../game/systems/save'
+import { getItemDef } from '../game/entities/items'
 import { commitMigratedSave, deleteSave, readSave, writeSave } from '../game/systems/saveStorage'
 import type { SaveSummary } from '../types/save'
 import type { CharacterProfile } from '../game/entities/player'
@@ -57,14 +58,25 @@ const MIGRATION_TOAST: Record<number, string> = {
   7: 'Đã nâng cấp save sang dữ liệu map mới (ID ổn định) và giữ bản sao v7.',
 }
 
+/** INV-LOOT: what the bonus loot patch did (always said, even when it added nothing). */
+function lootPatchNote(reports: LootPatchReport[] | undefined): string {
+  if (!reports?.length) return ''
+  return reports.map((r) => {
+    const name = getItemDef(r.itemId).name.toLowerCase()
+    if (r.added > 0) return `Đã thêm ${r.added} ${name} vào tủ phù hợp bạn chưa từng mở (đồ có sẵn giữ nguyên).`
+    return r.eligible > 0 ? `Không tủ nào chưa mở nhận thêm ${name}; loot giữ nguyên.` : `Không có tủ phù hợp chưa mở: không thêm ${name}; loot giữ nguyên.`
+  }).join(' ')
+}
+
 /** Schema upgrade text, plus the map update (M8) when the save was written for older content. */
-function migrationToast(fromVersion: number, contentFrom: number | undefined, contentVersion: number): string {
+function migrationToast(fromVersion: number, contentFrom: number | undefined, contentVersion: number, lootPatch?: LootPatchReport[]): string {
   const content =
     contentFrom === undefined
       ? ''
       : `Bản đồ đã được cập nhật (nội dung v${contentFrom} → v${contentVersion}): cửa, tủ, đèn còn lại giữ trạng thái; đồ trong tủ bị dỡ bỏ nằm dưới đất chỗ tủ cũ. Đã giữ bản sao save cũ.`
-  if (fromVersion >= 8) return content || 'Đã nâng cấp save.'
-  return [MIGRATION_TOAST[fromVersion] ?? 'Đã nâng cấp save.', content].filter(Boolean).join(' ')
+  const inventory = fromVersion < 10 ? 'Túi đồ chuyển sang dạng danh sách: giữ nguyên mọi món, độ bền và vũ khí đang cầm.' : ''
+  const base = fromVersion >= 8 ? content || (inventory || lootPatch?.length ? '' : 'Đã nâng cấp save.') : [MIGRATION_TOAST[fromVersion] ?? 'Đã nâng cấp save.', content].filter(Boolean).join(' ')
+  return [base, inventory, lootPatchNote(lootPatch)].filter(Boolean).join(' ')
 }
 
 /** Trạng thái slot lưu để menu quyết định bật Continue và cảnh báo ghi đè. */
@@ -246,7 +258,7 @@ export const useUiStore = create<UiState>((set, get) => ({
       }
       runtime.loadSnapshot(v.save)
       enterSession(set)
-      if (v.migrated) useHudStore.getState().showToast(migrationToast(v.fromVersion, v.contentFrom, v.save.contentVersion), 7000)
+      if (v.migrated) useHudStore.getState().showToast(migrationToast(v.fromVersion, v.contentFrom, v.save.contentVersion, v.lootPatch), 7000)
     } finally {
       set({ busy: false })
     }

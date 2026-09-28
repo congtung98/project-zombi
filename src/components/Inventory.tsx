@@ -1,7 +1,7 @@
 import { useState, type MouseEvent } from 'react'
 import { getItemDef, type ItemInstance } from '../game/entities/items'
 import { runtime } from '../game/core/runtime'
-import { countUsedSlots, type Inventory as InventoryData } from '../game/systems/inventory'
+import { countUsedSlots, slotView, type Inventory as InventoryData } from '../game/systems/inventory'
 import { conditionLevel, weaponHitDamage } from '../game/systems/weapons'
 import { checkRecipe } from '../game/systems/crafting'
 import { repairRecipeFor } from '../game/entities/recipes'
@@ -78,7 +78,7 @@ export function SlotGrid({
   inv,
   columns,
   title,
-  equippedId,
+  equippedIds = [],
   selectedId,
   onClick,
   onContextMenu,
@@ -86,19 +86,19 @@ export function SlotGrid({
   inv: InventoryData
   columns: number
   title: string
-  equippedId?: string | null
+  equippedIds?: readonly (string | null)[]
   selectedId?: string | null
   onClick: (slot: number, e: MouseEvent) => void
   onContextMenu?: (slot: number) => void
 }) {
   return (
     <div className="slot-grid" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
-      {inv.slots.map((stack, i) => (
+      {slotView(inv).map((stack, i) => (
         <ItemSlot
           key={i}
           stack={stack}
           title={title}
-          equipped={!!stack && stack.id === equippedId}
+          equipped={!!stack && equippedIds.includes(stack.id)}
           selected={!!stack && stack.id === selectedId}
           onClick={(e) => onClick(i, e)}
           onContextMenu={onContextMenu ? () => onContextMenu(i) : undefined}
@@ -132,7 +132,7 @@ function RepairInfo({ item, bag, action }: { item: ItemInstance; bag: InventoryD
 }
 
 /** Selected bag item: stats plus Equip/Use, Store, Drop and (weapons) Repair as a timed action. */
-function ItemDetail({ item, slot, equipped, looting, bag, action }: { item: ItemInstance; slot: number; equipped: boolean; looting: boolean; bag: InventoryData; action: ActionSnapshot | null }) {
+function ItemDetail({ item, equipped, looting, bag, action }: { item: ItemInstance; equipped: boolean; looting: boolean; bag: InventoryData; action: ActionSnapshot | null }) {
   const [name, ...lines] = describeItem(item)
   const def = getItemDef(item.itemId)
   const level = item.kind === 'weapon' ? conditionLevel(item.itemId, item.condition) : null
@@ -144,7 +144,7 @@ function ItemDetail({ item, slot, equipped, looting, bag, action }: { item: Item
   return (
     <div className="item-detail">
       <h4>
-        {def.icon} {name} {equipped && <small>(đang cầm)</small>}
+        {def.icon} {name} {equipped && <small>{item.kind === 'bag' ? '(đang đeo)' : '(đang cầm)'}</small>}
       </h4>
       {lines.map((line, i) => (
         <p key={i} className={item.kind !== 'weapon' ? undefined : i === 0 ? 'stat-line' : i === 1 ? `stat-line status-${level}` : undefined}>
@@ -159,17 +159,22 @@ function ItemDetail({ item, slot, equipped, looting, bag, action }: { item: Item
             {equipped ? 'Bỏ trang bị' : 'Trang bị'}
           </button>
         )}
+        {item.kind === 'bag' && (
+          <button type="button" onClick={() => runtime.wearBag(equipped ? null : item.id)}>
+            {equipped ? 'Tháo balo' : 'Đeo balo'}
+          </button>
+        )}
         {consumable && (
-          <button type="button" onClick={() => runtime.consumeItem(slot)}>
+          <button type="button" onClick={() => runtime.consumeItem(item.id)}>
             Dùng
           </button>
         )}
         {looting && (
-          <button type="button" onClick={() => runtime.putIntoContainer(slot)}>
+          <button type="button" onClick={() => runtime.putIntoContainer(item.id)}>
             Cất vào tủ
           </button>
         )}
-        <button type="button" onClick={() => runtime.dropItem(slot)}>
+        <button type="button" onClick={() => runtime.dropItem(item.id)}>
           Thả xuống
         </button>
         {recipe &&
@@ -197,38 +202,43 @@ export function InventoryPanel() {
   const bag = useInventoryStore((s) => s.bag)
   const container = useInventoryStore((s) => s.container)
   const equippedId = useInventoryStore((s) => s.weaponInstanceId)
+  const backId = useInventoryStore((s) => s.backInstanceId)
+  const weightKg = useInventoryStore((s) => s.weightKg)
   const action = useInventoryStore((s) => s.action)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const used = countUsedSlots(bag)
   const looting = container !== null
-  const selectedSlot = selectedId ? bag.slots.findIndex((s) => s?.id === selectedId) : -1
-  const selected = selectedSlot >= 0 ? bag.slots[selectedSlot] : null
-  const equipped = bag.slots.find((s) => s?.id === equippedId)
+  const cells = slotView(bag)
+  const selected = selectedId ? (bag.items.find((s) => s.id === selectedId) ?? null) : null
+  const equipped = bag.items.find((s) => s.id === equippedId)
 
   return (
     <div className="inv-panel">
       <div className="inv-header">
         <h3>Túi đồ</h3>
         <span className="inv-count">
-          {used}/{bag.slots.length}
+          {used}/{bag.slotCapacity ?? '∞'} · {weightKg.toFixed(1)} kg
         </span>
       </div>
       <SlotGrid
         inv={bag}
         columns={4}
         title={looting ? 'Trái: chi tiết · Shift+trái: cất vào tủ · Phải: dùng/trang bị' : 'Trái: chi tiết · Phải: dùng/trang bị'}
-        equippedId={equippedId}
+        equippedIds={[equippedId, backId]}
         selectedId={selected?.id ?? null}
         onClick={(i, e) => {
-          const item = bag.slots[i]
+          const item = cells[i]
           if (!item) return
-          if (looting && e.shiftKey) runtime.putIntoContainer(i)
+          if (looting && e.shiftKey) runtime.putIntoContainer(item.id)
           else setSelectedId(selected?.id === item.id ? null : item.id)
         }}
-        onContextMenu={(i) => runtime.activateItem(i)}
+        onContextMenu={(i) => {
+          const item = cells[i]
+          if (item) runtime.activateItem(item.id)
+        }}
       />
       {selected ? (
-        <ItemDetail item={selected} slot={selectedSlot} equipped={selected.id === equippedId} looting={looting} bag={bag} action={action} />
+        <ItemDetail item={selected} equipped={selected.id === equippedId || selected.id === backId} looting={looting} bag={bag} action={action} />
       ) : (
         <p className="inv-hint">Đang cầm: {equipped ? getItemDef(equipped.itemId).name : 'Tay không (Space để đẩy)'}</p>
       )}

@@ -67,7 +67,8 @@ describe('generateContainerLoot', () => {
   it('never exceeds the container slot count', () => {
     const rich: LootTable = { id: 'rich', guaranteed: [], rolls: 30, pool: [{ itemId: 'medkit', weight: 1, min: 1, max: 1 }] }
     const inv = generateContainerLoot(rich, 7, 'x', 4)
-    expect(inv.slots.length).toBe(4)
+    expect(inv.items.length).toBe(4)
+    expect(inv.slotCapacity).toBe(4)
     expect(totalQuantity(inv)).toBe(4)
   })
 })
@@ -105,8 +106,7 @@ describe('world loot on the neighborhood map', () => {
   it('loot only contains defined items within stack limits', () => {
     const w = createWorldState(NEIGHBORHOOD_MAP, 31337)
     for (const c of w.containers.values()) {
-      for (const s of c.items.slots) {
-        if (!s) continue
+      for (const s of c.items.items) {
         expect(ITEMS[s.itemId]).toBeDefined()
         expect(s.quantity).toBeLessThanOrEqual(ITEMS[s.itemId].stackLimit)
       }

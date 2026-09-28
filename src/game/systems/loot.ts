@@ -1,6 +1,8 @@
-import type { ItemId } from '../entities/items'
+import type { ItemId, ItemInstance } from '../entities/items'
 import { getItemDef } from '../entities/items'
-import { addItem, createInventory, type Inventory, type ItemStack } from './inventory'
+import { GAME_CONFIG } from '../core/config'
+import { addItem, createInventory, freeSlots, type Inventory, type ItemStack } from './inventory'
+import { ensureBagContents, type BagStore } from './bags'
 
 /** Condition range for weapons as a fraction of maxCondition, rolled once when loot is generated. */
 export type ConditionRange = readonly [number, number]
@@ -118,13 +120,70 @@ export function rollLoot(table: LootTable, rng: Rng): LootRoll[] {
 }
 
 /**
+ * Calls of the table generator since start (tests prove that opening or loading a container never
+ * rolls loot again: only New Game and a migration seeding a container that did not exist).
+ */
+export const lootStats = { generated: 0 }
+
+/**
  * Sinh nội dung một container đúng một lần cho ván: seed = hash(seed ván, id container).
  * Kết quả được lưu vào `WorldState`; mở lại không gọi hàm này nữa.
  */
 export function generateContainerLoot(table: LootTable | undefined, worldSeed: number, containerId: string, slots: number): Inventory {
-  const inv = createInventory(slots, `loot:${worldSeed}:${containerId}`)
+  lootStats.generated += 1
+  const inv = createInventory(slots, `loot:${worldSeed}:${containerId}`, 'container')
   if (!table) return inv
   const rng = createRng(hashSeed(worldSeed, containerId))
   for (const roll of rollLoot(table, rng)) addItem(inv, roll.itemId, roll.quantity, { condition: roll.condition })
+  return inv
+}
+
+export interface BonusLootRule {
+  readonly id: string
+  readonly itemId: ItemId
+  readonly tables: readonly string[]
+  readonly chance: number
+}
+
+/** Deterministic instance ID of a bonus item: a repeated patch finds it and never adds a second one. */
+export function bonusInstanceId(inv: Inventory, rule: BonusLootRule): string {
+  return `${inv.id}:${rule.id}`
+}
+
+/**
+ * Whether `rule` gives this container its item: own seed stream hash(worldSeed, rule + container), so
+ * the table's rolls stay identical and an old save's unopened container gets exactly what a New
+ * Game with the same seed would.
+ */
+export function bonusRollHits(rule: BonusLootRule, worldSeed: number, containerId: string): boolean {
+  return createRng(hashSeed(worldSeed, `inv-loot/${rule.id}:${containerId}`))() < rule.chance
+}
+
+export type BonusOutcome = 'added' | 'no-roll' | 'wrong-table' | 'full' | 'present'
+
+/**
+ * Add the bonus item of `rule` to a container inventory when its table qualifies, the roll hits and a
+ * slot is free. Never removes, replaces or merges anything; a bag gets its empty contents in `bags`.
+ */
+export function applyBonusLoot(inv: Inventory, tableId: string | undefined, worldSeed: number, containerId: string, rule: BonusLootRule, bags: BagStore): BonusOutcome {
+  if (!tableId || !rule.tables.includes(tableId)) return 'wrong-table'
+  const id = bonusInstanceId(inv, rule)
+  if (inv.items.some((i) => i.id === id)) return 'present'
+  if (!bonusRollHits(rule, worldSeed, containerId)) return 'no-roll'
+  if (freeSlots(inv) <= 0) return 'full'
+  const kind = getItemDef(rule.itemId).kind
+  if (kind !== 'bag' && kind !== 'weapon') throw new Error(`bonus loot supports individual items only: ${rule.itemId}`)
+  const item: ItemInstance = kind === 'bag'
+    ? { id, itemId: rule.itemId, kind: 'bag', quantity: 1 }
+    : { id, itemId: rule.itemId, kind: 'weapon', quantity: 1, condition: getItemDef(rule.itemId).maxCondition! }
+  inv.items.push(item)
+  ensureBagContents(bags, inv)
+  return 'added'
+}
+
+/** A container as New Game creates it: its table, then every released bonus rule. */
+export function seedContainer(tableId: string | undefined, worldSeed: number, containerId: string, slots: number, bags: BagStore, tables: Record<string, LootTable>, rules: readonly BonusLootRule[] = GAME_CONFIG.bonusLoot): Inventory {
+  const inv = generateContainerLoot(tableId ? tables[tableId] : undefined, worldSeed, containerId, slots)
+  for (const rule of rules) applyBonusLoot(inv, tableId, worldSeed, containerId, rule, bags)
   return inv
 }

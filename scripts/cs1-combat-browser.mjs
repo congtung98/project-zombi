@@ -42,7 +42,7 @@ try {
     rt.cameraZoom = 50
     const { addItem } = await import('/src/game/systems/inventory.ts')
     addItem(rt.player.inventory, 'baseball_bat', 1)
-    rt.equipItem(rt.player.inventory.slots.find((s) => s?.itemId === 'baseball_bat').id)
+    rt.equipItem(rt.player.inventory.items.find((s) => s.itemId === 'baseball_bat').id)
     // Outside the safehouse door, on open ground.
     const door = rt.map.doors.find((d) => d.id.endsWith('safehouse/door'))
     const p = { x: door.center.x, y: 0, z: door.center.z + 4 }

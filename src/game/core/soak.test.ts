@@ -173,15 +173,15 @@ function runSoak(policy: 'shelter' | 'patrol') {
     rt.events.on('weapon:broken', (e) => {
       m.broken += 1
       // Broken weapons stay owned (never deleted), they are only weaker.
-      expect(rt.player.inventory.slots.some((i) => i?.id === e.id && i.kind === 'weapon' && i.condition === 0)).toBe(true)
+      expect(rt.player.inventory.items.some((i) => i.id === e.id && i.kind === 'weapon' && i.condition === 0)).toBe(true)
     })
     /** Bot policy: keep the best usable weapon (damage per second of cooldown) in hand. */
     const equipBest = () => {
       const current = equippedWeapon(rt.player.inventory, rt.player.equipment)
       if (current && current.condition > 0) return
       let best: { id: string; score: number } | null = null
-      for (const item of rt.player.inventory.slots) {
-        if (item?.kind !== 'weapon' || item.condition <= 0) continue
+      for (const item of rt.player.inventory.items) {
+        if (item.kind !== 'weapon' || item.condition <= 0) continue
         const s = meleeStats(item.itemId)
         const score = s.damage / s.cooldown
         if (!best || score > best.score) best = { id: item.id, score }
@@ -262,10 +262,13 @@ function runSoak(policy: 'shelter' | 'patrol') {
       const pos = p.position
 
       // ---- Ăn uống / băng bó khi cần (gọi như UI click)
-      const slotOf = (kind: 'food' | 'drink' | 'medical') => p.inventory.slots.findIndex((s) => s && getItemDef(s.itemId).kind === kind)
-      if (p.hunger < 35 && slotOf('food') >= 0) rt.consumeItem(slotOf('food'))
-      if (p.thirst < 35 && slotOf('drink') >= 0) rt.consumeItem(slotOf('drink'))
-      if (p.health < 45 && slotOf('medical') >= 0) rt.consumeItem(slotOf('medical'))
+      const firstOf = (kind: 'food' | 'drink' | 'medical') => p.inventory.items.find((s) => getItemDef(s.itemId).kind === kind)?.id
+      const food = firstOf('food')
+      if (p.hunger < 35 && food) rt.consumeItem(food)
+      const drink = firstOf('drink')
+      if (p.thirst < 35 && drink) rt.consumeItem(drink)
+      const medical = firstOf('medical')
+      if (p.health < 45 && medical) rt.consumeItem(medical)
 
       // ---- Combat: zombie gần nhất còn sống
       let nearest: { pos: Vec3; d: number } | null = null
@@ -314,11 +317,11 @@ function runSoak(policy: 'shelter' | 'patrol') {
       // ---- Loot: tới tủ mục tiêu thì mở, lấy hết, đóng
       if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting) {
         rt.interact(target)
-        const before = p.inventory.slots.filter(Boolean).reduce((n, s) => n + s!.quantity, 0)
-        for (const item of rt.openContainer!.items.slots) if (item?.kind === 'weapon') m.weaponsFound.push(`${item.itemId}@${item.condition}`)
+        const before = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
+        for (const item of rt.openContainer!.items.items) if (item.kind === 'weapon') m.weaponsFound.push(`${item.itemId}@${item.condition}`)
         rt.takeAll()
         equipBest()
-        const after = p.inventory.slots.filter(Boolean).reduce((n, s) => n + s!.quantity, 0)
+        const after = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
         m.lootTaken += after - before
         rt.closeAllUi()
         looted.add(goalContainer)
@@ -373,7 +376,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       expect(Number.isFinite(p.health) && Number.isFinite(p.hunger) && Number.isFinite(p.thirst)).toBe(true)
       expect(p.hunger).toBeGreaterThanOrEqual(0)
       expect(p.thirst).toBeGreaterThanOrEqual(0)
-      for (const s of p.inventory.slots) if (s) expect(s.quantity).toBeGreaterThan(0)
+      for (const s of p.inventory.items) expect(s.quantity).toBeGreaterThan(0)
       // Plan §10.4: at most two zombies in contact with one side of a door.
       const bashers = new Map<string, number>()
       for (const z of rt.zombies.values()) {
@@ -412,7 +415,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       endHealth: Math.round(rt.player.health),
       endHunger: Math.round(rt.player.hunger),
       endThirst: Math.round(rt.player.thirst),
-      bag: rt.player.inventory.slots.filter(Boolean).map((s) => (s!.kind === 'weapon' ? `${s!.itemId}@${s!.condition}` : `${s!.itemId}x${s!.quantity}`)),
+      bag: rt.player.inventory.items.map((s) => (s.kind === 'weapon' ? `${s.itemId}@${s.condition}` : `${s.itemId}x${s.quantity}`)),
       equipped: equippedWeapon(rt.player.inventory, rt.player.equipment)?.itemId ?? null,
       day: rt.clock.day,
       time: rt.clock.formatTime(),

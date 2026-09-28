@@ -1,7 +1,7 @@
 import { GAME_CONFIG } from '../core/config'
 import { getItemDef, type ItemEffect, type ItemId } from '../entities/items'
 import type { PlayerState } from '../entities/player'
-import { removeFromSlot } from './inventory'
+import { findItem, removeQuantity, type Inventory } from './inventory'
 
 /** `not-usable`: materials/equipment have no direct use (or the item is reserved by an action). */
 export type UseItemFailure = 'dead' | 'empty' | 'no-effect' | 'not-usable'
@@ -28,18 +28,18 @@ export function applyItemEffect(player: PlayerState, effect: ItemEffect, limits 
 }
 
 /**
- * Dùng một vật phẩm ở ô `slot` của túi người chơi. Chỉ trừ vật phẩm khi dùng
- * thành công (kế hoạch §5.2): ô trống, đã chết hoặc không có tác dụng thì không trừ.
+ * Dùng đúng instance `instanceId` trong `inventory` (túi chính hoặc balo đang đeo). Chỉ trừ vật phẩm
+ * khi dùng thành công (kế hoạch §5.2): không có món, đã chết hoặc không có tác dụng thì không trừ.
  */
-export function consumeInventoryItem(player: PlayerState, slot: number, limits = GAME_CONFIG.player): UseItemResult {
-  const stack = player.inventory.slots[slot]
+export function consumeInventoryItem(player: PlayerState, inventory: Inventory, instanceId: string, limits = GAME_CONFIG.player): UseItemResult {
+  const stack = findItem(inventory, instanceId)
   if (!stack || stack.quantity <= 0) return { ok: false, reason: 'empty' }
   const def = getItemDef(stack.itemId)
   if (!player.alive) return { ok: false, reason: 'dead', itemId: def.id }
   if (def.kind !== 'food' && def.kind !== 'drink' && def.kind !== 'medical') return { ok: false, reason: 'not-usable', itemId: def.id }
   if (!canBenefit(player, def.effect, limits)) return { ok: false, reason: 'no-effect', itemId: def.id }
   applyItemEffect(player, def.effect, limits)
-  removeFromSlot(player.inventory, slot, 1)
+  removeQuantity(inventory, instanceId, 1)
   return { ok: true, itemId: def.id, effect: def.effect }
 }
 

@@ -136,7 +136,7 @@ describe('content migrations: saves (M8)', () => {
   it('keeps kept and renamed state, seeds what is new, drops removed containers on the ground, reassigns zones', () => {
     const before = v1Save()
     const scrap = before.containers.find((c) => c.id === 'c0_0/objects/house-scrap')!
-    const scrapItems = scrap.items.slots.filter(Boolean)
+    const scrapItems = scrap.items.items
     expect(scrapItems.length).toBeGreaterThan(0)
     const original = JSON.stringify(before)
     const v = validateSaveGame(before, ID, mapV2)
@@ -162,7 +162,7 @@ describe('content migrations: saves (M8)', () => {
     const at = NEIGHBORHOOD_MAP.containers.find((c) => c.id === scrap.id)!.position
     for (const item of scrapItems) {
       const bag = save.containers.find((c) => c.id === `drop:${item!.id}`)!
-      expect(bag.items.slots).toEqual([item])
+      expect(bag.items.items).toEqual([item])
       expect(Math.hypot(bag.position!.x - at.x, bag.position!.z - at.z)).toBeLessThan(2)
     }
     expect(save.zombies[0].zoneId).not.toBe('c-1_-1/zones/west')

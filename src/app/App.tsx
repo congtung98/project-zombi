@@ -34,7 +34,7 @@ function describeEffect(effect: ItemEffect): string {
   return parts.join(', ')
 }
 
-const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup' } as const
+const ITEM_SFX = { food: 'eat', drink: 'drink', medical: 'heal', weapon: 'pickup', tool: 'pickup', material: 'pickup', bag: 'pickup' } as const
 const UNAWARE = new Set(['IDLE', 'WANDER', 'MIGRATE'])
 
 /** World sounds fade with distance from the player (full within 6 m, quiet but audible at 30 m). */
@@ -101,6 +101,9 @@ export function App() {
       }),
       runtime.events.on('item:equipped', (e) =>
         useHudStore.getState().showToast(e.itemId ? `Đang cầm ${getItemDef(e.itemId).name}.` : 'Đã cất vũ khí: tay không.', 1400),
+      ),
+      runtime.events.on('bag:worn', (e) =>
+        useHudStore.getState().showToast(e.itemId ? `Đang đeo ${getItemDef(e.itemId).name.toLowerCase()}: dùng được đồ bên trong.` : 'Đã tháo balo.', 1400),
       ),
       runtime.events.on('weapon:worn', () => inv().sync(runtime)),
       runtime.events.on('weapon:lowCondition', (e) => useHudStore.getState().showToast(`${e.name} sắp hỏng (≤ 25% độ bền).`, 2500, 'warn')),

@@ -1,6 +1,6 @@
 import type { Inventory } from '../game/systems/inventory'
 import type { Vec3, ZombieAIState } from './index'
-import type { Equipment } from '../game/entities/items'
+import type { Equipment, ItemInstance } from '../game/entities/items'
 import type { DoorState } from '../game/world/doors'
 import type { CharacterAppearance } from '../game/entities/appearance'
 import type { MemorySource } from '../game/entities/zombie'
@@ -12,11 +12,22 @@ import type { MemorySource } from '../game/entities/zombie'
  * (building lighting: curtains, lamps, grid power; the house bedroom door) → v8 (map content:
  * stable content IDs such as `c-1_-1/safehouse/door`, plus the content revision) → v9 (M11b
  * storeys: every position's `y` is the feet height, i.e. the floor it stands on; older saves were
- * all on the ground and store the player's body centre, so they migrate to y = 0).
+ * all on the ground and store the player's body centre, so they migrate to y = 0) → v10 (INV-LOOT:
+ * every inventory is a list of instances with a kind and a saved `slotCapacity` instead of a slot
+ * array with holes; `equipment.backInstanceId`; `bags` holds the contents of every bag instance;
+ * `lootPatches` lists the bonus loot rules applied, e.g. backpacks added once to unopened suitable
+ * containers of an older save).
  * Older versions migrate in memory; unknown versions are rejected without overwriting the
  * original. Timed actions (craft/repair in progress) and derived room light are never saved.
  */
-export const SAVE_SCHEMA_VERSION = 9
+export const SAVE_SCHEMA_VERSION = 10
+
+/** Inventory as stored before v10: a fixed slot array, `null` = empty slot, length = capacity. */
+export interface LegacyInventory {
+  id: string
+  nextItemId: number
+  slots: (ItemInstance | null)[]
+}
 
 export interface SavedPlayer {
   name: string
@@ -71,6 +82,10 @@ export interface SaveGame {
   player: SavedPlayer
   doors: DoorState[]
   containers: SavedContainer[]
+  /** v10: contents of every bag instance (inventory id `bag:<instance id>`, kind `bag`). */
+  bags: Inventory[]
+  /** v10: IDs of the bonus loot rules already applied to this world (GAME_CONFIG.bonusLoot). */
+  lootPatches: string[]
   /** Chỉ zombie còn sống; xác không cần khôi phục. */
   zombies: SavedZombie[]
   spawn: { nextZombieId: number; timer: number; counter: number }

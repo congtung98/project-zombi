@@ -1,7 +1,7 @@
 import type { ItemId } from '../entities/items'
 import type { Recipe } from '../entities/recipes'
 import type { RecipeCheck } from './crafting'
-import { countItem, type Inventory } from './inventory'
+import { countItem, findItem, type Inventory } from './inventory'
 
 /**
  * Items promised to the running action: counts per stackable type plus individual instances
@@ -40,9 +40,9 @@ export function reservationFor(recipe: Recipe, targetId: string | null, check: R
   return { counts, instanceIds }
 }
 
-/** True if taking `quantity` out of `slot` would touch a reserved instance or dip below a reserved count. */
-export function reservationBlocks(inv: Inventory, reservation: Reservation | null, slot: number, quantity: number): boolean {
-  const item = inv.slots[slot]
+/** True if taking `quantity` of instance `instanceId` would touch a reserved instance or dip below a reserved count. */
+export function reservationBlocks(inv: Inventory, reservation: Reservation | null, instanceId: string, quantity: number): boolean {
+  const item = findItem(inv, instanceId)
   if (!reservation || !item) return false
   if (reservation.instanceIds.includes(item.id)) return true
   const reserved = reservation.counts[item.itemId] ?? 0

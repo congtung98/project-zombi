@@ -16,7 +16,7 @@ const DT = 1 / 60
 
 function give(rt: GameRuntime, itemId: ItemId, condition?: number): WeaponInstance {
   addItem(rt.player.inventory, itemId, 1, { condition })
-  return rt.player.inventory.slots.findLast((i) => i?.itemId === itemId) as WeaponInstance
+  return rt.player.inventory.items.findLast((i) => i.itemId === itemId) as WeaponInstance
 }
 
 function arm(rt: GameRuntime, itemId: ItemId = 'baseball_bat', condition?: number): WeaponInstance {
@@ -45,7 +45,7 @@ function setup(spawns: MapData['zombieSpawns']) {
 describe('P2-S2 unarmed start', () => {
   it('New Game has no weapon; clicking attack only hints, while Space push still works', () => {
     const { rt, zombies } = setup([{ x: 1, y: 0, z: 0 }])
-    expect(rt.player.inventory.slots.every((s) => s === null)).toBe(true)
+    expect(rt.player.inventory.items.length === 0).toBe(true)
     expect(rt.player.equipment.weaponInstanceId).toBeNull()
     const hints: unknown[] = []
     rt.events.on('player:unarmed', (e) => hints.push(e))
@@ -160,7 +160,7 @@ describe('P2-S2 melee wear', () => {
     if (!v.ok) return
     const rt2 = new GameRuntime(field([]))
     rt2.loadSnapshot(v.save)
-    const weapons = rt2.player.inventory.slots.filter((i): i is WeaponInstance => i?.kind === 'weapon')
+    const weapons = rt2.player.inventory.items.filter((i): i is WeaponInstance => i.kind === 'weapon')
     expect(weapons.map((w) => [w.id, w.condition])).toEqual([[bat.id, 0], [spare.id, 33]])
     expect(rt2.player.equipment.weaponInstanceId).toBe(bat.id)
   })
