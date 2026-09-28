@@ -1,3 +1,6 @@
+// SUPERSEDED since INV-LOOT S2/S3: the UI steps drive the S1-era slot grid (replaced by the two-window UI) and
+// expect save v10 (now v11). Kept as the S1 record; the same checks now live in scripts/il-s2-browser.mjs,
+// scripts/il-s3-browser.mjs and the migration tests on the frozen fixtures (inventoryV10.test.ts, floor.test.ts).
 // INV-LOOT S1 browser check (Playwright, fresh context, dev server): the old slot UI still works on
 // the v10 list inventories (take by click, equip by right click, capacity and weight header), a
 // save is v10 and round-trips through Continue, and a real v9 save (written by the pre-v10 code,

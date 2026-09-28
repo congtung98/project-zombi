@@ -18,7 +18,7 @@ import { addItem, totalQuantity } from './inventory'
 import { inventoryWeight } from './bags'
 import type { ItemInstance } from '../entities/items'
 import { SAVE_SCHEMA_VERSION, type LegacyInventory, type SaveGame } from '../../types/save'
-import { isBonusItem } from '../../test/legacySave'
+import { dropItemsOf, floorItemsOf, isBonusItem } from '../../test/legacySave'
 
 const map = NEIGHBORHOOD_MAP
 const WARDROBE = 'c0_0/house/wardrobe'
@@ -35,7 +35,7 @@ const slots = (inv: unknown) => (inv as LegacyInventory).slots.filter((s): s is 
 /** Units per item type over the player and every container, bonus items left out. */
 const totals = (save: SaveGame) => {
   const t: Record<string, number> = {}
-  for (const inv of [save.player.inventory, ...save.containers.map((c) => c.items)]) {
+  for (const inv of [save.player.inventory, ...save.containers.map((c) => c.items), ...(save.floor ?? []).map((c) => c.items)]) {
     for (const i of inv.items) if (!isBonusItem(i)) t[i.itemId] = (t[i.itemId] ?? 0) + i.quantity
   }
   return t
@@ -56,8 +56,10 @@ describe('S1 gate: a real v9 save (written by the pre-v10 code) keeps every item
     expect(save.player.inventory).toEqual({ id: old.player.inventory.id, kind: 'player', nextItemId: old.player.inventory.nextItemId, items: slots(old.player.inventory), slotCapacity: 12 })
     expect(save.player.equipment).toEqual({ weaponInstanceId: old.player.equipment.weaponInstanceId, backInstanceId: null })
     expect(save.player.inventory.items.find((i) => i.id === old.player.equipment.weaponInstanceId)).toMatchObject({ kind: 'weapon', condition: 37 })
-    expect(save.containers.map((c) => c.id)).toEqual(old.containers.map((c) => c.id))
-    for (const c9 of old.containers) {
+    // v11: the dropped bag is a floor item where it lay; the map containers stay in order.
+    expect(save.containers.map((c) => c.id)).toEqual(old.containers.filter((c) => !c.position).map((c) => c.id))
+    expect(floorItemsOf(save)).toEqual(dropItemsOf(old as never))
+    for (const c9 of old.containers.filter((c) => !c.position)) {
       const c10 = save.containers.find((c) => c.id === c9.id)!
       expect(c10.opened).toBe(c9.opened)
       expect(c10.position).toEqual(c9.position)
@@ -66,7 +68,7 @@ describe('S1 gate: a real v9 save (written by the pre-v10 code) keeps every item
     }
     expect(totals(save)).toEqual(legacyTotals(old))
     // Everything outside the inventories is untouched.
-    const { player: p10, containers: _c10, bags: _b, lootPatches: _l, schemaVersion: _s, ...rest10 } = save
+    const { player: p10, containers: _c10, bags: _b, lootPatches: _l, floor: _f, schemaVersion: _s, ...rest10 } = save
     const { player: p9, containers: _c9, schemaVersion: _s9, ...rest9 } = old
     expect(rest10).toEqual(rest9)
     const { inventory: _i10, equipment: _e10, ...stats10 } = p10
@@ -161,10 +163,12 @@ describe('older fixtures keep every instance, condition and the equipped weapon 
     const owner = new Map<string, { owner: string; item: ItemInstance }>()
     for (const i of save.player.inventory.items) owner.set(i.id, { owner: 'player', item: i })
     for (const c of save.containers) for (const i of c.items.items) owner.set(i.id, { owner: c.id, item: i })
+    // Dropped bags (pre-v11) are floor items now.
+    for (const { item } of floorItemsOf(save)) owner.set(item.id, { owner: 'floor', item })
     const oldPlayer = fixture.player as unknown as { inventory: LegacyInventory; equipment: { weaponInstanceId: string | null } }
     for (const i of slots(oldPlayer.inventory)) expect(owner.get(i.id)).toEqual({ owner: 'player', item: i })
     for (const c of fixture.containers as unknown as { id: string; items: LegacyInventory; position?: unknown }[]) {
-      const id = c.position ? c.id : (stable[c.id] ?? c.id)
+      const id = c.position ? 'floor' : (stable[c.id] ?? c.id)
       for (const i of slots(c.items)) expect(owner.get(i.id)).toEqual({ owner: id, item: i })
     }
     expect(save.player.equipment).toEqual({ weaponInstanceId: oldPlayer.equipment.weaponInstanceId, backInstanceId: null })
@@ -283,10 +287,11 @@ describe('bags in the runtime (data level; the bag UI comes in S3)', () => {
     expect(rt.dropItem(bag.id)).toBe(true)
     const snap = migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save
     expect(snap.bags).toHaveLength(1)
+    expect(floorItemsOf(snap).map((e) => e.item.id)).toEqual([bag.id])
     const other = new GameRuntime()
     other.loadSnapshot(snap)
-    other.interact(other.interactables.find((i) => i.id === `drop:${bag.id}`)!)
-    expect(other.takeAll().moved).toBe(1)
+    other.tick(1 / 60)
+    expect(other.transferItems('floor', 'main', [{ instanceId: bag.id }]).moved).toBe(1)
     expect(other.world.bags.get(bag.id)!.items).toEqual([expect.objectContaining({ itemId: 'water', quantity: 2 })])
     expect(inventoryWeight(other.player.inventory, other.world.bags)).toBeCloseTo(weight)
   })

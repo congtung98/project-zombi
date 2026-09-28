@@ -11,6 +11,7 @@ import type { Vec3 } from '../types'
  */
 interface WorldUiState {
   doorStates: Record<string, DoorStatus>
+  /** INV-LOOT: one marker per floor item at its own position (the view of the floor data, never a copy). */
   drops: { id: string; position: Vec3 }[]
   containerOpened: Record<string, boolean>
   /** Zombies with a visual (R2: every level except DORMANT, dead ones until their corpse is removed). */
@@ -41,7 +42,7 @@ export const useWorldStore = create<WorldUiState>((set) => ({
   syncFromRuntime: (rt) => {
     const doorStates: Record<string, DoorStatus> = {}
     for (const d of rt.world.doors.values()) doorStates[d.id] = d.state
-    const drops = Array.from(rt.world.containers.values()).flatMap((c) => c.position ? [{ id: c.id, position: { ...c.position } }] : [])
+    const drops = rt.world.floor.entries().map((e) => ({ id: e.item.id, position: { ...e.position } }))
     const containerOpened: Record<string, boolean> = {}
     for (const c of rt.world.containers.values()) containerOpened[c.id] = c.opened
     set({ doorStates, drops, containerOpened, ...zombieLists(rt) })

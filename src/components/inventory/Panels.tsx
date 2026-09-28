@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { runtime } from '../../game/core/runtime'
 import { countUsedSlots, isOvercapacity } from '../../game/systems/inventory'
 import type { ItemKind } from '../../game/entities/items'
-import type { InventoryKey } from '../../game/systems/inventoryCommands'
+import { containerIdOf, type InventoryKey } from '../../game/systems/inventoryCommands'
 import { useHudStore } from '../../stores/hudStore'
 import { useInventoryStore, type InventoryView } from '../../stores/inventoryStore'
 import { useInventoryUiStore, type PanelId } from '../../stores/inventoryUiStore'
@@ -37,16 +37,19 @@ function Selector({ panel, views, active }: { panel: PanelId; views: InventoryVi
 }
 
 /** Name, slots and weight of the shown inventory; the slot limit is what is enforced, weight is only shown. */
-function ContextLine({ view, extra }: { view: InventoryView; extra?: string }) {
+function ContextLine({ view, extra, warning }: { view: InventoryView; extra?: string; warning?: string }) {
   const over = isOvercapacity(view.inventory)
   return (
     <div className="inv-context">
       <span className="inv-context-name">{view.name}</span>
-      <span className={over ? 'inv-context-over' : undefined} title={over ? L.overCapacity : undefined}>
-        {countUsedSlots(view.inventory)}/{view.inventory.slotCapacity ?? '∞'} {L.slots}
-      </span>
+      {view.inventory.slotCapacity !== null && (
+        <span className={over ? 'inv-context-over' : undefined} title={over ? L.overCapacity : undefined}>
+          {countUsedSlots(view.inventory)}/{view.inventory.slotCapacity} {L.slots}
+        </span>
+      )}
       <span>{kg(view.weightKg)} {L.kg}</span>
       {extra && <span className="inv-context-ok">{extra}</span>}
+      {warning && <span className="inv-context-warn" role="status">{warning}</span>}
     </div>
   )
 }
@@ -128,7 +131,7 @@ export function InventoryPanel({ scale }: { scale: number }) {
             {L.storeSelected}
           </button>
         )}
-        <button type="button" className="inv-btn" disabled={selected.length === 0 || view.key !== 'main'} title={view.key !== 'main' ? 'Chuyển vào túi chính trước' : undefined} onClick={() => drop(selected)}>
+        <button type="button" className="inv-btn" disabled={selected.length === 0} onClick={() => drop(view.key, selected)}>
           {L.dropSelected}
         </button>
       </div>
@@ -137,27 +140,52 @@ export function InventoryPanel({ scale }: { scale: number }) {
   )
 }
 
+/** Loot tabs: the floor and every container in reach, by key; clicking one shows it (it counts as opening it). */
+function LootTabs({ active }: { active: InventoryKey }) {
+  const tabs = useInventoryStore((s) => s.lootTabs)
+  return (
+    <div className="inv-selector" role="tablist" aria-label={L.loot}>
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          role="tab"
+          aria-selected={t.key === active}
+          className={`inv-tab${t.inReach ? '' : ' inv-tab-out'}`}
+          title={t.inReach ? undefined : L.outOfReach}
+          onClick={() => runtime.openLoot(t.key === 'floor' ? null : containerIdOf(t.key))}
+        >
+          {t.name}
+          <span className="inv-tab-count">{t.capacity === null ? t.used : `${t.used}/${t.capacity}`}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function LootPanel({ scale }: { scale: number }) {
   const loot = useInventoryStore((s) => s.lootView)
+  const inReach = useInventoryStore((s) => s.lootInReach)
   const target = useInventoryUiStore((s) => s.tables.inventory.activeKey) ?? 'main'
   const worn = useInventoryStore((s) => s.worn)
   const selected = useSelectedIds('loot', loot)
   // Items go to the inventory shown in the Inventory window (main or worn bag), never elsewhere when full.
   const destination: InventoryKey = target === 'worn' && worn ? 'worn' : 'main'
   if (!loot) return <div className="inv-panel-body"><div className="inv-empty-state">{L.noContainer}</div></div>
+  const floor = loot.key === 'floor'
   return (
     <div className="inv-panel-body">
-      <Selector panel="loot" views={[loot]} active={loot.key} />
-      <ContextLine view={loot} extra={L.inReach} />
+      <LootTabs active={loot.key} />
+      <ContextLine view={loot} extra={inReach ? L.inReach : undefined} warning={inReach ? undefined : L.outOfReach} />
       <Toolbar panel="loot">
-        <button type="button" className="inv-btn inv-btn-accent" title={L.takeAllHint} disabled={loot.inventory.items.length === 0} onClick={() => takeAll(loot.key, destination)}>
+        <button type="button" className="inv-btn inv-btn-accent" title={L.takeAllHint} disabled={!inReach || loot.inventory.items.length === 0} onClick={() => takeAll(loot.key, destination)}>
           {L.takeAll}
         </button>
       </Toolbar>
-      <ItemTable panel="loot" view={loot} scale={scale} emptyText={L.empty} onActivate={(ids) => transfer(loot.key, destination, ids)} />
+      <ItemTable panel="loot" view={loot} scale={scale} emptyText={floor ? L.emptyFloor : L.empty} onActivate={(ids) => inReach && transfer(loot.key, destination, ids)} />
       <div className="inv-footer-bar">
         <span className="inv-footer-count">{selected.length > 0 ? L.selected(selected.length) : ''}</span>
-        <button type="button" className="inv-btn" disabled={selected.length === 0} onClick={() => transfer(loot.key, destination, selected)}>
+        <button type="button" className="inv-btn" disabled={!inReach || selected.length === 0} onClick={() => transfer(loot.key, destination, selected)}>
           {L.takeSelected}
         </button>
       </div>

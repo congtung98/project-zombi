@@ -2,6 +2,7 @@ import { GAME_CONFIG } from '../core/config'
 import { seedContainer } from '../systems/loot'
 import { createInventory, type Inventory } from '../systems/inventory'
 import type { BagStore } from '../systems/bags'
+import { FloorStore } from '../systems/floor'
 import { LOOT_TABLES } from './lootTables'
 import { mapRooms, mapWindows, type MapData } from './mapData'
 import { DOOR_MAX_HP, type DoorState } from './doors'
@@ -13,7 +14,7 @@ export interface ContainerState {
   opened: boolean
   /** Nội dung hữu hạn, sinh một lần theo seed khi tạo ván; lấy đồ là chuyển số lượng ra khỏi đây. */
   items: Inventory
-  /** Only dropped bags have a position; map containers use their static definition. */
+  /** Before save v11 dropped bags were containers with a position; since v11 they are floor items. */
   position?: Vec3
 }
 
@@ -27,6 +28,8 @@ export interface WorldState {
   bags: BagStore
   /** INV-LOOT: bonus loot rules already applied to this world (New Game or a save migration). */
   lootPatches: string[]
+  /** INV-LOOT (v11): items on the ground, each at its own position (1 m cells per storey). */
+  floor: FloorStore
   /** Building lighting (v7): curtain closed per window, lamp switched on per lamp, grid power. */
   curtains: Map<string, boolean>
   lamps: Map<string, boolean>
@@ -60,5 +63,5 @@ export function createWorldState(map: MapData, seed: number, options: WorldState
   const curtains = new Map(mapWindows(map).map((w) => [w.id, false]))
   const lamps = new Map(mapRooms(map).flatMap((r) => (r.lamp ? [[r.lamp.id, false] as const] : [])))
   const lootPatches = GAME_CONFIG.bonusLoot.map((r) => r.id)
-  return { seed, doors, containers, bags, lootPatches, curtains, lamps, electricity: true }
+  return { seed, doors, containers, bags, lootPatches, floor: new FloorStore(), curtains, lamps, electricity: true }
 }

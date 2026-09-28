@@ -399,20 +399,21 @@ describe('GameRuntime inventory and loot', () => {
     expect(failed).toEqual(['no-effect'])
   })
 
-  it('walking away from an open container closes its panel, and death closes all UI', () => {
+  it('walking away keeps the loot window on the container, out of reach (nothing moves), and death closes all UI', () => {
     const rt = new GameRuntime(lootMap())
-    const closed: string[] = []
-    rt.events.on('container:closed', (e) => closed.push(e.id))
     standAtContainer(rt)
     rt.interact(rt.currentInteractable!)
     expect(rt.openContainerId).toBe('ct-hut')
+    const back = { ...rt.player.position }
 
+    // INV-LOOT §7.2: the window keeps the container and says it is out of reach; transfers refuse.
     rt.player.position = { x: 0, y: 0.9, z: 2 }
-    rt.tick(DT)
-    expect(rt.openContainerId).toBeNull()
-    expect(rt.inventoryOpen).toBe(true) // túi vẫn mở, chỉ panel container đóng
-    expect(rt.uiOpen).toBe(true)
-    expect(closed).toEqual(['ct-hut'])
+    for (let i = 0; i < 10; i++) rt.tick(DT)
+    expect([rt.openContainerId, rt.lootOpen, rt.lootInReach, rt.inventoryOpen]).toEqual(['ct-hut', true, false, true])
+    expect(rt.takeAll()).toMatchObject({ moved: 0, reason: 'unreachable' })
+    rt.player.position = back
+    for (let i = 0; i < 10; i++) rt.tick(DT)
+    expect(rt.lootInReach).toBe(true)
 
     rt.player.alive = false
     rt.tick(DT)

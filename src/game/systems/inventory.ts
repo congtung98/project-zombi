@@ -8,9 +8,10 @@ export interface ItemStack {
 
 /**
  * INV-LOOT (save v10): `player` = the main inventory, `container` = a map container, `drop` = a
- * dropped bag on the ground, `bag` = the contents of a wearable bag (`bag:<instance id>`).
+ * dropped bag on the ground (before v11), `bag` = the contents of a wearable bag (`bag:<instance id>`),
+ * `floor` = one 1 m cell of items on the ground (v11, no slot limit, items never merge there).
  */
-export type InventoryKind = 'player' | 'container' | 'drop' | 'bag'
+export type InventoryKind = 'player' | 'container' | 'drop' | 'bag' | 'floor'
 
 /**
  * An inventory is a list of instances with a slot limit: one real stack or one individual item
@@ -222,7 +223,8 @@ export function transferItem(from: Inventory, instanceId: string, to: Inventory,
   const whole = preview.quantity === s.quantity
   const limit = getItemDef(s.itemId).stackLimit
   let left = preview.quantity
-  for (const dest of to.items) {
+  // On the floor every drop is its own pile where it fell (it keeps its own position).
+  for (const dest of to.kind === 'floor' ? [] : to.items) {
     if (left === 0) break
     if (!canStack(dest, s)) continue
     const n = Math.min(left, limit - dest.quantity)

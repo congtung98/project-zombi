@@ -6,7 +6,7 @@ import type { TransferBlock } from './inventory'
  * `worn` = the worn bag's contents, `container:<id>` = a world container (in S2 only the open one).
  * Commands carry keys and instance IDs, never item objects or list indexes.
  */
-export type InventoryKey = 'main' | 'worn' | `container:${string}`
+export type InventoryKey = 'main' | 'worn' | 'floor' | `container:${string}`
 
 export function containerKey(containerId: string): InventoryKey {
   return `container:${containerId}`

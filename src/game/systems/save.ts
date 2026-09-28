@@ -8,6 +8,7 @@ import { zoneFor } from '../world/zones'
 import { LOOT_TABLES } from '../world/lootTables'
 import { applyBonusLoot, generateContainerLoot, seedContainer, type BonusLootRule } from './loot'
 import { bagInstanceIdOf, type BagStore } from './bags'
+import { FloorStore, floorCellId, type SavedFloorCell } from './floor'
 import { nearestZone } from './horde'
 import { GAME_CONFIG } from '../core/config'
 import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME, isAppearance, isValidName } from '../entities/appearance'
@@ -42,11 +43,13 @@ const SIEGE_STATES: ReadonlySet<string> = new Set(['APPROACH_STRUCTURE', 'ATTACK
 const CONTENT_IDS_VERSION = 8
 /** First save schema with list inventories, bags and loot patches (INV-LOOT). */
 const LIST_INVENTORY_VERSION = 10
+/** First save schema with floor items instead of dropped-bag containers (INV-LOOT S3). */
+const FLOOR_VERSION = 11
 
 type LegacySavedContainer = Omit<SavedContainer, 'items'> & { items: LegacyInventory }
 
 /** A save older than v10 (validated at its own version): slot-array inventories, no bags. */
-type LegacySaveGame = Omit<SaveGame, 'player' | 'containers' | 'bags' | 'lootPatches'> & {
+type LegacySaveGame = Omit<SaveGame, 'player' | 'containers' | 'bags' | 'lootPatches' | 'floor'> & {
   player: Omit<SaveGame['player'], 'inventory' | 'equipment'> & { inventory: LegacyInventory; equipment: { weaponInstanceId: string | null } }
   containers: LegacySavedContainer[]
 }
@@ -110,7 +113,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     !Array.isArray(data.containers) ||
     !data.containers.every((c) => isRecord(c) && typeof c.id === 'string' && typeof c.opened === 'boolean' &&
       (legacyV1 ? isLegacyInventory(c.items) : listShape ? isListInventory(c.items, c.position === undefined ? 'container' : 'drop') : isSlotInventory(c.items)) &&
-      (c.position === undefined || !legacyV1 && isVec3(c.position)))
+      (c.position === undefined || !legacyV1 && version < FLOOR_VERSION && isVec3(c.position)))
   ) {
     return corrupt('containers')
   }
@@ -119,6 +122,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     const patches = data.lootPatches
     if (!Array.isArray(patches) || !patches.every((p) => typeof p === 'string' && p !== '') || new Set(patches).size !== patches.length) return corrupt('lootPatches')
   }
+  if (version >= FLOOR_VERSION && (!Array.isArray(data.floor) || !data.floor.every(isFloorCell))) return corrupt('floor')
   if (
     !Array.isArray(data.zombies) ||
     !data.zombies.every(
@@ -198,12 +202,18 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     for (const c of containers) {
       if (newerThanSave(c.id)) return corrupt('container newer than schema')
       const fixed = knownMap.containers.some((d) => d.id === c.id)
-      if (fixed ? c.position !== undefined : legacyV1 || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
+      if (fixed ? c.position !== undefined : legacyV1 || version >= FLOOR_VERSION || !c.id.startsWith('drop:') || !c.position) return corrupt('unknown container')
       // Before v10 the slot count was the map rule; since v10 a map container keeps its saved capacity.
       const capacity = 'items' in c.items ? c.items.slotCapacity : c.items.slots.length
       if (listShape ? !fixed && capacity !== 1 : capacity !== (fixed ? GAME_CONFIG.inventory.containerSlots : 1)) return corrupt('container capacity')
       const area = mapBounds(knownMap)
       if (c.position && (c.position.x < area.minX || c.position.x > area.maxX || c.position.z < area.minZ || c.position.z > area.maxZ)) return corrupt('drop outside map')
+    }
+    if (version >= FLOOR_VERSION) {
+      const area = mapBounds(knownMap)
+      for (const cell of data.floor as SavedFloorCell[]) {
+        for (const { position: p } of cell.positions) if (p.x < area.minX || p.x > area.maxX || p.z < area.minZ || p.z > area.maxZ) return corrupt('floor item outside map')
+      }
     }
   }
   if (legacyV1) return migratePhase1(data, expectedMapId, current)
@@ -211,7 +221,8 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
   const inventoryIds = new Set<string>()
   const playerInventory = player.inventory as unknown as Inventory | LegacyInventory
   const bagRecords = listShape ? (data.bags as Inventory[]) : []
-  const inventories = [playerInventory, ...containers.map((c) => c.items), ...bagRecords]
+  const floorCells = version >= FLOOR_VERSION ? (data.floor as SavedFloorCell[]).map((c) => c.items) : []
+  const inventories = [playerInventory, ...containers.map((c) => c.items), ...floorCells, ...bagRecords]
   for (const inv of inventories) {
     if (inventoryIds.has(inv.id)) return corrupt('duplicate inventory namespace')
     inventoryIds.add(inv.id)
@@ -249,6 +260,7 @@ export function validateSaveGame(data: unknown, expectedMapId: string, map?: Map
     return migrateV9(save, expectedMapId, current)
   }
   const save = data as unknown as SaveGame
+  if (version === 10) return migrateV10(save, expectedMapId, current)
   // Released bonus loot rules this world has not had yet (an older save): applied once, recorded.
   if (current && GAME_CONFIG.bonusLoot.some((r) => !save.lootPatches.includes(r.id))) return patchLoot(save, expectedMapId, current)
   return { ok: true, save, migrated: false, fromVersion: version }
@@ -310,9 +322,21 @@ function isSlotInventory(v: unknown): v is LegacyInventory {
  */
 function isListInventory(v: unknown, kind: InventoryKind): v is Inventory {
   if (!isRecord(v) || typeof v.id !== 'string' || !v.id || v.kind !== kind || !Number.isSafeInteger(v.nextItemId) || Number(v.nextItemId) < 1 || !Array.isArray(v.items)) return false
-  if (!Number.isSafeInteger(v.slotCapacity) || Number(v.slotCapacity) <= 0) return false
+  if (kind === 'floor' ? v.slotCapacity !== null : !Number.isSafeInteger(v.slotCapacity) || Number(v.slotCapacity) <= 0) return false
   if (kind === 'bag' && !v.id.startsWith('bag:')) return false
   return v.items.every((s) => isInstance(s, true) && !(kind === 'bag' && s.kind === 'bag'))
+}
+
+/**
+ * v11 floor cell: a non-empty `floor` inventory named like the cell, one position per item (no more,
+ * no fewer) and every position inside that cell (1 m, same storey).
+ */
+function isFloorCell(v: unknown): v is SavedFloorCell {
+  if (!isRecord(v) || typeof v.id !== 'string' || !v.id.startsWith('floor:') || !isFiniteNumber(v.y) || !Array.isArray(v.positions)) return false
+  if (!isListInventory(v.items, 'floor') || v.items.id !== v.id || v.items.items.length === 0) return false
+  const ids = new Set(v.items.items.map((i) => i.id))
+  if (v.positions.length !== ids.size) return false
+  return v.positions.every((p) => isRecord(p) && typeof p.id === 'string' && ids.has(p.id) && isVec3(p.position) && floorCellId(p.position) === v.id)
 }
 
 /** v7 lighting inputs: unique IDs, booleans only (derived light is never stored). */
@@ -623,6 +647,29 @@ function patchLoot(source: SaveGame, mapId: string, map: MapData): SaveValidatio
   return checked.ok ? { ...checked, migrated: true, fromVersion: source.schemaVersion, lootPatch: [...reports, ...(checked.lootPatch ?? [])] } : checked
 }
 
+/**
+ * Pure v10 → v11 (INV-LOOT S3): every dropped bag becomes floor items at the position it lay, with
+ * the same instances (IDs, quantities, conditions, bag contents); the bag containers go away. Nothing
+ * else changes.
+ */
+function migrateV10(source: SaveGame, mapId: string, current?: MapData): SaveValidation {
+  const save = structuredClone(source)
+  save.schemaVersion = FLOOR_VERSION
+  const floor = new FloorStore()
+  for (const c of save.containers) {
+    if (!c.position) continue
+    for (const item of c.items.items) {
+      const cell = floor.cellAt(c.position)
+      cell.items.items.push(item)
+      floor.sync(cell, c.position)
+    }
+  }
+  save.containers = save.containers.filter((c) => !c.position)
+  save.floor = floor.serialize()
+  const checked = validateSaveGame(save, mapId, current)
+  return checked.ok ? { ...checked, migrated: true, fromVersion: 10 } : checked
+}
+
 /** Stateful IDs of a map (M8): what a save of its content revision holds state for. */
 export function mapStatefulIds(map: MapData): StatefulIds {
   return statefulIds([{ doors: map.doors, containers: map.containers, windows: mapWindows(map), rooms: mapRooms(map), zones: map.zombieZones ?? [] }])
@@ -697,7 +744,9 @@ function migrateContent(source: AnySave, mapId: string, current: MapData): SaveV
   }
 
   const list = source.schemaVersion >= LIST_INVENTORY_VERSION
-  const save = structuredClone(source) as Omit<AnySave, 'containers'> & { containers: (SavedContainer | LegacySavedContainer)[] }
+  const onFloor = source.schemaVersion >= FLOOR_VERSION
+  const save = structuredClone(source) as Omit<AnySave, 'containers'> & { containers: (SavedContainer | LegacySavedContainer)[]; floor?: SavedFloorCell[] }
+  const floorItems: { item: ItemInstance; position: Vec3 }[] = []
   const to = (id: string) => plan.target.get(id) ?? null
   const doors = save.doors.flatMap((d) => {
     const id = to(d.id)
@@ -721,6 +770,10 @@ function migrateContent(source: AnySave, mapId: string, current: MapData): SaveV
     const at = e.containers.find((x) => x.id === c.id)!.position
     const spot = outOfSolids({ x: at.x, y: 0, z: at.z }, current)
     for (const item of instancesOf(c.items)) {
+      if (onFloor) {
+        floorItems.push({ item, position: spot })
+        continue
+      }
       const dropId = `drop:${item.id}`
       const items: Inventory | LegacyInventory = list
         ? { id: dropId, kind: 'drop', nextItemId: 1, items: [item], slotCapacity: 1 }
@@ -729,6 +782,23 @@ function migrateContent(source: AnySave, mapId: string, current: MapData): SaveV
     }
   }
   save.containers = [...kept, ...drops.values()]
+  if (onFloor) {
+    // Items already on the floor that a new solid covers move beside it (their storey kept).
+    const floor = new FloorStore()
+    const all = [
+      ...(save.floor ?? []).flatMap((cell) => cell.items.items.map((item) => {
+        const p = cell.positions.find((x) => x.id === item.id)!.position
+        return { item, position: { ...outOfSolids(p, current), y: p.y } }
+      })),
+      ...floorItems,
+    ]
+    for (const { item, position } of all) {
+      const cell = floor.cellAt(position)
+      cell.items.items.push(item)
+      floor.sync(cell, position)
+    }
+    save.floor = floor.serialize()
+  }
   seedAddedContainers(save as AnySave, new Set(current.containers.map((c) => c.id).filter((id) => !kept.some((k) => k.id === id))), current)
 
   const windows = mapWindows(current)

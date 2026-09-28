@@ -282,11 +282,13 @@ describe('two storeys in the simulation', () => {
     expect(rt.currentInteractable?.id).toBe(id('wardrobe'))
     rt.interact(rt.currentInteractable!)
     expect(rt.openContainerId).toBe(id('wardrobe'))
-    // Dropped upstairs, the bag lies on the upper floor.
+    // Dropped upstairs, the item lies on the upper floor (and only there it is in reach).
     rt.closeAllUi()
     rt.player.inventory.items.push({ id: 'test:1', itemId: 'water', quantity: 1, kind: 'stack' })
     expect(rt.dropItem('test:1')).toBe(true)
-    expect(rt.world.containers.get('drop:test:1')!.position).toMatchObject({ y: 3 })
+    expect(rt.world.floor.find('test:1')!.position).toMatchObject({ y: 3 })
+    rt.tick(1 / 60)
+    expect(rt.nearbyFloorIds).toEqual(['test:1'])
   })
 
   it('storeys block sight and blows: a zombie right under the player neither sees nor hits them', () => {

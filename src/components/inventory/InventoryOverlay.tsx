@@ -47,12 +47,13 @@ function measureSafeArea(scale: number): SafeArea {
 export function InventoryOverlay() {
   const inventoryOpen = useInventoryStore((s) => s.open)
   const loot = useInventoryStore((s) => s.lootView)
+  const lootWindow = useInventoryStore((s) => s.lootOpen)
   const craftingOpen = useInventoryUiStore((s) => s.craftingOpen)
   const compactTab = useInventoryUiStore((s) => s.compactTab)
   const { setCraftingOpen, setCompactTab } = useInventoryUiStore.getState()
   const scale = useSettingsStore((s) => s.uiScale)
   const view = useView(scale)
-  const lootOpen = loot !== null
+  const lootOpen = lootWindow && loot !== null
   // The HUD (rendered before this layer) is measured again whenever the view or the scale changes.
   const defaults = useMemo(() => defaultLayout(view, measureSafeArea(scale)), [view, scale])
   const compact = isCompact(view)

@@ -74,7 +74,10 @@ function migrationToast(fromVersion: number, contentFrom: number | undefined, co
     contentFrom === undefined
       ? ''
       : `Bản đồ đã được cập nhật (nội dung v${contentFrom} → v${contentVersion}): cửa, tủ, đèn còn lại giữ trạng thái; đồ trong tủ bị dỡ bỏ nằm dưới đất chỗ tủ cũ. Đã giữ bản sao save cũ.`
-  const inventory = fromVersion < 10 ? 'Túi đồ chuyển sang dạng danh sách: giữ nguyên mọi món, độ bền và vũ khí đang cầm.' : ''
+  const inventory = [
+    fromVersion < 10 ? 'Túi đồ chuyển sang dạng danh sách: giữ nguyên mọi món, độ bền và vũ khí đang cầm.' : '',
+    fromVersion < 11 ? 'Túi đồ đã thả trở thành đồ dưới đất ở đúng chỗ cũ (E khi đứng gần để xem).' : '',
+  ].filter(Boolean).join(' ')
   const base = fromVersion >= 8 ? content || (inventory || lootPatch?.length ? '' : 'Đã nâng cấp save.') : [MIGRATION_TOAST[fromVersion] ?? 'Đã nâng cấp save.', content].filter(Boolean).join(' ')
   return [base, inventory, lootPatchNote(lootPatch)].filter(Boolean).join(' ')
 }

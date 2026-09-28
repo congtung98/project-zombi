@@ -38,7 +38,8 @@ function useDestinations(source: InventoryKey): Destination[] {
   const main = useInventoryStore((s) => s.main)
   const worn = useInventoryStore((s) => s.worn)
   const loot = useInventoryStore((s) => s.lootView)
-  return useMemo(() => [main, worn, loot].filter((v): v is InventoryView => v !== null && v.key !== source).map((v) => ({ key: v.key, name: v.name, inventory: v.inventory })), [main, worn, loot, source])
+  // The floor is reached through "Bỏ xuống đất", never listed as a second destination.
+  return useMemo(() => [main, worn, loot].filter((v): v is InventoryView => v !== null && v.key !== source && v.key !== 'floor').map((v) => ({ key: v.key, name: v.name, inventory: v.inventory })), [main, worn, loot, source])
 }
 
 function ContextMenu({ source, instanceIds, x, y, view, onInspect }: { source: InventoryKey; instanceIds: string[]; x: number; y: number; view: View; onInspect: (id: string) => void }) {

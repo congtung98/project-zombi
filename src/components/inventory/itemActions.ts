@@ -92,10 +92,10 @@ export function menuEntries(ctx: MenuContext): MenuEntry[] {
     entries.push({ key: `transfer:${dest.key}`, action: 'transfer', destination: dest.key, label: transferLabel(ctx.source, dest) + suffix, disabled: movable > 0 ? null : blocks[0] })
   }
   if (carried) {
-    const blocks = ctx.items.map((i) => (ctx.source !== 'main' ? REFUSAL_LABEL['not-main'] : (() => {
+    const blocks = ctx.items.map((i) => {
       const refusal = itemRefusal(i, ctx.equipment, true, ctx.isReserved(i))
       return refusal ? REFUSAL_LABEL[refusal] : null
-    })()))
+    })
     const movable = blocks.filter((b) => b === null).length
     entries.push({ key: 'drop', action: 'drop', label: ACTION_LABEL.drop + (ctx.items.length > 1 ? ` (${movable}/${ctx.items.length})` : ''), disabled: movable > 0 ? null : blocks[0] })
     const allFavorite = ctx.items.every((i) => i.favorite)

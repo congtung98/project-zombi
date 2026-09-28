@@ -6,10 +6,14 @@ import { GAME_CONFIG } from '../core/config'
 
 const CABINET = 'c-1_-1/safehouse/cabinet'
 
+/** Stand next to the cabinet (walls ignored: reach through walls is tested in floor.test.ts) and open it. */
 function setup() {
   const rt = new GameRuntime()
   rt.newGame(4242)
-  rt.interact(rt.interactables.find((i) => i.id === CABINET)!)
+  rt.setLineOfSightOverride({ isBlocked: () => false })
+  const cabinet = rt.interactables.find((i) => i.id === CABINET)!
+  rt.player.position = { x: cabinet.position.x + 0.5, y: 0, z: cabinet.position.z }
+  rt.interact(cabinet)
   const summaries: { moved: number; skipped: string[] }[] = []
   rt.events.on('inventory:transferred', (e) => summaries.push({ moved: e.moved, skipped: e.skipped }))
   return { rt, box: containerKey(CABINET), summaries }
@@ -71,7 +75,8 @@ describe('transferItems: one command path with state rules', () => {
     const plank = rt.player.inventory.items.find((i) => i.itemId === 'wood_plank')!
     expect(rt.transferItems('main', box, [{ instanceId: plank.id }, { instanceId: bat.id }]).skipped.map((s) => s.reason)).toEqual(['reserved', 'reserved'])
     rt.cancelAction()
-    rt.closeContainer()
+    // Out of reach (walked away): nothing moves, whether the loot window is open or not.
+    rt.player.position = { x: rt.player.position.x + 5, y: 0, z: rt.player.position.z }
     expect(rt.transferItems('main', box, [{ instanceId: plank.id }]).skipped[0].reason).toBe('unreachable')
     expect(rt.transferItems('main', 'worn', [{ instanceId: plank.id }]).skipped[0].reason).toBe('unreachable')
   })

@@ -970,6 +970,16 @@ button.primary:hover:not(:disabled) {
   color: var(--inv-accent);
 }
 
+.inv-context-warn {
+  margin-left: auto;
+  color: #e59384;
+}
+
+.inv-tab-out {
+  color: #e59384;
+  opacity: 0.8;
+}
+
 .inv-toolbar {
   display: flex;
   flex: none;

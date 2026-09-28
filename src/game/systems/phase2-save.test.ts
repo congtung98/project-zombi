@@ -16,7 +16,7 @@ import { CONTAINERS_ADDED_V3, CONTAINERS_ADDED_V5, DOORS_ADDED_V7, legacyContent
 import { LOOT_TABLES } from '../world/lootTables'
 import { generateContainerLoot } from './loot'
 import { SAVE_SCHEMA_VERSION, type LegacyInventory, type SaveGame } from '../../types/save'
-import { asV9, compactSlots, slotsOf } from '../../test/legacySave'
+import { asV9, compactSlots, dropItemsOf, floorItemsOf, slotsOf } from '../../test/legacySave'
 import { GAME_CONFIG } from '../core/config'
 import { DEFAULT_APPEARANCE, DEFAULT_PLAYER_NAME } from '../entities/appearance'
 
@@ -81,7 +81,14 @@ const ground = <T,>(fixture: T): T => {
     if (z.lastKnownTarget) z.lastKnownTarget.y = 0
   }
   for (const c of copy.containers) if (c.position) c.position.y = 0
+  // Since v11 dropped bags are floor items (see `dropsOnFloor`): whole-save comparisons leave them out.
+  copy.containers = copy.containers.filter((c) => !c.position)
   return copy as unknown as T
+}
+/** Every item of a fixture's dropped bags is on the floor of the migrated save, same instance, same place. */
+const dropsOnFloor = (save: SaveGame, fixture: unknown) => {
+  const before = dropItemsOf(fixture as never).map((d) => ({ item: d.item, position: { ...d.position, y: 0 } }))
+  expect(floorItemsOf(save)).toEqual(before)
 }
 
 /** What New Game rolled for a container before v8 (loot is seeded by the container ID of the time). */
@@ -147,24 +154,24 @@ describe('Phase 1 fixture migration', () => {
     expect(save.player.inventory.items).toHaveLength(12)
     expect(save.player.inventory.slotCapacity).toBe(12)
     expect(save.player.equipment.weaponInstanceId).toBeNull()
-    const drop = save.containers.find((c) => c.id === 'drop:legacy-bat')!
-    expect(drop.items.items[0]).toMatchObject({ itemId: 'baseball_bat', condition: 80 })
+    // v11: the bag became a floor item where it lay.
+    const [drop] = floorItemsOf(save)
+    expect(drop.item).toMatchObject({ itemId: 'baseball_bat', condition: 80 })
     expect(drop.position).toEqual({ ...full.player.position, y: 0 })
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     rt.player.health = 1
     rt.consumeItem(rt.player.inventory.items[0].id) // frees one slot without discarding an item
     rt.tick(1 / 60)
-    expect(rt.currentInteractable?.id).toBe(drop.id)
-    rt.interact(rt.currentInteractable!)
-    expect(rt.takeAll().moved).toBe(1)
+    expect(rt.nearbyFloorIds).toEqual([drop.item.id])
+    expect(rt.transferItems('floor', 'main', [{ instanceId: drop.item.id }]).moved).toBe(1)
     const bat = rt.player.inventory.items.find((i) => i.kind === 'weapon')!
     expect(rt.equipItem(bat.id)).toBe(true)
     const second = migrate(rt.createSnapshot())
     expect(second.migrated).toBe(false)
     rt.loadSnapshot(second.save)
     expect(rt.player.equipment.weaponInstanceId).toBe(bat.id)
-    expect(totalQuantity(rt.world.containers.get(drop.id)!.items)).toBe(0)
+    expect(rt.world.floor.entries()).toHaveLength(0)
   })
 
   it('rejects corrupt/unknown saves without modifying the source', () => {
@@ -265,6 +272,7 @@ describe('P2-S2 browser fixture (v3)', () => {
     const old = withoutV6(save)
     const containers = old.containers.filter((c) => !CONTAINERS_ADDED_V5.has(c.id))
     expect({ ...old, player: rest, schemaVersion: 3, containers }).toEqual(ground(s2Fixture))
+    dropsOnFloor(save, s2Fixture)
     expect(migrate(s2Fixture).save).toEqual(save)
   })
 
@@ -279,7 +287,7 @@ describe('P2-S2 browser fixture (v3)', () => {
     // The ID minted by the closet survives take → drop → pick up → save (item IDs are never renamed).
     expect(held.id.startsWith('loot:') && held.id.includes('ct-safehouse-closet')).toBe(true)
     expect(rt.world.containers.get(id('ct-safehouse-closet'))).toMatchObject({ opened: true })
-    const dropped = Array.from(rt.world.containers.values()).flatMap((c) => c.position ? c.items.items : []).find((i) => i.kind === 'weapon')
+    const dropped = rt.world.floor.entries().map((e) => e.item).find((i) => i.kind === 'weapon')
     expect(dropped).toMatchObject({ itemId: 'metal_pipe', condition: 33 })
   })
 })
@@ -328,6 +336,8 @@ describe('instance ownership', () => {
       expect(equippedWeapon(rt.player.inventory, rt.player.equipment)?.condition).toBe(bat.condition)
     }
     const cabinet = rt.interactables.find((i) => i.kind === 'container')!
+    rt.setLineOfSightOverride({ isBlocked: () => false })
+    rt.player.position = { x: cabinet.position.x + 0.5, y: 0, z: cabinet.position.z }
     rt.interact(cabinet)
     // INV-LOOT: an equipped weapon never leaves (take it off first); the reference never dangles.
     expect(rt.putIntoContainer(bats[1].id)).toMatchObject({ moved: 0, reason: 'equipped' })
@@ -342,7 +352,7 @@ describe('instance ownership', () => {
     expect(rt.player.equipment.weaponInstanceId).toBeNull()
     for (let i = 0; i < 3; i++) rt.loadSnapshot(migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save)
     const ids = new Set(bats.map((b) => b.id))
-    const items = [rt.player.inventory, ...Array.from(rt.world.containers.values()).map((c) => c.items)].flatMap((i) => i.items).filter((i) => i.kind === 'weapon' && ids.has(i.id))
+    const items = [rt.player.inventory, ...Array.from(rt.world.containers.values()).map((c) => c.items), ...[...rt.world.floor.cells.values()].map((c) => c.items)].flatMap((i) => i.items).filter((i) => i.kind === 'weapon' && ids.has(i.id))
     expect(items.map((i) => [i.id, i.kind === 'weapon' && i.condition]).sort()).toEqual(bats.map((i) => [i.id, i.condition]).sort())
   })
 
@@ -583,7 +593,7 @@ describe('v7 → v8 (map content, stable IDs)', () => {
     const { save } = migrate(v7)
     const v9 = asV9(save)
     expect(save.zombies[0]).toMatchObject({ id: 'zombie-99', structureTargetId: id('door-safehouse'), zoneId: id('zone-north'), health: 60 })
-    expect(v9.containers.at(-1)).toEqual(v7.containers.at(-1))
+    expect(floorItemsOf(save)).toEqual([{ item: bag.slots[0], position: { x: 0, y: 0, z: 0 } }])
     for (const c of v7.containers.filter((x) => !x.position)) expect(v9.containers.find((x) => x.id === id(c.id))).toEqual({ ...c, id: id(c.id) })
     expect({ ...toLegacy(save), schemaVersion: 7 }).toEqual(ground(v7))
   })

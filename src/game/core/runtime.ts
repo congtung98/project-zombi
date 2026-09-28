@@ -12,9 +12,10 @@ import { attackReadyIn, canStartAttack, cancelSwing, facingTowards, resolveConeH
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
 import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
-import { createInventory, cloneInventory, findItem, isEmpty, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
+import { cloneInventory, findItem, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
 import { containerIdOf, containerKey, emptySummary, isCarried, itemRefusal, type InventoryKey, type TransferLine, type TransferRefusal, type TransferOutcome, type TransferSkip, type TransferSummary } from '../systems/inventoryCommands'
 import { bagInstanceIdOf, findUsable, usableInventories, wornBagContents } from '../systems/bags'
+import { FloorStore } from '../systems/floor'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { migrationInterval, nearestZone, planMigration } from '../systems/horde'
@@ -94,6 +95,12 @@ const SWING_HEIGHT = 1.2
 const BODY_HEIGHT = 0.9
 /** Interactables further than this above/below the reach height are on another storey (M11b). */
 const INTERACT_VERTICAL = 1.4
+/** INV-LOOT: how often the reachable containers and floor items are refreshed (s). */
+const NEARBY_INTERVAL = 0.125
+/** Reach to an item lying on the floor, from the player's feet to the item (m). */
+const FLOOR_REACH = INTERACT_RANGE + 0.6
+/** A drop lands this far ahead of the feet when nothing is in the way (m). */
+const DROP_AHEAD = 0.35
 /** The player's capsule floats this far above its floor (never rests on a wall top it walks over). */
 const PLAYER_HOVER = 0.02
 /**
@@ -143,6 +150,15 @@ export class GameRuntime {
   inventoryOpen = false
   /** Container đang hiện panel; null khi không có. */
   openContainerId: string | null = null
+  /** INV-LOOT: the loot window is open, showing `openContainerId` or, when that is null, the floor. */
+  lootOpen = false
+  /** Containers (IDs) the player can reach now, by name then ID, refreshed ~8 times a second. */
+  nearbyContainerIds: string[] = []
+  /** Floor items (instance IDs) the player can reach now, each checked at its own position. */
+  nearbyFloorIds: string[] = []
+  /** The loot window's container is within reach (else shown "Ngoài tầm" and nothing moves). */
+  lootInReach = true
+  private nextNearbyAt = 0
   /** Tăng mỗi ván mới hoặc mỗi lần load; dùng làm key để remount scene và tạo lại physics body. */
   sessionId = 0
   /** Đếm ngược tới lần spawn kế tiếp (giây game). */
@@ -360,6 +376,11 @@ export class GameRuntime {
     this.cursorWorld = null
     this.inventoryOpen = false
     this.openContainerId = null
+    this.lootOpen = false
+    this.nearbyContainerIds = []
+    this.nearbyFloorIds = []
+    this.lootInReach = true
+    this.nextNearbyAt = 0
     this.uiOpen = false
     this.zombies.clear()
     this.zombieIndex.clear()
@@ -442,7 +463,8 @@ export class GameRuntime {
         equipment: { ...p.equipment },
       },
       doors: Array.from(this.world.doors.values()).map((d) => ({ ...d })),
-      containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items), ...(c.position ? { position: { ...c.position } } : {}) })),
+      containers: Array.from(this.world.containers.values()).map((c) => ({ id: c.id, opened: c.opened, items: cloneInventory(c.items) })),
+      floor: this.world.floor.serialize(),
       bags: Array.from(this.world.bags.values(), cloneInventory),
       lootPatches: [...this.world.lootPatches],
       zombies,
@@ -506,17 +528,13 @@ export class GameRuntime {
     // M11c-1B: the interior memory (a malformed one is dropped: it is only a view).
     this.interior.restore(isSavedExploration(save.exploration) ? save.exploration : undefined)
     for (const c of save.containers) {
-      if (c.position) {
-        this.world.containers.set(c.id, { ...c, position: { ...c.position }, items: cloneInventory(c.items) })
-        this.registerDropInteractable(c.id, c.position)
-        continue
-      }
       const container = this.world.containers.get(c.id)!
       container.opened = c.opened
       container.items = cloneInventory(c.items)
     }
     this.world.bags = new Map(save.bags.map((b) => [bagInstanceIdOf(b.id), cloneInventory(b)]))
     this.world.lootPatches = [...save.lootPatches]
+    this.world.floor = FloorStore.restore(save.floor)
 
     // AI resumes in the saved state; timers, paths and door slots are recomputed (never saved).
     for (const z of save.zombies) {
@@ -1018,13 +1036,10 @@ export class GameRuntime {
       return
     }
 
-    // Đi xa container đang mở thì panel tự đóng (không loot từ xa).
-    if (this.openContainerId) {
-      const item = this.interactableById.get(this.openContainerId)
-      const maxDist = item ? INTERACT_RANGE + item.radius + GAME_CONFIG.inventory.closeDistanceSlack : 0
-      if (!item || Math.hypot(item.position.x - player.position.x, item.position.z - player.position.z) > maxDist || !this.withinReachHeight(item)) {
-        this.closeContainer()
-      }
+    // INV-LOOT: what is in reach (containers, floor items) ~8 times a second, never a raycast per frame.
+    if (this.simTime >= this.nextNearbyAt) {
+      this.nextNearbyAt = this.simTime + NEARBY_INTERVAL
+      this.refreshNearby()
     }
 
     const from: Vec3 = above(player.position, BODY_HEIGHT)
@@ -1046,8 +1061,14 @@ export class GameRuntime {
       return this.isBlocked(from, item.position, [item.id])
     }, INTERACT_RANGE, { pointerDistance, current: this.currentInteractable?.id ?? null })
     this.currentInteractable = target
-    this.interactPrompt = target ? this.describeInteraction(target) : null
+    this.interactPrompt = target ? this.describeInteraction(target) : this.nearbyFloorIds.length > 0 && !(this.lootOpen && this.openContainerId === null) ? 'Xem đồ dưới đất' : null
 
+    // E with nothing targeted: the floor around the player (INV-LOOT §5).
+    if (!target && this.nearbyFloorIds.length > 0 && this.input.wasPressed('interact') && player.attackTimer < 0) {
+      this.cancelStance()
+      if (this.lootOpen && this.openContainerId === null) this.closeContainer()
+      else this.openLoot(null, true)
+    }
     if (target && this.input.wasPressed('interact')) {
       // CS1: no world action in the middle of a swing (never queued either: the press is dropped).
       // From the ready stance, E leaves it first (a held right button must be pressed again).
@@ -1081,7 +1102,7 @@ export class GameRuntime {
       const damaged = door && door.hp < DOOR_MAX_HP ? ` (độ bền ${door.hp}/${DOOR_MAX_HP})` : ''
       return `${door?.state === 'open' ? 'Đóng' : 'Mở'} ${target.name}${damaged}`
     }
-    if (this.openContainerId === target.id) return `Đóng ${target.name}`
+    if (this.lootOpen && this.openContainerId === target.id) return `Đóng ${target.name}`
     const container = this.world.containers.get(target.id)
     return `${container?.opened ? 'Xem' : 'Mở'} ${target.name}`
   }
@@ -1107,21 +1128,81 @@ export class GameRuntime {
     }
     const container = this.world.containers.get(target.id)
     if (!container) return
-    if (this.openContainerId === container.id) {
+    if (this.lootOpen && this.openContainerId === container.id) {
       // Nhấn E lần nữa ở cùng container: đóng panel.
       this.closeContainer()
       this.interactPrompt = this.describeInteraction(target)
       return
     }
-    const firstTime = !container.opened
-    container.opened = true
-    // Loot đã sinh khi tạo ván; mở lại chỉ hiện nội dung còn lại, không gieo thêm.
-    this.openContainerId = container.id
-    this.inventoryOpen = true
-    this.syncUiOpen()
-    this.events.queue('container:opened', { id: container.id, name: target.name, firstTime })
-    this.queueInventoryChanged()
+    this.openLoot(container.id, true)
     this.interactPrompt = this.describeInteraction(target)
+  }
+
+  /**
+   * Show a container (or the floor, `null`) in the loot window. Looking into a container is opening
+   * it (its recorded `opened` flag, the backpack patch relies on it); loot is never rolled here.
+   * `withInventory`: E also opens the inventory window (a tab click in the loot window does not).
+   */
+  openLoot(containerId: string | null, withInventory = false): boolean {
+    if (containerId !== null) {
+      const container = this.world.containers.get(containerId)
+      const target = this.interactableById.get(containerId)
+      if (!container || !target) return false
+      const firstTime = !container.opened
+      container.opened = true
+      this.events.queue('container:opened', { id: container.id, name: target.name, firstTime })
+    }
+    const previous = this.openContainerId
+    this.openContainerId = containerId
+    this.lootOpen = true
+    this.lootInReach = containerId === null || this.canReachContainer(containerId)
+    if (withInventory) this.inventoryOpen = true
+    if (previous && previous !== containerId) this.events.queue('container:closed', { id: previous })
+    this.syncUiOpen()
+    this.queueInventoryChanged()
+    return true
+  }
+
+  /** Reach of an interactable: in range (plus `slack` for one already open), same storey, no wall between. */
+  private canReachInteractable(item: Interactable, slack = 0): boolean {
+    const p = this.player.position
+    if (Math.hypot(item.position.x - p.x, item.position.z - p.z) > INTERACT_RANGE + item.radius + slack) return false
+    return this.withinReachHeight(item) && !this.isBlocked(above(p, BODY_HEIGHT), item.position, [item.id])
+  }
+
+  private canReachContainer(id: string): boolean {
+    const item = this.interactableById.get(id)
+    return !!item && item.kind === 'container' && this.canReachInteractable(item, id === this.openContainerId ? GAME_CONFIG.inventory.closeDistanceSlack : 0)
+  }
+
+  /** Reach of a point on the floor (an item's own position): same storey, close, no wall between. */
+  private canReachFloor(position: Vec3): boolean {
+    const p = this.player.position
+    if (Math.abs(position.y - p.y) > 0.5 || Math.hypot(position.x - p.x, position.z - p.z) > FLOOR_REACH) return false
+    return !this.isBlocked(above(p, BODY_HEIGHT), above(position, 0.3), [])
+  }
+
+  private refreshNearby(): void {
+    const p = this.player.position
+    const containers = this.interactableIndex.queryRadius(p.x, p.z, INTERACT_RANGE + this.maxInteractRadius)
+      .filter((i) => i.kind === 'container' && this.canReachInteractable(i))
+      .sort((a, b) => a.name.localeCompare(b.name, 'vi') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .map((i) => i.id)
+    const floor = this.world.floor.near(p, FLOOR_REACH, p.y).filter((e) => this.canReachFloor(e.position)).map((e) => e.item.id).sort()
+    const inReach = this.openContainerId === null || this.canReachContainer(this.openContainerId)
+    const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i])
+    if (same(containers, this.nearbyContainerIds) && same(floor, this.nearbyFloorIds) && inReach === this.lootInReach) return
+    this.nearbyContainerIds = containers
+    this.nearbyFloorIds = floor
+    this.lootInReach = inReach
+    this.queueInventoryChanged()
+  }
+
+  /** Where a drop lands: a little ahead of the feet when nothing is in the way, else at the feet. */
+  private dropPosition(): Vec3 {
+    const p = this.player.position
+    const ahead = { x: p.x + Math.sin(this.player.facing) * DROP_AHEAD, y: p.y, z: p.z + Math.cos(this.player.facing) * DROP_AHEAD }
+    return this.isBlocked(above(p, 0.3), above(ahead, 0.3), []) ? { ...p } : ahead
   }
 
   // ----- Inventory / container: gọi từ UI (ngoài tick) hoặc test -----
@@ -1189,32 +1270,10 @@ export class GameRuntime {
     else this.consumeItem(instanceId)
   }
 
-  /** Drop a whole main-inventory item at the player's feet; equipped, favorite and reserved items stay. */
+  /** Drop a whole carried item (main or worn bag) on the floor; equipped, favorite and reserved items stay. */
   dropItem(instanceId: string): boolean {
-    const item = findItem(this.player.inventory, instanceId)
-    if (!item || !this.player.alive || this.player.attackTimer >= 0) return false
-    if (itemRefusal(item, this.player.equipment, true, false)) return false
-    if (this.isReserved(item.id, item.quantity)) return false
-    const id = `drop:${item.id}`
-    // Reuse a previously emptied bag at this ID; never overwrite owned items.
-    if (this.world.containers.get(id) && !isEmpty(this.world.containers.get(id)!.items)) return false
-    const items = createInventory(1, id, 'drop')
-    if (transferItem(this.player.inventory, item.id, items).moved !== item.quantity) return false
-    reconcileEquipment(this.player.inventory, this.player.equipment)
-    // The bag lies at the player's feet, on whatever storey they stand.
-    const position = { ...this.player.position }
-    this.world.containers.set(id, { id, opened: false, items, position })
-    this.registerDropInteractable(id, position)
-    this.events.queue('drops:changed', {})
-    this.queueInventoryChanged()
-    return true
-  }
-
-  private registerDropInteractable(id: string, position: Vec3): void {
-    const item: Interactable = { id, kind: 'container', name: 'Túi đồ rơi', position: { ...position, y: position.y + 0.25 }, radius: 0.25 }
-    this.interactables = this.interactables.filter((i) => i.id !== id)
-    this.interactables.push(item)
-    this.indexInteractable(item)
+    const source: InventoryKey = findItem(this.player.inventory, instanceId) ? 'main' : 'worn'
+    return this.transferItems(source, 'floor', [{ instanceId }]).moved > 0
   }
 
   private indexInteractable(item: Interactable): void {
@@ -1237,19 +1296,21 @@ export class GameRuntime {
     this.queueInventoryChanged()
   }
 
+  /** Close the loot window (container or floor). */
   closeContainer(): void {
+    if (!this.lootOpen && !this.openContainerId) return
     const id = this.openContainerId
-    if (!id) return
     this.openContainerId = null
+    this.lootOpen = false
     this.syncUiOpen()
-    this.events.queue('container:closed', { id })
+    if (id) this.events.queue('container:closed', { id })
     this.queueInventoryChanged()
   }
 
   closeAllUi(): void {
-    if (!this.inventoryOpen && !this.openContainerId) return
+    if (!this.inventoryOpen && !this.lootOpen && !this.openContainerId) return
     this.inventoryOpen = false
-    if (this.openContainerId) {
+    if (this.lootOpen || this.openContainerId) {
       this.closeContainer()
       return
     }
@@ -1289,7 +1350,7 @@ export class GameRuntime {
     if (key === 'main') return this.player.inventory
     if (key === 'worn') return wornBagContents(this.player.inventory, this.player.equipment, this.world.bags)
     const id = containerIdOf(key)
-    return id !== null && id === this.openContainerId ? (this.world.containers.get(id)?.items ?? null) : null
+    return id !== null && this.canReachContainer(id) ? (this.world.containers.get(id)?.items ?? null) : null
   }
 
   /**
@@ -1302,9 +1363,16 @@ export class GameRuntime {
   transferItems(sourceKey: InventoryKey, destinationKey: InventoryKey, lines: readonly TransferLine[]): TransferSummary {
     const summary = emptySummary()
     const skip = (instanceId: string, itemId: TransferSkip['itemId'], reason: TransferRefusal) => summary.skipped.push({ instanceId, itemId, reason })
-    const from = this.inventoryFor(sourceKey)
-    const to = this.inventoryFor(destinationKey)
+    const fromFixed = sourceKey === 'floor' ? null : this.inventoryFor(sourceKey)
+    const dropAt = destinationKey === 'floor' ? this.dropPosition() : null
+    const toFixed = destinationKey === 'floor' ? null : this.inventoryFor(destinationKey)
+    let floorChanged = false
     for (const line of lines) {
+      // Floor items are checked at their own position (never the middle of the pile or the list).
+      const onFloor = sourceKey === 'floor' ? this.world.floor.find(line.instanceId) : null
+      const from = sourceKey === 'floor' ? (onFloor && this.canReachFloor(onFloor.position) ? onFloor.cell.items : null) : fromFixed
+      const dropCell = dropAt ? this.world.floor.cellAt(dropAt) : null
+      const to = dropCell ? dropCell.items : toFixed
       const item = from ? findItem(from, line.instanceId) : undefined
       const itemId = item?.itemId ?? null
       if (!this.player.alive) skip(line.instanceId, itemId, 'dead')
@@ -1319,16 +1387,23 @@ export class GameRuntime {
         if (refusal) {
           if (refusal === 'reserved') this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.action!.label })
           skip(item.id, item.itemId, refusal)
-          continue
+        } else {
+          const want = line.quantity === undefined ? item.quantity : line.quantity
+          const r = transferItem(from, item.id, to, line.quantity)
+          if (r.moved > 0) {
+            summary.moved += r.moved
+            summary.movedLines += 1
+            if (onFloor || dropCell) floorChanged = true
+          }
+          if (r.moved < Math.floor(want) || r.moved === 0) skip(item.id, item.itemId, r.reason ?? 'full')
         }
-        const want = line.quantity === undefined ? item.quantity : line.quantity
-        const r = transferItem(from, item.id, to, line.quantity)
-        if (r.moved > 0) {
-          summary.moved += r.moved
-          summary.movedLines += 1
-        }
-        if (r.moved < Math.floor(want) || r.moved === 0) skip(item.id, item.itemId, r.reason ?? 'full')
       }
+      if (onFloor) this.world.floor.sync(onFloor.cell)
+      if (dropCell && dropAt) this.world.floor.sync(dropCell, dropAt)
+    }
+    if (floorChanged) {
+      this.events.queue('drops:changed', {})
+      this.nextNearbyAt = 0
     }
     if (summary.moved > 0) this.queueInventoryChanged()
     if (lines.length > 0) this.events.queue('inventory:transferred', { source: sourceKey, destination: destinationKey, moved: summary.moved, movedLines: summary.movedLines, skipped: summary.skipped.map((x) => x.reason) })
@@ -1480,7 +1555,7 @@ export class GameRuntime {
   }
 
   private syncUiOpen(): void {
-    this.uiOpen = this.inventoryOpen || this.openContainerId !== null
+    this.uiOpen = this.inventoryOpen || this.lootOpen || this.openContainerId !== null
   }
 
   private queueInventoryChanged(): void {

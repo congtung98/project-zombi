@@ -1,4 +1,5 @@
 import type { Inventory } from '../game/systems/inventory'
+import type { SavedFloorCell } from '../game/systems/floor'
 import type { Vec3, ZombieAIState } from './index'
 import type { Equipment, ItemInstance } from '../game/entities/items'
 import type { DoorState } from '../game/world/doors'
@@ -16,11 +17,12 @@ import type { MemorySource } from '../game/entities/zombie'
  * every inventory is a list of instances with a kind and a saved `slotCapacity` instead of a slot
  * array with holes; `equipment.backInstanceId`; `bags` holds the contents of every bag instance;
  * `lootPatches` lists the bonus loot rules applied, e.g. backpacks added once to unopened suitable
- * containers of an older save).
+ * containers of an older save) → v11 (INV-LOOT S3: dropped bags become floor items where they lay, in
+ * `floor` cells of kind `floor` with each item's own position; `containers` holds map containers only).
  * Older versions migrate in memory; unknown versions are rejected without overwriting the
  * original. Timed actions (craft/repair in progress) and derived room light are never saved.
  */
-export const SAVE_SCHEMA_VERSION = 10
+export const SAVE_SCHEMA_VERSION = 11
 
 /** Inventory as stored before v10: a fixed slot array, `null` = empty slot, length = capacity. */
 export interface LegacyInventory {
@@ -86,6 +88,8 @@ export interface SaveGame {
   bags: Inventory[]
   /** v10: IDs of the bonus loot rules already applied to this world (GAME_CONFIG.bonusLoot). */
   lootPatches: string[]
+  /** v11: items on the ground, per 1 m cell and storey, each with its own position. */
+  floor: SavedFloorCell[]
   /** Chỉ zombie còn sống; xác không cần khôi phục. */
   zombies: SavedZombie[]
   spawn: { nextZombieId: number; timer: number; counter: number }

@@ -17,7 +17,7 @@ export function handleInventoryEscape(): boolean {
   }
   const open: WindowId[] = []
   if (runtime.inventoryOpen) open.push('inventory')
-  if (runtime.openContainerId) open.push('loot')
+  if (runtime.lootOpen) open.push('loot')
   if (runtime.inventoryOpen && ui.craftingOpen) open.push('crafting')
   if (open.length === 0) return false
   const scale = useSettingsStore.getState().uiScale
@@ -27,7 +27,7 @@ export function handleInventoryEscape(): boolean {
   const focused = ui.focused && open.some((id) => shown(id) === ui.focused) ? ui.focused : null
   const target = focused ?? [...ui.order].reverse().find((id) => open.some((o) => shown(o) === id)) ?? open[0]
   if (target === 'crafting') ui.setCraftingOpen(false)
-  else if (target === 'loot' || (compact && target === 'inventory' && runtime.openContainerId && (ui.compactTab === 'loot' || !runtime.inventoryOpen))) runtime.closeContainer()
+  else if (target === 'loot' || (compact && target === 'inventory' && runtime.lootOpen && (ui.compactTab === 'loot' || !runtime.inventoryOpen))) runtime.closeContainer()
   else runtime.setInventoryOpen(false)
   return true
 }

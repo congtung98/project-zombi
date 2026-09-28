@@ -20,6 +20,15 @@ interface ContainerSnapshot {
   items: Inventory
 }
 
+/** A tab of the loot window: the floor or a container, by key; `inReach` false = shown, nothing moves. */
+export interface LootTab {
+  key: InventoryKey
+  name: string
+  used: number
+  capacity: number | null
+  inReach: boolean
+}
+
 /** One inventory as a window shows it, addressed by its key. */
 export interface InventoryView {
   key: InventoryKey
@@ -41,6 +50,12 @@ interface InventoryUiState {
   main: InventoryView
   worn: InventoryView | null
   lootView: InventoryView | null
+  /** The loot window is open (a container or the floor). */
+  lootOpen: boolean
+  /** The loot window's container is within reach now. */
+  lootInReach: boolean
+  /** Floor first, then the containers in reach (by name), plus the shown one if it went out of reach. */
+  lootTabs: LootTab[]
   weaponInstanceId: string | null
   /** INV-LOOT: the worn bag (slot Back), null when none. */
   backInstanceId: string | null
@@ -52,6 +67,12 @@ interface InventoryUiState {
   action: ActionSnapshot | null
   sync: (rt: GameRuntime) => void
   reset: () => void
+}
+
+const FLOOR_NAME = 'Dưới đất'
+
+function sameTabs(a: LootTab[], b: LootTab[]): boolean {
+  return a.length === b.length && a.every((t, i) => t.key === b[i].key && t.used === b[i].used && t.inReach === b[i].inReach && t.name === b[i].name)
 }
 
 const emptyMain = (): InventoryView => ({ key: 'main', name: 'Túi chính', inventory: createInventory(0, 'ui', 'player'), weightKg: 0 })
@@ -72,6 +93,9 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
   main: emptyMain(),
   worn: null,
   lootView: null,
+  lootOpen: false,
+  lootInReach: true,
+  lootTabs: [],
   weaponInstanceId: null,
   backInstanceId: null,
   weightKg: 0,
@@ -86,10 +110,34 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
     const wornLive = wornBagContents(rt.player.inventory, rt.player.equipment, bags)
     const worn = wornLive ? share(prev.worn, 'worn', 'Balo đang đeo', wornLive, inventoryWeight(wornLive, bags)) : null
     const c = rt.openContainer
-    const name = c ? (rt.interactables.find((i) => i.id === c.id)?.name ?? c.id) : ''
-    const lootView = c ? share(prev.lootView, containerKey(c.id), name, c.items, inventoryWeight(c.items, bags)) : null
+    const nameOf = (id: string) => rt.interactables.find((i) => i.id === id)?.name ?? id
+    const name = c ? nameOf(c.id) : ''
+    // The floor view lists the floor items in reach; each row is a real instance of its own cell
+    // (the runtime re-checks every item's position when it moves), never a copy that can be changed.
+    const floorItems = rt.nearbyFloorIds.flatMap((id) => {
+      const found = rt.world.floor.find(id)
+      return found ? [found.item] : []
+    })
+    const floor: Inventory = { id: 'floor', kind: 'floor', nextItemId: 1, items: floorItems, slotCapacity: null }
+    const lootView = !rt.lootOpen ? null
+      : c ? share(prev.lootView, containerKey(c.id), name, c.items, inventoryWeight(c.items, bags))
+        : share(prev.lootView, 'floor', FLOOR_NAME, floor, inventoryWeight(floor, bags))
+    const tabIds = c && !rt.nearbyContainerIds.includes(c.id) ? [...rt.nearbyContainerIds, c.id] : rt.nearbyContainerIds
+    // Two containers with the same name (two canteen fridges) get a number so their tabs differ.
+    const names = tabIds.map(nameOf)
+    const seen = new Map<string, number>()
+    const lootTabs: LootTab[] = [
+      { key: 'floor', name: FLOOR_NAME, used: floorItems.length, capacity: null, inReach: true },
+      ...tabIds.map((id, i) => {
+        const box = rt.world.containers.get(id)!
+        const n = (seen.get(names[i]) ?? 0) + 1
+        seen.set(names[i], n)
+        const label = names.filter((x) => x === names[i]).length > 1 ? `${names[i]} ${n}` : names[i]
+        return { key: containerKey(id), name: label, used: box.items.items.length, capacity: box.items.slotCapacity, inReach: id !== c?.id || rt.lootInReach }
+      }),
+    ]
     const bagWeights: Record<string, number> = {}
-    for (const inv of [rt.player.inventory, ...(wornLive ? [wornLive] : []), ...(c ? [c.items] : [])]) {
+    for (const inv of [rt.player.inventory, ...(wornLive ? [wornLive] : []), ...(lootView ? [lootView.inventory] : [])]) {
       for (const i of inv.items) if (i.kind === 'bag') bagWeights[i.id] = itemWeight(i, bags)
     }
     const a = rt.action
@@ -99,6 +147,9 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
       main,
       worn,
       lootView,
+      lootOpen: rt.lootOpen,
+      lootInReach: rt.lootInReach,
+      lootTabs: sameTabs(prev.lootTabs, lootTabs) ? prev.lootTabs : lootTabs,
       weaponInstanceId: rt.player.equipment.weaponInstanceId,
       backInstanceId: rt.player.equipment.backInstanceId,
       weightKg: main.weightKg,
@@ -108,5 +159,5 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
     })
   },
 
-  reset: () => set({ open: false, bag: emptyMain().inventory, main: emptyMain(), worn: null, lootView: null, weaponInstanceId: null, backInstanceId: null, weightKg: 0, bagWeights: {}, container: null, action: null }),
+  reset: () => set({ open: false, bag: emptyMain().inventory, main: emptyMain(), worn: null, lootView: null, lootOpen: false, lootInReach: true, lootTabs: [], weaponInstanceId: null, backInstanceId: null, weightKg: 0, bagWeights: {}, container: null, action: null }),
 }))

@@ -1,8 +1,5 @@
 import { runtime } from '../../game/core/runtime'
-import { findItem } from '../../game/systems/inventory'
-import { itemRefusal, type InventoryKey, type TransferRefusal } from '../../game/systems/inventoryCommands'
-import { useHudStore } from '../../stores/hudStore'
-import { summaryText } from './labels'
+import type { InventoryKey } from '../../game/systems/inventoryCommands'
 import type { MenuEntry } from './itemActions'
 
 /**
@@ -21,22 +18,9 @@ export function takeAll(source: InventoryKey, destination: InventoryKey): void {
   if (inv) transfer(source, destination, inv.items.map((i) => i.id))
 }
 
-/** Drop from the main inventory: equipped, favorite and reserved items stay; one summary. */
-export function drop(instanceIds: readonly string[]): void {
-  let moved = 0
-  const skipped: TransferRefusal[] = []
-  for (const id of instanceIds) {
-    const item = findItem(runtime.player.inventory, id)
-    if (!item) {
-      skipped.push('missing')
-      continue
-    }
-    const refusal = itemRefusal(item, runtime.player.equipment, true, false)
-    if (refusal) skipped.push(refusal)
-    else if (runtime.dropItem(id)) moved += item.quantity
-    else skipped.push('reserved')
-  }
-  if (instanceIds.length > 1 || skipped.length > 0) useHudStore.getState().showToast(summaryText(moved, skipped, 'bỏ'), 2200)
+/** Drop carried items (main or worn bag) on the floor through the one transfer path; one summary. */
+export function drop(source: InventoryKey, instanceIds: readonly string[]): void {
+  transfer(source, 'floor', instanceIds)
 }
 
 /** Run a context menu entry on the resolved instances. `inspect` is handled by the window. */
@@ -67,7 +51,7 @@ export function runMenuEntry(entry: MenuEntry, source: InventoryKey, instanceIds
       if (entry.destination) transfer(source, entry.destination, instanceIds)
       return
     case 'drop':
-      drop(instanceIds)
+      drop(source, instanceIds)
       return
     case 'favorite':
     case 'unfavorite':
