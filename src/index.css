@@ -78,7 +78,10 @@ body,
 
 .stat-fill {
   height: 100%;
-  transition: width 120ms linear;
+  /* S6: scaled, not resized: a width transition re-laid out and repainted the HUD every frame. */
+  transform-origin: left center;
+  transition: transform 120ms linear;
+  will-change: transform;
 }
 
 .stat-value {
@@ -665,7 +668,9 @@ button.primary:hover:not(:disabled) {
 .hud-work-fill {
   height: 100%;
   background: #f2c14e;
-  transition: width 100ms linear;
+  transform-origin: left center;
+  transition: transform 100ms linear;
+  will-change: transform;
 }
 
 .hud-work-hint {
@@ -1280,7 +1285,11 @@ button.primary:hover:not(:disabled) {
   display: block;
   height: 100%;
   background: var(--inv-accent);
-  transition: width 100ms linear;
+  /* INV-LOOT S6: a width transition here cost ~6 ms a frame over the WebGL canvas (layout + paint
+     every frame); a transform runs on the compositor. */
+  transform-origin: left center;
+  transition: transform 100ms linear;
+  will-change: transform;
 }
 
 .inv-action-time {

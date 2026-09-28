@@ -53,7 +53,7 @@ export const L = {
   favorite: 'Yêu thích',
   broken: 'Hỏng',
   reserved: 'Đang dùng',
-  unknownItem: 'Món không xác định',
+  inspect: 'Chi tiết vật phẩm',
   expandGroup: 'Mở nhóm',
   collapseGroup: 'Gộp nhóm',
   perUnit: 'mỗi cái',

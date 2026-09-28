@@ -105,7 +105,7 @@ function ActionStrip() {
         <div className="inv-action" role="status">
           <span className="inv-action-label">{L.running}: {action.label}</span>
           {action.total > 1 && <span className="inv-action-time">{L.progress(action.done, action.total)}</span>}
-          <span className="inv-action-track"><span style={{ width: `${Math.round(action.progress * 100)}%` }} /></span>
+          <span className="inv-action-track"><span style={{ transform: `scaleX(${action.progress.toFixed(3)})` }} /></span>
           <span className="inv-action-time">{action.remaining.toFixed(1)} s</span>
           <button type="button" className="inv-btn" title={L.cancelHint} onClick={() => runtime.cancelAction()}>{waiting.length > 0 ? L.cancelAll : L.cancel}</button>
         </div>

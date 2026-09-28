@@ -95,6 +95,23 @@ interface RowProps {
   onToggleGroup: (row: Row) => void
 }
 
+/**
+ * What a row shows, as one string: a row re-renders only when this, its selection or focus changes
+ * (S6: every sync rebuilds the row objects and a transfer step changes the flags, which re-rendered
+ * every visible row of a 500-item container at each step).
+ */
+function rowLook(row: Row, flags: RowFlags): string {
+  // The handlers get the rendered row: a group's members are part of what it is.
+  if (row.kind === 'group') return `g|${row.id}|${row.name}|${row.qty}|${row.weight}|${row.expanded}|${row.instanceIds.join(',')}`
+  const i = row.item
+  const state = `${i.id === flags.weaponId ? 'E' : ''}${i.id === flags.backId ? 'B' : ''}${flags.reserved.has(i.id) ? 'R' : flags.queued.has(i.id) ? 'Q' : ''}`
+  return `i|${row.id}|${row.name}|${row.category}|${row.qty}|${row.weight}|${row.groupId}|${i.itemId}|${i.kind === 'weapon' ? i.condition : ''}|${i.favorite ? 1 : 0}|${state}`
+}
+
+const sameRow = (a: RowProps, b: RowProps) =>
+  a.selected === b.selected && a.focused === b.focused && a.onPointer === b.onPointer && a.onDouble === b.onDouble && a.onMenu === b.onMenu &&
+  a.onHover === b.onHover && a.onToggleGroup === b.onToggleGroup && (a.row === b.row && a.flags === b.flags || rowLook(a.row, a.flags) === rowLook(b.row, b.flags))
+
 const ItemRowView = memo(function ItemRowView({ row, selected, focused, flags, onPointer, onDouble, onMenu, onHover, onToggleGroup }: RowProps) {
   const itemId = row.kind === 'group' ? row.itemId : row.item.itemId
   const member = row.kind === 'item' && row.groupId !== null
@@ -131,7 +148,7 @@ const ItemRowView = memo(function ItemRowView({ row, selected, focused, flags, o
       <span role="gridcell" className="col-kg">{kg(row.weight)}</span>
     </div>
   )
-})
+}, sameRow)
 
 /**
  * The item list of one inventory. Selection and sort are by row ID, never by index; rows are derived
@@ -299,7 +316,8 @@ export function ItemTable({ panel, view, scale, onActivate, emptyText }: Props) 
   }
   // The hover card follows rows, not every mouse move: the store changes only when the row changes.
   const onHover = (row: Row | null, e?: MouseEvent) => {
-    if ((row?.id ?? null) === hoverRow.current) return
+    // Same row as before: nothing to do, unless its card was closed meanwhile (a menu opened on it).
+    if ((row?.id ?? null) === hoverRow.current && (row === null || useInventoryUiStore.getState().hover !== null)) return
     hoverRow.current = row?.id ?? null
     setHover(row && e ? { source: view.key as InventoryKey, instanceIds: row.instanceIds, ...at(e) } : null)
   }

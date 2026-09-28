@@ -72,6 +72,8 @@ export class InputManager {
   private canvas: HTMLElement | null = null
   /** Mouse buttons seen pressed on the canvas (bitmask like `PointerEvent.buttons`). */
   private mouseButtons = 0
+  /** Buttons held since a press outside the canvas (a UI row being dragged): never world presses. */
+  private uiButtons = 0
 
   readonly pointer: PointerState = { ndcX: 0, ndcY: 0, insideCanvas: false }
 
@@ -83,6 +85,7 @@ export class InputManager {
     window.addEventListener('blur', this.onBlur)
     document.addEventListener('visibilitychange', this.onVisibility)
     canvas.addEventListener('pointerdown', this.onPointerDown)
+    window.addEventListener('pointerdown', this.onAnyPointerDown, true)
     window.addEventListener('pointerup', this.onPointerUp)
     window.addEventListener('pointermove', this.onPointerMove)
     window.addEventListener('pointercancel', this.onPointerCancel)
@@ -98,6 +101,8 @@ export class InputManager {
     window.removeEventListener('blur', this.onBlur)
     document.removeEventListener('visibilitychange', this.onVisibility)
     this.canvas?.removeEventListener('pointerdown', this.onPointerDown)
+    window.removeEventListener('pointerdown', this.onAnyPointerDown, true)
+    this.uiButtons = 0
     window.removeEventListener('pointerup', this.onPointerUp)
     window.removeEventListener('pointermove', this.onPointerMove)
     window.removeEventListener('pointercancel', this.onPointerCancel)
@@ -256,13 +261,23 @@ export class InputManager {
   }
 
   private onPointerUp = (e: PointerEvent): void => {
-    this.syncButtons(e.buttons & ~buttonBit(e.button), false)
+    const held = e.buttons & ~buttonBit(e.button)
+    this.uiButtons &= held
+    this.syncButtons(held, false)
   }
 
   private onPointerMove = (e: PointerEvent): void => {
     const onCanvas = e.target === this.canvas
     if (onCanvas) this.updatePointer(e)
-    this.syncButtons(e.buttons, onCanvas)
+    // A new bit in a move is a chord (or held buttons found again after a lost capture); a button
+    // held since a press on the UI (a row dragged across the world) is never one (INV-LOOT S6, T23).
+    this.uiButtons &= e.buttons
+    this.syncButtons(e.buttons & ~this.uiButtons, onCanvas)
+  }
+
+  /** Any press anywhere (capture phase): the buttons pressed outside the canvas are the UI's. */
+  private onAnyPointerDown = (e: PointerEvent): void => {
+    if (e.target !== this.canvas) this.uiButtons |= e.buttons | buttonBit(e.button)
   }
 
   /** The browser took the pointer away (gesture, dialog…): release everything and reset intents. */

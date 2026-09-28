@@ -13,7 +13,7 @@ import { runMenuEntry, transferQuantity } from './commands'
 import { ItemIcon } from './ItemIcon'
 import { ItemCard } from './ItemCard'
 import { instancesIn, useView } from './tableData'
-import { L, REFUSAL_LABEL } from './labels'
+import { itemName, L, REFUSAL_LABEL } from './labels'
 import type { View } from './layout'
 
 const HOVER_DELAY_MS = 300
@@ -146,7 +146,7 @@ function InspectCard({ source, instanceId, x, y, view }: { source: InventoryKey;
     if (items.length === 0) close()
   }, [items.length, close])
   return (
-    <div ref={ref} className="inv-card inv-inspect" role="dialog" aria-label={L.colName} style={pos}>
+    <div ref={ref} className="inv-card inv-inspect" role="dialog" aria-label={items[0] ? itemName(items[0]) : L.inspect} style={pos}>
       <button type="button" className="inv-tool inv-inspect-close" title={L.close} onClick={close}>×</button>
       <ItemCard items={items} />
     </div>

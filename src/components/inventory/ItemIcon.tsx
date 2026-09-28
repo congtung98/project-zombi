@@ -92,12 +92,16 @@ const SHAPES: Record<Exclude<ItemId, 'unknown_item'>, ReactNode> = {
       <path d="M8 11 L13 12.5 L11 16 Z" fill="#6c747b" />
     </g>
   ),
+  // A roll seen from above at a slant (a short wide cylinder with its core), the loose end of the tape
+  // hanging from its side with a torn edge: never a lens (S6).
   duct_tape: (
-    <g stroke={O} strokeWidth={SW}>
-      <path d="M12 20.5 L21.5 20.5 L21.5 16.5 L12 16.5 Z" fill="#8e979f" />
-      <circle cx="10" cy="11" r="8" fill="#a9b0b6" />
-      <circle cx="10" cy="11" r="3.4" fill="#23282c" />
-      <path d="M4 12.5 A6.2 6.2 0 0 0 9 17" fill="none" stroke="#c9cfd4" strokeWidth="1.1" />
+    <g stroke={O} strokeWidth={SW} strokeLinejoin="round">
+      <path d="M15.5 12.5 L20.5 19.5 L19 20.5 L18 19.4 L17 21 L15.8 19.8 L14.6 21 L12.5 14.5 Z" fill="#9aa2a9" />
+      <path d="M3 8.5 L3 13.5 A8 3.8 0 0 0 19 13.5 L19 8.5 Z" fill="#7d868e" />
+      <ellipse cx="11" cy="8.5" rx="8" ry="3.8" fill="#b4bbc1" />
+      <ellipse cx="11" cy="8.5" rx="3.6" ry="1.6" fill="#c9a36a" />
+      <ellipse cx="11" cy="8.6" rx="2.2" ry="0.95" fill="#23282c" />
+      <path d="M4.2 12.3 A7.4 3.2 0 0 0 9.5 14.6" fill="none" stroke="#a3abb2" strokeWidth="0.9" />
     </g>
   ),
   nails: (
