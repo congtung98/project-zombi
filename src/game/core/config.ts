@@ -428,10 +428,19 @@ export const GAME_CONFIG = {
   camera: {
     /** Vị trí camera so với nhân vật; hướng nhìn isometric. */
     offset: { x: 20, y: 24, z: 20 },
-    zoomMin: 14,
-    zoomMax: 60,
-    zoomDefault: 28,
-    zoomStep: 2,
+    /**
+     * Camera distance from the player along `offset` (m) and its far plane. The camera is orthographic,
+     * so the distance changes nothing on screen: it only has to be large enough that the widest view
+     * never reaches behind the camera (at 37 m, the length of `offset`, the lower part of the screen
+     * was clipped by the near plane once zoomed out).
+     */
+    distance: 200,
+    far: 500,
+    /** Zoom = pixels per metre (larger = closer): 12 ≈ 100 m of ground on a 1200 px tall screen, 64 ≈ 19 m. */
+    zoomMin: 32,
+    zoomMax: 128,
+    zoomDefault: 64,
+    zoomStep: 4,
     /** Hệ số làm mượt theo nhân vật (càng lớn càng bám sát). */
     followSmoothing: 8,
   },

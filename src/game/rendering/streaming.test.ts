@@ -33,9 +33,10 @@ function town(blocks: number, seed = 11): MapData {
 
 /** The game camera (`CameraRig`: R3F sizes the orthographic frustum in pixels, zoom divides it). */
 function camera(target: { x: number; z: number }, zoom: number, width: number, height: number): OrthographicCamera {
-  const cam = new OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, 0.1, 200)
+  const cam = new OrthographicCamera(-width / 2, width / 2, height / 2, -height / 2, 0.1, CAM.far)
   cam.zoom = zoom
-  cam.position.set(target.x + CAM.offset.x, CAM.offset.y, target.z + CAM.offset.z)
+  const offset = new Vector3(CAM.offset.x, CAM.offset.y, CAM.offset.z).setLength(CAM.distance)
+  cam.position.set(target.x + offset.x, offset.y, target.z + offset.z)
   cam.lookAt(new Vector3(target.x, 0, target.z))
   cam.updateProjectionMatrix()
   cam.updateMatrixWorld()
