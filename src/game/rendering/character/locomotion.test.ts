@@ -78,7 +78,7 @@ describe('C3 player locomotion', () => {
   })
 
   it('pose: the pelvis turns toward the path while the chest keeps the facing; idle shifts weight', () => {
-    const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 1, speed: 4, swing: -1, hitAt: 0.43, shove: -1, attack: -1, hurt: 0, dead: -1, armed: true, work: -1 }
+    const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 1, speed: 4, swing: -1, hitAt: 0.43, shove: -1, attack: -1, hurt: 0, dead: -1, armed: true }
     const straight = computePose(base)
     const turned = computePose({ ...base, hipTurn: 0.6 })
     expect(turned.hipsYaw - straight.hipsYaw).toBeCloseTo(0.6, 5)

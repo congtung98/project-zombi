@@ -57,6 +57,25 @@ describe('AX2 item use', () => {
     expect([rt.characterState, rt.ledger.isEmpty(), rt.character.violations]).toEqual(['IDLE', true, []])
   })
 
+  it('AX3: the running action presents its pose group and the item in hand; nothing when idle or cancelled', () => {
+    const { rt } = setup()
+    addItem(rt.player.inventory, 'water', 1)
+    addItem(rt.player.inventory, 'bandage', 1)
+    rt.player.thirst = 30
+    rt.player.health = 50
+    expect(rt.actionPresentation).toBeNull()
+    rt.useItem('main', idOf(rt, 'water'))
+    run(rt, 1)
+    expect(rt.actionPresentation).toMatchObject({ group: 'drink', prop: { itemId: 'water', hand: 'right' }, hideWeapon: true })
+    expect(rt.actionPresentation!.progress).toBeCloseTo(1 / 2.5, 1)
+    run(rt, 2)
+    rt.useItem('main', idOf(rt, 'bandage'))
+    run(rt, 0.5)
+    expect(rt.actionPresentation).toMatchObject({ group: 'medical', prop: { itemId: 'bandage', hand: 'left' } })
+    hit(rt)
+    expect(rt.actionPresentation).toBeNull()
+  })
+
   it('the same request sent twice drinks once', () => {
     const { rt } = setup()
     addItem(rt.player.inventory, 'water', 3)

@@ -126,7 +126,6 @@ export function ZombieView({ id }: ZombieViewProps) {
           dead: z.ai === 'DEAD' ? Math.min(1, z.deadTimer / FALL_DURATION) : -1,
           fall: a.fall ?? 'back',
           armed: false,
-          work: -1,
         },
         pose.current,
       )

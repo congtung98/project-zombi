@@ -65,8 +65,10 @@ export interface CharacterRig {
   kneeR: Bone
   ankleL: Bone
   ankleR: Bone
-  /** Right-hand weapon attachment point, in the right fist. */
+  /** Right-hand weapon attachment point, in the right fist (also the right hand's prop socket, AX3). */
   weaponSocket: Group
+  /** AX3: the left fist's prop socket, mirroring the right one. */
+  leftSocket: Group
   /** Per-instance material (palette, hit flash, eye glow, fade); disposed with the rig. */
   material: CharacterMaterial
   dispose: () => void
@@ -189,9 +191,14 @@ export function buildCharacter(look: CharacterLook, shadows: ShadowDetail = 'ful
   weaponSocket.position.set(0, -GRIP, 0.01)
   weaponSocket.rotation.x = Math.PI / 4
   bones.elbowR.add(weaponSocket)
+  const leftSocket = new Group()
+  leftSocket.name = 'leftSocket'
+  leftSocket.position.set(0, -GRIP, 0.01)
+  leftSocket.rotation.x = Math.PI / 4
+  bones.elbowL.add(leftSocket)
 
   return {
-    root, mesh, ...bones, weaponSocket, material,
+    root, mesh, ...bones, weaponSocket, leftSocket, material,
     dispose: () => {
       material.dispose()
       skeleton.dispose()

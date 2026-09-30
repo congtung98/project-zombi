@@ -148,6 +148,7 @@ function consumeDefinition(type: 'EAT' | 'DRINK' | 'HEAL'): ActionDefinition<Use
     },
 
     succeeded: (job) => job.data.done,
+    propItem: (job) => job.data.itemId,
     claims: (job, instanceId) => (!job.step && job.data.instanceId === instanceId ? 1 : 0),
     view,
   }
@@ -217,6 +218,7 @@ export const OPEN_ITEM = registerAction<UseData>({
   },
 
   succeeded: (job) => job.data.done,
+  propItem: (job) => job.data.itemId,
   claims: (job, instanceId) => (!job.step && job.data.instanceId === instanceId ? 1 : 0),
   view,
 })

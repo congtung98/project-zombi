@@ -5,7 +5,7 @@ import { lookPalette, zombieLook } from './rig'
 import { SLOT } from './body'
 import { POSTURES, ZOMBIE_POSTURES, zombieMotion } from './zombieVariants'
 
-const base: PoseInput = { kind: 'zombie', time: 1, gaitPhase: 1, speed: 2.3, swing: -1, hitAt: 1, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false, work: -1 }
+const base: PoseInput = { kind: 'zombie', time: 1, gaitPhase: 1, speed: 2.3, swing: -1, hitAt: 1, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false }
 const ids = Array.from({ length: 60 }, (_, i) => `zombie-${i + 1}`)
 
 describe('C5 zombie variants', () => {

@@ -7,7 +7,7 @@ import { FALL_KINDS, computePose, createPose, type PoseInput } from './pose'
 import { ZOMBIE_POSTURES } from './zombieVariants'
 import { applyPose, buildCharacter, lookPalette, playerLook, zombieLook, type CharacterRig } from './rig'
 
-const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.43, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false, work: -1 }
+const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.43, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false }
 
 /** Model-space bounds of the skinned (posed) mesh. */
 function posedBounds(rig: CharacterRig) {

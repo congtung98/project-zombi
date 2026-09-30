@@ -32,6 +32,7 @@ import { ACTION, type ActionContext, type ActionJob, type ActionSource } from '.
 import type { ActionWorld } from '../actions/world'
 import { CharacterStateMachine, interrupts, type CharacterState, type InterruptKind } from '../actions/characterState'
 import { WorldObjectVersions } from '../actions/worldVersions'
+import { presentationOf, type ActionPresentationView } from '../actions/presentation'
 import { prepareTransfer, recipeAction, recipeActionType, recipeData, transferData, USE_STATES, type RecipeData, type TransferData, type UseData } from '../actions/defs'
 import { RECIPES, repairRecipeFor, type Recipe, type RecipeId } from '../entities/recipes'
 import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
@@ -1595,9 +1596,9 @@ export class GameRuntime {
     return this.character.state
   }
 
-  /** Seconds into the running step (the work pose), -1 when idle. */
-  get workElapsed(): number {
-    return this.actions.head?.step?.elapsed ?? -1
+  /** AX3: what the running action shows (pose group, time, prop), or null; the view reads it each frame. */
+  get actionPresentation(): ActionPresentationView | null {
+    return this.player.alive ? presentationOf(this.actions.head) : null
   }
 
   startCraft(id: RecipeId, opts: RequestOptions = {}): ActionStartResult {

@@ -3,7 +3,9 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { OrthographicCamera } from '@react-three/drei'
 import { GAME_CONFIG } from '../game/core/config'
 import { DEFAULT_APPEARANCE, OUTFIT_STYLES, type CharacterAppearance } from '../game/entities/appearance'
-import { computePose, createPose, type PoseInput } from '../game/rendering/character/pose'
+import { computePose, createPose, type ActionPoseGroup, type PoseInput } from '../game/rendering/character/pose'
+import { PropAttachment } from '../game/rendering/character/animState'
+import type { ItemId } from '../game/entities/items'
 import { applyPose, buildCharacter, playerLook, zombieLook, type CharacterLook } from '../game/rendering/character/rig'
 import { buildWeaponModel } from '../game/rendering/character/weaponModels'
 import { ZOMBIE_POSTURES } from '../game/rendering/character/zombieVariants'
@@ -12,7 +14,7 @@ import { ZOMBIE_POSTURES } from '../game/rendering/character/zombieVariants'
  * C0 (character plan): dev-only character lab, `/?lab=characters` on the dev server. Same rig, pose
  * functions, camera angle, zoom (px/m) and day lights as the game, on a 1 m grid (25 cm from zoom 60), with fixed
  * pose inputs (no clock), so screenshots are identical run to run and compare before/after a sprint.
- * URL: `set` = lineup | states | turn | close | outfits | combat | zombies, `zoom` (px/m, game default 28), `yaw` (rad, facing of the
+ * URL: `set` = lineup | states | turn | close | outfits | combat | zombies | actions (AX3), `zoom` (px/m, game default 28), `yaw` (rad, facing of the
  * states set), `t` (s, idle breathing time). `window.__labReady` is set once the frame is drawn.
  */
 const CAM = GAME_CONFIG.camera
@@ -25,11 +27,13 @@ export interface LabActor {
   look: CharacterLook
   kind: 'player' | 'zombie'
   weapon?: string
+  /** AX3: items held for an action (right / left hand). */
+  props?: { right?: ItemId; left?: ItemId }
   pose: Partial<PoseInput>
   facing: number
 }
 
-const IDLE: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: HIT_AT, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false, work: -1 }
+const IDLE: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: HIT_AT, shove: -1, attack: -1, hurt: 0, dead: -1, armed: false }
 
 const player = playerLook(DEFAULT_APPEARANCE)
 const zombie = zombieLook('zombie-1')
@@ -123,6 +127,26 @@ function zombies(yaw: number): LabActor[] {
   return [...row(0), ...row(1)]
 }
 
+/** AX3: the action pose groups with their props, two moments each (the work pose for comparison). */
+function actions(yaw: number): LabActor[] {
+  const A = (label: string, group: ActionPoseGroup, t: number, progress: number, props: LabActor['props'] = {}): LabActor =>
+    ({ label, look: player, kind: 'player', props, pose: { action: { group, t, progress, weight: 1 } }, facing: yaw })
+  return [
+    A('drink lift', 'drink', 0.2, 0.08, { right: 'water' }),
+    A('drink sip', 'drink', 1.2, 0.5, { right: 'water' }),
+    A('eat hold', 'eat', 0, 0.2, { right: 'chips' }),
+    A('eat bite', 'eat', 0.55, 0.3, { right: 'canned_food_open' }),
+    A('bandage', 'medical', 0.2, 0.3, { left: 'bandage' }),
+    A('first aid', 'medical', 0.6, 0.6, { left: 'medkit' }),
+    A('open tin', 'work', 0.1, 0.5, { left: 'canned_food' }),
+    A('reach', 'reach', 0.3, 0.55),
+    A('work', 'work', 0.2, 0.5),
+    A('soda', 'drink', 1, 0.5, { right: 'soda' }),
+    A('unknown prop', 'eat', 0.55, 0.3, { right: 'nails' }),
+    { label: 'idle', look: player, kind: 'player', pose: {}, facing: yaw },
+  ]
+}
+
 function turn(): LabActor[] {
   const out: LabActor[] = []
   for (let i = 0; i < 8; i++) out.push({ label: `p ${i * 45}°`, look: player, kind: 'player', weapon: 'baseball_bat', pose: { armed: true }, facing: (i * Math.PI) / 4 })
@@ -140,12 +164,15 @@ function Actor({ actor, x, z, time }: { actor: LabActor; x: number; z: number; t
   useEffect(() => {
     const weapon = actor.weapon ? buildWeaponModel(actor.weapon as never, false, true) : null
     if (weapon) rig.weaponSocket.add(weapon.group)
+    const props = new PropAttachment(rig, true)
+    props.sync({ right: actor.props?.right ?? null, left: actor.props?.left ?? null })
     return () => {
+      props.clear()
       weapon?.group.removeFromParent()
       weapon?.dispose()
       rig.dispose()
     }
-  }, [rig, actor.weapon])
+  }, [rig, actor.weapon, actor.props])
   useEffect(() => {
     applyPose(rig, computePose({ ...IDLE, time, kind: actor.kind, ...actor.pose }, createPose()))
   }, [rig, actor, time])
@@ -178,9 +205,9 @@ export default function CharacterLab() {
   const zoom = Number(params.get('zoom') ?? CAM.zoomDefault)
   const yaw = Number(params.get('yaw') ?? Math.PI / 2)
   const time = Number(params.get('t') ?? 0)
-  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : set === 'close' ? close() : set === 'outfits' ? outfits() : set === 'combat' ? combat(yaw) : set === 'zombies' ? zombies(yaw) : lineup(Math.PI / 4)
+  const actors = set === 'states' ? states(yaw) : set === 'turn' ? turn() : set === 'close' ? close() : set === 'outfits' ? outfits() : set === 'combat' ? combat(yaw) : set === 'zombies' ? zombies(yaw) : set === 'actions' ? actions(yaw) : lineup(Math.PI / 4)
   // Two rows when there are many actors (states: player row behind, zombie row in front).
-  const perRow = set === 'lineup' || set === 'close' ? actors.length : set === 'outfits' || set === 'combat' ? 6 : set === 'zombies' ? 4 : 8
+  const perRow = set === 'lineup' || set === 'close' ? actors.length : set === 'outfits' || set === 'combat' || set === 'actions' ? 6 : set === 'zombies' ? 4 : 8
   const spacing = 1.8
   const placed = actors.map((actor, i) => {
     const row = Math.floor(i / perRow)

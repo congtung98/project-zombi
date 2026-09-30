@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { Box3, Vector3 } from 'three'
 import { GAME_CONFIG } from '../../core/config'
 import { BODY_PRESETS, HAIR_STYLES, DEFAULT_APPEARANCE } from '../../entities/appearance'
-import { ARM_FORWARD, computePose, createPose, swingYaw, type PoseInput } from './pose'
+import { ARM_FORWARD, computePose, createPose, swingYaw, type ActionPose, type ActionPoseGroup, type PoseInput } from './pose'
 import { applyPose, buildCharacter, playerLook, setCharacterGlow, zombieLook } from './rig'
 import { SLOT } from './body'
 import { buildWeaponModel } from './weaponModels'
 import { getItemDef, ITEM_IDS } from '../../entities/items'
 
-const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.15 / 0.35, shove: -1, attack: -1, hurt: 0, dead: -1, armed: true, work: -1 }
+const base: PoseInput = { kind: 'player', time: 0, gaitPhase: 0, speed: 0, swing: -1, hitAt: 0.15 / 0.35, shove: -1, attack: -1, hurt: 0, dead: -1, armed: true }
 
 function bounds(obj: import('three').Object3D) {
   obj.updateMatrixWorld(true)
@@ -115,15 +115,17 @@ describe('pose', () => {
     const rig = buildCharacter(zombieLook('zombie-9'))
     const out = createPose()
     for (const kind of ['player', 'zombie'] as const) for (const v of [-1, 0, 0.5, 1, 2]) {
-      computePose({ ...base, kind, swing: v, shove: v, attack: v, dead: v, hurt: v, work: v, speed: Math.max(0, v * 5), gaitPhase: v * 3, time: v }, out)
+      computePose({ ...base, kind, swing: v, shove: v, attack: v, dead: v, hurt: v, action: { group: 'medical', t: v, progress: v, weight: v }, speed: Math.max(0, v * 5), gaitPhase: v * 3, time: v }, out)
       for (const n of [out.bodyY, out.bodyPitch, out.torsoTwist, out.headPitch, out.headRoll, out.legL, out.legR, out.rootPitch, out.armL.x, out.armL.y, out.armL.z, out.armR.x, out.armR.y, out.armR.z]) expect(Number.isFinite(n)).toBe(true)
       applyPose(rig, out)
     }
   })
 
+  const act = (group: ActionPoseGroup, t: number, progress = 0.5, weight = 1): ActionPose => ({ group, t, progress, weight })
+
   it('work pose (craft/repair): leans over with both arms forward and taps; a swing overrides it', () => {
     const idle = computePose({ ...base, armed: false })
-    const samples = [0, 0.1, 0.2, 0.3].map((t) => computePose({ ...base, armed: false, work: t }))
+    const samples = [0, 0.1, 0.2, 0.3].map((t) => computePose({ ...base, armed: false, action: act('work', t) }))
     for (const w of samples) {
       expect(w.bodyPitch).toBeGreaterThan(idle.bodyPitch + 0.2)
       expect(w.headPitch).toBeGreaterThan(idle.headPitch + 0.3)
@@ -132,11 +134,45 @@ describe('pose', () => {
     }
     // The hammering hand actually moves over time.
     expect(Math.max(...samples.map((w) => w.armR.x)) - Math.min(...samples.map((w) => w.armR.x))).toBeGreaterThan(0.3)
-    const swinging = computePose({ ...base, work: 0.2, swing: base.hitAt })
+    const swinging = computePose({ ...base, action: act('work', 0.2), swing: base.hitAt })
     expect(swinging.armR.y).toBeCloseTo(0, 5)
     expect(swinging.armR.x).toBeCloseTo(ARM_FORWARD, 5)
-    // No work (−1) leaves the Phase 2-S3 poses untouched.
-    expect(computePose({ ...base, work: -1 })).toEqual(computePose({ ...base }))
+    // No action, or one blended out, leaves the Phase 2-S3 poses untouched.
+    expect(computePose({ ...base, action: null })).toEqual(computePose({ ...base }))
+    expect(computePose({ ...base, action: act('drink', 1, 0.5, 0) })).toEqual(computePose({ ...base }))
+  })
+
+  it('AX3 pose groups: eating brings bites to the mouth, drinking tips the head back, bandaging looks down', () => {
+    const idle = computePose({ ...base, armed: false })
+    const bites = [0, 0.25, 0.5, 0.75].map((t) => computePose({ ...base, armed: false, action: act('eat', t) }))
+    for (const e of bites) expect(e.elbowL).toBeLessThan(-1.5) // the food held at the chest
+    expect(Math.min(...bites.map((e) => e.elbowR))).toBeLessThan(-2.0) // at the mouth
+    expect(Math.max(...bites.map((e) => e.elbowR))).toBeGreaterThan(-1.8) // and back down
+    const sip = computePose({ ...base, armed: false, action: act('drink', 1.2, 0.5) })
+    expect(sip.headPitch).toBeLessThan(idle.headPitch - 0.3)
+    expect(sip.armR.x).toBeLessThan(-1.1)
+    // The bottle comes down at the end: the last 15 % lowers it.
+    expect(computePose({ ...base, armed: false, action: act('drink', 2.5, 1) }).headPitch).toBeCloseTo(idle.headPitch, 5)
+    const wrap = computePose({ ...base, armed: false, action: act('medical', 0.7) })
+    expect(wrap.headPitch).toBeGreaterThan(idle.headPitch + 0.4)
+    expect(wrap.elbowL).toBeLessThan(-0.9)
+    const reach = computePose({ ...base, armed: false, action: act('reach', 0.2, 0.6) })
+    expect(reach.armR.x).toBeLessThan(-1.2)
+  })
+
+  it('AX3 layers: death and a hit reaction still apply over an action; the ready stance gives way to it', () => {
+    const dead = computePose({ ...base, dead: 1, fall: 'back', action: act('eat', 0.4) })
+    const corpse = computePose({ ...base, dead: 1, fall: 'back' })
+    for (const k of ['bodyPitch', 'headPitch', 'elbowL', 'elbowR', 'rootPitch'] as const) expect(dead[k]).toBeCloseTo(corpse[k], 9)
+    for (const k of ['x', 'y', 'z'] as const) expect([dead.armL[k], dead.armR[k]].map((v) => +v.toFixed(9))).toEqual([corpse.armL[k], corpse.armR[k]].map((v) => +v.toFixed(9)))
+    const drinking = computePose({ ...base, action: act('drink', 1) })
+    expect(computePose({ ...base, action: act('drink', 1), hurt: 1 }).bodyPitch).toBeLessThan(drinking.bodyPitch)
+    expect(computePose({ ...base, ready: 1, action: act('medical', 0.3) }).armL.y).toBeCloseTo(computePose({ ...base, action: act('medical', 0.3) }).armL.y, 5)
+    // Half blended: halfway between the pose without it and the full action pose.
+    const none = computePose({ ...base, armed: false })
+    const full = computePose({ ...base, armed: false, action: act('eat', 0.3) })
+    const half = computePose({ ...base, armed: false, action: act('eat', 0.3, 0.5, 0.5) })
+    expect(half.elbowR).toBeCloseTo((none.elbowR + full.elbowR) / 2, 5)
   })
 
   it('CS1 ready stance: weapon raised in both hands, the swing starts from it and still crosses the front at the hit', () => {

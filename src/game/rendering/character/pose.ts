@@ -79,8 +79,11 @@ export interface PoseInput {
   /** Death fall progress 0..1, or −1 while alive. */
   dead: number
   armed: boolean
-  /** Seconds into a craft/repair (shared work pose for every timed action), or −1. */
-  work: number
+  /**
+   * AX3: the running action's pose group (the action names a group, never a pose: FB §7), blended in
+   * by `weight` (0..1, eased by the view). Absent or weight 0: no action pose.
+   */
+  action?: ActionPose | null
   /**
    * C3: pelvis turn toward the direction of travel relative to the facing (rad): the legs follow the
    * path, the chest keeps the facing (strafing/backing off while the facing stays on the cursor).
@@ -105,6 +108,97 @@ export interface PoseInput {
   /** C5 (zombies): 0 = arms hanging (wandering), 1 = reaching for the player (hunting); default 1. */
   reach?: number
 }
+
+/** AX3 pose groups of the actions (docs/character-action-ax0.md §7). */
+export type ActionPoseGroup = 'work' | 'reach' | 'eat' | 'drink' | 'medical'
+
+export interface ActionPose {
+  group: ActionPoseGroup
+  /** Seconds into the action (rhythms: taps, bites, wraps). */
+  t: number
+  /** 0..1 of the action (lift at the start, lower at the end). */
+  progress: number
+  /** Blend over the pose without it (0..1). */
+  weight: number
+}
+
+/** Arm and upper-body targets of an action pose (added pitches for the body and the head). */
+interface ActionTarget {
+  armL: [number, number]
+  armR: [number, number]
+  elbowL: number
+  elbowR: number
+  body: number
+  head: number
+}
+
+/**
+ * The action pose groups, all standing still (the actions stop when the player walks). Right arm
+ * yaw + is across the front, left arm yaw − is across the front; elbows ≤ 0 bend the forearm up.
+ */
+function actionTarget(a: ActionPose, out: ActionTarget): ActionTarget {
+  const { t, progress } = a
+  switch (a.group) {
+    case 'work': {
+      // Shared work pose: lean over the job, left hand steadies it, right hand taps ~2.5 times/s.
+      const tap = Math.sin(t * Math.PI * 5)
+      out.armL = [-0.95, -0.25]
+      out.armR = [-1.05 - 0.35 * tap, 0.2]
+      out.elbowL = -0.55
+      out.elbowR = -0.6 - 0.2 * tap
+      out.body = 0.28
+      out.head = 0.4
+      break
+    }
+    case 'reach': {
+      // Reach forward to a handle or a shelf and back.
+      const e = keyframes(clamp01(progress), [[0, 0], [0.45, 1], [0.75, 1], [1, 0]])
+      out.armL = [-0.15, 0]
+      out.armR = [lerp(-0.25, -1.35, e), 0.12]
+      out.elbowL = -0.3
+      out.elbowR = lerp(-0.35, -0.15, e)
+      out.body = 0.12 * e
+      out.head = 0.1 * e
+      break
+    }
+    case 'eat': {
+      // The left hand holds the food at the chest, the right brings a bite to the mouth ~0.9 times/s.
+      const bite = 0.5 - 0.5 * Math.cos(t * Math.PI * 2 * 0.9)
+      out.armL = [-0.55, -0.35]
+      out.armR = [lerp(-0.6, -1.05, bite), 0.35]
+      out.elbowL = -1.7
+      out.elbowR = lerp(-1.6, -2.3, bite)
+      out.body = 0.04
+      out.head = 0.14 - 0.08 * bite
+      break
+    }
+    case 'drink': {
+      // The bottle comes up in half a second, stays at the mouth with the head back, goes down at the end.
+      const lift = smooth(clamp01(t / 0.5)) * (1 - smooth(clamp01((progress - 0.85) / 0.15)))
+      out.armL = [-0.1, 0]
+      out.armR = [lerp(-0.5, -1.25, lift), 0.3]
+      out.elbowL = -0.3
+      out.elbowR = lerp(-1.4, -2.0, lift)
+      out.body = -0.06 * lift
+      out.head = -0.4 * lift
+      break
+    }
+    case 'medical': {
+      // The left forearm held across the front, the right hand wraps around it, eyes on the wound.
+      const wrap = t * Math.PI * 2 * 1.2
+      out.armL = [-0.75, -0.2]
+      out.armR = [-0.85 + 0.15 * Math.sin(wrap), 0.45 + 0.1 * Math.cos(wrap)]
+      out.elbowL = -1.0
+      out.elbowR = -1.3 + 0.2 * Math.cos(wrap)
+      out.body = 0.18
+      out.head = 0.45
+      break
+    }
+  }
+  return out
+}
+
+const ACTION_TARGET: ActionTarget = { armL: [0, 0], armR: [0, 0], elbowL: 0, elbowR: 0, body: 0, head: 0 }
 
 /** CS1 ready poses: [pitch, yaw, elbow] per arm (right yaw − = cocked to the right, + = across the front). */
 const READY_ARMED = { armR: [-1.15, -0.55, -1.05], armL: [-1.09, -0.97, -1.4] } as const
@@ -320,7 +414,9 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     out.elbowL = lerp(-0.14 - 0.4 * Math.max(0, -out.armL.x), -1.3, run)
     out.elbowR = input.armed ? -0.12 : lerp(-0.14 - 0.4 * Math.max(0, -out.armR.x), -1.3, run)
     // CS1 ready stance: blended in over the walk arms; a swing starts from it and returns to it.
-    const ready = input.work >= 0 ? 0 : smooth(clamp01(input.ready ?? 0))
+    // The ready stance gives way to an action pose (an action runs in the stance only when allowed).
+    const actionWeight = input.action ? clamp01(input.action.weight) : 0
+    const ready = smooth(clamp01(input.ready ?? 0)) * (1 - actionWeight)
     if (ready > 0) {
       const R = input.armed ? READY_ARMED : READY_UNARMED
       out.armR.x = lerp(out.armR.x, R.armR[0], ready)
@@ -373,17 +469,17 @@ export function computePose(input: PoseInput, out: Pose = createPose()): Pose {
     const lead = input.aimLead ?? 0
     out.torsoTwist += lead * 0.8
     out.headYaw += lead * 0.25
-    if (input.work >= 0 && input.swing < 0) {
-      // Shared work pose: lean over the job, left hand steadies it, right hand taps ~2.5 times/s.
-      const tap = Math.sin(input.work * Math.PI * 5)
-      out.armL.x = -0.95
-      out.armL.y = -0.25
-      out.armR.x = -1.05 - 0.35 * tap
-      out.armR.y = 0.2
-      out.elbowL = -0.55
-      out.elbowR = -0.6 - 0.2 * tap
-      out.bodyPitch += 0.28
-      out.headPitch += 0.4
+    if (input.action && actionWeight > 0 && input.swing < 0) {
+      // AX3: the action's pose group over the arms and the upper body (a swing always wins).
+      const g = actionTarget(input.action, ACTION_TARGET)
+      out.armL.x = lerp(out.armL.x, g.armL[0], actionWeight)
+      out.armL.y = lerp(out.armL.y, g.armL[1], actionWeight)
+      out.armR.x = lerp(out.armR.x, g.armR[0], actionWeight)
+      out.armR.y = lerp(out.armR.y, g.armR[1], actionWeight)
+      out.elbowL = lerp(out.elbowL, g.elbowL, actionWeight)
+      out.elbowR = lerp(out.elbowR, g.elbowR, actionWeight)
+      out.bodyPitch += g.body * actionWeight
+      out.headPitch += g.head * actionWeight
     }
     if (input.shove >= 0) {
       const bump = keyframes(clamp01(input.shove), [[0, 0], [0.3, 1], [1, 0]])

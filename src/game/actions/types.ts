@@ -1,4 +1,5 @@
 import type { Vec3 } from '../../types'
+import type { ItemId } from '../entities/items'
 import type { InventoryKey } from '../systems/inventoryCommands'
 import type { JobView } from '../systems/actionQueue'
 import type { CharacterState, InterruptPolicy } from './characterState'
@@ -134,6 +135,8 @@ export interface ActionDefinition<Data = unknown> {
   ended?(job: ActionJob<Data>, w: ActionWorld): void
   /** Cancelled (reservations already released, `action:cancelled` already queued). */
   cancelled?(job: ActionJob<Data>, w: ActionWorld): void
+  /** The item shown in a hand while it runs (`presentation.prop`), or null. */
+  propItem?(job: ActionJob<Data>): ItemId | null
   /** Whether it did its part (a chain goes on only then); default: it completed. */
   succeeded?(job: ActionJob<Data>): boolean
   /** Units of an instance this job still counts on (so later requests never count on them too). */

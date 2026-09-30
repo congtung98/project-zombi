@@ -4,10 +4,11 @@ import type { Group } from 'three'
 import { runtime } from '../core/runtime'
 import { equippedWeapon } from '../systems/equipment'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { computePose, createPose, type FallKind } from './character/pose'
+import type { ActionPose, FallKind } from './character/pose'
+import { ProceduralPoseDriver, type AnimationDriver } from './character/animState'
 import { chooseFall, fallOrder, FALL_ROOM } from './character/death'
 import { registerAnimator } from './character/animators'
-import { applyPose, buildCharacter, playerLook, shadowDetail } from './character/rig'
+import { buildCharacter, playerLook, shadowDetail } from './character/rig'
 import { buildWeaponModel, type WeaponModel } from './character/weaponModels'
 import { buildBackpackModel, type BackpackModel } from './character/backpackModel'
 import { findItem } from '../systems/inventory'
@@ -25,6 +26,8 @@ const STANCE = runtime.config.combatStance
 const TORSO_LEAD = (STANCE.torsoLeadDeg * Math.PI) / 180
 /** Easing of the chest lead (s): it follows the aim smoothly and fades out when the stance ends. */
 const LEAD_TAU = 0.08
+/** AX3: an action's pose blends in and out over this time (s); its timing is the simulation's. */
+const ACTION_BLEND = 0.15
 /** Same float as the simulation keeps (`runtime.ts` PLAYER_HOVER): the capsule never rests on a wall top. */
 const HOVER = 0.02
 
@@ -45,7 +48,9 @@ export function PlayerView() {
   const weapon = useRef<{ key: string; model: WeaponModel | null }>({ key: '', model: null })
   // INV-LOOT S5: the worn bag, on the torso bone.
   const bag = useRef<{ key: string; model: BackpackModel | null }>({ key: '', model: null })
-  const pose = useRef(createPose())
+  // AX3: the animation driver poses the rig and holds the action's props (Action ≠ Animation).
+  const driver = useMemo<AnimationDriver>(() => new ProceduralPoseDriver(rig, shadows === 'high'), [rig, shadows])
+  const action = useRef<{ weight: number; last: ActionPose | null }>({ weight: 0, last: null })
   const gait = useRef(createPlayerGait())
   const clock = useRef(0)
   const deadTime = useRef(-1)
@@ -64,6 +69,7 @@ export function PlayerView() {
     const held = weapon.current
     const worn = bag.current
     return () => {
+      driver.dispose()
       held.model?.dispose()
       held.model = null
       held.key = ''
@@ -72,7 +78,7 @@ export function PlayerView() {
       worn.key = ''
       rig.dispose()
     }
-  }, [rig])
+  }, [rig, driver])
 
   // Posed after the tick by CharacterAnimator (same state as the simulation this frame).
   useEffect(() => registerAnimator((delta) => {
@@ -104,6 +110,7 @@ export function PlayerView() {
       const model = held ? buildWeaponModel(held.itemId, held.condition <= 0, shadows === 'high') : null
       if (model) rig.weaponSocket.add(model.group)
       weapon.current = { key, model }
+      driver.setWeapon(model?.group ?? null)
     }
     const backId = p.equipment.backInstanceId
     const wornBag = backId ? findItem(p.inventory, backId) : undefined
@@ -130,30 +137,37 @@ export function PlayerView() {
     const leadTarget = runtime.stance.requested && p.alive && p.attackTimer < 0 ? Math.max(-TORSO_LEAD, Math.min(TORSO_LEAD, angleDiff(p.facing, runtime.stance.aimYaw))) : 0
     lead.current += (leadTarget - lead.current) * (1 - Math.exp(-delta / LEAD_TAU))
 
+    // AX3: the running action's pose group and props, as the Action System presents them. The pose
+    // eases in and out; the props and the weapon follow the action at once.
+    const shown = runtime.actionPresentation
+    const a = action.current
+    if (shown) a.last = { group: shown.group, t: shown.elapsed, progress: shown.progress, weight: 0 }
+    a.weight = Math.min(1, Math.max(0, a.weight + (shown ? 1 : -1) * (delta / ACTION_BLEND)))
+    const hideWeapon = shown?.hideWeapon ?? false
+
     const shoveElapsed = PUSH.cooldown - p.pushCooldown
-    computePose(
-      {
-        kind: 'player',
-        time: clock.current,
-        gaitPhase: gait.current.phase,
-        speed: gait.current.speed,
-        hipTurn: gait.current.hipTurn,
-        swing: p.attackTimer >= 0 ? p.attackTimer / MELEE.swingDuration : -1,
-        hitAt: MELEE.hitDelay / MELEE.swingDuration,
-        shove: p.pushCooldown > 0 && shoveElapsed < SHOVE_TIME ? shoveElapsed / SHOVE_TIME : -1,
-        attack: -1,
-        hurt: p.hurtTimer / HURT_TIME,
-        dead: deadTime.current >= 0 ? Math.min(1, deadTime.current / DEATH_TIME) : -1,
-        fall: fall.current ?? 'back',
-        armed: held !== null,
-        work: p.alive ? runtime.workElapsed : -1,
-        ready: ready.current,
-        aimLead: lead.current,
+    driver.update({
+      time: clock.current,
+      gaitPhase: gait.current.phase,
+      speed: gait.current.speed,
+      hipTurn: gait.current.hipTurn,
+      swing: p.attackTimer >= 0 ? p.attackTimer / MELEE.swingDuration : -1,
+      hitAt: MELEE.hitDelay / MELEE.swingDuration,
+      shove: p.pushCooldown > 0 && shoveElapsed < SHOVE_TIME ? shoveElapsed / SHOVE_TIME : -1,
+      hurt: p.hurtTimer / HURT_TIME,
+      dead: deadTime.current >= 0 ? Math.min(1, deadTime.current / DEATH_TIME) : -1,
+      fall: fall.current ?? 'back',
+      armed: held !== null && !hideWeapon,
+      ready: ready.current,
+      aimLead: lead.current,
+      action: a.last && a.weight > 0 ? { ...a.last, weight: a.weight } : null,
+      props: {
+        right: shown?.prop?.hand === 'right' ? shown.prop.itemId : null,
+        left: shown?.prop?.hand === 'left' ? shown.prop.itemId : null,
+        hideWeapon,
       },
-      pose.current,
-    )
-    applyPose(rig, pose.current)
-  }), [rig, look, shadows])
+    })
+  }), [rig, look, shadows, driver])
 
   return (
     <RigidBody

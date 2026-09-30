@@ -75,6 +75,8 @@ describe('AX1 action core in the runtime', () => {
     looter.queueTransfer(containerKey(CABINET), 'main', [{ instanceId: box.items[0].id }])
     run(looter, 0.1)
     expect(looter.characterState).toBe('LOOTING')
+    // AX3: work actions show the shared work pose and hold nothing.
+    expect(looter.actionPresentation).toMatchObject({ group: 'work', prop: null, hideWeapon: false })
     expect(looter.character.violations).toEqual([])
   })
 
