@@ -40,4 +40,12 @@ export interface ActionWorld {
   openContainerId(): string | null
   /** AX4: how a `world.set` effect changes objects of a type (the runtime's own setters). */
   worldAdapter(type: string): WorldAdapter | undefined
+  /** AX5: queue taking every item of a container in reach into the main inventory (a follow-up request). */
+  requestTakeAll(containerId: string): void
+  /** AX5 combat lane: start a swing toward `yaw` (the combat code's rules), or false. */
+  startSwing(yaw: number): boolean
+  /** AX5 combat lane: start a shove toward the cursor, or false. */
+  startShove(): boolean
+  /** AX5 combat lane: the zombie the stance was taken against (right click on it), or null. */
+  setCombatTarget(entityId: string | null): void
 }

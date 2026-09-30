@@ -18,6 +18,8 @@ import { useInventoryStore } from '../stores/inventoryStore'
 import { useInventoryUiStore } from '../stores/inventoryUiStore'
 import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
+import { useWorldMenuStore } from '../stores/worldMenuStore'
+import { WorldContextMenu } from '../components/WorldContextMenu'
 import { useSettingsStore } from '../stores/settingsStore'
 import { ACTION_CANCEL_TEXT, ACTION_FAILURE_TEXT, actionFailureText } from '../components/craftText'
 
@@ -100,6 +102,9 @@ export function App() {
         useHudStore.getState().showToast(`Đã dùng ${e.name}: ${describeEffect(e.effect)}.`, 1800),
       ),
       runtime.events.on('item:useFailed', (e) => useHudStore.getState().showToast(`${e.name}: ${USE_FAIL_TEXT[e.reason]}`, 1800)),
+      // AX5: the world object's context menu (the runtime owns it; this is the snapshot to draw).
+      runtime.events.on('interaction:menu', (e) => useWorldMenuStore.getState().show(e)),
+      runtime.events.on('interaction:menuClosed', () => useWorldMenuStore.getState().clear()),
       // AX4: a world interaction that could not run (too far, the object changed or is gone).
       runtime.events.on('interaction:failed', (e) => useHudStore.getState().showToast(`${e.label}: ${actionFailureText(e.reason)}.`, 1800, 'warn')),
       // AX2: a sealed item opened (it became another item in the same place).
@@ -248,6 +253,7 @@ export function App() {
         </div>
       )}
       {screen === 'playing' && <InventoryOverlay />}
+      {screen === 'playing' && <WorldContextMenu />}
       {DOOR_LAB_ENABLED && screen === 'playing' && <Suspense fallback={null}><DoorLab /></Suspense>}
       {screen === 'menu' && <MainMenu />}
       {screen === 'create' && <CharacterCreation />}

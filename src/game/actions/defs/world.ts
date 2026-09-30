@@ -3,6 +3,7 @@ import { INTERRUPT_ALL } from '../characterState'
 import { registerAction } from '../registry'
 import { ACTION, type ActionDefinition, type ActionFailure, type ActionJob, type ActionType } from '../types'
 import type { ActionWorld } from '../world'
+import type { GameplayEffect } from '../effects'
 
 /**
  * AX4 (WIS §9, FB case 1): the world object actions. Each checks reach and the object's state again
@@ -16,7 +17,8 @@ type WorldTarget = { objectId: string; objectType: string; version: number }
 export interface DoorData { to: 'open' | 'closed' }
 export interface LightData { on: boolean }
 export interface CurtainData { closed: boolean }
-export type ContainerData = Record<string, never>
+/** `takeAll`: once open, everything in it is queued into the main inventory (the menu's "Lấy hết"). */
+export interface ContainerData { takeAll?: boolean }
 
 function target(job: ActionJob): WorldTarget {
   const t = job.ctx.target
@@ -77,6 +79,15 @@ export const TOGGLE_LIGHT = registerAction(immediate<LightData>(ACTION.TOGGLE_LI
 export const TOGGLE_CURTAIN = registerAction(immediate<CurtainData>(ACTION.TOGGLE_CURTAIN, (w, id, d) => w.world.curtains.has(id) && w.world.curtains.get(id) !== d.closed, (d) => ({ closed: d.closed })))
 export const CLOSE_CONTAINER = registerAction(immediate<ContainerData>(ACTION.CLOSE_CONTAINER, (w, id) => w.openContainerId() === id, () => ({ open: false })))
 
+/** AX5: "Lấy hết" on a container already open: every item, queued as one transfer. */
+export const TAKE_ALL = registerAction<ContainerData>({
+  ...immediate<ContainerData>(ACTION.TAKE_ALL, (w, id) => w.openContainerId() === id, () => ({})),
+  commit(job, w) {
+    const t = target(job)
+    return { next: 'done', mutation: { effects: [{ type: 'after', run: () => w.requestTakeAll(t.objectId) }] } }
+  },
+})
+
 /** FB case 1: Open → OPEN_CONTAINER → reach pose → the container's state becomes open (its loot window). */
 export const OPEN_CONTAINER = registerAction<ContainerData>({
   type: ACTION.OPEN_CONTAINER,
@@ -97,7 +108,9 @@ export const OPEN_CONTAINER = registerAction<ContainerData>({
       fail(w, job, 'OUT_OF_RANGE')
       return { next: 'done' }
     }
-    return { next: 'done', mutation: { effects: [{ type: 'world.set', objectType: t.objectType, objectId: t.objectId, patch: { open: true } }] } }
+    const effects: GameplayEffect[] = [{ type: 'world.set', objectType: t.objectType, objectId: t.objectId, patch: { open: true } }]
+    if (job.data.takeAll) effects.push({ type: 'after', run: () => w.requestTakeAll(t.objectId) })
+    return { next: 'done', mutation: { effects } }
   },
   view,
 })

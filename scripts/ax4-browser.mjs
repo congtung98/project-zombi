@@ -134,8 +134,21 @@ try {
   })
   const box = await standBy('container', 1.0, 'kitchen')
   const boxAt = await hover(box)
+  // AX5: a right press on the cupboard would open its menu: take the stance on the floor, then aim at it.
+  let floor = null
+  for (const [dx, dy] of [[120, 80], [-120, 80], [120, -80], [-120, -80], [0, 150]]) {
+    await page.mouse.move(boxAt.x + dx, boxAt.y + dy)
+    await page.waitForTimeout(60)
+    if ((await hovered())?.kind === 'ground') {
+      floor = true
+      break
+    }
+  }
+  assert.ok(floor, 'a floor point next to the cupboard')
   await page.mouse.down({ button: 'right' })
   await page.waitForTimeout(150)
+  await page.mouse.move(boxAt.x, boxAt.y)
+  await page.waitForTimeout(60)
   await page.mouse.click(boxAt.x, boxAt.y)
   await page.waitForFunction(() => window.__runtime.player.attackTimer >= 0, null, { timeout: 2000 })
   await page.mouse.up({ button: 'right' })

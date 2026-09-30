@@ -61,11 +61,20 @@ registerInteractable({
     pick: boxAround(c.position, c.size[0] / 2 + 0.05, c.size[1] / 2 + 0.05, c.size[2] / 2 + 0.05),
   })),
   getActions(obj, ictx) {
+    const state = ictx.world.containers.get(obj.id)
+    // A container never looked into does not tell what it holds: "Lấy hết" stays offered until then.
+    const empty = state?.opened && state.items.items.length === 0
+    const takeAll = { id: 'container.takeAll', label: 'Lấy hết', blocked: empty ? { reason: 'MISSING_ITEM' as const, text: 'Tủ trống' } : null }
     if (ictx.lootOpen && ictx.openContainerId === obj.id) {
-      return [option({ id: 'container.close', actionType: ACTION.CLOSE_CONTAINER, label: `Đóng ${obj.name}`, isDefault: true, data: {} })]
+      return [
+        option({ id: 'container.close', actionType: ACTION.CLOSE_CONTAINER, label: `Đóng ${obj.name}`, isDefault: true, data: {} }),
+        option({ ...takeAll, actionType: ACTION.TAKE_ALL, data: {} }),
+      ]
     }
-    const opened = ictx.world.containers.get(obj.id)?.opened
-    return [option({ id: 'container.open', actionType: ACTION.OPEN_CONTAINER, label: `${opened ? 'Xem' : 'Mở'} ${obj.name}`, isDefault: true, data: {} })]
+    return [
+      option({ id: 'container.open', actionType: ACTION.OPEN_CONTAINER, label: `${state?.opened ? 'Xem' : 'Mở'} ${obj.name}`, isDefault: true, data: {} }),
+      option({ ...takeAll, actionType: ACTION.OPEN_CONTAINER, data: { takeAll: true } }),
+    ]
   },
   getInteractionContext: () => ({ note: null, status: null }),
 })

@@ -84,6 +84,10 @@ function setup(limit = 128) {
     canReachObject: () => false,
     openContainerId: () => null,
     worldAdapter: () => undefined,
+    requestTakeAll: () => {},
+    startSwing: () => false,
+    startShove: () => false,
+    setCombatTarget: () => {},
   }
   const system: ActionSystem = new ActionSystem(w, { queueLimit: limit, recentRequests: 4 })
   const water = inv.items[0].id

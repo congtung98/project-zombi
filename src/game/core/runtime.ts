@@ -259,6 +259,12 @@ export class GameRuntime {
   pointerTarget: PickResult | null = null
   /** AX4: this tick's left press went to an interactive object (no swing, no stance hint). */
   private leftClickUsed = false
+  /** AX5: the open context menu of a world object (the UI shows it), with the version it was built from. */
+  worldMenu: { targetId: string; version: number; ndc: { x: number; y: number } } | null = null
+  /** AX5: the zombie the stance was taken against (a right click on it), null otherwise. */
+  combatTarget: string | null = null
+  /** AX5: the zombie under a right press this tick (becomes the stance's target when it starts). */
+  private pressedOnCharacter: string | null = null
   /**
    * CS1 combat stance: right-button intent and the desired aim (runtime only, never saved). The
    * simulation owns the heading: `player.facing` turns toward `stance.aimYaw` at a limited speed.
@@ -482,6 +488,8 @@ export class GameRuntime {
     this.actions.clear()
     this.character.reset()
     this.worldVersions.clear()
+    this.worldMenu = null
+    this.combatTarget = null
     this.playerNoise = 0
     this.hordeTimer = GAME_CONFIG.horde.intervalMin
     this.hordeCounter = 0
@@ -1021,19 +1029,47 @@ export class GameRuntime {
     // AX4 input routing (docs/character-action-ax0.md §4): UI presses never reach here; in the combat
     // posture (or with the right button pressed now: the CS1 chord) the buttons belong to combat;
     // otherwise a left press on an interactive object runs its default action.
+    // AX5: a right press outside the combat posture on an object opens its menu (never "tap = menu,
+    // hold = stance": FB §1), on a zombie it takes the stance against it, anywhere else the stance.
+    // While the menu is open, a press on the world only closes it.
     this.leftClickUsed = false
-    const combat = s.requested || this.player.attackTimer >= 0 || this.input.wasPressed('stance')
-    if (!combat && this.player.alive && this.input.wasPressed('attack')) {
-      const hover = this.hoverInteractable
-      if (hover) {
-        this.leftClickUsed = true
-        this.interaction.executeDefault(hover, 'left-click')
+    this.pressedOnCharacter = null
+    let rightUsed = false
+    const left = this.input.wasPressed('attack')
+    const right = this.input.wasPressed('stance')
+    const combat = s.requested || this.player.attackTimer >= 0
+    if (this.worldMenu && (left || right)) {
+      this.closeWorldMenu()
+      this.leftClickUsed = left
+      rightUsed = right
+    } else if (!combat && this.player.alive) {
+      const target = this.pointerTarget
+      if (right && !left) {
+        const obj = this.hoverInteractable
+        if (obj) {
+          this.openWorldMenu(obj)
+          rightUsed = true
+        } else if (target?.kind === 'character') this.pressedOnCharacter = target.id
+      } else if (left && !right) {
+        const hover = this.hoverInteractable
+        if (hover) {
+          this.leftClickUsed = true
+          this.interaction.executeDefault(hover, 'left-click')
+        }
       }
     }
     this.chordAllowed = s.mode === 'hold' && !s.suppressed
-    updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive)
+    // A right press that opened or closed a menu is not a stance press (a held one waits for its release).
+    if (rightUsed && s.mode === 'hold') s.suppressed = true
+    updateStanceRequest(s, this.input.isDown('stance'), right && !rightUsed, this.player.alive)
     this.stanceStarted = s.requested && !was
-    if (this.stanceStarted) this.interruptAction('stance', 'stance')
+    if (this.stanceStarted) {
+      this.interruptAction('stance', 'stance')
+      // FB §13: entering the stance is an action of the combat lane, with its target.
+      const zombie = this.pressedOnCharacter
+      this.actions.perform(ACTION.COMBAT_STANCE, { actorId: 'player', type: ACTION.COMBAT_STANCE, target: zombie ? { kind: 'character', entityId: zombie } : { kind: 'ground', point: this.cursorWorld ?? { ...this.player.position } }, source: 'combat' }, {}, 'Thế chiến đấu')
+    }
+    if (!s.requested) this.combatTarget = null
     // A queued click lives only while the stance is asked for (release, panel, death drop it).
     if (!s.requested) this.pendingAttack = null
     if (this.stanceStarted && !s.hasAim) s.aimYaw = this.player.facing
@@ -1138,6 +1174,7 @@ export class GameRuntime {
   }
 
   private stepInteraction(): void {
+    this.syncWorldMenu()
     const player = this.player
     if (!player.alive) {
       this.currentInteractable = null
@@ -1210,6 +1247,65 @@ export class GameRuntime {
   interact(target: Interactable): void {
     this.interaction.executeDefault(target, 'key-e')
     this.interactPrompt = this.describeInteraction(target)
+  }
+
+  /**
+   * AX5: open the context menu of an object (right press on it): its options in order, with the
+   * reason of each disabled one. The menu keeps its target while open (hovering elsewhere changes
+   * nothing, WIS §7); its options follow the object's state (`stepInteraction`).
+   */
+  openWorldMenu(obj: Interactable, ndc = { x: this.input.pointer.ndcX, y: this.input.pointer.ndcY }): void {
+    this.worldMenu = { targetId: obj.id, version: this.worldVersions.get(obj.id), ndc }
+    this.emitWorldMenu(obj)
+  }
+
+  closeWorldMenu(): boolean {
+    if (!this.worldMenu) return false
+    this.worldMenu = null
+    this.events.queue('interaction:menuClosed', {})
+    return true
+  }
+
+  /**
+   * AX5: the player picked a menu entry. The menu closes; the option is looked up again on the
+   * object's state now (WIS §7: never applied to another object, a stale one fails with a reason).
+   */
+  selectMenuOption(optionId: string, requestId?: string): boolean {
+    const menu = this.worldMenu
+    if (!menu) return false
+    this.closeWorldMenu()
+    const obj = this.interactableById.get(menu.targetId)
+    const option = obj ? this.interaction.options(obj).find((o) => o.id === optionId) : undefined
+    if (!obj || !option) {
+      this.events.queue('interaction:failed', { label: obj?.name ?? '', reason: obj ? 'TARGET_CHANGED' : 'TARGET_GONE' })
+      return false
+    }
+    return this.interaction.execute(obj, option, 'world-menu', requestId)
+  }
+
+  private emitWorldMenu(obj: Interactable): void {
+    const options = this.interaction.options(obj).map((o) => ({ id: o.id, label: o.label, disabled: o.blocked?.text ?? null }))
+    this.events.queue('interaction:menu', { targetId: obj.id, name: obj.name, options, ndc: this.worldMenu!.ndc })
+  }
+
+  /** AX5: the open menu follows its object: new options when its state changed, closed when it is gone or the player died. */
+  private syncWorldMenu(): void {
+    const menu = this.worldMenu
+    if (!menu) return
+    const obj = this.interactableById.get(menu.targetId)
+    if (!obj || !this.player.alive) {
+      this.closeWorldMenu()
+      return
+    }
+    const version = this.worldVersions.get(obj.id)
+    if (version === menu.version) return
+    menu.version = version
+    this.emitWorldMenu(obj)
+  }
+
+  /** An interactive object by ID (constant time), or null. */
+  interactableFor(id: string): Interactable | null {
+    return this.interactableById.get(id) ?? null
   }
 
   /** AX4: the interactive object under the cursor, or null. */
@@ -1809,6 +1905,21 @@ export class GameRuntime {
       },
       openContainerId: () => this.openContainerId,
       worldAdapter: (type) => this.worldAdapters[type],
+      requestTakeAll: (id) => {
+        const box = this.world.containers.get(id)
+        if (box && box.items.items.length > 0) this.queueTransfer(containerKey(id), 'main', box.items.items.map((i) => ({ instanceId: i.id })))
+      },
+      startSwing: (yaw) => this.tryStartAttack(yaw),
+      startShove: () => {
+        const player = this.player
+        if (!startPush(player)) return false
+        if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
+        this.resolvePlayerPush()
+        return true
+      },
+      setCombatTarget: (id) => {
+        this.combatTarget = id
+      },
     }
     // New Game and load replace the player and the world: read them live.
     return Object.defineProperties(w, {
@@ -1999,7 +2110,7 @@ export class GameRuntime {
         // queued (one only, the newest click wins).
         const yaw = s.hasAim ? s.aimYaw : player.facing
         if (!weapon) this.events.queue('player:unarmed', {})
-        else if (!this.tryStartAttack(yaw)) {
+        else if (!this.swing(yaw)) {
           // Only a timing wait is buffered (not missing stamina: that click just does nothing).
           const wait = attackReadyIn(player)
           if (wait > 0 && wait <= cs.bufferWindow) this.pendingAttack = { yaw, expiresAt: this.simTime + cs.bufferWindow }
@@ -2009,12 +2120,11 @@ export class GameRuntime {
         if (this.simTime > pending.expiresAt || !weapon) this.pendingAttack = null
         else if (canStartAttack(player, meleeStats(weapon.itemId))) {
           this.pendingAttack = null
-          this.tryStartAttack(pending.yaw)
+          this.swing(pending.yaw)
         }
       }
-      if (this.input.wasPressed('push') && startPush(player)) {
-        if (this.cursorWorld) player.facing = facingTowards(player.position, this.cursorWorld)
-        this.resolvePlayerPush()
+      if (this.input.wasPressed('push')) {
+        this.actions.perform(ACTION.SHOVE, { actorId: 'player', type: ACTION.SHOVE, target: { kind: 'ground', point: this.cursorWorld ?? { ...player.position } }, source: 'combat' }, {}, 'Đẩy')
       }
     } else {
       this.pendingAttack = null
@@ -2031,6 +2141,16 @@ export class GameRuntime {
       if (!zombie || zombie.ai === 'DEAD') continue
       this.applyPlayerDamage(attack.damage, attack.sourceId)
     }
+  }
+
+  /**
+   * AX5 (FB §13): a swing is a MELEE_ATTACK of the combat lane, toward the aim, at the stance's
+   * target when it was taken against a zombie; its rules stay those of `tryStartAttack`.
+   */
+  private swing(yaw: number): boolean {
+    const t = this.combatTarget
+    const target = t && this.zombies.has(t) ? { kind: 'character' as const, entityId: t } : { kind: 'ground' as const, point: this.cursorWorld ?? { ...this.player.position } }
+    return this.actions.perform(ACTION.MELEE_ATTACK, { actorId: 'player', type: ACTION.MELEE_ATTACK, target, source: 'combat' }, { yaw }, 'Đánh').ok
   }
 
   /** Start a swing with the equipped weapon toward `yaw` (its cost, cooldown and ID as before). */

@@ -262,6 +262,18 @@ try {
   assert.equal(target.id, closet)
   assert.match(target.prompt, /Tủ quần áo/)
   await shot('cs1-e-highlight')
+  // AX5 (FB §1): a right press on the closet opens its menu; the stance is taken with the cursor on the
+  // floor beside it (E still targets the closet by proximity).
+  let offCloset = null
+  for (const [dx, dy] of [[90, 60], [-90, 60], [90, -60], [-90, -60], [0, 120], [140, 0], [-140, 0]]) {
+    await page.mouse.move(onCloset.x + dx, onCloset.y + dy)
+    await wait(80)
+    if ((await page.evaluate(() => window.__runtime.pointerTarget?.kind)) === 'ground') {
+      offCloset = { x: onCloset.x + dx, y: onCloset.y + dy }
+      break
+    }
+  }
+  assert.ok(offCloset, 'a floor point next to the closet')
   await page.mouse.down({ button: 'right' })
   await wait(300)
   assert.equal((await state()).stance, true)
@@ -310,7 +322,7 @@ try {
   await page.mouse.up({ button: 'right' })
   await wait(200)
   const outside = (await state()).stance
-  await page.mouse.move(onCloset.x, onCloset.y)
+  await page.mouse.move(offCloset.x, offCloset.y)
   await page.mouse.down({ button: 'right' })
   await wait(200)
   await page.evaluate(() => document.querySelector('canvas').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })))

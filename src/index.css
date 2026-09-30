@@ -1443,6 +1443,16 @@ button.primary:hover:not(:disabled) {
   font-size: 11px;
 }
 
+/* AX5: the world object's context menu (right click on a door, a container, a switch, a curtain). */
+.world-menu-title {
+  padding: 3px 10px 4px;
+  border-bottom: 1px solid var(--inv-border);
+  margin-bottom: 2px;
+  color: var(--inv-muted);
+  font-size: 12px;
+}
+
+
 .inv-card {
   width: 280px;
   padding: 10px 12px;

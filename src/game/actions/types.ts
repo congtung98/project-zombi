@@ -29,6 +29,10 @@ export const ACTION = {
   TOGGLE_CURTAIN: 'TOGGLE_CURTAIN',
   OPEN_CONTAINER: 'OPEN_CONTAINER',
   CLOSE_CONTAINER: 'CLOSE_CONTAINER',
+  TAKE_ALL: 'TAKE_ALL',
+  COMBAT_STANCE: 'COMBAT_STANCE',
+  MELEE_ATTACK: 'MELEE_ATTACK',
+  SHOVE: 'SHOVE',
 } as const
 
 /** What an action works on: IDs only, never a render object or a copy of an item. */

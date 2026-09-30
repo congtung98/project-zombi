@@ -120,8 +120,8 @@ export class ActionSystem {
     }
     job.step = step
     job.status = 'running'
-    const applied = this.commit(job as ActionJob)
-    return applied ? { ok: true } : { ok: false, reason: null }
+    this.commit(job as ActionJob)
+    return (job.status as ActionJob['status']) === 'completed' ? { ok: true } : { ok: false, reason: null }
   }
 
   /** Cancel every job (the running step changes nothing; steps already committed stay). */

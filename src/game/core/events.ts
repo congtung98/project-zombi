@@ -86,6 +86,12 @@ export type GameEvents = {
     outputId: string | null
     repair: RepairPreview | null
   }
+  /**
+   * AX5: the context menu of a world object opened (or its options changed while open): where the
+   * right press was (NDC), the options in order with the reason of a disabled one.
+   */
+  'interaction:menu': { targetId: string; name: string; options: { id: string; label: string; disabled: string | null }[]; ndc: { x: number; y: number } }
+  'interaction:menuClosed': Record<string, never>
   /** AX4: a world interaction could not run (out of reach, the object changed or is gone). */
   'interaction:failed': { label: string; reason: ActionFailure }
   /** Tried to drop/store/use an item reserved by the running action. */

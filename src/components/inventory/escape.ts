@@ -10,6 +10,8 @@ import { isCompact, type WindowId } from './layout'
  */
 export function handleInventoryEscape(): boolean {
   const ui = useInventoryUiStore.getState()
+  // AX5: the world object's context menu is a popup too (the first layer).
+  if (runtime.closeWorldMenu()) return true
   if (ui.closePopup()) return true
   // Any queued work (a transfer as much as a craft or repair): cancel the queue first.
   if (runtime.jobs.length > 0) {
