@@ -674,6 +674,8 @@ Kết luận: backbone là một đường duy nhất `Input → Interaction →
 
 ## 13. Cần chủ dự án quyết (đề xuất in đậm)
 
+> **Đã duyệt 2026-09-30** theo đề xuất ("oke hãy bắt đầu"). D5 đổi thành 128 ở AX1 vì test T26 của INV-LOOT (chi tiết `docs/character-action-ax1.md` §0).
+
 | # | Câu hỏi | Đề xuất |
 |---|---|---|
 | D1 | Thời lượng mở tủ (`OPEN_CONTAINER`) | **0,35 s** có pose `reach`. Mở/đóng cửa, đèn, rèm giữ **tức thời** (0 s, pose chỉ là phản hồi) để không làm chậm lúc bị đuổi |

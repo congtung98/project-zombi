@@ -418,6 +418,16 @@ export const GAME_CONFIG = {
     max: 1.5,
   },
   /**
+   * AX1 Action System. `queueLimit`: most jobs waiting at once (a request beyond it is refused
+   * `QUEUE_FULL`). 128, not the 12 first proposed (AX0 D5): INV-LOOT T26 queues 100 transfers in a
+   * row, and transfer claims already keep spam from queueing more than exists. `recentRequests`:
+   * request IDs remembered to refuse a repeated one (a double click sending the same request).
+   */
+  actions: {
+    queueLimit: 128,
+    recentRequests: 64,
+  },
+  /**
    * INV-LOOT extra loot drawn from its own seed stream after the container's table, so the table's
    * own rolls never change. `id` is also the save's `lootPatches` marker; never reuse or edit a
    * released rule (add a new id instead). Only added when the container has a free slot.

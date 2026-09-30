@@ -3,6 +3,7 @@ import type { SimLevel } from '../entities/zombie'
 import type { UseItemFailure } from '../systems/survival'
 import type { CraftFailure, RepairPreview } from '../systems/crafting'
 import type { ActionCancelReason } from '../systems/timedAction'
+import type { ActionFailure } from '../actions/types'
 import type { EntityId, ZombieAIState } from '../../types'
 
 export type GameEvents = {
@@ -67,12 +68,13 @@ export type GameEvents = {
   'item:useFailed': { itemId: ItemId; name: string; reason: UseItemFailure }
   /** P2-S4 timed craft/repair: started (reserved), rejected at start, cancelled, failed at commit, completed. */
   'action:started': { id: number; kind: 'craft' | 'repair'; label: string; duration: number }
-  'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued' }
+  'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued' | 'queue-full' }
   /** INV-LOOT S4: an action waits behind the running one (one queue, run in order). */
   'action:queued': { id: number; label: string }
   /** `dropped`: waiting jobs cancelled with it (moving, a hit or X cancel the whole queue). */
   'action:cancelled': { id: number; label: string; reason: ActionCancelReason; dropped: number }
-  'action:failed': { id: number; label: string; reason: CraftFailure }
+  /** `reason`: the recipe's own reason, or the Action System's when a change could not be applied (AX1). */
+  'action:failed': { id: number; label: string; reason: CraftFailure | ActionFailure }
   'action:completed': {
     id: number
     kind: 'craft' | 'repair'

@@ -11,7 +11,31 @@
 > Đọc file này, **docs/town-neighborhood-50.md**, **docs/prefab-library-p1.md**, **docs/prefab-library-p2-p5.md**, **docs/writing-block.md**, **docs/world-generator-wg1.md**, **docs/world-generator-wg2.md**, **docs/world-generator-wg3.md**, **docs/world-generator-wg4.md**, **docs/world-generator-wg5.md**, **docs/world-generator-wg6.md**, **docs/Combat_Stance_Input_Sprint_Plan.md**, **docs/combat-cs1a.md**, **docs/combat-cs1b.md**, **docs/combat-cs1c.md**, **docs/Character_Zombie_Model_Animation_Plan.md**, **docs/character-c0.md**, **docs/character-c1.md**, **docs/character-c2.md**, **docs/character-c3.md**, **docs/character-c4.md**, **docs/character-c5.md**, **docs/character-c6.md**, **docs/character-handbook.md**, **docs/Graphics_Improvement_Implementation_Plan.md**, **docs/graphics-g0.md**, **docs/graphics-g1.md**, **docs/graphics-g2.md**, **docs/graphics-g3a.md**, **docs/graphics-g3b.md**, **docs/graphics-g4.md**, **docs/graphics-g5.md**, **docs/graphics-g6.md**, **docs/graphics-handbook.md**, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-m11c2.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0-AX0. Character Action & World Interaction — AX0 kiến trúc (mới nhất, chờ duyệt — chi tiết docs/character-action-ax0.md)
+## 0-AX1. Character Action — AX1 Action core (mới nhất — chi tiết docs/character-action-ax1.md)
+
+- **Chủ dự án duyệt AX0 + D1–D7** (2026-09-30). D5 đổi thành giới hạn hàng đợi 128 vì T26 của INV-LOOT xếp 100 lượt chuyển.
+- **`src/game/actions/`:**
+  - `ActionSystem`: chặn request trùng, giới hạn hàng đợi, tick theo thời gian mô phỏng, commit một lần như một transaction, dọn khi hủy;
+  - registry;
+  - tầng Gameplay Effect `applyMutation` (kiểm tra hết rồi mới ghi);
+  - `CharacterStateMachine` (14 trạng thái, bảng chuyển, `InterruptPolicy`);
+  - `WorldObjectVersions`;
+  - định nghĩa `TRANSFER`, `CRAFT`, `REPAIR`.
+- **Runtime:**
+  - `jobs` = `actions.jobs`;
+  - gián đoạn (di chuyển, đánh, trúng đòn, vào thế) đi qua policy của action đang chạy;
+  - `characterState` mỗi tick;
+  - `RequestOptions { requestId, source }`.
+- **Hành vi không đổi:**
+  - 1049 test cũ pass;
+  - soak trùng từng số (shelter 1800 s / 14 kill / 110 dmg; patrol 1379,3 s / 38 kill), soak kiểm thêm `character.violations` rỗng;
+  - `il-s2/s3/s4/s5` và `cs1-combat` PASS (Chrome GPU).
+- **Kiểm chứng:**
+  - 26 test mới, `npm test` 1075 pass;
+  - tsc, oxlint, build, build:editor, check:bundle, map:check sạch.
+- **Tiếp theo:** AX2 Item Action System.
+
+## 0-AX0. Character Action & World Interaction — AX0 kiến trúc (đã duyệt 2026-09-30 — chi tiết docs/character-action-ax0.md)
 
 - **Nhánh** `feature/character-action`. Chủ dự án quyết định 2026-09-30: tách nhánh, tự commit + push sau mỗi sprint, không merge vào master.
 - **Nguồn:**
@@ -29,7 +53,7 @@
 - **Kế hoạch:**
   - AX1 lõi → AX2 item action → AX3 animation → AX4 picker/router → AX5 menu + combat lane → AX6 tự đi tới đích → AX7 nghiệm thu;
   - save dự kiến không đổi schema.
-- **Chờ chủ dự án:** duyệt kiến trúc và D1–D7 (§13). **Chưa có code.**
+- **Đã duyệt** kiến trúc và D1–D7 (§13) ngày 2026-09-30.
 
 ## 0-IL6. INV-LOOT S6 — sprint cuối: polish, hiệu năng, hồi quy, bàn giao (chi tiết docs/inventory-loot-s6.md, sổ tay docs/inventory-loot-handbook.md)
 

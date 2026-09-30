@@ -5,6 +5,7 @@ import { containerKey } from '../systems/inventoryCommands'
 import { equippedWeapon } from '../systems/equipment'
 import { buildRows, DEFAULT_QUERY } from '../../components/inventory/rows'
 import { takeAll } from '../../components/inventory/commands'
+import { transferData } from '../actions/defs'
 
 /**
  * INV-LOOT S6: the rows of the test matrix (spec §14) that had no test of their own: T12, T27, T29
@@ -110,7 +111,7 @@ describe('INV-LOOT test matrix, rows without a test of their own', () => {
     takeAll(containerKey(CABINET), 'main')
     expect(rt.jobs).toHaveLength(1)
     const job = rt.jobs[0]
-    expect(job.kind === 'transfer' && job.lines.map((l) => l.itemId).sort()).toEqual(['bandage', 'chips', 'water', 'wood_plank'])
+    expect(transferData(job)?.lines.map((l) => l.itemId).sort()).toEqual(['bandage', 'chips', 'water', 'wood_plank'])
     run(rt, 6)
     expect(items.items).toHaveLength(0)
     expect(totalQuantity(rt.player.inventory)).toBe(8)

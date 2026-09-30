@@ -22,7 +22,8 @@ export function isCarried(key: InventoryKey): boolean {
 }
 
 /** Why one item did not move (capacity reasons come from `transferItem`, state reasons from here). */
-export type TransferRefusal = TransferBlock | 'equipped' | 'favorite' | 'reserved' | 'queued' | 'unreachable' | 'dead' | 'busy'
+/** `queue-full`: the action queue is at its limit (AX1). */
+export type TransferRefusal = TransferBlock | 'equipped' | 'favorite' | 'reserved' | 'queued' | 'queue-full' | 'unreachable' | 'dead' | 'busy'
 
 export interface TransferLine {
   instanceId: string

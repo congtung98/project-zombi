@@ -18,7 +18,7 @@ import { useInventoryUiStore } from '../stores/inventoryUiStore'
 import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
 import { useSettingsStore } from '../stores/settingsStore'
-import { ACTION_CANCEL_TEXT, ACTION_FAILURE_TEXT } from '../components/craftText'
+import { ACTION_CANCEL_TEXT, ACTION_FAILURE_TEXT, actionFailureText } from '../components/craftText'
 
 const USE_FAIL_TEXT = {
   'no-effect': 'chỉ số đã đầy, không cần dùng.',
@@ -136,7 +136,7 @@ export function App() {
         sfx.play('workCancel')
       }),
       runtime.events.on('action:failed', (e) => {
-        useHudStore.getState().showToast(`${e.label} không hoàn tất: ${ACTION_FAILURE_TEXT[e.reason]}; không mất nguyên liệu.`, 3000, 'warn')
+        useHudStore.getState().showToast(`${e.label} không hoàn tất: ${actionFailureText(e.reason)}; không mất nguyên liệu.`, 3000, 'warn')
         sfx.play('workCancel')
       }),
       runtime.events.on('action:completed', (e) => {

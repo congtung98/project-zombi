@@ -3,6 +3,7 @@ import type { GameRuntime } from '../game/core/runtime'
 import { cloneInventory, createInventory, type Inventory } from '../game/systems/inventory'
 import { inventoryWeight, itemWeight, wornBagContents } from '../game/systems/bags'
 import { containerKey, type InventoryKey } from '../game/systems/inventoryCommands'
+import { pendingTransferIds, recipeData } from '../game/actions/defs'
 
 /** The running job as the UI needs it (the target shows "đang sửa", reserved rows "Đang dùng"). */
 export interface ActionSnapshot {
@@ -160,7 +161,7 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
     const head = rt.jobs[0]
     const a = rt.action
     const waiting = rt.jobs.slice(1).map((j) => ({ id: j.id, label: j.label }))
-    const queuedIds = [...new Set(rt.jobs.flatMap((j) => (j.kind === 'transfer' ? j.lines.slice(j.index).filter((l) => l.left > 0).map((l) => l.instanceId) : [])))]
+    const queuedIds = pendingTransferIds(rt.jobs)
     set({
       open: rt.inventoryOpen,
       bag: main.inventory,
@@ -176,7 +177,7 @@ export const useInventoryStore = create<InventoryUiState>((set, get) => ({
       bagWeights,
       container: c && lootView ? { id: c.id, name, items: lootView.inventory } : null,
       action: head
-        ? { id: head.id, kind: head.kind === 'recipe' ? head.recipe.kind : 'transfer', recipeId: a?.recipe.id ?? null, targetId: a?.targetId ?? null, label: head.label, reservedIds: rt.ledger.ids() }
+        ? { id: head.id, kind: recipeData(head)?.recipe.kind ?? 'transfer', recipeId: a?.recipe.id ?? null, targetId: a?.targetId ?? null, label: head.label, reservedIds: rt.ledger.ids() }
         : null,
       waiting: sameJobs(prev.waiting, waiting) ? prev.waiting : waiting,
       queuedIds: prev.queuedIds.join() === queuedIds.join() ? prev.queuedIds : queuedIds,

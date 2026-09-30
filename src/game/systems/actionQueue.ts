@@ -1,15 +1,10 @@
 import { GAME_CONFIG } from '../core/config'
 import { getItemDef, type ItemId, type ItemInstance } from '../entities/items'
-import type { Recipe } from '../entities/recipes'
-import type { Vec3 } from '../../types'
 import { itemWeight, type BagStore } from './bags'
-import type { InventoryKey, TransferSummary } from './inventoryCommands'
-import type { TimedAction } from './timedAction'
-import type { InputUse } from './crafting'
 
 /**
- * INV-LOOT S4: one queue for every timed action (transfer, craft, repair), run in order; only the
- * running one holds reservations. Pure data and helpers here; the runtime runs the queue.
+ * INV-LOOT S4: one queue for every timed action, run in order; only the running one holds
+ * reservations. AX1: the queue itself is `actions/actionSystem.ts`; here the ledger and transfer helpers.
  */
 
 /** Who holds a reservation: a transfer step keeps its item from any use; a recipe allows equipping. */
@@ -86,61 +81,13 @@ export interface TransferLineState {
   queued: number
 }
 
+/** A transfer's timed step (an `ActionStep` that knows its instance and units). */
+/** A transfer's timed step: an `ActionStep` that knows its instance and units. */
 export interface TransferStepState {
   instanceId: string
   units: number
   duration: number
   elapsed: number
-}
-
-export interface TransferJob {
-  kind: 'transfer'
-  id: number
-  label: string
-  source: InventoryKey
-  destination: InventoryKey
-  lines: TransferLineState[]
-  /** Line being worked on. */
-  index: number
-  step: TransferStepState | null
-  /** Units queued in total and moved so far (progress of the whole job). */
-  total: number
-  summary: TransferSummary
-  /** A drop lands where the player stood when it was queued (moving cancels the job anyway). */
-  dropAt: Vec3 | null
-}
-
-export interface RecipeJob {
-  kind: 'recipe'
-  id: number
-  label: string
-  recipe: Recipe
-  targetId: string | null
-  /** Set when the job starts (validated and reserved); null while it waits. */
-  action: TimedAction | null
-  /**
-   * Inputs this waiting recipe counts on (its plan when queued): later queued actions cannot count on
-   * them too. Checked and planned again when it starts.
-   */
-  claims: InputUse[]
-}
-
-export type Job = TransferJob | RecipeJob
-
-/**
- * Units of an instance claimed by queued work not yet done: transfer lines not yet moved and the inputs
- * of recipes still waiting, so a second queued action never counts on the same units.
- */
-export function queuedClaims(jobs: readonly Job[], instanceId: string): number {
-  let n = 0
-  for (const job of jobs) {
-    if (job.kind === 'transfer') {
-      for (let i = job.index; i < job.lines.length; i++) if (job.lines[i].instanceId === instanceId) n += job.lines[i].left
-    } else if (!job.action) {
-      for (const c of job.claims) if (c.instanceId === instanceId) n += c.quantity
-    }
-  }
-  return n
 }
 
 /** Progress of the running job for the HUD and the inventory window. */
@@ -155,13 +102,4 @@ export interface JobView {
   /** Units done / queued (a recipe: 0/1). */
   done: number
   total: number
-}
-
-export function jobView(job: Job): JobView {
-  if (job.kind === 'recipe') {
-    const a = job.action
-    return { id: job.id, kind: job.recipe.kind, label: job.label, stepProgress: a ? a.elapsed / a.duration : 0, stepRemaining: a ? Math.max(0, a.duration - a.elapsed) : job.recipe.duration, done: 0, total: 1 }
-  }
-  const s = job.step
-  return { id: job.id, kind: 'transfer', label: job.label, stepProgress: s ? s.elapsed / s.duration : 0, stepRemaining: s ? Math.max(0, s.duration - s.elapsed) : 0, done: job.summary.moved, total: job.total }
 }

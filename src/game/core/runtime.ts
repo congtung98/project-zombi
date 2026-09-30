@@ -12,21 +12,27 @@ import { attackReadyIn, canStartAttack, cancelSwing, facingTowards, resolveConeH
 import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
 import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
-import { accepts, cloneInventory, findItem, previewTransfer, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
+import { cloneInventory, findItem, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
 import { containerIdOf, containerKey, emptySummary, isCarried, isEquipped, itemRefusal, type InventoryKey, type TransferLine, type TransferRefusal, type TransferOutcome, type TransferSkip, type TransferSummary } from '../systems/inventoryCommands'
 import { bagInstanceIdOf, findUsable, usableInventories, wornBagContents } from '../systems/bags'
 import { recoverSave, toStoredForm } from '../systems/recovery'
-import { FloorStore, type FloorCell } from '../systems/floor'
+import { FloorStore } from '../systems/floor'
 import { createRng, hashSeed, randomSeed } from '../systems/loot'
 import { pickSpawnPoint, spawnInterval } from '../systems/spawn'
 import { migrationInterval, nearestZone, planMigration } from '../systems/horde'
-import { getItemDef, type ItemInstance } from '../entities/items'
+import { getItemDef } from '../entities/items'
 import { applyWeaponWear, meleeStats, weaponHitDamage } from '../systems/weapons'
-import { equipWeapon, equippedWeapon, reconcileEquipment, wearBag } from '../systems/equipment'
+import { equipWeapon, equippedWeapon, wearBag } from '../systems/equipment'
 import { validateSaveGame } from '../systems/save'
-import { checkRecipe, commitRecipe, type CraftFailure, type CraftSources } from '../systems/crafting'
+import { checkRecipe, type CraftFailure, type CraftSources } from '../systems/crafting'
 import type { ActionCancelReason, TimedAction } from '../systems/timedAction'
-import { jobView, queuedClaims, ReservationLedger, transferStep, type Job, type JobView, type RecipeJob, type TransferJob, type TransferLineState } from '../systems/actionQueue'
+import { ReservationLedger, type JobView } from '../systems/actionQueue'
+import { ActionSystem } from '../actions/actionSystem'
+import { ACTION, type ActionContext, type ActionJob, type ActionSource } from '../actions/types'
+import type { ActionWorld } from '../actions/world'
+import { CharacterStateMachine, interrupts, type CharacterState, type InterruptKind } from '../actions/characterState'
+import { WorldObjectVersions } from '../actions/worldVersions'
+import { prepareTransfer, recipeAction, recipeActionType, recipeData, transferData, type RecipeData, type TransferData } from '../actions/defs'
 import { RECIPES, repairRecipeFor, type Recipe, type RecipeId } from '../entities/recipes'
 import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
@@ -74,7 +80,12 @@ export interface ZombieBodyProxy {
 }
 
 /** `missing-carried`: the inputs are not all carried and free now (INV-LOOT Q3: never counts on items still moving). */
-export type ActionStartFailure = CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued'
+export type ActionStartFailure = CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued' | 'queue-full' | 'duplicate'
+/** AX1: optional request data from the UI: one ID per gesture (a repeat runs once), where it came from. */
+export interface RequestOptions {
+  requestId?: string
+  source?: ActionSource
+}
 /** `queued`: it waits behind the running action (one queue, run in order). */
 export type ActionStartResult = { ok: true; id: number; queued: boolean } | { ok: false; reason: ActionStartFailure }
 /** A queued transfer: its job ID (null when no line could be queued) and the lines refused at once, with why. */
@@ -108,8 +119,6 @@ const INTERACT_VERTICAL = 1.4
 const NEARBY_INTERVAL = 0.125
 /** Reach to an item lying on the floor, from the player's feet to the item (m). */
 const FLOOR_REACH = INTERACT_RANGE + 0.6
-/** Time sums of many small steps drift by float error: a step within this of its end is done (s). */
-const STEP_EPSILON = 1e-9
 /** A drop lands this far ahead of the feet when nothing is in the way (m). */
 const DROP_AHEAD = 0.35
 /** The player's capsule floats this far above its floor (never rests on a wall top it walks over). */
@@ -191,10 +200,19 @@ export class GameRuntime {
    * INV-LOOT S4: every timed action (transfer, craft, repair) in one queue, run in order; the first is
    * running. Never saved: a save holds the state before the running step, a load clears the queue.
    */
-  jobs: Job[] = []
+  get jobs(): readonly ActionJob[] {
+    return this.actions.jobs
+  }
   /** The one reservation ledger: what the running job holds (released on every path). */
   readonly ledger = new ReservationLedger()
-  private nextActionId = 1
+  /** AX1: what action definitions see of the simulation. */
+  private readonly actionWorld: ActionWorld = this.createActionWorld()
+  /** AX1: the one executor of timed actions (queue, reservations, commit as one transaction). */
+  readonly actions = new ActionSystem(this.actionWorld)
+  /** AX1: the character's state (FB §4), derived once per tick from the simulation. */
+  readonly character = new CharacterStateMachine()
+  /** AX1: per world object, a counter that grows with each state change (runtime only). */
+  readonly worldVersions = new WorldObjectVersions()
   /**
    * CS1 combat stance: right-button intent and the desired aim (runtime only, never saved). The
    * simulation owns the heading: `player.facing` turns toward `stance.aimYaw` at a limited speed.
@@ -415,8 +433,9 @@ export class GameRuntime {
     this.spawnTimer = spawnInterval(this.clock.isNight)
     this.autosaveTimer = GAME_CONFIG.save.autosaveInterval
     this.autosaveDue = false
-    this.jobs = []
-    this.ledger.clear()
+    this.actions.clear()
+    this.character.reset()
+    this.worldVersions.clear()
     this.playerNoise = 0
     this.hordeTimer = GAME_CONFIG.horde.intervalMin
     this.hordeCounter = 0
@@ -643,6 +662,7 @@ export class GameRuntime {
     perf.end('combat', t)
     this.stepQueue(dt)
     this.stepSurvival(dt)
+    this.updateCharacterState()
     t = perf.begin()
     this.stepSpawn(dt)
     this.stepHorde(dt)
@@ -955,6 +975,7 @@ export class GameRuntime {
     this.chordAllowed = s.mode === 'hold' && !s.suppressed
     updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive)
     this.stanceStarted = s.requested && !was
+    if (this.stanceStarted) this.interruptAction('stance', 'stance')
     // A queued click lives only while the stance is asked for (release, panel, death drop it).
     if (!s.requested) this.pendingAttack = null
     if (this.stanceStarted && !s.hasAim) s.aimYaw = this.player.facing
@@ -1001,8 +1022,9 @@ export class GameRuntime {
       this.cameraBasis,
     )
     const moving = dir.x !== 0 || dir.z !== 0
-    // Walking away interrupts a craft/repair; nothing is consumed (plan §7.1 step 4).
-    if (moving && this.jobs.length > 0) this.cancelAction('moved')
+    // Walking away interrupts the running action if its policy says so (every one so far): nothing
+    // is consumed (plan §7.1 step 4), the whole queue stops.
+    if (moving) this.interruptAction('move', 'moved')
     // CS1: the stance (and a swing finishing after it) walks slower and cannot run; the factor is
     // applied once, to the walking speed (no other movement modifiers exist yet).
     const posture = this.combatPosture
@@ -1180,6 +1202,7 @@ export class GameRuntime {
       if (!container || !target) return false
       const firstTime = !container.opened
       container.opened = true
+      if (firstTime) this.worldVersions.bump(container.id)
       this.events.queue('container:opened', { id: container.id, name: target.name, firstTime })
     }
     const previous = this.openContainerId
@@ -1229,8 +1252,9 @@ export class GameRuntime {
     this.lootInReach = inReach
     // INV-LOOT §7.2: a container that left reach cancels the jobs that use it (the others go on).
     for (const job of [...this.jobs]) {
-      if (job.kind !== 'transfer') continue
-      const gone = [job.source, job.destination].some((k) => {
+      const transfer = transferData(job)
+      if (!transfer) continue
+      const gone = [transfer.source, transfer.destination].some((k) => {
         const id = containerIdOf(k)
         return id !== null && !this.canReachContainer(id)
       })
@@ -1254,6 +1278,7 @@ export class GameRuntime {
     if (!door || door.state === state) return
     door.state = state
     door.hp = state === 'destroyed' ? 0 : door.hp || DOOR_MAX_HP
+    this.worldVersions.bump(id)
     this.navWorld.setDoorState(id, state)
     this.lighting.markDoorDirty(id)
     if (state !== 'destroyed') this.events.queue('door:toggled', { id, open: state === 'open' })
@@ -1264,6 +1289,7 @@ export class GameRuntime {
   setLamp(id: string, on: boolean): void {
     if (!this.world.lamps.has(id) || this.world.lamps.get(id) === on) return
     this.world.lamps.set(id, on)
+    this.worldVersions.bump(id)
     this.lighting.markLampDirty(id)
     this.events.queue('light:changed', { id, on })
   }
@@ -1272,6 +1298,7 @@ export class GameRuntime {
   setCurtain(id: string, closed: boolean): void {
     if (!this.world.curtains.has(id) || this.world.curtains.get(id) === closed) return
     this.world.curtains.set(id, closed)
+    this.worldVersions.bump(id)
     this.lighting.markWindowDirty(id)
     this.events.queue('curtain:changed', { id, closed })
   }
@@ -1500,182 +1527,121 @@ export class GameRuntime {
 
   /** The running craft or repair (the first job once it started), or null. */
   get action(): TimedAction | null {
-    const head = this.jobs[0]
-    return head?.kind === 'recipe' ? head.action : null
+    return recipeAction(this.actions.head)
   }
 
   /** The running job as the HUD and the inventory window show it, or null. */
   get runningJob(): JobView | null {
-    return this.jobs[0] ? jobView(this.jobs[0]) : null
+    return this.actions.view()
+  }
+
+  /** AX1: the character's state this tick (FB §4). */
+  get characterState(): CharacterState {
+    return this.character.state
   }
 
   /** Seconds into the running step (the work pose), -1 when idle. */
   get workElapsed(): number {
-    const head = this.jobs[0]
-    if (!head) return -1
-    return head.kind === 'recipe' ? (head.action?.elapsed ?? -1) : (head.step?.elapsed ?? -1)
+    return this.actions.head?.step?.elapsed ?? -1
   }
 
-  startCraft(id: RecipeId): ActionStartResult {
-    return this.startRecipe(RECIPES[id], null)
+  startCraft(id: RecipeId, opts: RequestOptions = {}): ActionStartResult {
+    return this.startRecipe(RECIPES[id], null, opts)
   }
 
   /** Repair one weapon instance (main inventory or worn bag) with the recipe of its group. */
-  startRepair(targetId: string): ActionStartResult {
+  startRepair(targetId: string, opts: RequestOptions = {}): ActionStartResult {
     const target = findUsable(this.player.inventory, this.player.equipment, this.world.bags, targetId)?.item
     const recipe = target ? repairRecipeFor(target.itemId) : null
     if (!recipe) return this.rejectAction('Sửa', target ? 'not-repairable' : 'no-target')
-    return this.startRecipe(recipe, targetId)
+    return this.startRecipe(recipe, targetId, opts)
   }
 
   /**
-   * Queue a craft or repair (INV-LOOT Q3). Accepted only if what is carried and free now covers it
-   * (inputs from the main inventory then the worn bag, favorites and equipped items never consumed);
-   * it starts at once when nothing runs, else waits its turn, is checked again and reserved then.
-   * Public so tests can run ad-hoc recipes (e.g. with tool wear).
+   * Queue a craft or repair (INV-LOOT Q3) through the Action System. Accepted only if what is carried
+   * and free now covers it (inputs from the main inventory then the worn bag, favorites and equipped
+   * items never consumed); it starts at once when nothing runs, else waits its turn, is checked again
+   * and reserved then. Public so tests can run ad-hoc recipes (e.g. with tool wear).
    */
-  startRecipe(recipe: Recipe, targetId: string | null): ActionStartResult {
+  startRecipe(recipe: Recipe, targetId: string | null, opts: RequestOptions = {}): ActionStartResult {
+    const refused = this.actions.refusal(opts.requestId)
+    // A repeated request was already handled: nothing to say (one gesture, one execution).
+    if (refused === 'DUPLICATE') return { ok: false, reason: 'duplicate' }
     const label = this.actionLabel(recipe, targetId)
+    if (refused === 'QUEUE_FULL') return this.rejectAction(label, 'queue-full')
     if (!this.player.alive) return this.rejectAction(label, 'dead')
     if (this.player.attackTimer >= 0) return this.rejectAction(label, 'busy')
     // One repair of an item at a time in the queue (a spammed button never queues ten repairs).
-    if (targetId !== null && this.jobs.some((j) => j.kind === 'recipe' && j.targetId === targetId)) return this.rejectAction(label, 'already-queued')
+    if (targetId !== null && this.jobs.some((j) => recipeData(j)?.targetId === targetId)) return this.rejectAction(label, 'already-queued')
     const check = checkRecipe(this.craftSources(undefined, true), recipe, targetId)
     if (!check.ok) return this.rejectAction(label, check.failure === 'missing-input' && this.jobs.length > 0 ? 'missing-carried' : check.failure!)
-    const job: RecipeJob = { kind: 'recipe', id: this.nextActionId++, label, recipe, targetId, action: null, claims: check.plan ?? [] }
-    this.jobs.push(job)
-    if (this.jobs[0] === job && !this.beginRecipe(job)) {
-      this.jobs.shift()
-      return { ok: false, reason: check.failure ?? 'missing-input' }
-    }
-    if (this.jobs[0] !== job) this.events.queue('action:queued', { id: job.id, label })
+    const type = recipeActionType(recipe)
+    const ctx: ActionContext = { actorId: 'player', type, target: targetId ? { kind: 'item', instanceId: targetId, inventory: null } : { kind: 'self' }, source: opts.source ?? 'system' }
+    const data: RecipeData = { recipe, targetId, action: null, claims: check.plan ?? [] }
+    const r = this.actions.enqueue(type, ctx, data, label, opts.requestId ?? null)
+    if (!r.ok) return { ok: false, reason: 'queue-full' }
+    if (r.state === 'not-started') return { ok: false, reason: check.failure ?? 'missing-input' }
     this.queueInventoryChanged()
-    return { ok: true, id: job.id, queued: this.jobs[0] !== job }
+    return { ok: true, id: r.job.id, queued: r.state === 'queued' }
   }
 
   /**
-   * Queue a timed transfer of instances (INV-LOOT §8): each line is checked now (reach, equipped,
-   * favorite, what the running job holds and what earlier queued lines already claim, so a spammed
-   * double click never queues more than there is) and gets a fixed number of units; the job then
-   * moves them in timed steps, each checked again when it starts and when it commits.
+   * Queue a timed transfer of instances (INV-LOOT §8) through the Action System: each line is checked
+   * now and gets a fixed number of units; the job then moves them in timed steps, each checked again
+   * when it starts and when it commits.
    */
-  queueTransfer(source: InventoryKey, destination: InventoryKey, lines: readonly TransferLine[]): QueueResult {
-    const refused: TransferSkip[] = []
-    const accepted: TransferLineState[] = []
-    const refuse = (instanceId: string, itemId: TransferSkip['itemId'], reason: TransferRefusal) => refused.push({ instanceId, itemId, reason })
-    const from = source === 'floor' ? null : this.inventoryFor(source)
-    const to = destination === 'floor' ? null : this.inventoryFor(destination)
-    const claimed = new Map<string, number>()
-    for (const line of lines) {
-      const onFloor = source === 'floor' ? this.world.floor.find(line.instanceId) : null
-      const inv = source === 'floor' ? (onFloor && this.canReachFloor(onFloor.position) ? onFloor.cell.items : null) : from
-      const item = inv ? findItem(inv, line.instanceId) : undefined
-      const itemId = item?.itemId ?? null
-      if (!this.player.alive) refuse(line.instanceId, itemId, 'dead')
-      else if (this.player.attackTimer >= 0) refuse(line.instanceId, itemId, 'busy')
-      else if (!inv || (destination !== 'floor' && !to)) refuse(line.instanceId, itemId, 'unreachable')
-      else if (source === destination) refuse(line.instanceId, itemId, 'same-inventory')
-      else if (!item) refuse(line.instanceId, null, 'missing')
-      else if (to && !accepts(to, item.itemId)) refuse(item.id, item.itemId, 'bag-in-bag')
-      else {
-        const leaving = isCarried(source) && !isCarried(destination)
-        const refusal = itemRefusal(item, this.player.equipment, leaving, this.bagHeld(item.id))
-        const free = item.quantity - this.ledger.reserved(item.id) - queuedClaims(this.jobs, item.id) - (claimed.get(item.id) ?? 0)
-        const want = line.quantity === undefined ? item.quantity : Math.floor(line.quantity)
-        if (refusal) refuse(item.id, item.itemId, refusal)
-        else if (!Number.isFinite(want) || want <= 0) refuse(item.id, item.itemId, 'invalid-quantity')
-        else if (free <= 0) refuse(item.id, item.itemId, queuedClaims(this.jobs, item.id) + (claimed.get(item.id) ?? 0) > 0 ? 'queued' : 'reserved')
-        else {
-          const units = Math.min(want, free)
-          claimed.set(item.id, (claimed.get(item.id) ?? 0) + units)
-          accepted.push({ instanceId: item.id, itemId: item.itemId, left: units, queued: units })
-        }
-      }
+  queueTransfer(source: InventoryKey, destination: InventoryKey, lines: readonly TransferLine[], opts: RequestOptions = {}): QueueResult {
+    const refused = this.actions.refusal(opts.requestId)
+    if (refused === 'DUPLICATE') return { id: null, refused: [] }
+    if (refused === 'QUEUE_FULL') {
+      const skipped = lines.map((l) => ({ instanceId: l.instanceId, itemId: null, reason: 'queue-full' as const }))
+      this.events.queue('inventory:transferred', { source, destination, moved: 0, movedLines: 0, skipped: skipped.map((r) => r.reason) })
+      return { id: null, refused: skipped }
     }
-    if (accepted.length === 0) {
-      this.events.queue('inventory:transferred', { source, destination, moved: 0, movedLines: 0, skipped: refused.map((r) => r.reason) })
-      return { id: null, refused }
+    const prepared = prepareTransfer(this.actionWorld, source, destination, lines, this.player.attackTimer >= 0)
+    if (prepared.accepted.length === 0) {
+      this.events.queue('inventory:transferred', { source, destination, moved: 0, movedLines: 0, skipped: prepared.refused.map((r) => r.reason) })
+      return { id: null, refused: prepared.refused }
     }
-    const verb = destination === 'floor' ? 'Bỏ xuống' : !isCarried(source) && isCarried(destination) ? 'Lấy' : isCarried(source) && !isCarried(destination) ? 'Cất' : 'Chuyển'
-    const first = getItemDef(accepted[0].itemId).name
-    const job: TransferJob = {
-      kind: 'transfer', id: this.nextActionId++, label: `${verb} ${first}${accepted.length > 1 ? ` +${accepted.length - 1}` : ''}`,
-      source, destination, lines: accepted, index: 0, step: null, total: accepted.reduce((n, l) => n + l.left, 0),
-      summary: { moved: 0, movedLines: 0, skipped: [...refused] }, dropAt: destination === 'floor' ? this.dropPosition() : null,
+    const data: TransferData = {
+      source, destination, lines: prepared.accepted, index: 0, total: prepared.accepted.reduce((n, l) => n + l.left, 0),
+      summary: { moved: 0, movedLines: 0, skipped: [...prepared.refused] }, dropAt: destination === 'floor' ? this.dropPosition() : null,
     }
-    this.jobs.push(job)
-    if (this.jobs[0] === job) {
-      if (!this.beginTransferStep(job)) this.finishTransfer(job)
-    } else this.events.queue('action:queued', { id: job.id, label: job.label })
+    const ctx: ActionContext = { actorId: 'player', type: ACTION.TRANSFER, target: { kind: 'inventory', key: destination }, source: opts.source ?? 'system' }
+    const r = this.actions.enqueue(ACTION.TRANSFER, ctx, data, prepared.label, opts.requestId ?? null)
     this.queueInventoryChanged()
-    return { id: job.id, refused }
+    return { id: r.ok ? r.job.id : null, refused: prepared.refused }
   }
 
   /** Cancel every job (the running step moves nothing; committed steps stay). Returns false when idle. */
   cancelAction(reason: ActionCancelReason = 'cancelled'): boolean {
-    const head = this.jobs[0]
-    if (!head) return false
-    const dropped = this.jobs.length - 1
-    this.jobs = []
-    this.ledger.clear()
-    this.events.queue('action:cancelled', { id: head.id, label: head.label, reason, dropped })
-    if (head.kind === 'transfer' && head.summary.moved > 0) this.reportTransfer(head)
-    this.queueInventoryChanged()
-    return true
+    return this.actions.cancelAll(reason)
   }
 
   /** Cancel one job: the running one (the next starts on the next tick) or a waiting one. */
   cancelJob(id: number, reason: ActionCancelReason = 'cancelled'): boolean {
-    const index = this.jobs.findIndex((j) => j.id === id)
-    if (index < 0) return false
-    const [job] = this.jobs.splice(index, 1)
-    this.ledger.release(job.id)
-    this.events.queue('action:cancelled', { id: job.id, label: job.label, reason, dropped: 0 })
-    if (job.kind === 'transfer' && job.summary.moved > 0) this.reportTransfer(job)
-    this.queueInventoryChanged()
-    return true
+    return this.actions.cancel(id, reason)
   }
 
   /**
-   * Commit the running recipe `id` once it has run its full duration. It leaves the queue before
-   * the commit, so a repeated or stale completion is a no-op; the commit re-checks everything and
-   * changes the inventories in one step inside the tick (snapshots only happen between ticks).
+   * Commit the running job `id` once it has run its full duration. It leaves the queue with the
+   * commit, so a repeated or stale completion is a no-op; the change is one transaction inside the
+   * tick (snapshots only happen between ticks).
    */
   completeAction(id: number): boolean {
-    const job = this.jobs[0]
-    const action = job?.kind === 'recipe' ? job.action : null
-    if (!job || !action || job.id !== id || action.elapsed < action.duration) return false
-    this.jobs.shift()
-    const { recipe, label } = action
-    const result = commitRecipe(this.craftSources(id), recipe, action.targetId, action.toolIds, action.plan)
-    this.ledger.release(id)
-    if (!result.ok) {
-      this.events.queue('action:failed', { id, label, reason: result.failure })
-      this.queueInventoryChanged()
-      return false
-    }
-    reconcileEquipment(this.player.inventory, this.player.equipment)
-    for (const wear of result.toolWear) {
-      this.events.queue('weapon:worn', { id: wear.id, itemId: wear.itemId, condition: wear.condition })
-      if (wear.broke) this.events.queue('weapon:broken', { id: wear.id, itemId: wear.itemId, name: getItemDef(wear.itemId).name })
-    }
-    this.events.queue('action:completed', {
-      id,
-      kind: recipe.kind,
-      recipeId: recipe.id,
-      label,
-      outputItemId: recipe.kind === 'craft' ? recipe.output.itemId : null,
-      outputId: result.outputId,
-      repair: result.repair,
-    })
-    this.queueInventoryChanged()
-    return true
+    return this.actions.complete(id)
   }
 
   /**
-   * Advance the queue by simulation time (stops with the game's pause). Several steps may finish in
-   * one tick: the time left after a step goes to the next, so the pace never depends on the frame rate.
+   * AX1: an interruption of the running action, decided by its definition's policy (the state
+   * machine's rule); `cancel` stops the whole queue, as moving, a blow or a swing always did.
    */
+  private interruptAction(kind: InterruptKind, reason: ActionCancelReason): void {
+    const head = this.actions.head
+    if (head && interrupts(kind, head.def.interrupt)) this.cancelAction(reason)
+  }
+
+  /** Advance the queue by simulation time (stops with the game's pause). */
   private stepQueue(dt: number): void {
     if (this.jobs.length === 0) return
     if (!this.player.alive) {
@@ -1686,39 +1652,21 @@ export class GameRuntime {
       this.cancelAction('cancelled')
       return
     }
-    let budget = Math.max(0, dt)
-    for (let guard = 0; guard < 100_000 && this.jobs.length > 0; guard++) {
-      const job = this.jobs[0]
-      if (job.kind === 'recipe') {
-        if (!job.action && !this.beginRecipe(job)) {
-          this.jobs.shift()
-          continue
-        }
-        const a = job.action!
-        const need = a.duration - a.elapsed
-        if (budget < need - STEP_EPSILON) {
-          a.elapsed += budget
-          return
-        }
-        budget = Math.max(0, budget - need)
-        a.elapsed = a.duration
-        this.completeAction(job.id)
-        continue
-      }
-      if (!job.step && !this.beginTransferStep(job)) {
-        this.finishTransfer(job)
-        continue
-      }
-      const step = job.step!
-      const need = step.duration - step.elapsed
-      if (budget < need - STEP_EPSILON) {
-        step.elapsed += budget
-        return
-      }
-      budget = Math.max(0, budget - need)
-      step.elapsed = step.duration
-      this.commitTransferStep(job)
-    }
+    this.actions.tick(dt)
+  }
+
+  /** What the character is doing this tick (FB §4), from the simulation's own state. */
+  private updateCharacterState(): void {
+    const p = this.player
+    const head = this.actions.head
+    this.character.update({
+      alive: p.alive,
+      moving: p.moveSpeed > 0,
+      approaching: false,
+      stance: this.stance.requested,
+      swinging: p.attackTimer >= 0,
+      action: head && head.status === 'running' ? head.def.characterState : null,
+    })
   }
 
   /**
@@ -1730,111 +1678,31 @@ export class GameRuntime {
     return {
       inventories: this.usableInventories,
       protect: (i) => !!i.favorite || isEquipped(i, eq),
-      available: (i) => i.quantity - this.ledger.reserved(i.id, exceptAction) - (queueing ? queuedClaims(this.jobs, i.id) : 0),
+      available: (i) => i.quantity - this.ledger.reserved(i.id, exceptAction) - (queueing ? this.actions.claimed(i.id) : 0),
     }
   }
 
-  /** A waiting recipe's turn: check again and reserve its inputs, tools and target, else fail with the reason. */
-  private beginRecipe(job: RecipeJob): boolean {
-    const check = checkRecipe(this.craftSources(job.id), job.recipe, job.targetId)
-    if (!check.ok) {
-      this.events.queue('action:failed', { id: job.id, label: job.label, reason: check.failure! })
-      this.queueInventoryChanged()
-      return false
-    }
-    const toolIds = check.tools.map((t) => t.instanceId!)
-    job.action = { id: job.id, recipe: job.recipe, targetId: job.targetId, worldTargetId: null, toolIds, plan: check.plan!, label: job.label, duration: job.recipe.duration, elapsed: 0 }
-    for (const u of check.plan!) this.ledger.reserve(job.id, 'recipe', u.instanceId, u.quantity)
-    for (const t of toolIds) this.ledger.reserve(job.id, 'recipe', t, 1)
-    if (job.targetId) this.ledger.reserve(job.id, 'recipe', job.targetId, 1)
-    this.events.queue('action:started', { id: job.id, kind: job.recipe.kind, label: job.label, duration: job.recipe.duration })
-    this.queueInventoryChanged()
-    return true
-  }
-
-  /** Source, destination and item of a transfer line now (reach checked at the item for the floor), or why not. */
-  private resolveLine(job: TransferJob, line: TransferLineState): { from: Inventory; to: Inventory | null; item: ItemInstance; cell: FloorCell | null } | { reason: TransferRefusal } {
-    const onFloor = job.source === 'floor' ? this.world.floor.find(line.instanceId) : null
-    const from = job.source === 'floor' ? (onFloor && this.canReachFloor(onFloor.position) ? onFloor.cell.items : null) : this.inventoryFor(job.source)
-    const to = job.destination === 'floor' ? null : this.inventoryFor(job.destination)
-    if (!from || (job.destination !== 'floor' && !to)) return { reason: onFloor || job.source !== 'floor' ? 'unreachable' : 'missing' }
-    const item = findItem(from, line.instanceId)
-    if (!item) return { reason: 'missing' }
-    const leaving = isCarried(job.source) && !isCarried(job.destination)
-    const refusal = itemRefusal(item, this.player.equipment, leaving, this.ledger.reserved(item.id, job.id) >= item.quantity || this.bagHeld(item.id))
-    if (refusal) return { reason: refusal }
-    return { from, to, item, cell: onFloor?.cell ?? null }
-  }
-
-  /** Start the next step of a transfer (Pending → Running: validate and reserve), skipping lines that cannot move. */
-  private beginTransferStep(job: TransferJob): boolean {
-    while (job.index < job.lines.length) {
-      const line = job.lines[job.index]
-      const res = this.resolveLine(job, line)
-      if ('reason' in res) {
-        job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: res.reason })
-        job.index += 1
-        continue
-      }
-      const { units: batch, seconds } = transferStep(res.item, this.world.bags)
-      const units = Math.min(line.left, batch, res.item.quantity - this.ledger.reserved(res.item.id, job.id))
-      // Room is checked when the step starts, never kept: a full destination skips this item and the
-      // others still move (merges into stacks with room included), nothing waits forever.
-      const preview = res.to ? previewTransfer(res.from, res.item.id, res.to, units) : { quantity: units, reason: null }
-      if (units <= 0 || preview.quantity <= 0) {
-        job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: units <= 0 ? 'reserved' : (preview.reason ?? 'full') })
-        job.index += 1
-        continue
-      }
-      job.step = { instanceId: res.item.id, units: preview.quantity, duration: seconds, elapsed: 0 }
-      this.ledger.reserve(job.id, 'transfer', res.item.id, preview.quantity)
-      return true
-    }
-    return false
-  }
-
-  /** Running → Committed: check everything again, move the step's units in one mutation, release. */
-  private commitTransferStep(job: TransferJob): void {
-    const step = job.step!
-    job.step = null
-    this.ledger.release(job.id)
-    const line = job.lines[job.index]
-    const res = this.resolveLine(job, line)
-    if ('reason' in res) {
-      job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: res.reason })
-      job.index += 1
-      return
-    }
-    const dropCell = job.destination === 'floor' ? this.world.floor.cellAt(job.dropAt!) : null
-    const r = transferItem(res.from, res.item.id, dropCell ? dropCell.items : res.to!, step.units)
-    if (res.cell) this.world.floor.sync(res.cell)
-    if (dropCell) this.world.floor.sync(dropCell, job.dropAt!)
-    if (r.moved > 0) {
-      job.summary.moved += r.moved
-      line.left -= r.moved
-      if (res.cell || dropCell) {
+  /** AX1: what action definitions may read and ask of the simulation (never the runtime itself). */
+  private createActionWorld(): ActionWorld {
+    const w: Omit<ActionWorld, 'player' | 'world'> = {
+      ledger: this.ledger,
+      events: this.events,
+      inventoryFor: (key) => this.inventoryFor(key),
+      canReachFloor: (position) => this.canReachFloor(position),
+      bagHeld: (id) => this.bagHeld(id),
+      craftSources: (exceptAction, queueing) => this.craftSources(exceptAction, queueing),
+      claimed: (id) => this.actions.claimed(id),
+      inventoryChanged: () => this.queueInventoryChanged(),
+      floorChanged: () => {
         this.events.queue('drops:changed', {})
         this.nextNearbyAt = 0
-      }
-      this.queueInventoryChanged()
+      },
     }
-    if (r.moved < step.units) {
-      job.summary.skipped.push({ instanceId: line.instanceId, itemId: line.itemId, reason: r.reason ?? 'full' })
-      job.index += 1
-    } else if (line.left <= 0 || !findItem(res.from, line.instanceId)) job.index += 1
-  }
-
-  private finishTransfer(job: TransferJob): void {
-    if (this.jobs[0] === job) this.jobs.shift()
-    this.ledger.release(job.id)
-    this.reportTransfer(job)
-    this.queueInventoryChanged()
-  }
-
-  /** One summary per transfer job (what moved, and why the rest did not). */
-  private reportTransfer(job: TransferJob): void {
-    job.summary.movedLines = job.lines.filter((l) => l.left < l.queued).length
-    this.events.queue('inventory:transferred', { source: job.source, destination: job.destination, moved: job.summary.moved, movedLines: job.summary.movedLines, skipped: job.summary.skipped.map((x) => x.reason) })
+    // New Game and load replace the player and the world: read them live.
+    return Object.defineProperties(w, {
+      player: { get: () => this.player, enumerable: true },
+      world: { get: () => this.world, enumerable: true },
+    }) as ActionWorld
   }
 
   /** A bag whose contents hold a reservation (it may not be taken off, moved or dropped). */
@@ -1842,7 +1710,7 @@ export class GameRuntime {
     return this.world.bags.get(instanceId)?.items.some((i) => this.ledger.reserved(i.id) > 0) ?? false
   }
 
-  private rejectAction(label: string, reason: ActionStartFailure): ActionStartResult {
+  private rejectAction(label: string, reason: Exclude<ActionStartFailure, 'duplicate'>): ActionStartResult {
     this.events.queue('action:rejected', { label, reason })
     return { ok: false, reason }
   }
@@ -2019,8 +1887,8 @@ export class GameRuntime {
         attack = true
       }
       if (attack) s.clickOutsideAt = -Infinity
-      // Attacking or shoving interrupts a craft/repair (the swing itself still happens).
-      if (this.jobs.length > 0 && (attack || this.input.wasPressed('push'))) this.cancelAction('attacked')
+      // Attacking or shoving interrupts the running action (the swing itself still happens).
+      if (attack || this.input.wasPressed('push')) this.interruptAction('attack', 'attacked')
       const weapon = equippedWeapon(player.inventory, player.equipment)
       const cs = GAME_CONFIG.combatStance
       if (attack) {
@@ -2164,7 +2032,7 @@ export class GameRuntime {
     if (sourceId !== 'starvation') {
       this.player.hurtTimer = PLAYER_HURT_TIME
       // Taking a blow interrupts work; slow starvation damage does not.
-      this.cancelAction('hit')
+      this.interruptAction('hit', 'hit')
     }
     this.events.queue('player:damaged', { amount, health: this.player.health, sourceId })
     if (died) this.events.queue('player:died', { sourceId })

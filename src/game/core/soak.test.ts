@@ -454,6 +454,9 @@ function runSoak(policy: 'shelter' | 'patrol') {
     expect(new Set(ids).size).toBe(ids.length)
     expect(rt.zombies.size).toBeLessThanOrEqual(GAME_CONFIG.spawn.maxActive * 2)
     expect(m.snapshotsChecked).toBeGreaterThanOrEqual(Math.floor(m.survivedSec / 60))
+    // AX1: 30 minutes of walking, looting, fighting, eating and dying never made the character's
+    // state change in a way its transition table does not allow.
+    expect(rt.character.violations).toEqual([])
 
     const report = {
       ...m,

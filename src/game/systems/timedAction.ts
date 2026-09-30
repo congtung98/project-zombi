@@ -23,4 +23,5 @@ export interface TimedAction {
   elapsed: number
 }
 
-export type ActionCancelReason = 'moved' | 'attacked' | 'hit' | 'cancelled' | 'dead' | 'target-damaged' | 'unreachable'
+/** `stance`: the combat stance started (AX1; only actions whose policy says so). */
+export type ActionCancelReason = 'moved' | 'attacked' | 'hit' | 'stance' | 'cancelled' | 'dead' | 'target-damaged' | 'unreachable'

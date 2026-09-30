@@ -120,6 +120,7 @@ export const REFUSAL_LABEL: Record<TransferRefusal | 'not-carried' | 'not-main' 
   favorite: 'Món yêu thích — bỏ yêu thích trước',
   reserved: 'Đang dùng cho thao tác khác',
   queued: 'Đã xếp hàng',
+  'queue-full': 'Hàng đợi đã đầy',
   unreachable: 'Ngoài tầm',
   dead: 'Không thể lúc này',
   busy: 'Đang ra đòn',

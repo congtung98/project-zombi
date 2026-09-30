@@ -164,6 +164,24 @@ export function checkRecipe(from: Inventory | CraftSources, recipe: Recipe, targ
  * failure, so a cancelled or invalid completion never loses or duplicates items.
  */
 export function commitRecipe(from: Inventory | CraftSources, recipe: Recipe, targetId: string | null, toolIds: readonly string[], plan?: readonly InputUse[]): CommitResult {
+  const prepared = prepareRecipe(from, recipe, targetId, toolIds, plan)
+  if (!prepared.ok) return prepared
+  prepared.inventories.forEach((inv, n) => {
+    inv.items = prepared.trials[n].items
+    inv.nextItemId = prepared.trials[n].nextItemId
+  })
+  return { ok: true, outputId: prepared.outputId, repair: prepared.repair, toolWear: prepared.toolWear }
+}
+
+/**
+ * The completion of `commitRecipe` computed on copies without writing anything: the live inventories
+ * and what each becomes. AX1: the recipe action turns it into one gameplay transaction.
+ */
+export type PreparedRecipe =
+  | { ok: true; inventories: Inventory[]; trials: Inventory[]; outputId: string | null; repair: RepairPreview | null; toolWear: ToolWear[] }
+  | { ok: false; failure: CraftFailure }
+
+export function prepareRecipe(from: Inventory | CraftSources, recipe: Recipe, targetId: string | null, toolIds: readonly string[], plan?: readonly InputUse[]): PreparedRecipe {
   const src = sources(from)
   const check = checkRecipe(src, recipe, targetId, toolIds)
   if (!check.ok) return { ok: false, failure: check.failure! }
@@ -176,11 +194,7 @@ export function commitRecipe(from: Inventory | CraftSources, recipe: Recipe, tar
   for (const u of use) if ((findIn(src.inventories, u.instanceId)?.quantity ?? 0) < u.quantity) return { ok: false, failure: 'missing-input' }
   const result = simulate(src.inventories, recipe, targetId, check.tools.map((t) => t.instanceId!), use)
   if (!result.ok) return { ok: false, failure: 'no-space' }
-  src.inventories.forEach((inv, n) => {
-    inv.items = result.trials[n].items
-    inv.nextItemId = result.trials[n].nextItemId
-  })
-  return { ok: true, outputId: result.outputId, repair: check.repair, toolWear: result.toolWear }
+  return { ok: true, inventories: [...src.inventories], trials: result.trials, outputId: result.outputId, repair: check.repair, toolWear: result.toolWear }
 }
 
 function simulate(invs: readonly Inventory[], recipe: Recipe, targetId: string | null, toolIds: readonly string[], plan: readonly InputUse[]) {
