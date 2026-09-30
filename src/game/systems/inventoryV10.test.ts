@@ -233,13 +233,13 @@ describe('loot is rolled once (T15, T16 as generator calls)', () => {
     const rt = new GameRuntime()
     rt.newGame(8)
     const box = rt.interactables.find((i) => i.kind === 'container')!
-    rt.interact(box)
+    rt.openLoot(box.id, true)
     rt.takeAll()
     const left = totalQuantity(rt.openContainer!.items)
     const before = lootStats.generated
     for (let n = 0; n < 5; n++) {
       rt.closeAllUi()
-      rt.interact(box)
+      rt.openLoot(box.id, true)
     }
     const snap = migrate(JSON.parse(JSON.stringify(rt.createSnapshot()))).save
     const other = new GameRuntime()

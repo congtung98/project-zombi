@@ -13,7 +13,7 @@ function setup() {
   rt.setLineOfSightOverride({ isBlocked: () => false })
   const cabinet = rt.interactables.find((i) => i.id === CABINET)!
   rt.player.position = { x: cabinet.position.x + 0.5, y: 0, z: cabinet.position.z }
-  rt.interact(cabinet)
+  rt.openLoot(cabinet.id, true)
   const summaries: { moved: number; skipped: string[] }[] = []
   rt.events.on('inventory:transferred', (e) => summaries.push({ moved: e.moved, skipped: e.skipped }))
   return { rt, box: containerKey(CABINET), summaries }
@@ -103,7 +103,7 @@ describe('the inventory window and the loot window are independent', () => {
     rt.toggleInventory()
     rt.closeContainer()
     expect([rt.inventoryOpen, rt.openContainerId, rt.uiOpen]).toEqual([true, null, true])
-    rt.interact(rt.interactables.find((i) => i.id === CABINET)!)
+    rt.openLoot(CABINET, true)
     rt.closeAllUi()
     expect([rt.inventoryOpen, rt.openContainerId, rt.uiOpen]).toEqual([false, null, false])
   })

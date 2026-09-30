@@ -35,9 +35,9 @@ export class ActionSystem {
   private readonly recentSet = new Set<string>()
 
   private readonly w: ActionWorld
-  private readonly cfg: typeof GAME_CONFIG.actions
+  private readonly cfg: Pick<typeof GAME_CONFIG.actions, 'queueLimit' | 'recentRequests'>
 
-  constructor(w: ActionWorld, cfg = GAME_CONFIG.actions) {
+  constructor(w: ActionWorld, cfg: Pick<typeof GAME_CONFIG.actions, 'queueLimit' | 'recentRequests'> = GAME_CONFIG.actions) {
     this.w = w
     this.cfg = cfg
   }
@@ -101,6 +101,27 @@ export class ActionSystem {
     const job = this.jobs[0]
     if (!job || job.id !== id || !job.step || job.step.elapsed < job.step.duration) return false
     return this.commit(job)
+  }
+
+  /**
+   * AX4: run an action of the `immediate` lane now, outside the queue (a door, a lamp): the same
+   * checks and the same one-transaction commit, in this tick. Returns whether its change applied.
+   */
+  perform<Data>(type: ActionType, ctx: ActionContext, data: Data, label: string, opts: EnqueueOptions = {}): { ok: true } | { ok: false; reason: ActionFailure | null } {
+    const requestId = opts.requestId ?? null
+    if (requestId && this.recentSet.has(requestId)) return { ok: false, reason: 'DUPLICATE' }
+    if (requestId) this.remember(requestId)
+    const def = getAction<Data>(type)
+    const job: ActionJob<Data> = { id: this.nextId++, requestId, type, label, def, ctx, status: 'queued', step: null, data, chain: opts.chain ?? null }
+    const step = def.begin(job, this.w)
+    if (!step) {
+      job.status = 'failed'
+      return { ok: false, reason: null }
+    }
+    job.step = step
+    job.status = 'running'
+    const applied = this.commit(job as ActionJob)
+    return applied ? { ok: true } : { ok: false, reason: null }
   }
 
   /** Cancel every job (the running step changes nothing; steps already committed stay). */
@@ -182,7 +203,7 @@ export class ActionSystem {
     const outcome = job.def.commit(job, this.w, step)
     let applied = false
     if (outcome.mutation) {
-      const result = applyMutation(outcome.mutation, { player: this.w.player, events: this.w.events })
+      const result = applyMutation(outcome.mutation, { player: this.w.player, events: this.w.events, worldAdapter: (type) => this.w.worldAdapter(type) })
       if (!result.ok) {
         this.leave(job, 'failed')
         this.w.events.queue('action:failed', { id: job.id, label: job.label, reason: result.failure })

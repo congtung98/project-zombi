@@ -34,6 +34,8 @@ const ACTION_SYSTEM_FAILURE_TEXT: Record<ActionFailure, string> = {
   DUPLICATE: 'đã gửi lệnh này',
   QUEUE_FULL: 'hàng đợi đã đầy',
   TARGET_CHANGED: 'mục tiêu đã thay đổi',
+  TARGET_GONE: 'không còn ở đó',
+  OUT_OF_RANGE: 'quá xa, lại gần hơn',
   MISSING_ITEM: 'món không còn ở đó',
   RESERVED: 'đang dùng cho thao tác khác',
 }

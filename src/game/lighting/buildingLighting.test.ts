@@ -269,6 +269,8 @@ describe('event driven updates and world interaction', () => {
     // Physics stand-in for this scene: only the safehouse north wall line (z = −18, glass included) blocks.
     rt.setLineOfSightOverride({ isBlocked: (a, b) => (a.z < -18) !== (b.z < -18) })
     const sw = rt.interactables.find((i) => i.id === 'c0_0/house/lamp-living')!
+    // AX4: E acts only within reach (checked when the action runs): stand at the switch.
+    rt.player.position = { x: sw.position.x, y: 0, z: sw.position.z }
     rt.interact(sw)
     expect(rt.world.lamps.get('c0_0/house/lamp-living')).toBe(true)
     const curtain = rt.interactables.find((i) => i.id === 'c-1_-1/safehouse/win-n')!

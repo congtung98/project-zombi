@@ -85,7 +85,8 @@ describe('reach (INV-LOOT §7.2)', () => {
     wall = true
     for (let i = 0; i < 3; i++) rt.tick(0.1)
     expect(rt.nearbyContainerIds).not.toContain(id)
-    rt.interact(target)
+    // The loot window already on it (AX4: E itself only reaches what is in reach).
+    rt.openLoot(target.id, true)
     expect(rt.lootInReach).toBe(false)
     const first = rt.openContainer!.items.items[0]
     expect(rt.transferItems(containerKey(id), 'main', [{ instanceId: first.id }]).skipped[0].reason).toBe('unreachable')
@@ -118,7 +119,7 @@ describe('reach (INV-LOOT §7.2)', () => {
     rt.newGame(13)
     rt.setLineOfSightOverride({ isBlocked: () => false })
     const [a, b] = map.containers.filter((c) => c.id.startsWith('c0_-1/store/shelf')).map((c) => c.id)
-    rt.interact(standBy(rt, a))
+    rt.openLoot(standBy(rt, a).id, true)
     standBy(rt, b)
     for (let i = 0; i < 3; i++) rt.tick(0.1)
     expect(rt.nearbyContainerIds).toContain(b)

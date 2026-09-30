@@ -249,7 +249,7 @@ describe('v4 → v5 (P2-S4 material containers)', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     rt.player.position = { x: -16.5, y: 0, z: -13 }
-    rt.interact(rt.interactables.find((i) => i.id === id('ct-safehouse-toolbox'))!)
+    rt.openLoot(id('ct-safehouse-toolbox'), true)
     expect(rt.takeAll().moved).toBe(3)
     rt.closeAllUi()
     const crowbar = rt.player.inventory.items.find((i) => i.itemId === 'crowbar')!
@@ -342,7 +342,7 @@ describe('instance ownership', () => {
     const cabinet = rt.interactables.find((i) => i.kind === 'container')!
     rt.setLineOfSightOverride({ isBlocked: () => false })
     rt.player.position = { x: cabinet.position.x + 0.5, y: 0, z: cabinet.position.z }
-    rt.interact(cabinet)
+    rt.openLoot(cabinet.id, true)
     // INV-LOOT: an equipped weapon never leaves (take it off first); the reference never dangles.
     expect(rt.putIntoContainer(bats[1].id)).toMatchObject({ moved: 0, reason: 'equipped' })
     expect(rt.equipItem(null)).toBe(true)

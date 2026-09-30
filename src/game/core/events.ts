@@ -86,6 +86,8 @@ export type GameEvents = {
     outputId: string | null
     repair: RepairPreview | null
   }
+  /** AX4: a world interaction could not run (out of reach, the object changed or is gone). */
+  'interaction:failed': { label: string; reason: ActionFailure }
   /** Tried to drop/store/use an item reserved by the running action. */
   'item:reserved': { itemId: ItemId; name: string; label: string }
 }

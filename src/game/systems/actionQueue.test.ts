@@ -25,7 +25,7 @@ function setup(box: [ItemId, number][] = [], main: [ItemId, number][] = []) {
   inv.slotCapacity = 8
   for (const [id, n] of box) addItem(inv, id, n)
   for (const [id, n] of main) addItem(rt.player.inventory, id, n)
-  rt.interact(cabinet)
+  rt.openLoot(cabinet.id, true)
   const summaries: { moved: number; skipped: string[] }[] = []
   const cancels: string[] = []
   rt.events.on('inventory:transferred', (e) => summaries.push({ moved: e.moved, skipped: e.skipped }))

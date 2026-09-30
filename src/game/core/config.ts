@@ -426,6 +426,8 @@ export const GAME_CONFIG = {
   actions: {
     queueLimit: 128,
     recentRequests: 64,
+    /** AX4 (D1): opening a container (its loot window) takes this long; doors, lamps, curtains act at once. */
+    openContainerSeconds: 0.35,
   },
   /**
    * INV-LOOT extra loot drawn from its own seed stream after the container's table, so the table's

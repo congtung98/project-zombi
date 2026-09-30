@@ -11,7 +11,26 @@
 > Đọc file này, **docs/town-neighborhood-50.md**, **docs/prefab-library-p1.md**, **docs/prefab-library-p2-p5.md**, **docs/writing-block.md**, **docs/world-generator-wg1.md**, **docs/world-generator-wg2.md**, **docs/world-generator-wg3.md**, **docs/world-generator-wg4.md**, **docs/world-generator-wg5.md**, **docs/world-generator-wg6.md**, **docs/Combat_Stance_Input_Sprint_Plan.md**, **docs/combat-cs1a.md**, **docs/combat-cs1b.md**, **docs/combat-cs1c.md**, **docs/Character_Zombie_Model_Animation_Plan.md**, **docs/character-c0.md**, **docs/character-c1.md**, **docs/character-c2.md**, **docs/character-c3.md**, **docs/character-c4.md**, **docs/character-c5.md**, **docs/character-c6.md**, **docs/character-handbook.md**, **docs/Graphics_Improvement_Implementation_Plan.md**, **docs/graphics-g0.md**, **docs/graphics-g1.md**, **docs/graphics-g2.md**, **docs/graphics-g3a.md**, **docs/graphics-g3b.md**, **docs/graphics-g4.md**, **docs/graphics-g5.md**, **docs/graphics-g6.md**, **docs/graphics-handbook.md**, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-m11c2.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0-AX3. Character Action — AX3 Animation layer (mới nhất — chi tiết docs/character-action-ax3.md)
+## 0-AX4. Character Action — AX4 Picker, định tuyến input, click trái, provider (mới nhất — chi tiết docs/character-action-ax4.md)
+
+- **Picker** `interaction/picker.ts`:
+  - tia camera × hộp pick của object và zombie cùng tầng, chỉ phần đang nhìn thấy (cutaway, phòng đã khám phá);
+  - gần nhất thắng; trong 0,25 m thì object > character; không trúng gì thì là đất.
+- **Router** trong `stepControls`: ngoài thế, chuột trái trên object = action mặc định (không vung, không nhắc); trong thế hoặc chord = combat.
+- **Provider** `door` / `container` / `light` / `window` + `InteractionSystem`: option theo trạng thái, gợi ý giữ nguyên chữ, không xếp trùng.
+- **Action thế giới** (`defs/world.ts`): cửa, đèn, rèm, đóng tủ tức thời; mở tủ 0,35 s (D1). Kiểm tra lại tồn tại / tầm / trạng thái lúc chạy; effect `world.set` qua adapter của runtime (`registerWorldAdapter` cho loại mới).
+- **Hình ảnh:** con trỏ bàn tay và vòng sáng trên object dưới chuột.
+- **Test cũ:** mở tủ trong test dựng tình huống dùng `openLoot`; `interact()` kiểm tra tầm với.
+- **Mốc soak mới:**
+  - shelter 1800 s / 2 kill / 20 dmg;
+  - patrol 804,9 s / 28 kill.
+- **Kiểm chứng:**
+  - 12 test mới (có Case 7 máy phát đăng ký từ ngoài runtime), `npm test` 1103 pass;
+  - tsc, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - `ax4` (chuột thật), `ax3`, `cs1-combat`, `il-s2/s3/s4/s5` PASS.
+- **Tiếp theo:** AX5 menu chuột phải + làn combat, rồi dừng chờ duyệt (D6).
+
+## 0-AX3. Character Action — AX3 Animation layer (chi tiết docs/character-action-ax3.md)
 
 - **Action chỉ khai báo nhóm pose và món cầm; animation chỉ đọc:**
   - `presentationOf(job)` / `runtime.actionPresentation` (nhóm, thời gian, prop, cất vũ khí);

@@ -281,6 +281,7 @@ describe('two storeys in the simulation', () => {
     rt.tick(1 / 60)
     expect(rt.currentInteractable?.id).toBe(id('wardrobe'))
     rt.interact(rt.currentInteractable!)
+    for (let i = 0; i < 30; i++) rt.tick(1 / 60) // AX4 (D1): the container opens after its short action
     expect(rt.openContainerId).toBe(id('wardrobe'))
     // Dropped upstairs, the item lies on the upper floor (and only there it is in reach).
     rt.closeAllUi()

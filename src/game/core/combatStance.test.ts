@@ -269,6 +269,7 @@ describe('CS1 E from the stance', () => {
     key(rt, 'KeyE', true)
     ticks(rt, 1)
     key(rt, 'KeyE', false)
+    ticks(rt, 25) // AX4 (D1): the container opens after its short action; the held button stays out
     expect(rt.openContainerId).toBe('ct-hut')
     expect(rt.stance.requested).toBe(false)
     rt.closeAllUi()

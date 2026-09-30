@@ -24,6 +24,11 @@ export type GameplayEffect =
    * creates on copies). Refused when the inventory changed since `base` (`inventorySignature`) was read.
    */
   | { type: 'inventory.write'; inventory: Inventory; base: string; items: ItemInstance[]; nextItemId: number }
+  /**
+   * AX4: change a world object's gameplay state through its type's adapter (a door's state, a lamp,
+   * a curtain, a container opened); render, collider, navigation, lighting and save follow it.
+   */
+  | { type: 'world.set'; objectType: string; objectId: string; patch: Record<string, unknown> }
   | { type: 'event'; name: keyof GameEvents; payload: GameEvents[keyof GameEvents] }
   /**
    * Bookkeeping after the change that cannot fail and holds no gameplay state of its own (the floor's
@@ -50,10 +55,17 @@ export function eventEffect<K extends keyof GameEvents>(name: K, payload: GameEv
   return { type: 'event', name, payload }
 }
 
+/** How `world.set` reaches one object type (the runtime registers one per type it owns). */
+export interface WorldAdapter {
+  exists(id: string): boolean
+  apply(id: string, patch: Record<string, unknown>): void
+}
+
 export interface EffectEnv {
   player: PlayerState
   events: EventBus<GameEvents>
   limits?: typeof GAME_CONFIG.player
+  worldAdapter?: (type: string) => WorldAdapter | undefined
 }
 
 export type ApplyResult = { ok: true } | { ok: false; failure: ActionFailure; index: number }
@@ -68,7 +80,8 @@ const STAT_MAX = { health: 'maxHealth', hunger: 'maxHunger', thirst: 'maxThirst'
 export function applyMutation(m: Mutation, env: EffectEnv): ApplyResult {
   const taken = new Map<string, number>()
   for (let i = 0; i < m.effects.length; i++) {
-    const failure = check(m.effects[i], taken)
+    const e = m.effects[i]
+    const failure = e.type === 'world.set' ? (env.worldAdapter?.(e.objectType)?.exists(e.objectId) ? null : 'TARGET_GONE') : check(e, taken)
     if (failure) return { ok: false, failure, index: i }
   }
   const limits = env.limits ?? GAME_CONFIG.player
@@ -86,6 +99,9 @@ export function applyMutation(m: Mutation, env: EffectEnv): ApplyResult {
       case 'inventory.write':
         e.inventory.items = e.items
         e.inventory.nextItemId = e.nextItemId
+        break
+      case 'world.set':
+        env.worldAdapter!(e.objectType)!.apply(e.objectId, e.patch)
         break
       case 'event':
         env.events.queue(e.name, e.payload as never)

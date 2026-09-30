@@ -351,8 +351,11 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
 
       // ---- Loot: tới tủ mục tiêu thì mở, lấy hết, đóng
-      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting && lootJob === null && useJob === null) {
-        if (!rt.lootOpen || rt.openContainerId !== goalContainer) rt.interact(target)
+      // AX4 (D1): opening takes a moment; the bot stands still until the window shows the container.
+      const opening = rt.jobs.some((j) => j.type === 'OPEN_CONTAINER')
+      const isOpen = rt.lootOpen && rt.openContainerId === goalContainer
+      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting && lootJob === null && useJob === null && !isOpen && !opening) rt.interact(target)
+      if (goalContainer && isOpen && !fighting && lootJob === null && useJob === null) {
         if (!seenWeapons.has(goalContainer)) {
           seenWeapons.add(goalContainer)
           lootBefore = p.inventory.items.reduce((n, s) => n + s.quantity, 0)
@@ -378,7 +381,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
 
       // ---- Di chuyển theo path (tìm lại định kỳ / khi kẹt / khi cửa đổi); đứng yên khi đang lấy đồ
-      if (goalPos && !fighting && lootJob === null && useJob === null) {
+      if (goalPos && !fighting && lootJob === null && useJob === null && !opening) {
         repathTimer -= DT
         if (dist(pos, lastPos) < 0.02) stuckTimer += DT
         else stuckTimer = 0

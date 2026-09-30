@@ -290,6 +290,7 @@ describe('CS1b E during a swing', () => {
     key(rt, 'KeyE', true)
     rt.tick(DT)
     key(rt, 'KeyE', false)
+    for (let i = 0; i < 25; i++) rt.tick(DT) // AX4 (D1): the container opens after its short action
     expect(rt.openContainerId).toBe('ct-hut')
     expect(rt.stance.requested).toBe(false)
   })

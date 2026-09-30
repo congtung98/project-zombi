@@ -33,6 +33,10 @@ import type { ActionWorld } from '../actions/world'
 import { CharacterStateMachine, interrupts, type CharacterState, type InterruptKind } from '../actions/characterState'
 import { WorldObjectVersions } from '../actions/worldVersions'
 import { presentationOf, type ActionPresentationView } from '../actions/presentation'
+import type { WorldAdapter } from '../actions/effects'
+import { buildInteractables } from '../interaction/registry'
+import { InteractionSystem } from '../interaction/interactionSystem'
+import { boxAround, pick, rayPlane, type PickCandidate, type PickResult, type Ray } from '../interaction/picker'
 import { prepareTransfer, recipeAction, recipeActionType, recipeData, transferData, USE_STATES, type RecipeData, type TransferData, type UseData } from '../actions/defs'
 import { RECIPES, repairRecipeFor, type Recipe, type RecipeId } from '../entities/recipes'
 import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
@@ -41,7 +45,7 @@ import { NEIGHBORHOOD_MAP, type MapData } from '../world/mapData'
 import type { NavGrid } from '../world/navigation'
 import { NavWorld } from '../world/navLayers'
 import { LEVEL_TOLERANCE, type FloorField } from '../world/floors'
-import { isInsideBuilding, SWITCH_HEIGHT } from '../world/buildings'
+import { isInsideBuilding } from '../world/buildings'
 import { createWorldState, type ContainerState, type WorldState } from '../world/worldState'
 import type { EntityId, Vec3 } from '../../types'
 import { DOOR_LAB_ENABLED, DOOR_LAB_MAP } from '../world/doorLab'
@@ -52,7 +56,7 @@ import { buildVisionOccluders, type VisionOccluderSet } from '../world/visionOcc
 import { InteriorVisibility, isSavedExploration } from '../systems/interiorVisibility'
 import { PlayerVisionSystem, type VisionTarget } from '../systems/playerVision'
 import { BuildingLightingSystem, buildLightingBuildings, outdoorLightLevel } from '../lighting/buildingLighting'
-import { mapRooms, mapWindows } from '../world/mapData'
+import { mapRooms } from '../world/mapData'
 import { PerfMonitor } from './perf'
 import { SpatialHash } from './spatialHash'
 import { AIScheduler, type ScheduledUpdate } from '../systems/aiScheduler'
@@ -114,6 +118,8 @@ const PLAYER_HURT_TIME = 0.3
 const EYE_HEIGHT = 1.5
 /** Độ cao raycast kiểm tra tường chắn đòn gậy (trên chân). */
 const SWING_HEIGHT = 1.2
+/** AX4: around the cursor's ground point, objects this far (plus their radius) may be under the cursor (m). */
+const POINTER_QUERY = 4
 /** Height above the feet the player reaches for interactables from (body centre). */
 const BODY_HEIGHT = 0.9
 /** Interactables further than this above/below the reach height are on another storey (M11b). */
@@ -216,6 +222,43 @@ export class GameRuntime {
   readonly character = new CharacterStateMachine()
   /** AX1: per world object, a counter that grows with each state change (runtime only). */
   readonly worldVersions = new WorldObjectVersions()
+  /**
+   * AX4: how `world.set` effects reach each object type (the runtime's own setters, so collider,
+   * navigation, lighting, events and save follow as before).
+   */
+  private readonly worldAdapters: Record<string, WorldAdapter | undefined> = {
+    door: { exists: (id) => this.world.doors.has(id), apply: (id, p) => this.setDoorState(id, p.state as DoorStatus) },
+    light: { exists: (id) => this.world.lamps.has(id), apply: (id, p) => this.setLamp(id, p.on === true) },
+    window: { exists: (id) => this.world.curtains.has(id), apply: (id, p) => this.setCurtain(id, p.closed === true) },
+    container: {
+      exists: (id) => this.world.containers.has(id),
+      apply: (id, p) => {
+        if (p.open) this.openLoot(id, true)
+        else if (this.openContainerId === id) this.closeContainer()
+      },
+    },
+  }
+  /**
+   * AX4 (FB §12, case 7): a new world object type brings its own state and says how `world.set`
+   * changes it; the Action System and the interaction layer need nothing else. Registering a type
+   * twice is a programming error.
+   */
+  registerWorldAdapter(type: string, adapter: WorldAdapter): void {
+    if (this.worldAdapters[type] && this.worldAdapters[type] !== adapter) throw new Error(`World adapter registered twice: ${type}`)
+    this.worldAdapters[type] = adapter
+  }
+
+  /** AX4: object → options → request (left click, E, the context menu), one path for every input. */
+  readonly interaction = new InteractionSystem({
+    actions: this.actions,
+    events: this.events,
+    context: () => ({ map: this.map, world: this.world, openContainerId: this.openContainerId, lootOpen: this.lootOpen }),
+    version: (id) => this.worldVersions.get(id),
+  })
+  /** AX4: what the cursor points at (object, character or ground), from the view's camera ray each frame. */
+  pointerTarget: PickResult | null = null
+  /** AX4: this tick's left press went to an interactive object (no swing, no stance hint). */
+  private leftClickUsed = false
   /**
    * CS1 combat stance: right-button intent and the desired aim (runtime only, never saved). The
    * simulation owns the heading: `player.facing` turns toward `stance.aimYaw` at a limited speed.
@@ -975,6 +1018,18 @@ export class GameRuntime {
   private stepControls(): void {
     const s = this.stance
     const was = s.requested
+    // AX4 input routing (docs/character-action-ax0.md §4): UI presses never reach here; in the combat
+    // posture (or with the right button pressed now: the CS1 chord) the buttons belong to combat;
+    // otherwise a left press on an interactive object runs its default action.
+    this.leftClickUsed = false
+    const combat = s.requested || this.player.attackTimer >= 0 || this.input.wasPressed('stance')
+    if (!combat && this.player.alive && this.input.wasPressed('attack')) {
+      const hover = this.hoverInteractable
+      if (hover) {
+        this.leftClickUsed = true
+        this.interaction.executeDefault(hover, 'left-click')
+      }
+    }
     this.chordAllowed = s.mode === 'hold' && !s.suppressed
     updateStanceRequest(s, this.input.isDown('stance'), this.input.wasPressed('stance'), this.player.alive)
     this.stanceStarted = s.requested && !was
@@ -1143,54 +1198,48 @@ export class GameRuntime {
     return Math.abs(item.position.y - this.player.position.y - BODY_HEIGHT) <= INTERACT_VERTICAL
   }
 
-  private describeInteraction(target: Interactable): string {
-    if (target.kind === 'light') {
-      const on = this.world.lamps.get(target.id) === true
-      const lamp = mapRooms(this.map).find((r) => r.lamp?.id === target.id)?.lamp
-      const noPower = lamp?.requiresElectricity && !this.world.electricity ? ' (mất điện)' : ''
-      return `${on ? 'Tắt' : 'Bật'} ${target.name}${noPower}`
-    }
-    if (target.kind === 'window') return `${this.world.curtains.get(target.id) ? 'Mở rèm' : 'Kéo rèm'} ${target.name}`
-    if (target.kind === 'door') {
-      const door = this.world.doors.get(target.id)
-      if (door?.state === 'destroyed') return `${target.name} đã vỡ`
-      const damaged = door && door.hp < DOOR_MAX_HP ? ` (độ bền ${door.hp}/${DOOR_MAX_HP})` : ''
-      return `${door?.state === 'open' ? 'Đóng' : 'Mở'} ${target.name}${damaged}`
-    }
-    if (this.lootOpen && this.openContainerId === target.id) return `Đóng ${target.name}`
-    const container = this.world.containers.get(target.id)
-    return `${container?.opened ? 'Xem' : 'Mở'} ${target.name}`
+  private describeInteraction(target: Interactable): string | null {
+    return this.interaction.prompt(target)
   }
 
-  /** Thực hiện tương tác với đối tượng; có thể gọi từ test mà không cần input. */
+  /**
+   * E on an object (also callable from tests): its default option through the Action System (AX4).
+   * Doors, lamps and curtains act at once; a container opens after `openContainerSeconds` (D1), and E
+   * on the open one closes it.
+   */
   interact(target: Interactable): void {
-    if (target.kind === 'light') {
-      this.setLamp(target.id, !this.world.lamps.get(target.id))
-      this.interactPrompt = this.describeInteraction(target)
-      return
-    }
-    if (target.kind === 'window') {
-      this.setCurtain(target.id, !this.world.curtains.get(target.id))
-      this.interactPrompt = this.describeInteraction(target)
-      return
-    }
-    if (target.kind === 'door') {
-      const door = this.world.doors.get(target.id)
-      if (!door || door.state === 'destroyed') return
-      this.setDoorState(door.id, door.state === 'open' ? 'closed' : 'open')
-      this.interactPrompt = this.describeInteraction(target)
-      return
-    }
-    const container = this.world.containers.get(target.id)
-    if (!container) return
-    if (this.lootOpen && this.openContainerId === container.id) {
-      // Nhấn E lần nữa ở cùng container: đóng panel.
-      this.closeContainer()
-      this.interactPrompt = this.describeInteraction(target)
-      return
-    }
-    this.openLoot(container.id, true)
+    this.interaction.executeDefault(target, 'key-e')
     this.interactPrompt = this.describeInteraction(target)
+  }
+
+  /** AX4: the interactive object under the cursor, or null. */
+  get hoverInteractable(): Interactable | null {
+    const t = this.pointerTarget
+    return t?.kind === 'object' ? this.interactableById.get(t.id) ?? null : null
+  }
+
+  /**
+   * AX4 (WIS §6): pick what the camera ray points at, among the interactive objects and zombies of
+   * the player's storey that the view shows (`visible`: cutaway, remembered interiors). The view calls
+   * it every frame; tests call it with their own ray.
+   */
+  updatePointerTarget(ray: Ray | null, visible: (p: Vec3) => boolean = () => true): void {
+    const floorY = this.player.position.y
+    const ground = ray && this.player.alive ? rayPlane(ray, floorY) : null
+    if (!ray || !ground) {
+      this.pointerTarget = null
+      return
+    }
+    const candidates: PickCandidate[] = []
+    for (const item of this.interactableIndex.queryRadius(ground.x, ground.z, POINTER_QUERY + this.maxInteractRadius)) {
+      if (!item.pick || !this.withinReachHeight(item) || !visible({ x: item.position.x, y: floorY, z: item.position.z })) continue
+      candidates.push({ kind: 'object', id: item.id, box: item.pick })
+    }
+    for (const z of this.zombieIndex.queryRadius(ground.x, ground.z, POINTER_QUERY)) {
+      if (z.ai === 'DEAD' || !sameFloor(z.position, this.player.position) || !visible(z.position)) continue
+      candidates.push({ kind: 'character', id: z.id, box: boxAround({ x: z.position.x, y: z.position.y + 0.9, z: z.position.z }, 0.4, 0.9, 0.4) })
+    }
+    this.pointerTarget = pick(ray, candidates, floorY)
   }
 
   /**
@@ -1753,6 +1802,13 @@ export class GameRuntime {
         this.events.queue('drops:changed', {})
         this.nextNearbyAt = 0
       },
+      objectExists: (type, id) => this.worldAdapters[type]?.exists(id) ?? false,
+      canReachObject: (id) => {
+        const item = this.interactableById.get(id)
+        return !!item && this.canReachInteractable(item, item.kind === 'container' && id === this.openContainerId ? GAME_CONFIG.inventory.closeDistanceSlack : 0)
+      },
+      openContainerId: () => this.openContainerId,
+      worldAdapter: (type) => this.worldAdapters[type],
     }
     // New Game and load replace the player and the world: read them live.
     return Object.defineProperties(w, {
@@ -1923,7 +1979,7 @@ export class GameRuntime {
       // outside it the click does nothing in the world (a rare hint points to the right button).
       const s = this.stance
       let attack = false
-      if (this.input.wasPressed('attack')) {
+      if (this.input.wasPressed('attack') && !this.leftClickUsed) {
         // Hold: a click made while the right button was down counts even if it was let go in the same
         // frame (not when that button is waiting for a release after Esc/E/a panel).
         const chord = this.chordAllowed && this.input.wasPressedWhileHeld('attack', 'stance')
@@ -2110,41 +2166,6 @@ function maxZombieNumber(zombies: Map<EntityId, ZombieState>): number {
     if (Number.isFinite(n) && n > max) max = n
   }
   return max
-}
-
-/** Stand right at a window to draw its curtain (a wide reach stole prompts from nearby furniture). */
-const CURTAIN_REACH = 0.3
-
-function buildInteractables(map: MapData): Interactable[] {
-  const list: Interactable[] = []
-  for (const door of map.doors) {
-    list.push({
-      id: door.id,
-      kind: 'door',
-      name: door.name,
-      position: { x: door.center.x, y: door.center.y + 1, z: door.center.z },
-      radius: door.width / 2 + 0.4,
-    })
-  }
-  for (const c of map.containers) {
-    list.push({
-      id: c.id,
-      kind: 'container',
-      name: c.name,
-      position: { ...c.position },
-      radius: Math.max(c.size[0], c.size[2]) / 2 + 0.3,
-    })
-  }
-  // Lamp switches on the inner wall, curtains just inside each window (blocked from outside).
-  for (const room of mapRooms(map)) {
-    if (!room.lamp) continue
-    list.push({ id: room.lamp.id, kind: 'light', name: room.lamp.name, position: { x: room.lamp.switchAt.x, y: (room.floorY ?? 0) + SWITCH_HEIGHT, z: room.lamp.switchAt.z }, radius: 0.25 })
-  }
-  for (const w of mapWindows(map)) {
-    const floor = w.center.y - (w.sill + w.head) / 2
-    list.push({ id: w.id, kind: 'window', name: w.name, position: { x: w.center.x + w.inward.x * 0.35, y: floor + 1.3, z: w.center.z + w.inward.z * 0.35 }, radius: CURTAIN_REACH })
-  }
-  return list
 }
 
 /**

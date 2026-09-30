@@ -5,8 +5,9 @@ import { runtime } from '../core/runtime'
 
 /**
  * CS1c: marks the object E acts on (the same `runtime.currentInteractable` as the prompt) with a thin
- * pulsing ring on the floor under it, drawn over the scene. View only. (No floating marker: unopened
- * containers already carry a yellow loot marker.)
+ * pulsing ring on the floor under it, drawn over the scene. AX4: the object under the cursor instead,
+ * when there is one outside the combat posture (a left click acts on it). View only. (No floating
+ * marker: unopened containers already carry a yellow loot marker.)
  */
 export function InteractHighlight() {
   const ring = useRef<Mesh>(null)
@@ -25,7 +26,8 @@ export function InteractHighlight() {
   useFrame((_, delta) => {
     const mesh = ring.current
     if (!mesh) return
-    const target = runtime.player.alive ? runtime.currentInteractable : null
+    const hover = runtime.combatPosture ? null : runtime.hoverInteractable
+    const target = runtime.player.alive ? hover ?? runtime.currentInteractable : null
     mesh.visible = target !== null
     if (!target) return
     time.current += delta

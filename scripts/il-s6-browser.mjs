@@ -110,6 +110,8 @@ async function scene({ items, main = [], bag = null, capacity = 8, open = true }
   }, { items, main, bag, capacity, open })
   assert.ok(id, 'a kitchen cupboard in reach')
   if (open) {
+    // AX4 (D1): E opens a container after its short open action.
+    await page.waitForFunction((cid) => window.__runtime.openContainerId === cid, id)
     // Compact mode shows the loot tab in the one window (`inventory`).
     await page.waitForFunction(() => document.querySelectorAll('[data-inv-window] .inv-row').length >= 1)
   }

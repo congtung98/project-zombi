@@ -173,7 +173,7 @@ describe('reservation while working', () => {
     rt.startRepair(bat.id)
     expect(rt.dropItem(bat.id)).toBe(false)
     expect(rt.dropItem(idOf(rt, 'duct_tape'))).toBe(false)
-    rt.interact(rt.interactables.find((i) => i.id === 'ct-bench')!)
+    rt.openLoot('ct-bench', true)
     expect(rt.putIntoContainer(idOf(rt, 'wood_plank')).moved).toBe(0)
     expect(rt.putIntoContainer(idOf(rt, 'water')).moved).toBe(1)
     rt.tick(DT)
@@ -285,7 +285,7 @@ describe('plan acceptance: loot materials → repair a broken weapon → full da
     const bench = rt.world.containers.get('ct-bench')!
     addItem(bench.items, 'wood_plank', 1)
     addItem(bench.items, 'duct_tape', 1)
-    rt.interact(rt.interactables.find((i) => i.id === 'ct-bench')!)
+    rt.openLoot('ct-bench', true)
     expect(rt.takeAll().moved).toBe(2)
     rt.closeAllUi()
     const bat = give(rt, 'baseball_bat', 0)

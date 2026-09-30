@@ -40,7 +40,7 @@ async function inGame() {
 }
 /** Stand next to a container of the given loot table that holds items and open it (the runtime's E). */
 async function openContainer(table, minItems = 1, id = null) {
-  return rt(({ table, minItems, id }) => {
+  const opened = await rt(({ table, minItems, id }) => {
     const r = window.__runtime
     const defs = r.map.containers.filter((c) => (id ? c.id === id : c.loot === table) && r.world.containers.get(c.id).items.items.length >= minItems)
     for (const def of defs) {
@@ -63,6 +63,9 @@ async function openContainer(table, minItems = 1, id = null) {
     }
     return null
   }, { table, minItems, id })
+  // AX4 (D1): E opens a container after its short open action.
+  if (opened) await page.waitForFunction((cid) => window.__runtime.openContainerId === cid, opened)
+  return opened
 }
 /** Escape, one layer per press, until the pause menu shows (windows first, then pause). */
 async function pauseGame() {

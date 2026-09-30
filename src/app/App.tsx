@@ -100,6 +100,8 @@ export function App() {
         useHudStore.getState().showToast(`Đã dùng ${e.name}: ${describeEffect(e.effect)}.`, 1800),
       ),
       runtime.events.on('item:useFailed', (e) => useHudStore.getState().showToast(`${e.name}: ${USE_FAIL_TEXT[e.reason]}`, 1800)),
+      // AX4: a world interaction that could not run (too far, the object changed or is gone).
+      runtime.events.on('interaction:failed', (e) => useHudStore.getState().showToast(`${e.label}: ${actionFailureText(e.reason)}.`, 1800, 'warn')),
       // AX2: a sealed item opened (it became another item in the same place).
       runtime.events.on('item:opened', (e) => useHudStore.getState().showToast(`Đã mở ${e.name}.`, 1500)),
       // Vũ khí P2-S2: tay không, đổi vũ khí, hao mòn (chỉ đồng bộ UI, không phát âm pickup), sắp hỏng, hỏng.

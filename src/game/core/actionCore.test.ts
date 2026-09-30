@@ -33,7 +33,7 @@ function atCabinet() {
   const box = rt.world.containers.get(CABINET)!.items
   box.items = []
   addItem(box, 'water', 3)
-  rt.interact(cabinet)
+  rt.openLoot(cabinet.id, true)
   return { rt, box }
 }
 

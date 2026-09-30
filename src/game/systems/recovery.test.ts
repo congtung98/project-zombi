@@ -103,7 +103,7 @@ describe('INV-LOOT S5 unknown item recovery', () => {
     expect(rt.wearBag(bag.id)).toBe(true)
     expect(rt.transferItems('main', 'worn', [{ instanceId: katana }]).skipped[0].reason).toBe('bag-in-bag')
     // Into the cabinet and back: one whole thing, same ID, payload kept.
-    rt.interact(rt.interactables.find((i) => i.id === CABINET)!)
+    rt.openLoot(CABINET, true)
     const box = containerKey(CABINET)
     const room = rt.world.containers.get(CABINET)!.items
     while (room.items.length >= room.slotCapacity!) room.items.pop()

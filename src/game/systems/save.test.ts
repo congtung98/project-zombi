@@ -49,12 +49,12 @@ describe('snapshot round trip', () => {
     // Thay đổi thế giới: đi, mở cửa, lấy đồ, đánh zombie, trôi thời gian.
     for (let i = 0; i < 120; i++) rt.tick(DT)
     const door = rt.interactables.find((i) => i.id === 'door-hut')!
-    rt.interact(door)
+    rt.setDoorState(door.id, 'open')
     const box = rt.world.containers.get('ct-hut')!
     const lootBefore = totalQuantity(box.items)
     rt.player.position = { x: 0, y: 0.9, z: -1.5 }
     rt.tick(DT)
-    rt.interact(rt.interactables.find((i) => i.id === 'ct-hut')!)
+    rt.openLoot('ct-hut', true)
     rt.takeFromContainer(box.items.items[0].id)
     rt.closeAllUi()
     rt.player.health = 63

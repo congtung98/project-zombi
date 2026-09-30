@@ -226,6 +226,24 @@ export class InteriorVisibility {
   }
 
   /** Share of a room's cells explored (0..1); 0 for an unknown room. */
+  /**
+   * AX4 (WIS §6.4): whether the interior cell at `p` (feet) was ever seen, so an object there may be
+   * picked by the cursor; null when `p` is in no room of its storey (outdoors: nothing to hide).
+   */
+  exploredAt(p: Vec3): boolean | null {
+    const cell = this.cfg.cell
+    for (const g of this.grids) {
+      const b = g.room.bounds
+      if (p.x < b.minX || p.x > b.maxX || p.z < b.minZ || p.z > b.maxZ || Math.abs(p.y - (g.room.floorY ?? 0)) > 1.2) continue
+      const c = Math.min(g.cols - 1, Math.max(0, Math.floor((p.x - g.minX) / cell)))
+      const r = Math.min(g.rows - 1, Math.max(0, Math.floor((p.z - g.minZ) / cell)))
+      const i = r * g.cols + c
+      if (!g.inside[i]) continue
+      return g.explored[i] === 1
+    }
+    return null
+  }
+
   exploredShare(roomId: string): number {
     const g = this.byRoom.get(roomId)
     return g && g.insideCount > 0 ? g.exploredCount / g.insideCount : 0

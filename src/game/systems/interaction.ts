@@ -1,7 +1,11 @@
 import type { Vec3 } from '../../types'
+import type { PickVolume } from '../interaction/picker'
 
-/** `light` = a lamp's wall switch, `window` = its curtain (building lighting sprint). */
-export type InteractableKind = 'door' | 'container' | 'light' | 'window'
+/**
+ * `light` = a lamp's wall switch, `window` = its curtain (building lighting sprint). AX4: the type of
+ * an interactive object is its provider's type (`interaction/registry.ts`), so a new type needs no change here.
+ */
+export type InteractableKind = 'door' | 'container' | 'light' | 'window' | (string & {})
 
 export interface Interactable {
   id: string
@@ -11,6 +15,8 @@ export interface Interactable {
   position: Vec3
   /** Bán kính cộng thêm vào tầm tương tác (đối tượng to thì với từ xa hơn). */
   radius: number
+  /** AX4: the box the cursor picks it by (its provider builds it). */
+  pick?: PickVolume
 }
 
 /** Tầm tương tác tính từ tâm người chơi tới mép đối tượng. */

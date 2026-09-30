@@ -21,7 +21,7 @@ describe('T22 New Game after looting', () => {
     rt.setLineOfSightOverride({ isBlocked: () => false })
     const cabinet = rt.interactables.find((i) => i.id === CABINET)!
     rt.player.position = { x: cabinet.position.x + 0.5, y: 0, z: cabinet.position.z }
-    rt.interact(cabinet)
+    rt.openLoot(cabinet.id, true)
     const box = containerKey(CABINET)
     // Loot part of it, leave a job running, drop something, wear a bag.
     expect(rt.queueTransfer(box, 'main', rt.openContainer!.items.items.map((i) => ({ instanceId: i.id }))).id).not.toBeNull()

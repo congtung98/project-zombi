@@ -80,6 +80,10 @@ function setup(limit = 128) {
     claimed: (id) => system.claimed(id),
     inventoryChanged: () => {},
     floorChanged: () => {},
+    objectExists: () => false,
+    canReachObject: () => false,
+    openContainerId: () => null,
+    worldAdapter: () => undefined,
   }
   const system: ActionSystem = new ActionSystem(w, { queueLimit: limit, recentRequests: 4 })
   const water = inv.items[0].id

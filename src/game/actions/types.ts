@@ -23,6 +23,12 @@ export const ACTION = {
   DRINK: 'DRINK',
   HEAL: 'HEAL',
   OPEN_ITEM: 'OPEN_ITEM',
+  OPEN_DOOR: 'OPEN_DOOR',
+  CLOSE_DOOR: 'CLOSE_DOOR',
+  TOGGLE_LIGHT: 'TOGGLE_LIGHT',
+  TOGGLE_CURTAIN: 'TOGGLE_CURTAIN',
+  OPEN_CONTAINER: 'OPEN_CONTAINER',
+  CLOSE_CONTAINER: 'CLOSE_CONTAINER',
 } as const
 
 /** What an action works on: IDs only, never a render object or a copy of an item. */
@@ -53,7 +59,7 @@ export interface ActionContext {
  * Shared refusal codes of the Action System itself (CAS §5.2). Feature reasons that already exist
  * (a transfer's `TransferRefusal`, a recipe's `CraftFailure`) keep their own names in their events.
  */
-export type ActionFailure = 'DUPLICATE' | 'QUEUE_FULL' | 'TARGET_CHANGED' | 'MISSING_ITEM' | 'RESERVED'
+export type ActionFailure = 'DUPLICATE' | 'QUEUE_FULL' | 'TARGET_CHANGED' | 'TARGET_GONE' | 'OUT_OF_RANGE' | 'MISSING_ITEM' | 'RESERVED'
 
 /** Who runs it: timed and in order, at once inside the tick, or by the combat code's own timing. */
 export type ActionLane = 'queue' | 'immediate' | 'combat'

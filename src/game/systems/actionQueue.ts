@@ -93,7 +93,7 @@ export interface TransferStepState {
 /** Progress of the running job for the HUD and the inventory window. */
 export interface JobView {
   id: number
-  kind: 'transfer' | 'craft' | 'repair' | 'use'
+  kind: 'transfer' | 'craft' | 'repair' | 'use' | 'interact'
   label: string
   /** 0..1 of the current step (a recipe is one step). */
   stepProgress: number

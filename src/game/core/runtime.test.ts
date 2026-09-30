@@ -41,6 +41,12 @@ function makeMap(zombieSpawns: MapData['zombieSpawns']): MapData {
   }
 }
 
+/** E on the object in front, then the short open action (AX4 D1: a container opens after 0.35 s). */
+function openHere(rt: GameRuntime): void {
+  rt.interact(rt.currentInteractable!)
+  for (let i = 0; i < 30; i++) rt.tick(1 / 60)
+}
+
 describe('GameRuntime tick', () => {
   it('clamps delta time so a long stall cannot advance the clock too far', () => {
     const rt = new GameRuntime(makeMap([]))
@@ -137,9 +143,9 @@ describe('GameRuntime interaction', () => {
     rt.tick(1 / 60)
     expect(rt.currentInteractable?.id).toBe('ct-hut')
 
-    rt.interact(rt.currentInteractable!) // mở panel
+    openHere(rt) // mở panel (AX4: after the short open action)
     rt.interact(rt.currentInteractable!) // E lần nữa: đóng panel, không phải mở lại
-    rt.interact(rt.currentInteractable!) // mở lại: không còn là lần đầu
+    openHere(rt) // mở lại: không còn là lần đầu
     rt.events.flush()
     expect(rt.world.containers.get('ct-hut')?.opened).toBe(true)
     expect(opens).toEqual([true, false])
@@ -295,8 +301,7 @@ describe('GameRuntime combat', () => {
     expect(zombie.ai).toBe('IDLE')
     expect(zombie.position.z).toBeCloseTo(8, 1)
 
-    const door = rt.interactables.find((i) => i.id === 'door-hut')!
-    rt.interact(door)
+    rt.setDoorState('door-hut', 'open')
     let damaged = 0
     rt.events.on('player:damaged', () => (damaged += 1))
     step(12)
@@ -330,14 +335,14 @@ describe('GameRuntime inventory and loot', () => {
     expect(totalQuantity(rt.world.containers.get('ct-hut')!.items)).toBeGreaterThanOrEqual(3)
 
     standAtContainer(rt)
-    rt.interact(rt.currentInteractable!)
+    openHere(rt)
     expect(rt.openContainerId).toBe('ct-hut')
     expect(rt.inventoryOpen).toBe(true)
     expect(rt.uiOpen).toBe(true)
 
     rt.interact(rt.currentInteractable!) // E lần nữa: đóng
     expect(rt.openContainerId).toBeNull()
-    rt.interact(rt.currentInteractable!) // mở lại
+    openHere(rt) // mở lại
     expect(JSON.stringify(rt.world.containers.get('ct-hut')!.items)).toBe(before)
   })
 
@@ -354,7 +359,7 @@ describe('GameRuntime inventory and loot', () => {
     const rt = new GameRuntime(lootMap())
     rt.newGame(99)
     standAtContainer(rt)
-    rt.interact(rt.currentInteractable!)
+    openHere(rt)
     const container = rt.openContainer!
     const total = totalQuantity(container.items) + totalQuantity(rt.player.inventory)
 
@@ -403,7 +408,7 @@ describe('GameRuntime inventory and loot', () => {
   it('walking away keeps the loot window on the container, out of reach (nothing moves), and death closes all UI', () => {
     const rt = new GameRuntime(lootMap())
     standAtContainer(rt)
-    rt.interact(rt.currentInteractable!)
+    openHere(rt)
     expect(rt.openContainerId).toBe('ct-hut')
     const back = { ...rt.player.position }
 

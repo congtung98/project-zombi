@@ -6,6 +6,7 @@ import type { InventoryKey } from '../systems/inventoryCommands'
 import type { ReservationLedger } from '../systems/actionQueue'
 import type { CraftSources } from '../systems/crafting'
 import type { Vec3 } from '../../types'
+import type { WorldAdapter } from './effects'
 
 /**
  * AX1: the part of the simulation an action definition may read and ask for. The runtime builds it
@@ -31,4 +32,12 @@ export interface ActionWorld {
   inventoryChanged(): void
   /** Items appeared on or left the floor (markers, and the reach lists refresh at once). */
   floorChanged(): void
+  /** AX4: a world object of this type with this ID exists. */
+  objectExists(type: string, id: string): boolean
+  /** AX4: the player can reach the object now (distance, storey, nothing in between). */
+  canReachObject(id: string): boolean
+  /** AX4: the container shown in the loot window, or null. */
+  openContainerId(): string | null
+  /** AX4: how a `world.set` effect changes objects of a type (the runtime's own setters). */
+  worldAdapter(type: string): WorldAdapter | undefined
 }

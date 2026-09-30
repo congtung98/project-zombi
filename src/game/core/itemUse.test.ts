@@ -137,7 +137,7 @@ describe('AX2 item use', () => {
     rt.setLineOfSightOverride({ isBlocked: () => false })
     const cabinet = rt.interactables.find((i) => i.id === CABINET)!
     rt.player.position = { x: cabinet.position.x + 0.5, y: 0, z: cabinet.position.z }
-    rt.interact(cabinet)
+    rt.openLoot(cabinet.id, true)
     addItem(rt.player.inventory, 'water', 1)
     rt.player.thirst = 20
     const water = idOf(rt, 'water')
@@ -218,7 +218,7 @@ describe('AX2 item use', () => {
     const box = rt.world.containers.get(CABINET)!.items
     box.items = []
     addItem(box, 'water', 2)
-    rt.interact(cabinet)
+    rt.openLoot(cabinet.id, true)
     rt.player.thirst = 20
     const key = containerKey(CABINET)
     expect(rt.useItem(key, box.items[0].id).ok).toBe(true)
