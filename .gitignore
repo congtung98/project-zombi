@@ -24,4 +24,5 @@ dist-ssr
 *.sw?
 dist-editor
 docs/graphics
+docs/feedback-agent
 .playwright-mcp
