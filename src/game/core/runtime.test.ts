@@ -390,9 +390,10 @@ describe('GameRuntime inventory and loot', () => {
 
     const [water, bandage] = rt.player.inventory.items.map((i) => i.id)
     rt.player.thirst = 50
-    expect(rt.consumeItem(water).ok).toBe(true)
-    expect(rt.player.thirst).toBe(90)
-    expect(rt.consumeItem(bandage).ok).toBe(false) // máu đầy
+    expect(rt.useItem('main', water).ok).toBe(true)
+    for (let i = 0; i < 160; i++) rt.tick(1 / 60) // AX2: drinking takes 2.5 s
+    expect(rt.player.thirst).toBeCloseTo(90, 0)
+    expect(rt.useItem('main', bandage).ok).toBe(false) // máu đầy
     expect(rt.player.inventory.items.find((i) => i.id === bandage)?.quantity).toBe(1)
     rt.events.flush()
     expect(used).toEqual(['water'])

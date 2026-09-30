@@ -9,10 +9,10 @@ import { InputManager } from '../systems/input'
 import { computeCameraBasis, computeMoveDirection, dampAngle, regenStamina, resolvePlayerSpeed } from '../systems/movement'
 import { applyKnockback, damageZombie, stepZombie, type ZombieAIContext } from '../systems/ai'
 import { attackReadyIn, canStartAttack, cancelSwing, facingTowards, resolveConeHits, startAttack, startPush, tickPlayerCombat, type MeleeTarget } from '../systems/combat'
-import { damagePlayer, tickSurvival, consumeInventoryItem, type UseItemResult } from '../systems/survival'
+import { canBenefit, damagePlayer, tickSurvival, type UseItemFailure } from '../systems/survival'
 import { aimYawTowards, cancelStance, createStanceControl, setStanceMode, turnToward, updateStanceRequest, type StanceMode } from '../systems/stance'
 import { INTERACT_RANGE, selectInteractable, type Interactable } from '../systems/interaction'
-import { cloneInventory, findItem, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
+import { cloneInventory, findItem, previewTransfer, totalQuantity, transferItem, type Inventory } from '../systems/inventory'
 import { containerIdOf, containerKey, emptySummary, isCarried, isEquipped, itemRefusal, type InventoryKey, type TransferLine, type TransferRefusal, type TransferOutcome, type TransferSkip, type TransferSummary } from '../systems/inventoryCommands'
 import { bagInstanceIdOf, findUsable, usableInventories, wornBagContents } from '../systems/bags'
 import { recoverSave, toStoredForm } from '../systems/recovery'
@@ -27,12 +27,12 @@ import { validateSaveGame } from '../systems/save'
 import { checkRecipe, type CraftFailure, type CraftSources } from '../systems/crafting'
 import type { ActionCancelReason, TimedAction } from '../systems/timedAction'
 import { ReservationLedger, type JobView } from '../systems/actionQueue'
-import { ActionSystem } from '../actions/actionSystem'
+import { ActionSystem, type EnqueueResult } from '../actions/actionSystem'
 import { ACTION, type ActionContext, type ActionJob, type ActionSource } from '../actions/types'
 import type { ActionWorld } from '../actions/world'
 import { CharacterStateMachine, interrupts, type CharacterState, type InterruptKind } from '../actions/characterState'
 import { WorldObjectVersions } from '../actions/worldVersions'
-import { prepareTransfer, recipeAction, recipeActionType, recipeData, transferData, type RecipeData, type TransferData } from '../actions/defs'
+import { prepareTransfer, recipeAction, recipeActionType, recipeData, transferData, USE_STATES, type RecipeData, type TransferData, type UseData } from '../actions/defs'
 import { RECIPES, repairRecipeFor, type Recipe, type RecipeId } from '../entities/recipes'
 import { DOOR_MAX_HP, type DoorStatus } from '../world/doors'
 import { SAVE_SCHEMA_VERSION, type SaveGame } from '../../types/save'
@@ -81,6 +81,8 @@ export interface ZombieBodyProxy {
 
 /** `missing-carried`: the inputs are not all carried and free now (INV-LOOT Q3: never counts on items still moving). */
 export type ActionStartFailure = CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued' | 'queue-full' | 'duplicate'
+/** AX2: a use request queued (its last job's ID), or why not (the `item:useFailed` toast already queued). */
+export type UseStartResult = { ok: true; id: number; queued: boolean } | { ok: false; reason: UseItemFailure | 'duplicate' }
 /** AX1: optional request data from the UI: one ID per gesture (a repeat runs once), where it came from. */
 export interface RequestOptions {
   requestId?: string
@@ -1338,14 +1340,6 @@ export class GameRuntime {
     return true
   }
 
-  /** Quick action on a main-inventory item: equip/unequip a weapon, wear/take off a bag, else use it. */
-  activateItem(instanceId: string): void {
-    const item = findItem(this.player.inventory, instanceId)
-    if (item?.kind === 'weapon') this.equipItem(this.player.equipment.weaponInstanceId === item.id ? null : item.id)
-    else if (item?.kind === 'bag') this.wearBag(this.player.equipment.backInstanceId === item.id ? null : item.id)
-    else this.consumeItem(instanceId)
-  }
-
   /** Drop a whole carried item (main or worn bag) on the floor; equipped, favorite and reserved items stay. */
   dropItem(instanceId: string): boolean {
     const source: InventoryKey = findItem(this.player.inventory, instanceId) ? 'main' : 'worn'
@@ -1405,18 +1399,79 @@ export class GameRuntime {
     return usableInventories(this.player.inventory, this.player.equipment, this.world.bags)
   }
 
-  /** Dùng đúng instance đã chọn (túi chính hoặc balo đang đeo); chỉ trừ khi dùng thành công. */
-  consumeItem(instanceId: string): UseItemResult {
-    const found = findUsable(this.player.inventory, this.player.equipment, this.world.bags, instanceId)
-    if (found && this.isReserved(instanceId, 1)) return { ok: false, reason: 'not-usable', itemId: found.item.itemId }
-    const result = consumeInventoryItem(this.player, found?.inventory ?? this.player.inventory, instanceId)
-    if (result.ok) {
-      this.events.queue('item:used', { itemId: result.itemId, name: getItemDef(result.itemId).name, effect: result.effect })
-      this.queueInventoryChanged()
-    } else if (result.itemId) {
-      this.events.queue('item:useFailed', { itemId: result.itemId, name: getItemDef(result.itemId).name, reason: result.reason })
+  /**
+   * AX2 (CAS §6, FB §6): use an item where it is, as timed actions of one request. From a container
+   * or the floor it is taken into the main inventory first; a sealed one is opened first (`open`
+   * only opens it). Each later job works on what the earlier one produced, and leaves without running
+   * when the earlier one did not do its part. Nothing is used up before the end of the last job.
+   */
+  useItem(source: InventoryKey, instanceId: string, opts: RequestOptions & { open?: boolean } = {}): UseStartResult {
+    const refused = this.actions.refusal(opts.requestId)
+    if (refused === 'DUPLICATE') return { ok: false, reason: 'duplicate' }
+    const onFloor = source === 'floor' ? this.world.floor.find(instanceId) : null
+    const inv = source === 'floor' ? (onFloor && this.canReachFloor(onFloor.position) ? onFloor.cell.items : null) : this.inventoryFor(source)
+    const item = inv ? findItem(inv, instanceId) : undefined
+    if (!inv || !item) return { ok: false, reason: onFloor || (source !== 'floor' && !inv) ? 'unreachable' : 'empty' }
+    const def = getItemDef(item.itemId)
+    const refuse = (reason: UseItemFailure): UseStartResult => {
+      this.events.queue('item:useFailed', { itemId: def.id, name: def.name, reason })
+      return { ok: false, reason }
     }
-    return result
+    if (item.kind === 'unknown') return refuse('not-usable')
+    const sealed = def.sealed
+    const use = sealed ? getItemDef(sealed.opensTo) : def
+    const open = sealed !== undefined
+    const consume = !opts.open && use.consumable !== undefined
+    if ((opts.open && !open) || (!opts.open && !consume)) return refuse('not-usable')
+    if (!this.player.alive) return refuse('dead')
+    if (this.player.attackTimer >= 0) return refuse('busy')
+    if (consume && !canBenefit(this.player, use.effect)) return refuse('no-effect')
+    if (item.quantity - this.ledger.reserved(item.id) - this.actions.claimed(item.id) < 1) return refuse('reserved')
+    const carried = isCarried(source)
+    const steps = (carried ? 0 : 1) + (open ? 1 : 0) + (consume ? 1 : 0)
+    if (refused === 'QUEUE_FULL' || this.jobs.length + steps > GAME_CONFIG.actions.queueLimit) return refuse('queue-full')
+    if (!carried && previewTransfer(inv, item.id, this.player.inventory, 1).quantity < 1) return refuse('full')
+
+    const chain = { broken: false }
+    const from = opts.source ?? 'system'
+    const target = { kind: 'item' as const, instanceId: item.id, inventory: source }
+    let requestId: string | null = opts.requestId ?? null
+    let last: EnqueueResult | null = null
+    const add = <Data>(ctx: ActionContext, data: Data, label: string): boolean => {
+      last = this.actions.enqueue(ctx.type, ctx, data, label, { requestId, chain })
+      requestId = null
+      return last.ok && last.state !== 'not-started'
+    }
+    if (!carried) {
+      const prepared = prepareTransfer(this.actionWorld, source, 'main', [{ instanceId: item.id, quantity: 1 }], false)
+      if (prepared.accepted.length === 0) return refuse(prepared.refused[0]?.reason === 'unreachable' ? 'unreachable' : 'reserved')
+      const data: TransferData = { source, destination: 'main', lines: prepared.accepted, index: 0, total: 1, summary: { moved: 0, movedLines: 0, skipped: [] }, dropAt: null }
+      if (!add({ actorId: 'player', type: ACTION.TRANSFER, target: { kind: 'inventory', key: 'main' }, source: from }, data, prepared.label)) {
+        this.queueInventoryChanged()
+        return { ok: false, reason: 'unreachable' }
+      }
+    }
+    if (open) {
+      const data: UseData = { itemId: item.itemId, instanceId: carried ? item.id : null, follow: !carried, resolved: null, done: false }
+      // Could not even start (no room for the opened tin...): its own toast said why, nothing follows.
+      if (!add({ actorId: 'player', type: ACTION.OPEN_ITEM, target, source: from }, data, `Mở ${def.name}`) && consume) {
+        this.queueInventoryChanged()
+        return { ok: false, reason: 'empty' }
+      }
+    }
+    if (consume) {
+      const action = use.consumable!.action
+      const data: UseData = { itemId: use.id, instanceId: open || !carried ? null : item.id, follow: open || !carried, resolved: null, done: false }
+      // Bandages and first aid are applied to the player (the item is what it is done with).
+      const ctx: ActionContext = action === 'HEAL'
+        ? { actorId: 'player', type: action, target: { kind: 'self' }, item: { instanceId: item.id, inventory: source }, source: from }
+        : { actorId: 'player', type: action, target, source: from }
+      add(ctx, data, `${USE_STATES[action].verb} ${use.name}`)
+    }
+    this.queueInventoryChanged()
+    const result = last as EnqueueResult | null
+    if (!result || !result.ok || result.state === 'not-started') return { ok: false, reason: 'empty' }
+    return { ok: true, id: result.job.id, queued: result.state === 'queued' }
   }
 
   /**
@@ -1578,7 +1633,7 @@ export class GameRuntime {
     const type = recipeActionType(recipe)
     const ctx: ActionContext = { actorId: 'player', type, target: targetId ? { kind: 'item', instanceId: targetId, inventory: null } : { kind: 'self' }, source: opts.source ?? 'system' }
     const data: RecipeData = { recipe, targetId, action: null, claims: check.plan ?? [] }
-    const r = this.actions.enqueue(type, ctx, data, label, opts.requestId ?? null)
+    const r = this.actions.enqueue(type, ctx, data, label, { requestId: opts.requestId })
     if (!r.ok) return { ok: false, reason: 'queue-full' }
     if (r.state === 'not-started') return { ok: false, reason: check.failure ?? 'missing-input' }
     this.queueInventoryChanged()
@@ -1608,7 +1663,7 @@ export class GameRuntime {
       summary: { moved: 0, movedLines: 0, skipped: [...prepared.refused] }, dropAt: destination === 'floor' ? this.dropPosition() : null,
     }
     const ctx: ActionContext = { actorId: 'player', type: ACTION.TRANSFER, target: { kind: 'inventory', key: destination }, source: opts.source ?? 'system' }
-    const r = this.actions.enqueue(ACTION.TRANSFER, ctx, data, prepared.label, opts.requestId ?? null)
+    const r = this.actions.enqueue(ACTION.TRANSFER, ctx, data, prepared.label, { requestId: opts.requestId })
     this.queueInventoryChanged()
     return { id: r.ok ? r.job.id : null, refused: prepared.refused }
   }
@@ -1719,16 +1774,6 @@ export class GameRuntime {
     if (recipe.kind === 'craft') return `Chế tạo ${getItemDef(recipe.output.itemId).name}`
     const target = targetId ? findUsable(this.player.inventory, this.player.equipment, this.world.bags, targetId)?.item : undefined
     return target ? `Sửa ${getItemDef(target.itemId).name}` : recipe.name
-  }
-
-  /** Units promised to the running job cannot be used or leave; tells the player which job holds them. */
-  private isReserved(instanceId: string, quantity: number): boolean {
-    const held = this.ledger.reserved(instanceId)
-    if (held <= 0) return false
-    const item = findUsable(this.player.inventory, this.player.equipment, this.world.bags, instanceId)?.item ?? findItem(this.player.inventory, instanceId)
-    if (item && quantity <= item.quantity - held) return false
-    if (item) this.events.queue('item:reserved', { itemId: item.itemId, name: getItemDef(item.itemId).name, label: this.jobs[0]?.label ?? '' })
-    return true
   }
 
   private syncUiOpen(): void {

@@ -28,6 +28,11 @@ export function drop(source: InventoryKey, instanceIds: readonly string[]): void
   transfer(source, 'floor', instanceIds)
 }
 
+/** AX1/AX2: one request ID per player gesture (a repeated request runs once). */
+export function newRequestId(): string {
+  return crypto.randomUUID()
+}
+
 /** Run a context menu entry on the resolved instances. `inspect` is handled by the window. */
 export function runMenuEntry(entry: MenuEntry, source: InventoryKey, instanceIds: readonly string[]): void {
   const first = instanceIds[0]
@@ -46,8 +51,11 @@ export function runMenuEntry(entry: MenuEntry, source: InventoryKey, instanceIds
       return
     case 'eat':
     case 'drink':
-    case 'use':
-      runtime.consumeItem(first)
+    case 'heal':
+      runtime.useItem(source, first, { requestId: newRequestId(), source: 'inventory-menu' })
+      return
+    case 'open':
+      runtime.useItem(source, first, { open: true, requestId: newRequestId(), source: 'inventory-menu' })
       return
     case 'repair':
       runtime.startRepair(first)

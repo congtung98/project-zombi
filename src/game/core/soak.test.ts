@@ -279,21 +279,20 @@ function runSoak(policy: 'shelter' | 'patrol') {
       expected[e.itemId] -= 1
       if (expected[e.itemId] === 0) delete expected[e.itemId]
     })
+    // AX2: opening a tin turns one sealed unit into one opened unit.
+    rt.events.on('item:opened', (e) => {
+      expected[e.itemId] -= 1
+      if (expected[e.itemId] === 0) delete expected[e.itemId]
+      expected[e.to] = (expected[e.to] ?? 0) + 1
+    })
+    // AX2: eating, drinking and healing take time; the bot stands still while it runs.
+    let useJob: number | null = null
     let integrityClock = 0
 
     for (let t = 0; t < SESSION_SEC; t += DT) {
       if (!rt.player.alive) break
       const p = rt.player
       const pos = p.position
-
-      // ---- Ăn uống / băng bó khi cần (gọi như UI click)
-      const firstOf = (kind: 'food' | 'drink' | 'medical') => p.inventory.items.find((s) => getItemDef(s.itemId).kind === kind)?.id
-      const food = firstOf('food')
-      if (p.hunger < 35 && food) rt.consumeItem(food)
-      const drink = firstOf('drink')
-      if (p.thirst < 35 && drink) rt.consumeItem(drink)
-      const medical = firstOf('medical')
-      if (p.health < 45 && medical) rt.consumeItem(medical)
 
       // ---- Combat: zombie gần nhất còn sống
       let nearest: { pos: Vec3; d: number } | null = null
@@ -313,6 +312,18 @@ function runSoak(policy: 'shelter' | 'patrol') {
         spaceHeld = false
       }
       const fighting = nearest !== null && nearest.d < 2.0
+
+      // ---- Ăn uống / băng bó khi cần, như qua menu (AX2: có thời gian; chỉ khi zombie gần nhất cách hơn 3 m)
+      if (useJob !== null && !rt.jobs.some((j) => j.id === useJob)) useJob = null
+      if (useJob === null && lootJob === null && rt.jobs.length === 0 && (!nearest || nearest.d > 3)) {
+        const firstOf = (kind: 'food' | 'drink' | 'medical') => p.inventory.items.find((s) => getItemDef(s.itemId).kind === kind)?.id
+        // Wounds first, patched while it is calm (a blow interrupts it: the bot tries again later).
+        const need = (p.health < 85 ? firstOf('medical') : undefined) ?? (p.thirst < 35 ? firstOf('drink') : undefined) ?? (p.hunger < 35 ? firstOf('food') : undefined)
+        if (need) {
+          const r = rt.useItem('main', need, { source: 'hotkey' })
+          if (r.ok) useJob = r.id
+        }
+      }
       // CS1: the bot holds the combat stance (right button) while fighting and lets go afterwards.
       rt.input.simulateKey('Mouse2', fighting)
       if (fighting) {
@@ -340,7 +351,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
 
       // ---- Loot: tới tủ mục tiêu thì mở, lấy hết, đóng
-      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting && lootJob === null) {
+      if (goalContainer && target?.kind === 'container' && target.id === goalContainer && !fighting && lootJob === null && useJob === null) {
         if (!rt.lootOpen || rt.openContainerId !== goalContainer) rt.interact(target)
         if (!seenWeapons.has(goalContainer)) {
           seenWeapons.add(goalContainer)
@@ -367,7 +378,7 @@ function runSoak(policy: 'shelter' | 'patrol') {
       }
 
       // ---- Di chuyển theo path (tìm lại định kỳ / khi kẹt / khi cửa đổi); đứng yên khi đang lấy đồ
-      if (goalPos && !fighting && lootJob === null) {
+      if (goalPos && !fighting && lootJob === null && useJob === null) {
         repathTimer -= DT
         if (dist(pos, lastPos) < 0.02) stuckTimer += DT
         else stuckTimer = 0

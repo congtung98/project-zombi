@@ -164,8 +164,9 @@ describe('Phase 1 fixture migration', () => {
     const rt = new GameRuntime()
     rt.loadSnapshot(save)
     rt.player.health = 1
-    rt.consumeItem(rt.player.inventory.items[0].id) // frees one slot without discarding an item
-    rt.tick(1 / 60)
+    rt.useItem('main', rt.player.inventory.items[0].id) // frees one slot without discarding an item
+    for (let i = 0; i < 5.1 * 60; i++) rt.tick(1 / 60)
+    expect(rt.player.inventory.items).toHaveLength(11)
     expect(rt.nearbyFloorIds).toEqual([drop.item.id])
     expect(rt.transferItems('floor', 'main', [{ instanceId: drop.item.id }]).moved).toBe(1)
     const bat = rt.player.inventory.items.find((i) => i.kind === 'weapon')!

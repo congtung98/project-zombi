@@ -5,7 +5,7 @@ import { GAME_CONFIG } from '../core/config'
  * Weapon stats live on the definition; condition lives only on the instance.
  */
 export type ItemId =
-  | 'canned_food' | 'chips' | 'water' | 'soda' | 'bandage' | 'medkit'
+  | 'canned_food' | 'canned_food_open' | 'chips' | 'water' | 'soda' | 'bandage' | 'medkit'
   | 'baseball_bat' | 'metal_pipe' | 'crowbar' | 'hammer' | 'wooden_club'
   | 'wood_plank' | 'scrap_metal' | 'duct_tape' | 'nails'
   | 'backpack'
@@ -52,6 +52,35 @@ export interface BagSpec {
   slots: number
 }
 
+/**
+ * AX2 (FB §6, §8): what using the item does. `action` names the timed action (the item never runs
+ * its own code); `effect` on the definition is what one portion gives. `portions` is the number of
+ * portions in one unit: every item is 1 in this phase (one use takes one unit); partial eating adds
+ * an instance field later without changing the actions. `leaves` (an empty tin...) is reserved.
+ */
+export interface ConsumableSpec {
+  action: 'EAT' | 'DRINK' | 'HEAL'
+  portions: number
+  /** Seconds of game time one portion takes (D4). */
+  seconds: number
+  leaves?: ItemId
+}
+
+/**
+ * AX2 (FB §8): a sealed item must be opened (a timed action) before it is used; opening turns one
+ * unit into `opensTo`. `requiresToolTag` (a can opener, later) is checked when it starts and commits.
+ */
+export interface SealedSpec {
+  opensTo: ItemId
+  seconds: number
+  requiresToolTag?: ToolTag
+}
+
+/**
+ * The optional fields are the item's components: `melee` (a weapon to equip), `bag` (wearable),
+ * `consumable` (eaten, drunk or applied), `sealed` (opened first), `repairGroup`, `toolTags`,
+ * `transfer`. Actions and menus read components, never the item's ID or name (AX2, FB §6).
+ */
 export interface ItemDefinition {
   id: ItemId
   name: string
@@ -62,6 +91,8 @@ export interface ItemDefinition {
   transfer?: TransferSpec
   bag?: BagSpec
   effect: ItemEffect
+  consumable?: ConsumableSpec
+  sealed?: SealedSpec
   /** Ký hiệu hiển thị trong ô inventory (không cần asset ngoài ở MVP). */
   icon: string
   description: string
@@ -175,12 +206,24 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'backpack', name: 'Balo', kind: 'bag', stackLimit: 1, weightKg: 0.8, bag: { slots: 8 }, effect: {}, icon: '🎒',
     description: 'Đeo lên lưng để có thêm 8 ô. Không giảm khối lượng đồ bên trong.',
   },
+  // AX2 (D3): sealed; opened by hand for now (a can opener is a `requiresToolTag` later).
   canned_food: {
     id: 'canned_food',
     name: 'Đồ hộp',
     kind: 'food',
     stackLimit: 5, weightKg: 0.4,
+    effect: {},
+    sealed: { opensTo: 'canned_food_open', seconds: 1.5 },
+    icon: '🥫',
+    description: 'Hộp còn niêm phong: mở ra rồi ăn, hồi 35 đói.',
+  },
+  canned_food_open: {
+    id: 'canned_food_open',
+    name: 'Đồ hộp (đã mở)',
+    kind: 'food',
+    stackLimit: 5, weightKg: 0.4,
     effect: { hunger: 35 },
+    consumable: { action: 'EAT', portions: 1, seconds: 3 },
     icon: '🥫',
     description: 'Hồi 35 đói.',
   },
@@ -190,6 +233,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     kind: 'food',
     stackLimit: 5, weightKg: 0.15,
     effect: { hunger: 15, thirst: -5 },
+    consumable: { action: 'EAT', portions: 1, seconds: 2 },
     icon: '🍪',
     description: 'Hồi 15 đói, gây khát nhẹ.',
   },
@@ -199,6 +243,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     kind: 'drink',
     stackLimit: 5, weightKg: 0.6,
     effect: { thirst: 40 },
+    consumable: { action: 'DRINK', portions: 1, seconds: 2.5 },
     icon: '💧',
     description: 'Hồi 40 khát.',
   },
@@ -208,6 +253,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     kind: 'drink',
     stackLimit: 5, weightKg: 0.35,
     effect: { thirst: 25, stamina: 20 },
+    consumable: { action: 'DRINK', portions: 1, seconds: 2.5 },
     icon: '🥤',
     description: 'Hồi 25 khát và 20 thể lực.',
   },
@@ -217,6 +263,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     kind: 'medical',
     stackLimit: 3, weightKg: 0.05, transfer: { batch: 3, seconds: 0.25 },
     effect: { health: 25 },
+    consumable: { action: 'HEAL', portions: 1, seconds: 3 },
     icon: '🩹',
     description: 'Hồi 25 máu.',
   },
@@ -226,6 +273,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     kind: 'medical',
     stackLimit: 1, weightKg: 1.0,
     effect: { health: 60 },
+    consumable: { action: 'HEAL', portions: 1, seconds: 5 },
     icon: '🧰',
     description: 'Hồi 60 máu.',
   },

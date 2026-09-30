@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
+import type { UseItemFailure } from '../game/systems/survival'
 import { DOOR_LAB_ENABLED } from '../game/world/doorLab'
 import { GameCanvas } from './GameCanvas'
 import { HUD } from '../components/HUD'
@@ -20,12 +21,18 @@ import { useWorldStore } from '../stores/worldStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { ACTION_CANCEL_TEXT, ACTION_FAILURE_TEXT, actionFailureText } from '../components/craftText'
 
-const USE_FAIL_TEXT = {
+const USE_FAIL_TEXT: Record<UseItemFailure, string> = {
   'no-effect': 'chỉ số đã đầy, không cần dùng.',
-  empty: 'ô trống.',
+  empty: 'không còn món này.',
   dead: 'không thể dùng lúc này.',
   'not-usable': 'không dùng trực tiếp; dùng khi sửa vũ khí hoặc chế tạo.',
-} as const
+  full: 'túi chính hết chỗ.',
+  'missing-tool': 'thiếu dụng cụ để mở.',
+  reserved: 'đang dùng cho thao tác khác.',
+  busy: 'đang ra đòn.',
+  unreachable: 'ngoài tầm.',
+  'queue-full': 'hàng đợi đã đầy.',
+}
 
 function describeEffect(effect: ItemEffect): string {
   const parts: string[] = []
@@ -93,6 +100,8 @@ export function App() {
         useHudStore.getState().showToast(`Đã dùng ${e.name}: ${describeEffect(e.effect)}.`, 1800),
       ),
       runtime.events.on('item:useFailed', (e) => useHudStore.getState().showToast(`${e.name}: ${USE_FAIL_TEXT[e.reason]}`, 1800)),
+      // AX2: a sealed item opened (it became another item in the same place).
+      runtime.events.on('item:opened', (e) => useHudStore.getState().showToast(`Đã mở ${e.name}.`, 1500)),
       // Vũ khí P2-S2: tay không, đổi vũ khí, hao mòn (chỉ đồng bộ UI, không phát âm pickup), sắp hỏng, hỏng.
       runtime.events.on('player:unarmed', () =>
         useHudStore.getState().showToast('Tay không: tìm vũ khí trong tủ (E để mở), trang bị trong túi (I). Space để đẩy.', 2200, 'warn'),
@@ -194,6 +203,7 @@ export function App() {
       runtime.events.on('curtain:changed', () => sfx.play('curtain')),
       runtime.events.on('container:opened', () => sfx.play('container')),
       runtime.events.on('item:used', (e) => sfx.play(ITEM_SFX[getItemDef(e.itemId).kind])),
+      runtime.events.on('item:opened', () => sfx.play('workDone')),
       runtime.events.on('inventory:changed', () => sfx.play('pickup')),
     ]
 

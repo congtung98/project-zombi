@@ -4,3 +4,4 @@
  */
 export { TRANSFER, prepareTransfer, transferData, pendingTransferIds, type TransferData, type TransferJob } from './transfer'
 export { CRAFT, REPAIR, recipeAction, recipeData, recipeActionType, type RecipeData, type RecipeJob } from './recipe'
+export { EAT, DRINK, HEAL, OPEN_ITEM, USE_STATES, type UseData, type UseJob } from './use'

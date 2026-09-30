@@ -92,7 +92,7 @@ describe('INV-LOOT S5 unknown item recovery', () => {
     const gem = stored[0].id as string
     const katana = stored[1].id as string
     const duffel = stored[2].id as string
-    expect(rt.consumeItem(gem).ok).toBe(false)
+    expect(rt.useItem('main', gem).ok).toBe(false)
     expect(rt.equipItem(katana)).toBe(false)
     expect(rt.wearBag(duffel)).toBe(false)
     expect(rt.player.equipment).toEqual({ weaponInstanceId: null, backInstanceId: null })

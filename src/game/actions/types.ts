@@ -18,6 +18,10 @@ export const ACTION = {
   TRANSFER: 'TRANSFER',
   CRAFT: 'CRAFT',
   REPAIR: 'REPAIR',
+  EAT: 'EAT',
+  DRINK: 'DRINK',
+  HEAL: 'HEAL',
+  OPEN_ITEM: 'OPEN_ITEM',
 } as const
 
 /** What an action works on: IDs only, never a render object or a copy of an item. */
@@ -71,6 +75,15 @@ export interface ActionStep {
   elapsed: number
 }
 
+/**
+ * AX2: jobs queued by one request that depend on each other in order (take it from the container,
+ * open it, eat it). When one of them ends without doing its part, the chain is broken and the jobs
+ * after it leave the queue without running.
+ */
+export interface ActionChain {
+  broken: boolean
+}
+
 /** One accepted request in the queue. `id` is its execution ID: it commits at most once. */
 export interface ActionJob<Data = unknown> {
   id: number
@@ -83,6 +96,7 @@ export interface ActionJob<Data = unknown> {
   status: ActionStatus
   step: ActionStep | null
   data: Data
+  chain: ActionChain | null
 }
 
 /** A step's end: another step follows (a transfer), or the job is done. */
@@ -120,6 +134,8 @@ export interface ActionDefinition<Data = unknown> {
   ended?(job: ActionJob<Data>, w: ActionWorld): void
   /** Cancelled (reservations already released, `action:cancelled` already queued). */
   cancelled?(job: ActionJob<Data>, w: ActionWorld): void
+  /** Whether it did its part (a chain goes on only then); default: it completed. */
+  succeeded?(job: ActionJob<Data>): boolean
   /** Units of an instance this job still counts on (so later requests never count on them too). */
   claims?(job: ActionJob<Data>, instanceId: string): number
   /** Progress for the HUD and the inventory window. */

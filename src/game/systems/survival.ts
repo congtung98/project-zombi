@@ -1,14 +1,14 @@
 import { GAME_CONFIG } from '../core/config'
-import { getItemDef, type ItemEffect, type ItemId } from '../entities/items'
+import type { ItemEffect } from '../entities/items'
 import type { PlayerState } from '../entities/player'
-import { findItem, removeQuantity, type Inventory } from './inventory'
 
-/** `not-usable`: materials/equipment have no direct use (or the item is reserved by an action). */
-export type UseItemFailure = 'dead' | 'empty' | 'no-effect' | 'not-usable'
-
-export type UseItemResult =
-  | { ok: true; itemId: ItemId; effect: ItemEffect }
-  | { ok: false; reason: UseItemFailure; itemId?: ItemId }
+/**
+ * Why using an item did not happen (the `item:useFailed` toast). AX2: `full` (no room for what it
+ * becomes, or to take it from a container), `missing-tool` (a sealed item needs a tool), `reserved`
+ * (another action holds it), `busy` (mid-swing), `unreachable` (its container is out of reach),
+ * `queue-full`.
+ */
+export type UseItemFailure = 'dead' | 'empty' | 'no-effect' | 'not-usable' | 'full' | 'missing-tool' | 'reserved' | 'busy' | 'unreachable' | 'queue-full'
 
 /** Vật phẩm có tác dụng khi ít nhất một chỉ số nó hồi đang dưới mức tối đa. */
 export function canBenefit(player: PlayerState, effect: ItemEffect, limits = GAME_CONFIG.player): boolean {
@@ -17,30 +17,6 @@ export function canBenefit(player: PlayerState, effect: ItemEffect, limits = GAM
   if ((effect.thirst ?? 0) > 0 && player.thirst < limits.maxThirst) return true
   if ((effect.stamina ?? 0) > 0 && player.stamina < limits.maxStamina) return true
   return false
-}
-
-/** Áp hiệu ứng vật phẩm, kẹp 0..max cho mọi chỉ số. */
-export function applyItemEffect(player: PlayerState, effect: ItemEffect, limits = GAME_CONFIG.player): void {
-  if (effect.health) player.health = clampStat(player.health + effect.health, limits.maxHealth)
-  if (effect.hunger) player.hunger = clampStat(player.hunger + effect.hunger, limits.maxHunger)
-  if (effect.thirst) player.thirst = clampStat(player.thirst + effect.thirst, limits.maxThirst)
-  if (effect.stamina) player.stamina = clampStat(player.stamina + effect.stamina, limits.maxStamina)
-}
-
-/**
- * Dùng đúng instance `instanceId` trong `inventory` (túi chính hoặc balo đang đeo). Chỉ trừ vật phẩm
- * khi dùng thành công (kế hoạch §5.2): không có món, đã chết hoặc không có tác dụng thì không trừ.
- */
-export function consumeInventoryItem(player: PlayerState, inventory: Inventory, instanceId: string, limits = GAME_CONFIG.player): UseItemResult {
-  const stack = findItem(inventory, instanceId)
-  if (!stack || stack.quantity <= 0) return { ok: false, reason: 'empty' }
-  const def = getItemDef(stack.itemId)
-  if (!player.alive) return { ok: false, reason: 'dead', itemId: def.id }
-  if (def.kind !== 'food' && def.kind !== 'drink' && def.kind !== 'medical') return { ok: false, reason: 'not-usable', itemId: def.id }
-  if (!canBenefit(player, def.effect, limits)) return { ok: false, reason: 'no-effect', itemId: def.id }
-  applyItemEffect(player, def.effect, limits)
-  removeQuantity(inventory, instanceId, 1)
-  return { ok: true, itemId: def.id, effect: def.effect }
 }
 
 export function clampStat(value: number, max: number): number {

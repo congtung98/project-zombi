@@ -97,7 +97,10 @@ export const ACTION_LABEL = {
   takeOff: 'Tháo balo',
   eat: 'Ăn',
   drink: 'Uống',
-  use: 'Dùng',
+  heal: 'Băng bó / sơ cứu',
+  open: 'Mở',
+  /** A sealed item: opened, then eaten or drunk (AX2). */
+  openAnd: (use: string) => `Mở rồi ${use.toLowerCase()}`,
   repair: 'Sửa',
   moveTo: (name: string) => `Chuyển vào ${name}`,
   take: (name: string) => `Lấy vào ${name}`,
@@ -110,7 +113,7 @@ export const ACTION_LABEL = {
 } as const
 
 /** Why an action is disabled or an item did not move (shown in menus and summaries). */
-export const REFUSAL_LABEL: Record<TransferRefusal | 'not-carried' | 'not-main' | 'no-effect' | 'repair' | 'dead', string> = {
+export const REFUSAL_LABEL: Record<TransferRefusal | 'not-main' | 'no-effect' | 'repair' | 'dead', string> = {
   missing: 'Món không còn ở đó',
   'same-inventory': 'Đã ở đây',
   'invalid-quantity': 'Số lượng không hợp lệ',
@@ -124,7 +127,6 @@ export const REFUSAL_LABEL: Record<TransferRefusal | 'not-carried' | 'not-main' 
   unreachable: 'Ngoài tầm',
   dead: 'Không thể lúc này',
   busy: 'Đang ra đòn',
-  'not-carried': 'Lấy vào túi trước',
   'not-main': 'Chuyển vào túi chính trước',
   'no-effect': 'Chỉ số đã đầy',
   repair: 'Chưa sửa được',

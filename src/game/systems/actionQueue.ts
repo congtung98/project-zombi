@@ -7,8 +7,8 @@ import { itemWeight, type BagStore } from './bags'
  * reservations. AX1: the queue itself is `actions/actionSystem.ts`; here the ledger and transfer helpers.
  */
 
-/** Who holds a reservation: a transfer step keeps its item from any use; a recipe allows equipping. */
-export type ReservationKind = 'transfer' | 'recipe'
+/** Who holds a reservation: a transfer step keeps its item from any use; a recipe allows equipping; a use (AX2: eat, drink, apply, open) holds the unit it works on. */
+export type ReservationKind = 'transfer' | 'recipe' | 'use'
 
 /**
  * The one reservation ledger (INV-LOOT §5, S0 audit §5): quantities of instances promised to an action,
@@ -93,7 +93,7 @@ export interface TransferStepState {
 /** Progress of the running job for the HUD and the inventory window. */
 export interface JobView {
   id: number
-  kind: 'transfer' | 'craft' | 'repair'
+  kind: 'transfer' | 'craft' | 'repair' | 'use'
   label: string
   /** 0..1 of the current step (a recipe is one step). */
   stepProgress: number

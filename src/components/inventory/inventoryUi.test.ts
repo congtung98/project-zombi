@@ -177,7 +177,7 @@ describe('context menu by capability', () => {
   const base = (patch: Partial<MenuContext>): MenuContext => ({
     source: 'main', items: [water], equipment: { weaponInstanceId: bat.id, backInstanceId: null },
     destinations: [{ key: 'container:box', name: 'Tủ', inventory: box }, { key: 'worn', name: 'Balo', inventory: worn }],
-    isReserved: () => false, useBlock: () => null, repairBlock: () => undefined, ...patch,
+    isReserved: () => false, benefits: () => true, canTake: () => true, repairBlock: () => undefined, ...patch,
   })
   const byKey = (ctx: MenuContext) => Object.fromEntries(menuEntries(ctx).map((e) => [e.key, e]))
 
@@ -190,11 +190,14 @@ describe('context menu by capability', () => {
     expect(m.inspect.disabled).toBeNull()
   })
 
-  it('a drink: Uống from what is carried only; in a container it must be taken first', () => {
+  it('a drink: Uống where it is; from a container it is taken first, so the main inventory needs room (AX2)', () => {
     expect(byKey(base({})).drink.disabled).toBeNull()
-    expect(byKey(base({ useBlock: () => REFUSAL_LABEL['no-effect'] })).drink.disabled).toBe(REFUSAL_LABEL['no-effect'])
+    expect(byKey(base({ benefits: () => false })).drink.disabled).toBe(REFUSAL_LABEL['no-effect'])
+    expect(byKey(base({ isReserved: () => true })).drink.disabled).toBe(REFUSAL_LABEL.reserved)
     const fromBox = byKey(base({ source: 'container:box', destinations: [{ key: 'main', name: 'Túi chính', inventory: inv }] }))
-    expect(fromBox.drink.disabled).toBe(REFUSAL_LABEL['not-carried'])
+    expect(fromBox.drink.disabled).toBeNull()
+    const noRoom = byKey(base({ source: 'container:box', canTake: () => false, destinations: [{ key: 'main', name: 'Túi chính', inventory: inv }] }))
+    expect(noRoom.drink.disabled).toBe(REFUSAL_LABEL.full)
     expect(fromBox['transfer:main'].label).toBe('Lấy vào Túi chính')
     expect(fromBox.drop).toBeUndefined()
     expect(fromBox.favorite).toBeUndefined()

@@ -184,7 +184,7 @@ try {
   assert.equal(await win('inventory').count(), 1)
   assert.equal(await win('loot').count(), 1)
 
-  // Eat/drink through the menu really changes the stat and the quantity.
+  // Eat/drink through the menu really changes the stat and the quantity (AX2: after its time; a sealed tin is opened first).
   const drink = await rt(() => {
     const r = window.__runtime
     r.player.thirst = 20
@@ -195,7 +195,7 @@ try {
     const name = await rt((id) => ({ water: 'Nước', soda: 'Nước ngọt', canned_food: 'Đồ hộp', chips: 'Snack' })[id], drink)
     const before = await rt(() => ({ thirst: window.__runtime.player.thirst, hunger: window.__runtime.player.hunger, total: window.__runtime.player.inventory.items.reduce((n, i) => n + i.quantity, 0) }))
     await win('inventory').locator('.inv-row', { hasText: name }).first().click({ button: 'right' })
-    await page.locator('.inv-menu').getByRole('menuitem', { name: /^(Ăn|Uống)$/ }).click()
+    await page.locator('.inv-menu').getByRole('menuitem', { name: /^(Ăn|Uống|Mở rồi ăn)$/ }).click()
     await page.waitForFunction((b) => window.__runtime.player.inventory.items.reduce((n, i) => n + i.quantity, 0) === b.total - 1, before)
     const after = await rt(() => ({ thirst: window.__runtime.player.thirst, hunger: window.__runtime.player.hunger }))
     assert.ok(after.thirst > before.thirst || after.hunger > before.hunger)

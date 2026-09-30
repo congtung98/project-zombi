@@ -4,6 +4,7 @@ import { repairRecipeFor } from '../../game/entities/recipes'
 import { runtime } from '../../game/core/runtime'
 import { checkRecipe } from '../../game/systems/crafting'
 import { canBenefit } from '../../game/systems/survival'
+import { previewTransfer } from '../../game/systems/inventory'
 import type { InventoryKey } from '../../game/systems/inventoryCommands'
 import { useInventoryStore, type InventoryView } from '../../stores/inventoryStore'
 import { useInventoryUiStore } from '../../stores/inventoryUiStore'
@@ -13,7 +14,7 @@ import { runMenuEntry, transferQuantity } from './commands'
 import { ItemIcon } from './ItemIcon'
 import { ItemCard } from './ItemCard'
 import { instancesIn, useView } from './tableData'
-import { itemName, L, REFUSAL_LABEL } from './labels'
+import { itemName, L } from './labels'
 import type { View } from './layout'
 
 const HOVER_DELAY_MS = 300
@@ -61,7 +62,9 @@ function ContextMenu({ source, instanceIds, x, y, view, onInspect, onQuantity }:
     return menuEntries({
       source, items, destinations, equipment: { weaponInstanceId: weaponId, backInstanceId: backId },
       isReserved: (i: ItemInstance) => reserved.has(i.id),
-      useBlock: (i: ItemInstance) => (canBenefit(runtime.player, getItemDef(i.itemId).effect) ? null : REFUSAL_LABEL['no-effect']),
+      benefits: (effect) => canBenefit(runtime.player, effect),
+      // AX2: using it from a container or the floor takes one unit into the main inventory first.
+      canTake: (i: ItemInstance) => previewTransfer(inv?.inventory ?? bag, i.id, bag, 1).quantity > 0,
       repairBlock: (i: ItemInstance) => {
         const recipe = repairRecipeFor(i.itemId)
         if (!recipe) return undefined
@@ -71,7 +74,7 @@ function ContextMenu({ source, instanceIds, x, y, view, onInspect, onQuantity }:
         return check.failure ? ACTION_FAILURE_TEXT[action && check.failure === 'missing-input' ? 'missing-carried' : check.failure] : null
       },
     })
-  }, [items, source, destinations, weaponId, backId, action, bag, worn])
+  }, [items, source, destinations, weaponId, backId, action, bag, worn, inv])
 
   // The menu closes by itself when its items are gone (used up, moved away).
   useEffect(() => {

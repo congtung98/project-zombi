@@ -158,7 +158,7 @@ describe('timed transfer (INV-LOOT §8, S0 audit §4)', () => {
     rt.player.thirst = 10
     const [water, bat] = rt.player.inventory.items.map((i) => i.id)
     rt.queueTransfer('main', BOX, [{ instanceId: water }, { instanceId: bat }])
-    expect(rt.consumeItem(water)).toMatchObject({ ok: false, reason: 'not-usable' })
+    expect(rt.useItem('main', water)).toMatchObject({ ok: false, reason: 'reserved' })
     run(rt, 0.3)
     expect(rt.equipItem(bat)).toBe(false) // its step runs now
     run(rt, 1)

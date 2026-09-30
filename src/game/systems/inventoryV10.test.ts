@@ -277,10 +277,11 @@ describe('bags in the runtime (data level; the bag UI comes in S3)', () => {
     const { rt, bag, contents } = withBag()
     const water = contents.items[0].id
     rt.player.thirst = 10
-    expect(rt.consumeItem(water)).toMatchObject({ ok: false, reason: 'empty' })
+    expect(rt.useItem('worn', water)).toMatchObject({ ok: false, reason: 'unreachable' })
     expect(rt.wearBag(bag.id)).toBe(true)
     expect(rt.usableInventories).toEqual([rt.player.inventory, contents])
-    expect(rt.consumeItem(water).ok).toBe(true)
+    expect(rt.useItem('worn', water).ok).toBe(true)
+    for (let i = 0; i < 180; i++) rt.tick(1 / 60)
     expect(contents.items[0].quantity).toBe(1)
   })
 

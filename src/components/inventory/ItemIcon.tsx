@@ -16,6 +16,15 @@ const SHAPES: Record<Exclude<ItemId, 'unknown_item'>, ReactNode> = {
       <ellipse cx="12" cy="5" rx="6" ry="1.6" fill="#d9dde1" />
     </g>
   ),
+  // AX2: the same tin without its lid, the pull ring up and the food showing.
+  canned_food_open: (
+    <g stroke={O} strokeWidth={SW}>
+      <rect x="6" y="7" width="12" height="13" rx="1.5" fill="#b9bec4" />
+      <rect x="6" y="11" width="12" height="6" fill="#c0463a" />
+      <ellipse cx="12" cy="7" rx="6" ry="1.8" fill="#8a5a36" />
+      <path d="M14 6.5 Q17.5 1.5 19.5 4.5" fill="none" />
+    </g>
+  ),
   chips: (
     <g stroke={O} strokeWidth={SW}>
       <path d="M6 4 L18 4 L17 7 L18.5 12 L17 17 L18 20 L6 20 L7 17 L5.5 12 L7 7 Z" fill="#e8b93a" />

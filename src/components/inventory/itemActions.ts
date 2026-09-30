@@ -1,9 +1,11 @@
-import { getItemDef, type Equipment, type ItemInstance } from '../../game/entities/items'
+import type { Equipment, ItemEffect, ItemInstance } from '../../game/entities/items'
 import { accepts, type Inventory } from '../../game/systems/inventory'
-import { isCarried, isEquipped, itemRefusal, type InventoryKey } from '../../game/systems/inventoryCommands'
+import { isCarried, itemRefusal, type InventoryKey } from '../../game/systems/inventoryCommands'
+import { itemOptions, type ItemOptionId } from '../../game/items/itemActions'
 import { ACTION_LABEL, L, REFUSAL_LABEL } from './labels'
 
-export type ActionId = 'equip' | 'unequip' | 'wear' | 'takeOff' | 'eat' | 'drink' | 'use' | 'repair' | 'transfer' | 'quantity' | 'drop' | 'favorite' | 'unfavorite' | 'inspect'
+/** Item options come from the item action registry (AX2); the rest are what every carried item allows. */
+export type ActionId = ItemOptionId | 'transfer' | 'quantity' | 'drop' | 'favorite' | 'unfavorite' | 'inspect'
 
 export interface MenuEntry {
   key: string
@@ -29,13 +31,13 @@ export interface MenuContext {
   /** Other inventories the player can reach now (never the source). */
   destinations: readonly Destination[]
   isReserved: (item: ItemInstance) => boolean
-  /** Why using a consumable does nothing now (e.g. stats full), or null. */
-  useBlock: (item: ItemInstance) => string | null
+  /** Whether an effect would do anything now (some stat it restores is below its max). */
+  benefits: (effect: ItemEffect) => boolean
+  /** From a container or the floor: one unit fits in the main inventory (using it takes it first). */
+  canTake: (item: ItemInstance) => boolean
   /** Why a weapon cannot be repaired now, or null; undefined when it has no repair recipe. */
   repairBlock: (item: ItemInstance) => string | null | undefined
 }
-
-const USE_ACTION = { food: 'eat', drink: 'drink', medical: 'use' } as const
 
 function transferLabel(source: InventoryKey, dest: Destination): string {
   if (!isCarried(source) && isCarried(dest.key)) return ACTION_LABEL.take(dest.name)
@@ -52,37 +54,24 @@ function transferBlock(ctx: MenuContext, item: ItemInstance, dest: Destination):
 }
 
 /**
- * Context menu entries resolved from the items' capabilities and where they are: equip/wear only
- * from the main inventory, use only what the player carries (main or worn bag), transfer to every
- * other reachable inventory, drop and favorite for carried items, inspect for one item. A disabled
- * entry always says why. Several items: transfer, drop and favorite apply to all that qualify (a
- * batch skips the rest and reports them).
+ * Context menu entries: for one item, the options its components offer (the item action registry:
+ * equip/wear from the main inventory, eat/drink/apply, open, repair; using one from a container or
+ * the floor takes it first); then transfer to every other reachable inventory, drop and favorite for
+ * carried items, inspect for one item. A disabled entry always says why. Several items: transfer,
+ * drop and favorite apply to all that qualify (a batch skips the rest and reports them).
  */
 export function menuEntries(ctx: MenuContext): MenuEntry[] {
   const entries: MenuEntry[] = []
   const one = ctx.items.length === 1 ? ctx.items[0] : null
   const carried = isCarried(ctx.source)
   if (one) {
-    const def = getItemDef(one.itemId)
-    const equipped = isEquipped(one, ctx.equipment)
-    if (one.kind === 'weapon') {
-      entries.push(equipped
-        ? { key: 'unequip', action: 'unequip', label: ACTION_LABEL.unequip, disabled: null }
-        : { key: 'equip', action: 'equip', label: ACTION_LABEL.equip, disabled: ctx.source === 'main' ? null : REFUSAL_LABEL['not-main'] })
-    }
-    if (one.kind === 'bag') {
-      entries.push(equipped
-        ? { key: 'takeOff', action: 'takeOff', label: ACTION_LABEL.takeOff, disabled: ctx.isReserved(one) ? REFUSAL_LABEL.reserved : null }
-        : { key: 'wear', action: 'wear', label: ACTION_LABEL.wear, disabled: ctx.source === 'main' ? null : REFUSAL_LABEL['not-main'] })
-    }
-    if (def.kind === 'food' || def.kind === 'drink' || def.kind === 'medical') {
-      const action = USE_ACTION[def.kind]
-      const disabled = !carried ? REFUSAL_LABEL['not-carried'] : ctx.isReserved(one) ? REFUSAL_LABEL.reserved : ctx.useBlock(one)
-      entries.push({ key: action, action, label: ACTION_LABEL[action], disabled })
-    }
-    const repair = ctx.repairBlock(one)
-    if (one.kind === 'weapon' && repair !== undefined) {
-      entries.push({ key: 'repair', action: 'repair', label: ACTION_LABEL.repair, disabled: ctx.source !== 'main' ? REFUSAL_LABEL['not-main'] : repair })
+    const options = itemOptions({
+      item: one, source: ctx.source, equipment: ctx.equipment, reserved: ctx.isReserved(one),
+      benefits: ctx.benefits, canTake: ctx.canTake(one), repair: ctx.repairBlock,
+    })
+    for (const o of options) {
+      const label = o.opensFirst ? ACTION_LABEL.openAnd(ACTION_LABEL[o.id as 'eat' | 'drink' | 'heal']) : ACTION_LABEL[o.id]
+      entries.push({ key: o.id, action: o.id, label, disabled: o.blocked ? (o.detail ?? REFUSAL_LABEL[o.blocked as Exclude<typeof o.blocked, 'repair'>]) : null })
     }
   }
   for (const dest of ctx.destinations) {

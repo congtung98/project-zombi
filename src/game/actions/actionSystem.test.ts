@@ -84,7 +84,7 @@ function setup(limit = 128) {
   const system: ActionSystem = new ActionSystem(w, { queueLimit: limit, recentRequests: 4 })
   const water = inv.items[0].id
   const ctx: ActionContext = { actorId: 'player', type: SIP.type, target: { kind: 'item', instanceId: water, inventory: 'main' }, source: 'inventory-menu' }
-  const sip = (requestId: string | null = null, data: Partial<SipData> = {}) => system.enqueue<SipData>(SIP.type, ctx, { inv, instanceId: water, ...data }, 'Uống nước', requestId)
+  const sip = (requestId: string | null = null, data: Partial<SipData> = {}) => system.enqueue<SipData>(SIP.type, ctx, { inv, instanceId: water, ...data }, 'Uống nước', { requestId })
   const flush = () => events.flush()
   return { system, player, inv, ledger, water, sip, fired, flush }
 }

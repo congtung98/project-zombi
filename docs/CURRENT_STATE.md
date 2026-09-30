@@ -11,7 +11,24 @@
 > Đọc file này, **docs/town-neighborhood-50.md**, **docs/prefab-library-p1.md**, **docs/prefab-library-p2-p5.md**, **docs/writing-block.md**, **docs/world-generator-wg1.md**, **docs/world-generator-wg2.md**, **docs/world-generator-wg3.md**, **docs/world-generator-wg4.md**, **docs/world-generator-wg5.md**, **docs/world-generator-wg6.md**, **docs/Combat_Stance_Input_Sprint_Plan.md**, **docs/combat-cs1a.md**, **docs/combat-cs1b.md**, **docs/combat-cs1c.md**, **docs/Character_Zombie_Model_Animation_Plan.md**, **docs/character-c0.md**, **docs/character-c1.md**, **docs/character-c2.md**, **docs/character-c3.md**, **docs/character-c4.md**, **docs/character-c5.md**, **docs/character-c6.md**, **docs/character-handbook.md**, **docs/Graphics_Improvement_Implementation_Plan.md**, **docs/graphics-g0.md**, **docs/graphics-g1.md**, **docs/graphics-g2.md**, **docs/graphics-g3a.md**, **docs/graphics-g3b.md**, **docs/graphics-g4.md**, **docs/graphics-g5.md**, **docs/graphics-g6.md**, **docs/graphics-handbook.md**, README.md, toàn bộ Zombie_Outbreak_Phase_2_Plan.md, docs/phase2-s1.md … phase2-s5.md, docs/phase2-vision.md, docs/phase2-lighting.md, docs/refactor-r0-r2.md, docs/Map_Editor_Implementation_Plan.md, docs/map-content-format.md, docs/map-editor-m1-m2.md, docs/refactor-r3b.md, docs/map-editor-m3.md, docs/map-editor-m4.md, docs/map-editor-m5.md, **docs/map-editor-m6.md**, **docs/map-editor-m7.md**, **docs/map-editor-m8.md**, **docs/map-editor-m9.md**, **docs/world-menu.md**, **docs/map-editor-m10.md**, **docs/map-editor-m11a.md**, **docs/map-editor-m11b.md**, **docs/Building_Cutaway_Visibility_Fix_Plan.md**, **docs/map-editor-m11c1a.md**, **docs/map-editor-m11c1b.md**, **docs/map-editor-m11c2.md**, **docs/map-editor-guide.md**.
 > **Người dùng tự commit và push mọi thay đổi. Không tự commit/push. Cập nhật CURRENT_STATE cuối mỗi sprint.**
 
-## 0-AX1. Character Action — AX1 Action core (mới nhất — chi tiết docs/character-action-ax1.md)
+## 0-AX2. Character Action — AX2 Item Action System (mới nhất — chi tiết docs/character-action-ax2.md)
+
+- **Item theo thành phần:** `consumable` (EAT/DRINK/HEAL, phần, giây), `sealed` (mở thành món khác, dụng cụ tùy chọn); món mới `canned_food_open`; đồ hộp niêm phong (D3).
+- **`src/game/items/itemActions.ts`:** registry provider theo thành phần; menu item chỉ render option kèm lý do khóa.
+- **Action có thời gian** `EAT`/`DRINK`/`HEAL`/`OPEN_ITEM` (D4, `defs/use.ts`): giữ chỗ 1 đơn vị, commit một transaction; di chuyển / bị đánh / vung đòn / vào thế (D7) / chết thì hủy, không mất gì.
+- **`runtime.useItem`:** chuỗi job TRANSFER → OPEN_ITEM → dùng (`ActionChain`); job trước không làm được thì job sau không chạy. Dùng thẳng từ tủ / dưới đất; mỗi lần bấm menu có `requestId`.
+- **Bỏ đường dùng tức thời:** `consumeItem`, `activateItem`, `consumeInventoryItem`.
+- **Mốc soak mới:**
+  - shelter 1800 s / 7 kill / 30 dmg;
+  - patrol 812,2 s / 31 kill;
+  - bot dùng đồ khi yên, băng bó lúc máu < 85.
+- **Kiểm chứng:**
+  - 15 test mới, `npm test` 1085 pass;
+  - tsc, oxlint, build, build:editor, check:bundle, map:check sạch;
+  - `il-s2` (bấm "Mở rồi ăn" thật), `il-s3/s4/s5`, `cs1-combat` PASS.
+- **Tiếp theo:** AX3 animation (nhóm pose, món cầm trên tay, socket tay trái).
+
+## 0-AX1. Character Action — AX1 Action core (chi tiết docs/character-action-ax1.md)
 
 - **Chủ dự án duyệt AX0 + D1–D7** (2026-09-30). D5 đổi thành giới hạn hàng đợi 128 vì T26 của INV-LOOT xếp 100 lượt chuyển.
 - **`src/game/actions/`:**

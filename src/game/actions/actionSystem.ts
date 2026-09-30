@@ -3,11 +3,18 @@ import type { JobView } from '../systems/actionQueue'
 import type { ActionCancelReason } from '../systems/timedAction'
 import { applyMutation } from './effects'
 import { getAction } from './registry'
-import type { ActionContext, ActionFailure, ActionJob, ActionType } from './types'
+import type { ActionChain, ActionContext, ActionFailure, ActionJob, ActionType } from './types'
 import type { ActionWorld } from './world'
 
 /** Time sums of many small steps drift by float error: a step within this of its end is done (s). */
 const STEP_EPSILON = 1e-9
+
+export interface EnqueueOptions {
+  /** The request's ID (the first job of a request carries it; a repeat is refused). */
+  requestId?: string | null
+  /** Shared by the jobs of one request that depend on each other in order. */
+  chain?: ActionChain | null
+}
 
 export type EnqueueResult =
   | { ok: true; job: ActionJob; state: 'running' | 'queued' | 'not-started' }
@@ -50,12 +57,13 @@ export class ActionSystem {
    * Add an accepted request. It starts at once when nothing runs (and leaves again when it cannot
    * start: `not-started`, the definition reported why), else it waits its turn (`action:queued`).
    */
-  enqueue<Data>(type: ActionType, ctx: ActionContext, data: Data, label: string, requestId: string | null = null): EnqueueResult {
+  enqueue<Data>(type: ActionType, ctx: ActionContext, data: Data, label: string, opts: EnqueueOptions = {}): EnqueueResult {
+    const requestId = opts.requestId ?? null
     const refused = this.refusal(requestId)
     if (refused) return { ok: false, reason: refused }
     if (requestId) this.remember(requestId)
     const def = getAction<Data>(type)
-    const job: ActionJob<Data> = { id: this.nextId++, requestId, type, label, def, ctx, status: 'queued', step: null, data }
+    const job: ActionJob<Data> = { id: this.nextId++, requestId, type, label, def, ctx, status: 'queued', step: null, data, chain: opts.chain ?? null }
     this.jobs.push(job as ActionJob)
     if (this.jobs[0] !== (job as ActionJob)) {
       this.w.events.queue('action:queued', { id: job.id, label })
@@ -114,8 +122,8 @@ export class ActionSystem {
   cancel(id: number, reason: ActionCancelReason): boolean {
     const index = this.jobs.findIndex((j) => j.id === id)
     if (index < 0) return false
-    const [job] = this.jobs.splice(index, 1)
-    job.status = 'cancelled'
+    const job = this.jobs[index]
+    this.leave(job, 'cancelled')
     this.w.ledger.release(job.id)
     this.w.events.queue('action:cancelled', { id: job.id, label: job.label, reason, dropped: 0 })
     job.def.cancelled?.(job, this.w)
@@ -145,14 +153,19 @@ export class ActionSystem {
 
   /** Its turn: the definition checks again and reserves; false when it left the queue instead. */
   private begin(job: ActionJob): boolean {
+    if (job.chain?.broken) {
+      // What it depended on did not happen (nothing taken, nothing opened): it leaves quietly.
+      this.leave(job, 'cancelled')
+      this.w.inventoryChanged()
+      return false
+    }
     const step = job.def.begin(job, this.w)
     if (step) {
       job.step = step
       job.status = 'running'
       return true
     }
-    this.remove(job)
-    job.status = job.status === 'queued' ? 'failed' : 'completed'
+    this.leave(job, job.status === 'queued' ? 'failed' : 'completed')
     job.def.ended?.(job, this.w)
     return false
   }
@@ -171,8 +184,7 @@ export class ActionSystem {
     if (outcome.mutation) {
       const result = applyMutation(outcome.mutation, { player: this.w.player, events: this.w.events })
       if (!result.ok) {
-        this.remove(job)
-        job.status = 'failed'
+        this.leave(job, 'failed')
         this.w.events.queue('action:failed', { id: job.id, label: job.label, reason: result.failure })
         job.def.ended?.(job, this.w)
         this.w.inventoryChanged()
@@ -180,16 +192,17 @@ export class ActionSystem {
       }
       applied = true
     }
-    if (outcome.next === 'done') {
-      this.remove(job)
-      job.status = 'completed'
-    } else job.status = 'running'
+    if (outcome.next === 'done') this.leave(job, 'completed')
+    else job.status = 'running'
     return applied
   }
 
-  private remove(job: ActionJob): void {
+  /** Out of the queue with its final status; a job that did not do its part breaks its chain. */
+  private leave(job: ActionJob, status: 'completed' | 'failed' | 'cancelled'): void {
     const index = this.jobs.indexOf(job)
     if (index >= 0) this.jobs.splice(index, 1)
+    job.status = status
+    if (job.chain && !(status === 'completed' && (job.def.succeeded?.(job) ?? true))) job.chain.broken = true
   }
 
   private remember(requestId: string): void {

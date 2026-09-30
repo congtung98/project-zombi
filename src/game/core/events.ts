@@ -66,6 +66,8 @@ export type GameEvents = {
   'inventory:changed': { inventoryOpen: boolean; containerId: string | null }
   'item:used': { itemId: ItemId; name: string; effect: ItemEffect }
   'item:useFailed': { itemId: ItemId; name: string; reason: UseItemFailure }
+  /** AX2: one unit of a sealed item was opened (it became `to`). */
+  'item:opened': { itemId: ItemId; name: string; to: ItemId }
   /** P2-S4 timed craft/repair: started (reserved), rejected at start, cancelled, failed at commit, completed. */
   'action:started': { id: number; kind: 'craft' | 'repair'; label: string; duration: number }
   'action:rejected': { label: string; reason: CraftFailure | 'busy' | 'dead' | 'missing-carried' | 'already-queued' | 'queue-full' }
